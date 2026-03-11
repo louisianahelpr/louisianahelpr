@@ -15,6 +15,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
 import Activity from "./pages/Activity";
 import Messages from "./pages/Messages";
+import Support from "./pages/Support";
 import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
 

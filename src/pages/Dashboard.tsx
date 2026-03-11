@@ -239,7 +239,7 @@ const Dashboard = () => {
               <HelperBadges badges={posterBadges} />
             </div>
           </div>
-          {showApply && (
+          {showApply && user?.id !== job.customer_id && (
             <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
               <Button size="sm" onClick={() => handleApply(job.id)}>Apply</Button>
               <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}><Flag className="w-3.5 h-3.5" /></Button>

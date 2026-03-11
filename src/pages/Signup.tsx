@@ -190,7 +190,7 @@ const Signup = () => {
           <div className="space-y-4">
             {/* Avatar upload */}
             <div className="flex flex-col items-center gap-3">
-              <Label>Profile picture <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Profile picture <span className="text-destructive text-xs">*</span></Label>
               <label className="cursor-pointer group">
                 <div className="w-24 h-24 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary">
                   {avatarPreview ? (

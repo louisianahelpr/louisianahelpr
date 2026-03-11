@@ -273,6 +273,37 @@ const PostJob = () => {
                   <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
                 </div>
 
+                {/* Recurring Job */}
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Repeat className="w-4 h-4 text-primary" />
+                      <Label htmlFor="recurring" className="cursor-pointer">Recurring task</Label>
+                    </div>
+                    <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                  </div>
+                  {isRecurring && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-2">
+                        <Label>Frequency</Label>
+                        <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Until</Label>
+                        <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button type="submit" className="w-full" size="lg">
                   Review & Pay
                 </Button>

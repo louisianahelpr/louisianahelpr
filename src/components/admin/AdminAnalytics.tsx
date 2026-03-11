@@ -26,7 +26,6 @@ const AdminAnalytics = () => {
       const jobs = jobsRes.data || [];
 
       const completedJobs = jobs.filter((j) => j.status === "completed");
-      const escrowJobs = jobs.filter((j) => j.payment_status === "escrow" || j.payment_status === "released");
 
       setStats({
         totalUsers: profiles.length,
@@ -35,8 +34,8 @@ const AdminAnalytics = () => {
         totalJobs: jobs.length,
         openJobs: jobs.filter((j) => j.status === "open").length,
         completedJobs: completedJobs.length,
-        totalRevenue: escrowJobs.reduce((sum, j) => sum + (j.budget || 0), 0),
-        totalFees: escrowJobs.reduce((sum, j) => sum + (j.platform_fee_amount || 0), 0),
+        totalRevenue: completedJobs.reduce((sum, j) => sum + (j.budget || 0), 0),
+        totalFees: completedJobs.reduce((sum, j) => sum + (j.platform_fee_amount || 0), 0),
       });
       setLoading(false);
     };

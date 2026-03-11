@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ImagePlus, X } from "lucide-react";
+import {
+  ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
+  CreditCard, Shield, ChevronLeft, Briefcase,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const categories = [
@@ -22,9 +25,12 @@ const categories = [
   { value: "other", label: "Other" },
 ];
 
+type Step = "form" | "checkout";
+
 const PostJob = () => {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<Step>("form");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -34,6 +40,7 @@ const PostJob = () => {
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
+  const [platformFee, setPlatformFee] = useState(15);
 
   // Image upload state
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -44,6 +51,10 @@ const PostJob = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate("/login");
     });
+    supabase.from("platform_settings").select("platform_fee_percent").limit(1).single()
+      .then(({ data }) => {
+        if (data) setPlatformFee(data.platform_fee_percent);
+      });
   }, [navigate]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,7 +65,6 @@ const PostJob = () => {
     }
     const newFiles = [...imageFiles, ...files].slice(0, 5);
     setImageFiles(newFiles);
-    // Generate previews
     const previews = newFiles.map((f) => URL.createObjectURL(f));
     setImagePreviews(previews);
   };
@@ -81,8 +91,12 @@ const PostJob = () => {
     return urls;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
+    setStep("checkout");
+  };
+
+  const handleSubmit = async () => {
     setSaving(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -92,7 +106,6 @@ const PostJob = () => {
       return;
     }
 
-    // Upload images first if any
     let photoUrls: string[] = [];
 
     const { data: jobData, error } = await supabase.from("jobs").insert({
@@ -114,7 +127,6 @@ const PostJob = () => {
       return;
     }
 
-    // Upload images after job creation
     if (imageFiles.length > 0) {
       setUploading(true);
       photoUrls = await uploadImages(jobData.id);
@@ -124,7 +136,6 @@ const PostJob = () => {
       setUploading(false);
     }
 
-    // Trigger escrow payment
     toast.info("Redirecting to payment…");
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
       body: { action: "escrow", jobId: jobData.id },
@@ -139,11 +150,17 @@ const PostJob = () => {
     }
   };
 
+  const budgetNum = parseFloat(budget) || 0;
+  const feeAmount = budgetNum * (platformFee / 100);
+  const totalCharge = budgetNum + feeAmount;
+  const helperEarns = budgetNum;
+  const categoryLabel = categories.find((c) => c.value === category)?.label || category;
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+          <Button variant="ghost" size="icon" onClick={() => step === "checkout" ? setStep("form") : navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
@@ -152,102 +169,242 @@ const PostJob = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-lg mx-auto space-y-8">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
-            <p className="text-muted-foreground mt-1">Describe what you need help with</p>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="title">Task title</Label>
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
-            </div>
+          {/* STEP 1: FORM */}
+          {step === "form" && (
+            <>
+              <div>
+                <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
+                <p className="text-muted-foreground mt-1">Describe what you need help with</p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
-            </div>
+              <form onSubmit={handleReview} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Task title</Label>
+                  <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
+                </div>
 
-            {/* Image Upload */}
-            <div className="space-y-2">
-              <Label>Photos (optional, max 5)</Label>
-              <div className="flex flex-wrap gap-3">
-                {imagePreviews.map((src, i) => (
-                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
+                </div>
+
+                {/* Image Upload */}
+                <div className="space-y-2">
+                  <Label>Photos (optional, max 5)</Label>
+                  <div className="flex flex-wrap gap-3">
+                    {imagePreviews.map((src, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {imageFiles.length < 5 && (
+                      <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                        <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleImageSelect}
+                        />
+                      </label>
+                    )}
                   </div>
-                ))}
-                {imageFiles.length < 5 && (
-                  <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                    <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageSelect}
-                    />
-                  </label>
-                )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Address or area" required maxLength={200} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date needed</Label>
+                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Start time</Label>
+                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hours">Estimated hours</Label>
+                    <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">Budget ($)</Label>
+                    <Input id="budget" type="number" step="1" min="5" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requirements">Special requirements (optional)</Label>
+                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
+                </div>
+
+                <Button type="submit" className="w-full" size="lg">
+                  Review & Pay
+                </Button>
+              </form>
+            </>
+          )}
+
+          {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
+          {step === "checkout" && (
+            <>
+              <div>
+                <h1 className="text-3xl font-display font-bold text-foreground">Order Summary</h1>
+                <p className="text-muted-foreground mt-1">Review your task before paying</p>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Task Details Card */}
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-display font-bold text-foreground">{title}</h2>
+                      <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                        {categoryLabel}
+                      </span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setStep("form")} className="text-xs text-muted-foreground">
+                      <ChevronLeft className="w-3 h-3 mr-1" /> Edit
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{description}</p>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Address or area" required maxLength={200} />
-            </div>
+                  {/* Photos */}
+                  {imagePreviews.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {imagePreviews.map((src, i) => (
+                        <img key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
+                      ))}
+                    </div>
+                  )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date needed</Label>
-                <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} required />
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4 text-primary shrink-0" />
+                      <span>{location}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4 text-primary shrink-0" />
+                      <span>{new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    </div>
+                    {startTime && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4 text-primary shrink-0" />
+                        <span>{startTime}</span>
+                      </div>
+                    )}
+                    {estimatedHours && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Briefcase className="w-4 h-4 text-primary shrink-0" />
+                        <span>{estimatedHours}h estimated</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {specialRequirements && (
+                    <div className="rounded-lg bg-secondary/30 p-3 mt-2">
+                      <p className="text-xs text-muted-foreground font-medium mb-1">Special Requirements</p>
+                      <p className="text-sm text-foreground">{specialRequirements}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Start time</Label>
-                <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="hours">Estimated hours</Label>
-                <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" />
+              {/* Payment Breakdown Card */}
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="px-5 py-4 border-b border-border">
+                  <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
+                  </h3>
+                </div>
+                <div className="p-5 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Task budget (helper receives)</span>
+                    <span className="font-medium text-foreground">${helperEarns.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
+                    <span className="font-medium text-foreground">${feeAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-foreground">Total</span>
+                    <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget">Budget ($)</Label>
-                <Input id="budget" type="number" step="1" min="5" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
+
+              {/* Trust Signals */}
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Secure Escrow Payment</p>
+                    <p className="text-xs text-muted-foreground">Your payment is held securely until the job is completed to your satisfaction.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Money-Back Guarantee</p>
+                    <p className="text-xs text-muted-foreground">If the job isn't completed, your payment will be refunded.</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="requirements">Special requirements (optional)</Label>
-              <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
-            </div>
-
-            <Button type="submit" className="w-full" size="lg" disabled={saving || uploading}>
-              {uploading ? "Uploading photos…" : saving ? "Posting…" : "Post task"}
-            </Button>
-          </form>
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleSubmit}
+                  disabled={saving || uploading}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${totalCharge.toFixed(2)}`}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => setStep("form")}
+                  disabled={saving}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Back to edit
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </main>
     </div>

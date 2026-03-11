@@ -277,6 +277,31 @@ const AdminUsers = () => {
                 </div>
               )}
 
+              {/* Portfolio & Documents */}
+              {((viewProfile as any).portfolio_urls as string[] || []).length > 0 && (
+                <div>
+                  <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
+                    <FileText className="w-3 h-3" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[]).length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
+                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                      const fileName = url.split("/").pop() || "Document";
+                      return isImage ? (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors block">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </a>
+                      ) : (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1 hover:border-primary transition-colors">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <p className="text-[8px] text-muted-foreground text-center mt-0.5 truncate w-full">{fileName}</p>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Reviews */}
               <div>
                 <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">

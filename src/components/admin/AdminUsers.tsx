@@ -171,7 +171,7 @@ const AdminUsers = () => {
       ) : (
         <div className="space-y-3">
           {filtered.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
+            <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-2 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -186,10 +186,7 @@ const AdminUsers = () => {
                   </div>
                   {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                 </div>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => openProfile(p)}>
-                    <Eye className="w-4 h-4 mr-1" /> View
-                  </Button>
+                <div className="flex gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   {p.approval_status === "pending" && (
                     <>
                       <Button size="sm" onClick={() => approveUser(p)}>

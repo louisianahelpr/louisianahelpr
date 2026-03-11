@@ -150,12 +150,14 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
           avatar_url: string | null
           bio: string | null
           created_at: string
           full_name: string | null
           hourly_rate: number | null
           id: string
+          id_document_url: string | null
           location: string | null
           phone: string | null
           role: string
@@ -164,12 +166,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_status?: string
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
+          id_document_url?: string | null
           location?: string | null
           phone?: string | null
           role?: string
@@ -178,12 +182,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_status?: string
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
+          id_document_url?: string | null
           location?: string | null
           phone?: string | null
           role?: string

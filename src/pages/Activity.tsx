@@ -497,6 +497,16 @@ const Activity = () => {
                         )}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
 
+                        {/* Completion status for helper */}
+                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && ((app.job as any)?.poster_completed_at || (app.job as any)?.helper_completed_at) && (
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            {(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
+                            {(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Poster confirmed</span>}
+                            {!(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                            {!(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for poster</span>}
+                          </div>
+                        )}
+
                         {/* Revision requested notice for helper */}
                         {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (
                           <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">

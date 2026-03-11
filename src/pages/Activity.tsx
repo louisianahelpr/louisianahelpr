@@ -997,6 +997,7 @@ const Activity = () => {
           jobTitle={cancelDialogJob.title}
           jobDate={cancelDialogJob.date_needed}
           userId={user.id}
+          hasHelper={!!cancelDialogJob.helper_id}
           open={!!cancelDialogJob}
           onClose={() => setCancelDialogJob(null)}
           onCancelled={() => { if (user) loadData(user.id); }}

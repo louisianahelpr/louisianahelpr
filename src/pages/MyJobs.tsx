@@ -261,7 +261,7 @@ const MyJobs = () => {
                         </div>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>
-                          <Gift className="w-4 h-4 mr-1" /> Tip helper
+                          <Gift className="w-4 h-4 mr-1" /> Tip helpr
                         </Button>
                       )}
                     </div>

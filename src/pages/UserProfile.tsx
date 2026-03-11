@@ -244,6 +244,18 @@ const UserProfile = () => {
             </div>
           )}
 
+          {/* Portfolio */}
+          {profile.role === "helper" && <HelperPortfolio helperId={userId!} />}
+
+          {/* Retainer */}
+          {!isOwnProfile && currentUserId && profile.role === "helper" && (
+            <RetainerAgreement
+              customerId={currentUserId}
+              helperId={userId!}
+              helperName={profile.full_name || "Helper"}
+            />
+          )}
+
           {/* Reviews */}
           <div className="space-y-3">
             <h2 className="text-lg font-display font-semibold text-foreground">Reviews ({stats.reviewCount})</h2>

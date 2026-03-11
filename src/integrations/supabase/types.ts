@@ -770,6 +770,7 @@ export type Database = {
           portfolio_urls: string[] | null
           role: string
           skills: string | null
+          stripe_account_id: string | null
           updated_at: string
           user_id: string
         }
@@ -797,6 +798,7 @@ export type Database = {
           portfolio_urls?: string[] | null
           role?: string
           skills?: string | null
+          stripe_account_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -824,6 +826,7 @@ export type Database = {
           portfolio_urls?: string[] | null
           role?: string
           skills?: string | null
+          stripe_account_id?: string | null
           updated_at?: string
           user_id?: string
         }

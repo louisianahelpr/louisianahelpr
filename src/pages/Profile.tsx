@@ -15,6 +15,7 @@ import {
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
+import { PaymentTab } from "@/components/PaymentTab";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -761,40 +762,11 @@ const ProfilePage = () => {
 
           {/* PAYMENT TAB */}
           {tab === "payment" && (
-            <div className="space-y-6">
-              <h1 className="text-2xl font-display font-bold text-foreground">Payment Settings</h1>
-
-              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-primary" /> Payment Methods
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Payments are securely processed through Stripe. Your card details are saved with Stripe and never stored on our servers.
-                </p>
-                <div className="rounded-lg bg-secondary/30 border border-border p-4 text-center">
-                  <CreditCard className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Your payment methods are managed securely through Stripe during checkout.</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-primary" /> Payment Summary
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-secondary/30 p-3">
-                    <p className="text-xs text-muted-foreground">Total Spent</p>
-                    <p className="text-lg font-bold text-foreground">
-                      ${earningsJobs.length > 0 ? earningsJobs.filter(j => j.status === "completed").reduce((s, j) => s + j.budget, 0).toFixed(2) : "0.00"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-secondary/30 p-3">
-                    <p className="text-xs text-muted-foreground">Total Earned</p>
-                    <p className="text-lg font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PaymentTab
+              role={role}
+              earningsJobs={earningsJobs}
+              totalEarnings={totalEarnings}
+            />
           )}
 
           {/* ACCOUNT SECURITY TAB */}

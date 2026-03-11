@@ -68,7 +68,7 @@ const AdminAnalytics = () => {
   if (loading) return <p className="text-muted-foreground">Loading analytics…</p>;
 
   const cards = [
-    { key: "users" as DrillDown, label: "Total Users", value: stats.totalUsers, sub: `${stats.totalCustomers} customers · ${stats.totalHelpers} helpers`, icon: Users },
+    { key: "users" as DrillDown, label: "Total Users", value: stats.totalUsers, sub: `${stats.totalUsers} registered users`, icon: Users },
     { key: "jobs" as DrillDown, label: "Total Jobs", value: stats.totalJobs, sub: `${stats.openJobs} open · ${stats.inProgressJobs} active · ${stats.completedJobs} done`, icon: Briefcase },
     { key: "revenue" as DrillDown, label: "Total Revenue", value: `$${stats.totalRevenue.toFixed(2)}`, sub: `From ${stats.completedJobs} completed jobs`, icon: DollarSign },
     { key: "fees" as DrillDown, label: "Platform Fees", value: `$${stats.totalFees.toFixed(2)}`, sub: "Helpr's earnings", icon: TrendingUp },

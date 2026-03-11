@@ -2,29 +2,52 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, LayoutDashboard } from "lucide-react";
+import { LogOut, User, Briefcase, LayoutDashboard, Search, ClipboardList } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+type Job = Database["public"]["Tables"]["jobs"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<SupaUser | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [myJobs, setMyJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (!session?.user) navigate("/login");
+      if (!session?.user) {
+        navigate("/login");
+        return;
+      }
+      setUser(session.user);
+      loadData(session.user.id);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (!session?.user) navigate("/login");
+      if (!session?.user) {
+        navigate("/login");
+        return;
+      }
+      setUser(session.user);
+      loadData(session.user.id);
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const loadData = async (userId: string) => {
+    const [profileRes, jobsRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).single(),
+      supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    if (profileRes.data) setProfile(profileRes.data);
+    if (jobsRes.data) setMyJobs(jobsRes.data);
+    setLoading(false);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -39,22 +62,16 @@ const Dashboard = () => {
     );
   }
 
-  const metadata = user?.user_metadata;
-  const role = metadata?.role || "customer";
-  const fullName = metadata?.full_name || "User";
+  const role = profile?.role || user?.user_metadata?.role || "customer";
+  const fullName = profile?.full_name || user?.user_metadata?.full_name || "User";
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <Link to="/" className="text-2xl font-display font-bold text-primary">
-            Helpr
-          </Link>
+          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              {fullName}
-            </span>
+            <span className="text-sm text-muted-foreground hidden sm:block">{fullName}</span>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
             </Button>
@@ -75,31 +92,55 @@ const Dashboard = () => {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <DashCard
-              icon={<LayoutDashboard className="w-5 h-5 text-primary" />}
-              title="Your dashboard"
-              desc={role === "helper" ? "View jobs you've applied to and upcoming work." : "Manage your posted tasks and applicants."}
-            />
-            <DashCard
               icon={<User className="w-5 h-5 text-primary" />}
               title="Edit profile"
               desc="Update your info, skills, and availability."
               onClick={() => navigate("/profile")}
             />
+
             {role === "customer" && (
-              <DashCard
-                icon={<Briefcase className="w-5 h-5 text-primary" />}
-                title="Post a task"
-                desc="Create a new job listing for helpers to apply to."
-              />
+              <>
+                <DashCard
+                  icon={<Briefcase className="w-5 h-5 text-primary" />}
+                  title="Post a task"
+                  desc="Create a new job listing for helpers to apply to."
+                  onClick={() => navigate("/post-job")}
+                />
+                <DashCard
+                  icon={<ClipboardList className="w-5 h-5 text-primary" />}
+                  title="My posted tasks"
+                  desc={`You have ${myJobs.length} task${myJobs.length !== 1 ? "s" : ""} posted.`}
+                  onClick={() => navigate("/my-jobs")}
+                />
+              </>
             )}
+
             {role === "helper" && (
               <DashCard
-                icon={<Briefcase className="w-5 h-5 text-primary" />}
+                icon={<Search className="w-5 h-5 text-primary" />}
                 title="Browse tasks"
                 desc="Find available jobs in your area."
+                onClick={() => navigate("/browse-jobs")}
               />
             )}
           </div>
+
+          {/* Recent jobs for customers */}
+          {role === "customer" && myJobs.length > 0 && (
+            <div>
+              <h2 className="text-xl font-display font-semibold text-foreground mb-4">Recent tasks</h2>
+              <div className="space-y-3">
+                {myJobs.map((job) => (
+                  <div key={job.id} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-foreground">{job.title}</p>
+                      <p className="text-sm text-muted-foreground capitalize">{job.status.replace("_", " ")} · ${job.budget}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
@@ -107,15 +148,9 @@ const Dashboard = () => {
 };
 
 const DashCard = ({
-  icon,
-  title,
-  desc,
-  onClick,
+  icon, title, desc, onClick,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-  onClick?: () => void;
+  icon: React.ReactNode; title: string; desc: string; onClick?: () => void;
 }) => (
   <button
     onClick={onClick}

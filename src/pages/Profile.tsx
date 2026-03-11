@@ -8,10 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -29,8 +33,7 @@ const Profile = () => {
         return;
       }
       setUser(session.user);
-      populateFields(session.user);
-      setLoading(false);
+      loadProfile(session.user.id);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -39,36 +42,48 @@ const Profile = () => {
         return;
       }
       setUser(session.user);
-      populateFields(session.user);
-      setLoading(false);
+      loadProfile(session.user.id);
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const populateFields = (u: User) => {
-    const m = u.user_metadata;
-    setFullName(m?.full_name || "");
-    setPhone(m?.phone || "");
-    setLocation(m?.location || "");
-    setBio(m?.bio || "");
-    setSkills(m?.skills || "");
-    setHourlyRate(m?.hourly_rate || "");
+  const loadProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (data) {
+      setProfile(data);
+      setFullName(data.full_name || "");
+      setPhone(data.phone || "");
+      setLocation(data.location || "");
+      setBio(data.bio || "");
+      setSkills(data.skills || "");
+      setHourlyRate(data.hourly_rate?.toString() || "");
+    }
+    setLoading(false);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        full_name: fullName,
-        phone,
-        location,
-        bio,
-        skills,
-        hourly_rate: hourlyRate,
-      },
-    });
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        location: location.trim(),
+        bio: bio.trim(),
+        skills: skills.trim(),
+        hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
+      })
+      .eq("user_id", user.id);
+
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -85,7 +100,7 @@ const Profile = () => {
     );
   }
 
-  const role = user?.user_metadata?.role || "customer";
+  const role = profile?.role || "customer";
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,9 +109,7 @@ const Profile = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <Link to="/" className="text-2xl font-display font-bold text-primary">
-            Helpr
-          </Link>
+          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
         </div>
       </header>
 

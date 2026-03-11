@@ -976,7 +976,7 @@ const Activity = () => {
               Are you sure the helper didn't show up? This will:
             </p>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
-              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helper (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
+              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helpr (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
               <li>Reopen your job so you can pick another applicant</li>
               <li>Notify the admin team</li>
             </ul>

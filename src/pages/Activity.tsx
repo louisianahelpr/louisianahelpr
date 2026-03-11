@@ -64,6 +64,8 @@ const Activity = () => {
   const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
+  const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
+  const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState("");

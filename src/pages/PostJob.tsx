@@ -482,7 +482,7 @@ const PostJob = () => {
                         className="w-24"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helper
+                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
                       </p>
                     </div>
                   )}

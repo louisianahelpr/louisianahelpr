@@ -59,7 +59,8 @@ const Activity = () => {
   const [boostJobId, setBoostJobId] = useState<string | null>(null);
   const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
   const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
-
+  const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
+  const [reportingNoShow, setReportingNoShow] = useState(false);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState("");
@@ -309,6 +310,64 @@ const Activity = () => {
     setReviewJob(job);
   };
 
+  const handleNoShow = async (jobId: string) => {
+    if (!user) return;
+    setReportingNoShow(true);
+    try {
+      const job = postedJobs.find((j) => j.id === jobId);
+      if (!job?.helper_id) return;
+
+      const { data: existing } = await (supabase.from("user_violations" as any) as any)
+        .select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
+      const priorCount = (existing as any[] | null)?.length || 0;
+
+      await (supabase.from("user_violations" as any) as any).insert({
+        user_id: job.helper_id, violation_type: "no_show",
+        description: `No-show for job: ${job.title}`, job_id: jobId,
+        reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning",
+      });
+
+      if (priorCount >= 1) {
+        await (supabase.from("user_bans" as any) as any).insert({
+          user_id: job.helper_id, ban_type: "permanent",
+          reason: "Repeated no-show violations", banned_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", job.helper_id);
+      } else {
+        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", job.helper_id);
+      }
+
+      await supabase.from("notifications").insert({
+        user_id: job.helper_id,
+        title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning",
+        message: priorCount >= 1
+          ? "Your account has been permanently banned for repeated no-shows."
+          : `You received a no-show warning for "${job.title}". Another no-show will result in a permanent ban.`,
+        type: "warning", link: "/profile",
+      });
+
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRoles) {
+        for (const admin of adminRoles) {
+          await supabase.from("notifications").insert({
+            user_id: admin.user_id, title: "🚫 No-show reported",
+            message: `Helper no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
+            type: "warning", link: "/admin",
+          });
+        }
+      }
+
+      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+      toast.success("No-show reported. Job reopened so you can pick another applicant.");
+      loadData(user.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to report no-show");
+    } finally {
+      setReportingNoShow(false);
+      setNoShowJobId(null);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
   }
@@ -394,9 +453,15 @@ const Activity = () => {
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
                               {job.status === "in_progress" && (
-                                <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
-                                  <AlertTriangle className="w-4 h-4 mr-1" /> Revision
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
+                                    <AlertTriangle className="w-4 h-4 mr-1" /> Revision
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    onClick={() => setNoShowJobId(job.id)}>
+                                    No-Show
+                                  </Button>
+                                </>
                               )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
@@ -705,6 +770,33 @@ const Activity = () => {
           onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); }}
         />
       )}
+
+      {/* No-Show Confirmation Dialog */}
+      <Dialog open={!!noShowJobId} onOpenChange={() => setNoShowJobId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" /> Report No-Show
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Are you sure the helper didn't show up? This will:
+            </p>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helper (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
+              <li>Reopen your job so you can pick another applicant</li>
+              <li>Notify the admin team</li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNoShowJobId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => noShowJobId && handleNoShow(noShowJobId)} disabled={reportingNoShow}>
+              {reportingNoShow ? "Reporting…" : "Confirm No-Show"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

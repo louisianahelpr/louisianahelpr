@@ -111,7 +111,7 @@ const Signup = () => {
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/account-pending`,
           data: { full_name: fullName, role: "customer" },
         },
       });

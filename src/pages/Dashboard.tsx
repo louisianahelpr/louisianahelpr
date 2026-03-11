@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, LayoutDashboard, Search, ClipboardList } from "lucide-react";
+import { LogOut, User, Briefcase, Search, ClipboardList, Shield } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 

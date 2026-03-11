@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, Search, ClipboardList, Shield, Clock, XCircle } from "lucide-react";
+import { LogOut, User, Briefcase, Search, ClipboardList, Shield, Clock, XCircle, DollarSign } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -157,6 +157,12 @@ const Dashboard = () => {
               title="Browse tasks"
               desc="Find available jobs in your area."
               onClick={() => navigate("/browse-jobs")}
+            />
+            <DashCard
+              icon={<DollarSign className="w-5 h-5 text-primary" />}
+              title="My earnings"
+              desc="View your completed jobs, payouts, and tips."
+              onClick={() => navigate("/earnings")}
             />
 
             {isAdmin && (

@@ -11,7 +11,7 @@ const Signup = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"customer" | "helper">("customer");
+  const role = "customer";
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {

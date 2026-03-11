@@ -24,6 +24,7 @@ import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
 import FavoriteHelpers from "./pages/FavoriteHelpers";
 import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 

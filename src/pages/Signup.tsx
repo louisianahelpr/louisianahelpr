@@ -83,34 +83,6 @@ const Signup = () => {
             />
           </div>
 
-          {/* Role selector */}
-          <div className="space-y-2">
-            <Label>I want to…</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole("customer")}
-                className={`rounded-lg border-2 p-3 text-center text-sm font-medium transition-colors ${
-                  role === "customer"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40"
-                }`}
-              >
-                Post tasks
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("helper")}
-                className={`rounded-lg border-2 p-3 text-center text-sm font-medium transition-colors ${
-                  role === "helper"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40"
-                }`}
-              >
-                Help others
-              </button>
-            </div>
-          </div>
 
           <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? "Creating account..." : "Create account"}

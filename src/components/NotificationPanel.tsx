@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star } from "lucide-react";
+import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, BellRing } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { isPushSupported, registerServiceWorker, requestPushPermission, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
+import { toast } from "sonner";
 
 type Notification = {
   id: string;
@@ -30,6 +32,8 @@ const NotificationPanel = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
 
   const loadNotifications = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -46,17 +50,43 @@ const NotificationPanel = () => {
   useEffect(() => {
     loadNotifications();
 
-    // Realtime subscription
+    // Check push support
+    const supported = isPushSupported();
+    setPushSupported(supported);
+    if (supported) {
+      setPushEnabled(getPushPermission() === "granted");
+      registerServiceWorker();
+    }
+
+    // Realtime subscription — also trigger browser push for new notifications
     const channel = supabase
       .channel("notifications-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
         const n = payload.new as Notification;
-        setNotifications((prev) => [n, ...prev]);
+        // Only show if it's for the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && n.user_id === user.id) {
+          setNotifications((prev) => [n, ...prev]);
+          // Trigger browser push if enabled and tab is not focused
+          if (document.hidden && getPushPermission() === "granted") {
+            showLocalNotification(n.title, n.message, n.link || undefined);
+          }
+        }
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const enablePush = async () => {
+    const granted = await requestPushPermission();
+    if (granted) {
+      setPushEnabled(true);
+      toast.success("Push notifications enabled!");
+    } else {
+      toast.error("Notifications permission denied. Enable in browser settings.");
+    }
+  };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

@@ -329,13 +329,16 @@ const ProfilePage = () => {
                   <p className="text-2xl font-bold text-foreground">${totalEarned.toFixed(0)}</p>
                   <p className="text-xs text-muted-foreground">Earned</p>
                 </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <button
+                  onClick={() => setTab("reviews")}
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:bg-secondary/50 transition-colors"
+                >
                   <div className="flex items-center justify-center gap-1">
                     <Star className="w-4 h-4 text-primary fill-primary" />
                     <p className="text-2xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Rating</p>
-                </div>
+                  <p className="text-xs text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
+                </button>
               </div>
 
               {/* Vertical menu */}

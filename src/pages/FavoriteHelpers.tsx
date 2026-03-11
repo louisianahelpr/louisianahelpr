@@ -163,7 +163,7 @@ const FavoriteHelpers = () => {
                         variant="ghost"
                         size="icon"
                         className="shrink-0"
-                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id, p?.full_name || "helper"); }}
+                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id, p?.full_name || "helpr"); }}
                       >
                         <Heart className="w-4 h-4 fill-destructive text-destructive" />
                       </Button>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -95,7 +95,12 @@ const AdminUsers = () => {
   const denyUser = async () => {
     if (!denyProfile) return;
     setDenying(true);
-    const { error } = await supabase.from("profiles").update({ approval_status: "denied" }).eq("id", denyProfile.id);
+    const { error } = await supabase.from("profiles").update({
+      approval_status: "denied",
+      denial_reason: denyReason.trim() || null,
+      denial_email_count: 1,
+      last_denial_email_at: new Date().toISOString(),
+    } as any).eq("id", denyProfile.id);
     if (error) {
       toast.error(error.message);
     } else {
@@ -117,6 +122,32 @@ const AdminUsers = () => {
       setViewProfile(null);
     }
     setDenying(false);
+  };
+
+  const [resending, setResending] = useState<string | null>(null);
+
+  const resendDenialEmail = async (profile: Profile) => {
+    setResending(profile.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-account-status-email", {
+        body: { userId: profile.user_id, status: "denied", reason: (profile as any).denial_reason || "" },
+      });
+      if (error) throw error;
+
+      // Update count
+      await supabase.from("profiles").update({
+        denial_email_count: ((profile as any).denial_email_count || 0) + 1,
+        last_denial_email_at: new Date().toISOString(),
+      } as any).eq("id", profile.id);
+
+      toast.success("Denial email resent");
+      loadProfiles();
+    } catch (err: any) {
+      toast.error("Failed to resend email");
+      console.error(err);
+    } finally {
+      setResending(null);
+    }
   };
 
   const handleBanAction = async () => {
@@ -314,6 +345,11 @@ const AdminUsers = () => {
                       <ShieldAlert className="w-4 h-4" />
                     </Button>
                   )}
+                  {p.approval_status === "denied" && (
+                    <Button size="sm" variant="outline" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>
+                      <MailIcon className="w-4 h-4 mr-1" /> {resending === p.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Resend"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -471,6 +507,29 @@ const AdminUsers = () => {
                 )}
               </div>
 
+              {/* Denial email tracking */}
+              {viewProfile.approval_status === "denied" && (
+                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Emails sent: {(viewProfile as any).denial_email_count || 0} / 3</span>
+                    {(viewProfile as any).last_denial_email_at && (
+                      <span>Last sent: {new Date((viewProfile as any).last_denial_email_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                  {(viewProfile as any).denial_reason && (
+                    <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {((viewProfile as any).denial_email_count || 0) < 3
+                      ? "Auto-resends every 3 days until they resubmit (max 3 emails)."
+                      : "Maximum emails sent. No more auto-resends."}
+                  </p>
+                </div>
+              )}
+
               {/* Action buttons */}
               <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
                 {viewProfile.approval_status === "pending" && (
@@ -483,6 +542,11 @@ const AdminUsers = () => {
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
+                )}
+                {viewProfile.approval_status === "denied" && (
+                  <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
+                  </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"

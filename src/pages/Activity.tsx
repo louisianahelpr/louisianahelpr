@@ -667,6 +667,7 @@ const Activity = () => {
                             <JobMilestones jobId={app.job_id} isOwner={false} isHelper={true} totalBudget={app.job?.budget || 0} />
                             <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} />
                           </div>
+                        )}
 
                         {/* Revision requested notice for helper */}
                         {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (

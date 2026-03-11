@@ -23,7 +23,7 @@ const HeroSection = () => {
               Sign up free
             </Button>
             <Button variant="hero-outline" size="xl" onClick={() => navigate("/login")}>
-              Sign in
+              Log in
             </Button>
           </div>
         </div>

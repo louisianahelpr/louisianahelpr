@@ -17,7 +17,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -25,6 +25,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, open, onC
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
+
+  // Cancellation fee logic
+  const cancellationFee = hasHelper
+    ? (hoursUntilJob < 4 ? 15 : isLateCancellation ? 5 : 0)
+    : 0;
 
   const handleCancel = async () => {
     setCancelling(true);

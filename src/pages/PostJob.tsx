@@ -220,8 +220,7 @@ const PostJob = () => {
 
   const budgetNum = parseFloat(budget) || 0;
   const feeAmount = budgetNum * (platformFee / 100);
-  const totalCharge = budgetNum + feeAmount;
-  const helperEarns = budgetNum;
+  const helperEarns = budgetNum - feeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (
@@ -451,17 +450,17 @@ const PostJob = () => {
                 </div>
                 <div className="p-5 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Task budget (helper receives)</span>
-                    <span className="font-medium text-foreground">${helperEarns.toFixed(2)}</span>
+                    <span className="text-muted-foreground">You pay</span>
+                    <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
-                    <span className="font-medium text-foreground">${feeAmount.toFixed(2)}</span>
+                    <span className="font-medium text-foreground">−${feeAmount.toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Total</span>
-                    <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
+                    <span className="font-semibold text-foreground">Helper receives</span>
+                    <span className="text-xl font-bold text-foreground">${helperEarns.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -497,7 +496,7 @@ const PostJob = () => {
                   disabled={saving || uploading}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${totalCharge.toFixed(2)}`}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${budgetNum.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

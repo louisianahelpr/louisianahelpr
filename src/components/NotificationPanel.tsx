@@ -137,11 +137,18 @@ const NotificationPanel = () => {
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
             <SheetTitle className="font-display">Notifications</SheetTitle>
-            {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs text-muted-foreground">
-                <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {pushSupported && !pushEnabled && (
+                <Button variant="ghost" size="sm" onClick={enablePush} className="text-xs text-primary">
+                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
+                </Button>
+              )}
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs text-muted-foreground">
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
+                </Button>
+              )}
+            </div>
           </div>
         </SheetHeader>
         <div className="overflow-y-auto max-h-[calc(100vh-5rem)]">

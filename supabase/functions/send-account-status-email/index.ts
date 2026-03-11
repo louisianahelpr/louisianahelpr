@@ -10,7 +10,6 @@ const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "notify.louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
-const API_BASE_URL = "https://api.lovable.dev"
 
 function renderApprovedEmail(fullName: string): { html: string; text: string } {
   const siteUrl = `https://${ROOT_DOMAIN}`
@@ -73,49 +72,6 @@ function renderDeniedEmail(fullName: string, reason?: string): { html: string; t
   const text = `Account Update\n\nHey ${fullName || 'there'},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
 
   return { html, text }
-}
-
-async function sendEmailDirect(params: {
-  to: string
-  from: string
-  senderDomain: string
-  subject: string
-  html: string
-  text: string
-  label: string
-  apiKey: string
-}): Promise<{ success: boolean; error?: string }> {
-  const { to, from, senderDomain, subject, html, text, label, apiKey } = params
-
-  try {
-    // Try sending via the Lovable email API directly
-    const response = await fetch(`${API_BASE_URL}/api/v1/email/send`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to,
-        from,
-        sender_domain: senderDomain,
-        subject,
-        html,
-        text,
-        purpose: 'transactional',
-        label,
-      }),
-    })
-
-    if (!response.ok) {
-      const body = await response.text()
-      return { success: false, error: `Email API error: ${response.status} ${body}` }
-    }
-
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) }
-  }
 }
 
 Deno.serve(async (req) => {
@@ -219,22 +175,33 @@ Deno.serve(async (req) => {
       }).eq('user_id', userId)
     }
 
-    // Send email directly via the Lovable email API
-    const sendResult = await sendEmailDirect({
-      to: profile.email,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      senderDomain: SENDER_DOMAIN,
-      subject,
-      html,
-      text,
-      label: `account_${status}`,
-      apiKey: apiKey || '',
-    })
+    // Send email using sendLovableEmail (transactional, no run_id needed)
+    try {
+      await sendLovableEmail(
+        {
+          to: profile.email,
+          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+          sender_domain: SENDER_DOMAIN,
+          subject,
+          html,
+          text,
+          purpose: 'transactional',
+          label: `account_${status}`,
+        },
+        { apiKey: apiKey || '', apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
+      )
 
-    if (!sendResult.success) {
-      console.error('Direct email send failed, falling back to queue', sendResult.error)
+      // Mark as sent
+      await supabaseAdmin.from('email_send_log').update({
+        status: 'sent',
+      }).eq('message_id', messageId)
 
-      // Fallback: enqueue to transactional_emails queue (without run_id)
+      console.log(`Account ${status} email sent directly to ${profile.email}`)
+    } catch (sendErr) {
+      const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+      console.error('Direct email send failed, falling back to queue:', errMsg)
+
+      // Fallback: enqueue to transactional_emails queue
       const { error: enqueueError } = await supabaseAdmin.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: {
@@ -255,7 +222,7 @@ Deno.serve(async (req) => {
         console.error('Failed to enqueue email', enqueueError)
         await supabaseAdmin.from('email_send_log').update({
           status: 'failed',
-          error_message: `Direct: ${sendResult.error}; Queue: ${enqueueError.message}`,
+          error_message: `Direct: ${errMsg}; Queue: ${enqueueError.message}`,
         }).eq('message_id', messageId)
 
         return new Response(JSON.stringify({ error: 'Failed to send email' }), {
@@ -264,14 +231,7 @@ Deno.serve(async (req) => {
         })
       }
 
-      console.log(`Account ${status} email enqueued (fallback) for ${profile.email}`)
-    } else {
-      // Mark as sent
-      await supabaseAdmin.from('email_send_log').update({
-        status: 'sent',
-      }).eq('message_id', messageId)
-
-      console.log(`Account ${status} email sent directly to ${profile.email}`)
+      console.log(`Account ${status} email enqueued for ${profile.email}`)
     }
 
     return new Response(JSON.stringify({ success: true }), {

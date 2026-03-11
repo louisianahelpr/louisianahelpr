@@ -1019,9 +1019,21 @@ const Activity = () => {
       {deadlineDialogApp && (
         <ResponseDeadlineDialog
           open={!!deadlineDialogApp}
-          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helper"}
+          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helpr"}
           onConfirm={confirmAcceptWithDeadline}
           onClose={() => setDeadlineDialogApp(null)}
+        />
+      )}
+
+      {/* Dispute Dialog */}
+      {disputeJob && user && (
+        <DisputeDialog
+          jobId={disputeJob.id}
+          jobTitle={disputeJob.title}
+          userId={user.id}
+          open={!!disputeJob}
+          onClose={() => setDisputeJob(null)}
+          onDisputed={() => { if (user) loadData(user.id); }}
         />
       )}
     </div>

@@ -114,6 +114,20 @@ serve(async (req) => {
       if (!["in_progress", "revision_requested", "accepted"].includes(job.status)) {
         throw new Error("Job is not in progress");
       }
+      if (job.status === "disputed") {
+        throw new Error("This job is currently under dispute. Payment cannot be released until the dispute is resolved.");
+      }
+
+      // Minimum job time enforcement: 30 minutes after helper confirmed/accepted
+      const jobStartTime = job.helper_confirmed_at || job.updated_at;
+      if (jobStartTime) {
+        const elapsed = Date.now() - new Date(jobStartTime).getTime();
+        const MIN_JOB_TIME_MS = 30 * 60 * 1000; // 30 minutes
+        if (elapsed < MIN_JOB_TIME_MS) {
+          const minutesLeft = Math.ceil((MIN_JOB_TIME_MS - elapsed) / 60000);
+          throw new Error(`Job must be active for at least 30 minutes before completion. ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""} remaining.`);
+        }
+      }
 
       const updateFields: Record<string, any> = {};
       if (isPoster) updateFields.poster_completed_at = new Date().toISOString();

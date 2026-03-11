@@ -27,12 +27,13 @@ const Admin = () => {
   useEffect(() => {
     if (loading) return;
     const load = async () => {
-      const [profilesRes, pendingRes, reportsRes, jobsRes, reviewsRes] = await Promise.all([
+      const [profilesRes, pendingRes, reportsRes, jobsRes, reviewsRes, disputesRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
         supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("jobs").select("status, budget, platform_fee_amount"),
         supabase.from("reviews").select("id", { count: "exact", head: true }),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
       ]);
       const allJobs = jobsRes.data || [];
       const completed = allJobs.filter(j => j.status === "completed");
@@ -45,6 +46,7 @@ const Admin = () => {
         totalRevenue: completed.reduce((s, j) => s + (j.budget || 0), 0),
         totalFees: completed.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
         pendingReviews: reviewsRes.count || 0,
+        disputedJobs: disputesRes.count || 0,
       });
       setStatsLoading(false);
     };

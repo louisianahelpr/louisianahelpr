@@ -108,6 +108,28 @@ const Dashboard = () => {
     } else {
       setAllJobs([]);
     }
+
+    // Build recommended jobs based on user skills + location
+    if (profileRes.data && openJobsRes.data) {
+      const userSkills = (profileRes.data.skills || "").toLowerCase().split(",").map((s: string) => s.trim()).filter(Boolean);
+      const userLoc = (profileRes.data.location || "").toLowerCase();
+      const enrichedJobs = allJobs.length > 0 ? allJobs : (openJobsRes.data || []).map(j => ({ ...j }));
+      
+      const scored = enrichedJobs
+        .filter(j => j.customer_id !== userId)
+        .map(j => {
+          let score = 0;
+          if (userLoc && j.location.toLowerCase().includes(userLoc)) score += 2;
+          if (userSkills.some(s => j.category.includes(s) || j.title.toLowerCase().includes(s) || j.description.toLowerCase().includes(s))) score += 3;
+          return { ...j, _score: score };
+        })
+        .filter(j => j._score > 0)
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 5);
+      
+      setRecommendedJobs(scored);
+    }
+
     setLoading(false);
   };
 

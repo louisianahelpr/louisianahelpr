@@ -300,7 +300,6 @@ const AdminUsers = () => {
                     {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                   </div>
                 </div>
-                </div>
                 <div className="flex gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   {p.approval_status === "pending" && (
                     <>

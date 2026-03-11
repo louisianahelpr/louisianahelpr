@@ -159,6 +159,26 @@ const Dashboard = () => {
 
   const firstName = (profile?.full_name || user?.user_metadata?.full_name || "User").split(" ")[0];
   const approvalStatus = (profile as any)?.approval_status || "pending";
+  const banStatus = (profile as any)?.ban_status || "active";
+
+  // Block banned users
+  if (!isAdmin && (banStatus === "permanently_banned" || banStatus === "temp_banned")) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <XCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}</h1>
+          <p className="text-muted-foreground">
+            {banStatus === "permanently_banned"
+              ? "Your account has been permanently banned for violating platform rules. Contact support if you believe this is an error."
+              : "Your account has been temporarily suspended. You'll regain access once the suspension period ends."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAdmin && approvalStatus !== "approved") {
     return (

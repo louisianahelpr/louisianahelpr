@@ -93,6 +93,10 @@ const PostJob = () => {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
+    if (parseFloat(budget) < 5) {
+      toast.error("Minimum budget is $5");
+      return;
+    }
     setStep("checkout");
   };
 

@@ -10,7 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
+  Rocket,
 } from "lucide-react";
+import { JobBoostDialog } from "@/components/JobBoostDialog";
+import { TipDialog } from "@/components/TipDialog";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -53,6 +56,9 @@ const Activity = () => {
   const [tipping, setTipping] = useState(false);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
+  const [boostJobId, setBoostJobId] = useState<string | null>(null);
+  const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
+  const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
 
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
@@ -376,6 +382,7 @@ const Activity = () => {
                         <div className="flex gap-1.5 flex-wrap justify-end">
                           {(job.status === "open" || job.status === "accepted") && (
                             <>
+                              <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                               <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
@@ -662,6 +669,26 @@ const Activity = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Boost Dialog */}
+      {boostJobId && (
+        <JobBoostDialog
+          jobId={boostJobId}
+          open={!!boostJobId}
+          onClose={() => setBoostJobId(null)}
+          onBoosted={() => { if (user) loadData(user.id); }}
+        />
+      )}
+
+      {/* Enhanced Tip Dialog */}
+      {enhancedTipJobId && (
+        <TipDialog
+          jobId={enhancedTipJobId}
+          helperName={enhancedTipHelperName}
+          open={!!enhancedTipJobId}
+          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); }}
+        />
+      )}
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
   LifeBuoy,
 } from "lucide-react";
+import { HelperAvailability } from "@/components/HelperAvailability";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -19,7 +20,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -224,6 +225,7 @@ const ProfilePage = () => {
 
   const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
+    { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Set your working hours" },
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "View upcoming jobs" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
@@ -768,6 +770,19 @@ const ProfilePage = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* AVAILABILITY TAB */}
+          {tab === "availability" && (
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-2xl font-display font-bold text-foreground">Availability</h1>
+                <p className="text-muted-foreground text-sm mt-1">Set your working hours so customers can book you</p>
+              </div>
+              {user && (
+                <HelperAvailability userId={user.id} />
+              )}
             </div>
           )}
 

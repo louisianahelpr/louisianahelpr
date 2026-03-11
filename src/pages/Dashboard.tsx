@@ -8,11 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   LogOut, Search, X, Flag, MapPin, Calendar, DollarSign,
   SlidersHorizontal, ChevronDown, ChevronUp, Clock, XCircle,
-  Shield, Briefcase, Star, ImageIcon,
+  Shield, Briefcase, Star, ImageIcon, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import NotificationPanel from "@/components/NotificationPanel";
+import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -32,7 +33,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number })[]>([]);
+  const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
@@ -41,7 +42,7 @@ const Dashboard = () => {
   const [reportJobId, setReportJobId] = useState<string | null>(null);
 
   // Job detail dialog
-  const [detailJob, setDetailJob] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number }) | null>(null);
+  const [detailJob, setDetailJob] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean }) | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -71,9 +72,10 @@ const Dashboard = () => {
 
     if (openJobsRes.data && openJobsRes.data.length > 0) {
       const posterIds = [...new Set(openJobsRes.data.map((j) => j.customer_id))];
-      const [profilesRes, reviewsRes] = await Promise.all([
+      const [profilesRes, reviewsRes, completedJobsRes] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name").in("user_id", posterIds),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", posterIds),
+        supabase.from("jobs").select("customer_id").in("customer_id", posterIds).eq("status", "completed"),
       ]);
       const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
       const reviewMap = new Map<string, number[]>();
@@ -81,9 +83,23 @@ const Dashboard = () => {
         if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
         reviewMap.get(r.reviewee_id)!.push(r.rating);
       });
+      const completedMap = new Map<string, number>();
+      completedJobsRes.data?.forEach((j) => {
+        completedMap.set(j.customer_id, (completedMap.get(j.customer_id) || 0) + 1);
+      });
+
+      const now = new Date();
       setAllJobs(openJobsRes.data.map((j) => {
         const ratings = reviewMap.get(j.customer_id) || [];
-        return { ...j, posterName: nameMap.get(j.customer_id) || "User", posterReviewCount: ratings.length, posterAvgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };
+        const isBoosted = !!(j as any).boost_expires_at && new Date((j as any).boost_expires_at) > now;
+        return {
+          ...j,
+          posterName: nameMap.get(j.customer_id) || "User",
+          posterReviewCount: ratings.length,
+          posterAvgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+          posterCompletedJobs: completedMap.get(j.customer_id) || 0,
+          isBoosted,
+        };
       }));
     } else {
       setAllJobs([]);
@@ -108,16 +124,29 @@ const Dashboard = () => {
   const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
-  const filteredJobs = allJobs.filter((job) => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
-    }
-    if (selectedCategory && job.category !== selectedCategory) return false;
-    if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
-    if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
-    return true;
-  });
+  const filteredJobs = allJobs
+    .filter((job) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
+      }
+      if (selectedCategory && job.category !== selectedCategory) return false;
+      if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
+      if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+      return true;
+    })
+    // Sort boosted jobs to top
+    .sort((a, b) => {
+      if (a.isBoosted && !b.isBoosted) return -1;
+      if (!a.isBoosted && b.isBoosted) return 1;
+      return 0;
+    });
+
+  // "Jobs Near You" - jobs matching user's location
+  const userLocation = profile?.location?.toLowerCase() || "";
+  const nearbyJobs = userLocation
+    ? allJobs.filter((j) => j.location.toLowerCase().includes(userLocation) || userLocation.includes(j.location.toLowerCase())).slice(0, 5)
+    : [];
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
@@ -158,6 +187,70 @@ const Dashboard = () => {
 
   const photos = detailJob?.photos || [];
 
+  const renderJobCard = (job: typeof filteredJobs[0], showApply = true) => {
+    const posterBadges = computeBadges({
+      avgRating: job.posterAvgRating || 0,
+      reviewCount: job.posterReviewCount || 0,
+      completedJobs: job.posterCompletedJobs || 0,
+    });
+
+    return (
+      <div
+        key={job.id}
+        className={`rounded-xl border bg-card p-4 hover:shadow-md transition-shadow cursor-pointer ${job.isBoosted ? "border-primary/40 ring-1 ring-primary/20" : "border-border"}`}
+        onClick={() => setDetailJob(job)}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              {job.isBoosted && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
+                  <Rocket className="w-3 h-3" /> Boosted
+                </span>
+              )}
+              <h3 className="font-semibold text-foreground">{job.title}</h3>
+              <Badge variant="secondary" className="text-xs">{categoryLabels[job.category] || job.category}</Badge>
+              {job.photos && job.photos.length > 0 && (
+                <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                  <ImageIcon className="w-3 h-3" /> {job.photos.length}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
+              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
+              <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
+              <span>Posted by <span className="font-medium text-foreground">{job.posterName}</span></span>
+              {job.posterReviewCount !== undefined && job.posterReviewCount > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Star className="w-3 h-3 fill-accent text-accent" />
+                  {job.posterAvgRating?.toFixed(1)} ({job.posterReviewCount})
+                </span>
+              )}
+              <HelperBadges badges={posterBadges} />
+            </div>
+          </div>
+          {showApply && (
+            <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <Button size="sm" onClick={() => handleApply(job.id)}>Apply</Button>
+              <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}><Flag className="w-3.5 h-3.5" /></Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Badges for detail dialog poster
+  const detailPosterBadges = detailJob ? computeBadges({
+    avgRating: detailJob.posterAvgRating || 0,
+    reviewCount: detailJob.posterReviewCount || 0,
+    completedJobs: detailJob.posterCompletedJobs || 0,
+  }) : [];
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
@@ -183,6 +276,29 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
           <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
+
+          {/* Jobs Near You */}
+          {nearbyJobs.length > 0 && !hasFilters && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Jobs Near You</h2>
+                <span className="text-xs text-muted-foreground">in {profile?.location}</span>
+              </div>
+              <div className="space-y-2">
+                {nearbyJobs.slice(0, 3).map((job) => renderJobCard(job))}
+              </div>
+              {nearbyJobs.length > 3 && (
+                <button
+                  onClick={() => setLocationFilter(profile?.location || "")}
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  View all {nearbyJobs.length} nearby jobs →
+                </button>
+              )}
+              <div className="h-px bg-border" />
+            </div>
+          )}
 
           {/* Filters */}
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -250,46 +366,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredJobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setDetailJob(job)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        <Badge variant="secondary" className="text-xs">{categoryLabels[job.category] || job.category}</Badge>
-                        {job.photos && job.photos.length > 0 && (
-                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                            <ImageIcon className="w-3 h-3" /> {job.photos.length}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
-                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-                        <span>Posted by <span className="font-medium text-foreground">{job.posterName}</span></span>
-                        {job.posterReviewCount !== undefined && job.posterReviewCount > 0 && (
-                          <span className="flex items-center gap-0.5">
-                            <Star className="w-3 h-3 fill-accent text-accent" />
-                            {job.posterAvgRating?.toFixed(1)} ({job.posterReviewCount})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" onClick={() => handleApply(job.id)}>Apply</Button>
-                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}><Flag className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {filteredJobs.map((job) => renderJobCard(job))}
             </div>
           )}
         </div>
@@ -303,6 +380,13 @@ const Dashboard = () => {
           </DialogHeader>
           {detailJob && (
             <div className="space-y-4">
+              {/* Boosted badge */}
+              {detailJob.isBoosted && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  <Rocket className="w-3 h-3" /> Boosted Post
+                </span>
+              )}
+
               {/* Photos */}
               {photos.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-2">
@@ -357,8 +441,8 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* Poster info */}
-              <div className="flex items-center gap-2 pt-2 border-t border-border">
+              {/* Poster info with badges */}
+              <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
                 <span className="text-sm text-muted-foreground">
                   Posted by <span className="font-medium text-foreground">{detailJob.posterName}</span>
                 </span>
@@ -369,6 +453,7 @@ const Dashboard = () => {
                     <span className="text-muted-foreground">({detailJob.posterReviewCount})</span>
                   </span>
                 )}
+                <HelperBadges badges={detailPosterBadges} />
               </div>
 
               {/* Action buttons */}

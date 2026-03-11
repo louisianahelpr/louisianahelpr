@@ -55,8 +55,67 @@ export type Database = {
           },
         ]
       }
+      favorite_helpers: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          helper_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          helper_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          helper_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      helper_availability: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          end_time: string | null
+          helper_id: string
+          id: string
+          is_available: boolean | null
+          specific_date: string | null
+          start_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          end_time?: string | null
+          helper_id: string
+          id?: string
+          is_available?: boolean | null
+          specific_date?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          end_time?: string | null
+          helper_id?: string
+          id?: string
+          is_available?: boolean | null
+          specific_date?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
+          boost_expires_at: string | null
+          boosted_at: string | null
           budget: number
           category: Database["public"]["Enums"]["job_category"]
           created_at: string
@@ -84,6 +143,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          boost_expires_at?: string | null
+          boosted_at?: string | null
           budget: number
           category?: Database["public"]["Enums"]["job_category"]
           created_at?: string
@@ -111,6 +172,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          boost_expires_at?: string | null
+          boosted_at?: string | null
           budget?: number
           category?: Database["public"]["Enums"]["job_category"]
           created_at?: string

@@ -265,6 +265,7 @@ const Dashboard = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/post-job")} className="hidden sm:flex">
               <Briefcase className="w-4 h-4 mr-1" /> Post task
             </Button>
+            <NotificationPanel />
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
             </Button>

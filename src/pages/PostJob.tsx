@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
@@ -52,6 +52,11 @@ const PostJob = () => {
   const [helpersNeeded, setHelpersNeeded] = useState("2");
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // AI Job Builder
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Image upload state
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -115,6 +120,38 @@ const PostJob = () => {
     const timer = setTimeout(autoSave, 2000);
     return () => clearTimeout(timer);
   }, [autoSave]);
+
+
+
+
+  const handleAiBuild = async () => {
+    if (!aiPrompt.trim()) { toast.error("Describe what you need help with"); return; }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-job-builder", {
+        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setTitle(data.title || "");
+      setDescription(data.description || "");
+      setCategory(data.category || "other");
+      setEstimatedHours(data.estimated_hours?.toString() || "");
+      setBudget(data.budget_max?.toString() || data.budget_min?.toString() || "");
+      setSpecialRequirements(data.special_requirements || "");
+      if (data.is_group_job) {
+        setIsGroupJob(true);
+        setHelpersNeeded(data.helpers_needed?.toString() || "2");
+      }
+      setAiOpen(false);
+      toast.success("Job details generated! Review and edit as needed.");
+    } catch (err: any) {
+      toast.error(err.message || "AI generation failed");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -248,6 +285,47 @@ const PostJob = () => {
               <div>
                 <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
                 <p className="text-muted-foreground mt-1">Describe what you need help with</p>
+              </div>
+
+              {/* AI Job Builder */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(!aiOpen)}
+                  className="flex items-center gap-2 w-full text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">AI Job Builder</p>
+                    <p className="text-xs text-muted-foreground">Describe your task in plain English and let AI fill in the details</p>
+                  </div>
+                </button>
+                {aiOpen && (
+                  <div className="space-y-3 pt-2 border-t border-primary/10">
+                    <Textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="e.g. I need help moving furniture from my apartment to a new house across town. It's a 2-bedroom apartment with heavy items like a couch and dresser."
+                      rows={3}
+                      className="text-sm"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAiBuild}
+                      disabled={aiLoading}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {aiLoading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4 mr-2" /> Generate Job Posting</>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <form onSubmit={handleReview} className="space-y-5">

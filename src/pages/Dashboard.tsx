@@ -108,11 +108,16 @@ const Dashboard = () => {
     if (feeRes.data) setPlatformFee(feeRes.data.platform_fee_percent);
     if (profileRes.data) {
       setProfile(profileRes.data);
-      // Gate: redirect based on approval status
-      if (profileRes.data.approval_status === "pending") { navigate("/account-pending"); return; }
-      if (profileRes.data.approval_status === "denied") { navigate("/account-denied"); return; }
+      // Gate: redirect based on approval status (admins bypass)
+      const userIsAdmin = rolesRes.data?.some((r) => r.role === "admin") ?? false;
+      if (!userIsAdmin) {
+        if (profileRes.data.approval_status === "pending") { navigate("/account-pending"); return; }
+        if (profileRes.data.approval_status === "denied") { navigate("/account-denied"); return; }
+      }
+      setIsAdmin(userIsAdmin);
+    } else {
+      setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
     }
-    setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
 
     if (openJobsRes.data && openJobsRes.data.length > 0) {
       const posterIds = [...new Set(openJobsRes.data.map((j) => j.customer_id))];

@@ -126,6 +126,15 @@ const Dashboard = () => {
                 onClick={() => navigate("/browse-jobs")}
               />
             )}
+
+            {isAdmin && (
+              <DashCard
+                icon={<Shield className="w-5 h-5 text-destructive" />}
+                title="Admin panel"
+                desc="Manage users, jobs, payments, and platform settings."
+                onClick={() => navigate("/admin")}
+              />
+            )}
           </div>
 
           {/* Recent jobs for customers */}

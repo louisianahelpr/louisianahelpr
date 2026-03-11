@@ -766,53 +766,6 @@ const ProfilePage = () => {
 
               <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                 <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-primary" /> Account Security
-                </h2>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Email</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        const newEmail = prompt("Enter new email address:");
-                        if (!newEmail) return;
-                        const { error } = await supabase.auth.updateUser({ email: newEmail });
-                        if (error) toast.error(error.message);
-                        else toast.success("Confirmation sent to your new email!");
-                      }}
-                    >
-                      <Mail className="w-4 h-4 mr-1" /> Change
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Password</p>
-                      <p className="text-xs text-muted-foreground">••••••••</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        if (!user?.email) return;
-                        const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                          redirectTo: `${window.location.origin}/reset-password`,
-                        });
-                        if (error) toast.error(error.message);
-                        else toast.success("Password reset link sent to your email!");
-                      }}
-                    >
-                      <Lock className="w-4 h-4 mr-1" /> Reset
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" /> Payment Methods
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -842,6 +795,65 @@ const ProfilePage = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ACCOUNT SECURITY TAB */}
+          {tab === "security" && (
+            <div className="space-y-6">
+              <h1 className="text-2xl font-display font-bold text-foreground">Account Security</h1>
+
+              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-primary" /> Email Address
+                </h2>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{user?.email}</p>
+                    <p className="text-xs text-muted-foreground">Your login email</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const newEmail = prompt("Enter new email address:");
+                      if (!newEmail) return;
+                      const { error } = await supabase.auth.updateUser({ email: newEmail });
+                      if (error) toast.error(error.message);
+                      else toast.success("Confirmation sent to your new email!");
+                    }}
+                  >
+                    <Mail className="w-4 h-4 mr-1" /> Change
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-primary" /> Password
+                </h2>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">••••••••</p>
+                    <p className="text-xs text-muted-foreground">Reset via email link</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      if (!user?.email) return;
+                      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                        redirectTo: `${window.location.origin}/reset-password`,
+                      });
+                      if (error) toast.error(error.message);
+                      else toast.success("Password reset link sent to your email!");
+                    }}
+                  >
+                    <Lock className="w-4 h-4 mr-1" /> Reset
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )
           )}
 
           {/* REVIEWS TAB */}

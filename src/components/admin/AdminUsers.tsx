@@ -310,7 +310,6 @@ const AdminUsers = () => {
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                   </Button>
                   <Button
-                    className="flex-1"
                     variant="outline"
                     className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                     onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}

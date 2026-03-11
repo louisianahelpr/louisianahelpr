@@ -40,6 +40,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper
         cancelled_at: new Date().toISOString(),
         cancellation_reason: reason.trim() || null,
         late_cancellation: isLateCancellation,
+        cancellation_fee: cancellationFee,
+        cancellation_fee_status: cancellationFee > 0 ? "pending" : null,
       };
 
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);

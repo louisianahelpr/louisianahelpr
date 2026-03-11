@@ -129,7 +129,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-8">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">
-              Welcome, {fullName} 👋
+              Welcome, {firstName} 👋
             </h1>
           </div>
 

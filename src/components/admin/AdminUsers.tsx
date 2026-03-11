@@ -395,98 +395,122 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">{viewProfile?.full_name || "User Profile"}</DialogTitle>
+            <DialogTitle className="font-display text-xl">{viewProfile?.full_name || "User Profile"}</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-4">
-              {/* Avatar */}
-              <div className="flex items-center gap-4">
+            <div className="space-y-6">
+              {/* Header: Avatar + Basic Info */}
+              <div className="flex gap-5">
                 {viewProfile.avatar_url ? (
-                  <img src={viewProfile.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-border" />
+                  <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                    <img src={viewProfile.avatar_url} alt="" className="w-28 h-28 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                  </a>
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-xl font-medium">
+                  <div className="w-28 h-28 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-3xl font-medium flex-shrink-0">
                     {(viewProfile.full_name || "?")[0]?.toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <p className="font-semibold text-foreground text-lg">{viewProfile.full_name || "—"}</p>
-                  <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "—"}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-muted-foreground text-xs">Status</p>
-                  {statusBadge(viewProfile)}
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Status</p>
-                  {statusBadge(viewProfile)}
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Location</p>
-                  <p className="font-medium text-foreground">{viewProfile.location || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Phone</p>
-                  <p className="font-medium text-foreground">{viewProfile.phone || "—"}</p>
-                </div>
-                {viewProfile.hourly_rate && (
-                  <div>
-                    <p className="text-muted-foreground text-xs">Hourly Rate</p>
-                    <p className="font-medium text-foreground">${viewProfile.hourly_rate}/hr</p>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-bold text-foreground">{viewProfile.full_name || "—"}</h3>
+                    {statusBadge(viewProfile)}
+                    <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>
                   </div>
-                )}
-                <div>
-                  <p className="text-muted-foreground text-xs">Joined</p>
-                  <p className="font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Last Active</p>
-                  <p className="font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                  <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
+                  {viewProfile.bio && <p className="text-sm text-foreground leading-relaxed">{viewProfile.bio}</p>}
                 </div>
               </div>
 
-              {viewProfile.bio && (
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-secondary/30 border border-border p-4">
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Bio</p>
-                  <p className="text-sm text-foreground">{viewProfile.bio}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
+                  <p className="text-sm font-medium text-foreground">{viewProfile.phone || "—"}</p>
                 </div>
-              )}
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
+                  <p className="text-sm font-medium text-foreground">{viewProfile.location || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {(viewProfile as any).date_of_birth
+                      ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Hourly Rate</p>
+                  <p className="text-sm font-medium text-foreground">{viewProfile.hourly_rate ? `$${viewProfile.hourly_rate}/hr` : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
+                  <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
+                  <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                </div>
+              </div>
 
+              {/* Skills */}
               {viewProfile.skills && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Skills</p>
-                  <p className="text-sm text-foreground">{viewProfile.skills}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Skills</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewProfile.skills.split(",").map((skill, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
+                    ))}
+                  </div>
                 </div>
               )}
 
+              {/* ID Document */}
               {viewProfile.id_document_url && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1"><FileText className="w-3 h-3" /> ID Document</p>
-                  <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">View uploaded document</a>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> ID Document
+                  </p>
+                  <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
+                    {/\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
+                      <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer">
+                        <img src={viewProfile.id_document_url} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
+                      </a>
+                    ) : (
+                      <div className="p-4 flex items-center gap-3">
+                        <FileText className="w-8 h-8 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{viewProfile.id_document_url.split("/").pop()}</p>
+                          <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                            Open document ↗
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
+              {/* Portfolio */}
               {((viewProfile as any).portfolio_urls as string[] || []).length > 0 && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
-                    <FileText className="w-3 h-3" /> Portfolio ({((viewProfile as any).portfolio_urls as string[]).length})
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[]).length})
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
                       const fileName = url.split("/").pop() || "Document";
                       return isImage ? (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors block">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden border border-border hover:border-primary transition-colors block group">
+                          <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         </a>
                       ) : (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1 hover:border-primary transition-colors">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <p className="text-[8px] text-muted-foreground text-center mt-0.5 truncate w-full">{fileName}</p>
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
+                          <FileText className="w-6 h-6 text-muted-foreground mb-1" />
+                          <p className="text-[10px] text-muted-foreground text-center truncate w-full">{fileName}</p>
                         </a>
                       );
                     })}
@@ -497,12 +521,12 @@ const AdminUsers = () => {
               {/* Violations History */}
               {profileViolations.length > 0 && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> Violations ({profileViolations.length})
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Violations ({profileViolations.length})
                   </p>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
                     {profileViolations.map((v: any) => (
-                      <div key={v.id} className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                      <div key={v.id} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                             v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
@@ -523,15 +547,15 @@ const AdminUsers = () => {
 
               {/* Reviews */}
               <div>
-                <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
-                  <Star className="w-3 h-3" /> Reviews ({profileReviews.length})
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5" /> Reviews ({profileReviews.length})
                 </p>
                 {profileReviews.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No reviews yet.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {profileReviews.map((r, i) => (
-                      <div key={i} className="p-2 rounded-lg bg-secondary/30 border border-border">
+                      <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="flex items-center gap-0.5">
                             {[1, 2, 3, 4, 5].map((s) => (
@@ -559,11 +583,6 @@ const AdminUsers = () => {
                       <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {((viewProfile as any).approval_email_count || 0) < 3
-                      ? "Auto-resends every 3 days until the user logs in (max 3 emails)."
-                      : "Maximum emails sent. No more auto-resends."}
-                  </p>
                 </div>
               )}
 
@@ -582,11 +601,6 @@ const AdminUsers = () => {
                   {(viewProfile as any).denial_reason && (
                     <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
                   )}
-                  <p className="text-[10px] text-muted-foreground">
-                    {((viewProfile as any).denial_email_count || 0) < 3
-                      ? "Auto-resends every 3 days until they resubmit (max 3 emails)."
-                      : "Maximum emails sent. No more auto-resends."}
-                  </p>
                 </div>
               )}
 

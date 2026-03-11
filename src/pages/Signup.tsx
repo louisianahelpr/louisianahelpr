@@ -20,6 +20,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
 
   // Step 2 fields
@@ -86,6 +87,13 @@ const Signup = () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (password.length < 6) { toast.error("Password must be at least 6 characters"); return false; }
+    if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+    if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
     return true;
   };
 
@@ -160,6 +168,7 @@ const Signup = () => {
           bio,
           location,
           skills: skills || null,
+          dateOfBirth: dateOfBirth || null,
         },
       });
 
@@ -227,6 +236,11 @@ const Signup = () => {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dob">Date of birth <span className="text-destructive text-xs">*</span></Label>
+              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} />
+              <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone number <span className="text-muted-foreground text-xs">(optional)</span></Label>

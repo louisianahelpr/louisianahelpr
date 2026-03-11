@@ -12,6 +12,7 @@ import {
   CreditCard, Shield, ChevronLeft, Briefcase, Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDraftJob } from "@/hooks/useDraftJob";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },

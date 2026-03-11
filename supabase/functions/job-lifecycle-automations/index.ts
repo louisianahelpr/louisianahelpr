@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
       autoCompleted: 0,
       noShowFlagged: 0,
       expiredJobs: 0,
+      autoEscalated: 0,
+      autoRestricted: 0,
     }
 
     const now = new Date()

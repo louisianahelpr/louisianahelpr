@@ -125,6 +125,40 @@ const PostJob = () => {
     const files = Array.from(e.target.files || []);
     if (imageFiles.length + files.length > 5) {
       toast.error("Maximum 5 images allowed");
+
+  const handleAiBuild = async () => {
+    if (!aiPrompt.trim()) { toast.error("Describe what you need help with"); return; }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-job-builder", {
+        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setTitle(data.title || "");
+      setDescription(data.description || "");
+      setCategory(data.category || "other");
+      setEstimatedHours(data.estimated_hours?.toString() || "");
+      setBudget(data.budget_max?.toString() || data.budget_min?.toString() || "");
+      setSpecialRequirements(data.special_requirements || "");
+      if (data.is_group_job) {
+        setIsGroupJob(true);
+        setHelpersNeeded(data.helpers_needed?.toString() || "2");
+      }
+      setAiOpen(false);
+      toast.success("Job details generated! Review and edit as needed.");
+    } catch (err: any) {
+      toast.error(err.message || "AI generation failed");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (imageFiles.length + files.length > 5) {
+      toast.error("Maximum 5 images allowed");
       return;
     }
     const newFiles = [...imageFiles, ...files].slice(0, 5);

@@ -200,6 +200,7 @@ const PostJob = () => {
     }
 
     toast.info("Redirecting to payment…");
+    clearDraft(); // Clear saved draft on successful submission
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
       body: { action: "escrow", jobId: jobData.id },
     });

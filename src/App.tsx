@@ -11,10 +11,8 @@ import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
-
+import Activity from "./pages/Activity";
 import Messages from "./pages/Messages";
-import Schedule from "./pages/Schedule";
-import JobHistory from "./pages/JobHistory";
 import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
 
@@ -34,13 +32,14 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/post-job" element={<PostJob />} />
           <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/my-jobs" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/activity" element={<Activity />} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<Messages />} />
-          <Route path="/schedule" element={<Schedule />} />
-          <Route path="/job-history" element={<JobHistory />} />
+          <Route path="/schedule" element={<Navigate to="/profile" replace />} />
+          <Route path="/job-history" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <MobileNav />

@@ -472,7 +472,7 @@ const PostJob = () => {
                   </div>
                   {isGroupJob && (
                     <div className="space-y-2 pt-1">
-                      <Label>How many helpers needed?</Label>
+                      <Label>How many helprs needed?</Label>
                       <Input
                         type="number"
                         min="2"

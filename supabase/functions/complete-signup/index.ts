@@ -30,6 +30,7 @@ serve(async (req) => {
       bio,
       location,
       skills,
+      dateOfBirth,
     } = await req.json();
 
     if (!userId) {

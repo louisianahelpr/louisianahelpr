@@ -496,6 +496,22 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Sort by</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { value: "newest", label: "Newest" },
+                      { value: "highest_pay", label: "Highest pay" },
+                      { value: "lowest_pay", label: "Lowest pay" },
+                      { value: "ending_soon", label: "Ending soon" },
+                    ].map((opt) => (
+                      <button key={opt.value} onClick={() => setSortBy(opt.value)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${sortBy === opt.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground"><X className="w-4 h-4 mr-1" /> Clear all</Button>}
               </div>
             )}

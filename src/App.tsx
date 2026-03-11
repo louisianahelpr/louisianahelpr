@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import UserProfile from "./pages/UserProfile";
 import Admin from "./pages/Admin";
 import Activity from "./pages/Activity";
 import Messages from "./pages/Messages";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
           <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/user/:userId" element={<UserProfile />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />

@@ -249,7 +249,7 @@ const Dashboard = () => {
               <span className="text-primary font-medium">You earn ${(job.budget * (1 - platformFee / 100)).toFixed(2)}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
-              <span>Posted by <span className="font-medium text-foreground">{job.posterName}</span></span>
+              <span>Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => { e.stopPropagation(); }} className="font-medium text-primary hover:underline">{job.posterName}</a></span>
               {job.posterReviewCount !== undefined && job.posterReviewCount > 0 && (
                 <span className="flex items-center gap-0.5">
                   <Star className="w-3 h-3 fill-accent text-accent" />
@@ -470,7 +470,7 @@ const Dashboard = () => {
               {/* Poster info with badges */}
               <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
                 <span className="text-sm text-muted-foreground">
-                  Posted by <span className="font-medium text-foreground">{detailJob.posterName}</span>
+                  Posted by <a href={`/user/${detailJob.customer_id}`} className="font-medium text-primary hover:underline">{detailJob.posterName}</a>
                 </span>
                 {detailJob.posterReviewCount !== undefined && detailJob.posterReviewCount > 0 && (
                   <span className="flex items-center gap-0.5 text-sm">

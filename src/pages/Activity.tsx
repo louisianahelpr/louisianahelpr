@@ -540,7 +540,7 @@ const Activity = () => {
                         <div key={app.id} className="p-3 rounded-lg border border-border space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-medium text-foreground">{(app.profiles?.full_name || "Helper").split(" ")[0]}</p>
+                              <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helper").split(" ")[0]}</a>
                               {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
                               {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
                               {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
@@ -595,7 +595,7 @@ const Activity = () => {
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {app.job.location}</span>
                             <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${app.job.budget}</span>
-                            <span>Posted by <span className="font-medium text-foreground">{app.posterName}</span></span>
+                            <span>Posted by <a href={`/user/${app.job?.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
                           </div>
                         )}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}

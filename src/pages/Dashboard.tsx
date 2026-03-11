@@ -522,8 +522,8 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-secondary/30 p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Budget</p>
-                  <p className="font-semibold text-foreground">${detailJob.budget}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> You Earn</p>
+                  <p className="font-semibold text-primary">${(detailJob.budget * (1 - platformFee / 100)).toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg bg-secondary/30 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>

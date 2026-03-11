@@ -31,8 +31,8 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/post-job" element={<PostJob />} />
-          <Route path="/browse-jobs" element={<BrowseJobs />} />
-          <Route path="/my-jobs" element={<MyJobs />} />
+          <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/my-jobs" element={<Navigate to="/dashboard" replace />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/earnings" element={<Earnings />} />

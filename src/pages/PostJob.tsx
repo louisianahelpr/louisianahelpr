@@ -287,6 +287,47 @@ const PostJob = () => {
                 <p className="text-muted-foreground mt-1">Describe what you need help with</p>
               </div>
 
+              {/* AI Job Builder */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(!aiOpen)}
+                  className="flex items-center gap-2 w-full text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">AI Job Builder</p>
+                    <p className="text-xs text-muted-foreground">Describe your task in plain English and let AI fill in the details</p>
+                  </div>
+                </button>
+                {aiOpen && (
+                  <div className="space-y-3 pt-2 border-t border-primary/10">
+                    <Textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="e.g. I need help moving furniture from my apartment to a new house across town. It's a 2-bedroom apartment with heavy items like a couch and dresser."
+                      rows={3}
+                      className="text-sm"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAiBuild}
+                      disabled={aiLoading}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {aiLoading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4 mr-2" /> Generate Job Posting</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <form onSubmit={handleReview} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="title">Task title</Label>

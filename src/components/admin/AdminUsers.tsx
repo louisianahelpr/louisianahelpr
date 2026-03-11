@@ -507,6 +507,29 @@ const AdminUsers = () => {
                 )}
               </div>
 
+              {/* Denial email tracking */}
+              {viewProfile.approval_status === "denied" && (
+                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Emails sent: {(viewProfile as any).denial_email_count || 0} / 3</span>
+                    {(viewProfile as any).last_denial_email_at && (
+                      <span>Last sent: {new Date((viewProfile as any).last_denial_email_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                  {(viewProfile as any).denial_reason && (
+                    <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {((viewProfile as any).denial_email_count || 0) < 3
+                      ? "Auto-resends every 3 days until they resubmit (max 3 emails)."
+                      : "Maximum emails sent. No more auto-resends."}
+                  </p>
+                </div>
+              )}
+
               {/* Action buttons */}
               <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
                 {viewProfile.approval_status === "pending" && (
@@ -519,6 +542,11 @@ const AdminUsers = () => {
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
+                )}
+                {viewProfile.approval_status === "denied" && (
+                  <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
+                  </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"

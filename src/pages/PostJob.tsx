@@ -466,7 +466,7 @@ const PostJob = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-primary" />
-                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helpers)</Label>
+                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helprs)</Label>
                     </div>
                     <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
                   </div>

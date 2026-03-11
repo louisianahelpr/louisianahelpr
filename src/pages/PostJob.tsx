@@ -51,6 +51,8 @@ const PostJob = () => {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
+  const [isUrgent, setIsUrgent] = useState(false);
+  const urgentFee = 7;
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
 

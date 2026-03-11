@@ -284,7 +284,7 @@ const MyJobs = () => {
                   {applications.map((app) => (
                     <div key={app.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
                       <div>
-                        <p className="font-medium text-foreground">{app.profiles?.full_name || "Helper"}</p>
+                        <p className="font-medium text-foreground">{app.profiles?.full_name || "Helpr"}</p>
                         {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
                         {app.proposed_rate && <p className="text-xs text-muted-foreground">Proposed: ${app.proposed_rate}/hr</p>}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}

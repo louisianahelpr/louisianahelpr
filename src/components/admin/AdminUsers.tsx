@@ -95,7 +95,12 @@ const AdminUsers = () => {
   const denyUser = async () => {
     if (!denyProfile) return;
     setDenying(true);
-    const { error } = await supabase.from("profiles").update({ approval_status: "denied" }).eq("id", denyProfile.id);
+    const { error } = await supabase.from("profiles").update({
+      approval_status: "denied",
+      denial_reason: denyReason.trim() || null,
+      denial_email_count: 1,
+      last_denial_email_at: new Date().toISOString(),
+    } as any).eq("id", denyProfile.id);
     if (error) {
       toast.error(error.message);
     } else {
@@ -117,6 +122,32 @@ const AdminUsers = () => {
       setViewProfile(null);
     }
     setDenying(false);
+  };
+
+  const [resending, setResending] = useState<string | null>(null);
+
+  const resendDenialEmail = async (profile: Profile) => {
+    setResending(profile.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-account-status-email", {
+        body: { userId: profile.user_id, status: "denied", reason: (profile as any).denial_reason || "" },
+      });
+      if (error) throw error;
+
+      // Update count
+      await supabase.from("profiles").update({
+        denial_email_count: ((profile as any).denial_email_count || 0) + 1,
+        last_denial_email_at: new Date().toISOString(),
+      } as any).eq("id", profile.id);
+
+      toast.success("Denial email resent");
+      loadProfiles();
+    } catch (err: any) {
+      toast.error("Failed to resend email");
+      console.error(err);
+    } finally {
+      setResending(null);
+    }
   };
 
   const handleBanAction = async () => {

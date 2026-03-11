@@ -14,7 +14,7 @@ const MobileNav = () => {
   const navigate = useNavigate();
 
   // Only show on authenticated pages
-  const authPages = ["/dashboard", "/browse-jobs", "/post-job", "/my-jobs", "/profile", "/earnings", "/messages", "/admin"];
+  const authPages = ["/dashboard", "/browse-jobs", "/post-job", "/my-jobs", "/profile", "/earnings", "/messages", "/admin", "/schedule", "/job-history"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
   return (

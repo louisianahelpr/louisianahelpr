@@ -71,6 +71,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isProHelpr, setIsProHelpr] = useState(false);
 
   // Enable realtime push notifications
   useRealtimePush(user?.id ?? null);
@@ -95,6 +96,11 @@ const Dashboard = () => {
       if (!session?.user) { navigate("/login"); return; }
       setUser(session.user);
       await loadData(session.user.id);
+      // Check Pro subscription
+      try {
+        const { data } = await supabase.functions.invoke("check-pro-subscription");
+        if (data?.subscribed) setIsProHelpr(true);
+      } catch {}
     };
     init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -205,6 +211,9 @@ const Dashboard = () => {
   const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
+  // Pro helpers get lower platform fee
+  const effectiveFee = isProHelpr ? 10 : platformFee;
+
   const filteredJobs = allJobs
     .filter((job) => {
       if (searchQuery) {
@@ -214,6 +223,12 @@ const Dashboard = () => {
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+      // Non-Pro helpers can't see jobs posted in last 10 minutes
+      if (!isProHelpr && profile?.role === "helper") {
+        const jobAge = Date.now() - new Date(job.created_at).getTime();
+        const tenMinutes = 10 * 60 * 1000;
+        if (jobAge < tenMinutes) return false;
+      }
       return true;
     })
     .sort((a, b) => {
@@ -355,7 +370,7 @@ const Dashboard = () => {
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-              <span className="flex items-center gap-1 font-medium text-primary"><DollarSign className="w-3 h-3" /> You earn ${(job.budget * (1 - platformFee / 100)).toFixed(2)}</span>
+              <span className="flex items-center gap-1 font-medium text-primary"><DollarSign className="w-3 h-3" /> You earn ${(job.budget * (1 - effectiveFee / 100)).toFixed(2)}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
               <span>Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => { e.stopPropagation(); }} className="font-medium text-primary hover:underline">{job.posterName}</a></span>
@@ -578,7 +593,7 @@ const Dashboard = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-secondary/30 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> You Earn</p>
-                  <p className="font-semibold text-primary">${(detailJob.budget * (1 - platformFee / 100)).toFixed(2)}</p>
+                  <p className="font-semibold text-primary">${(detailJob.budget * (1 - effectiveFee / 100)).toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg bg-secondary/30 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>

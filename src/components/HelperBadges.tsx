@@ -1,4 +1,4 @@
-import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target } from "lucide-react";
+import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target, Sparkles } from "lucide-react";
 
 export type HelperBadge = {
   key: string;
@@ -14,8 +14,19 @@ export function computeBadges(stats: {
   cancellations?: number;
   responseHours?: number;
   memberSinceDays?: number;
+  isPro?: boolean;
 }): HelperBadge[] {
   const badges: HelperBadge[] = [];
+
+  // ⭐ Pro Helpr badge — always first
+  if (stats.isPro) {
+    badges.push({
+      key: "pro",
+      label: "Pro Helpr",
+      icon: <Sparkles className="w-3 h-3" />,
+      color: "bg-primary/20 text-primary border border-primary/30",
+    });
+  }
 
   // 👑 Elite Helpr: 25+ completed jobs, 4.8+ rating, 10+ reviews
   if (stats.completedJobs >= 25 && stats.avgRating >= 4.8 && stats.reviewCount >= 10) {

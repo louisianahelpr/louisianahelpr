@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CreditCard, DollarSign, CheckCircle, AlertCircle, ExternalLink, Loader2, BanknoteIcon } from "lucide-react";
+import { CreditCard, DollarSign, CheckCircle, AlertCircle, ExternalLink, Loader2, BanknoteIcon, Crown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -28,14 +28,26 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [onboarding, setOnboarding] = useState(false);
   const [openingDashboard, setOpeningDashboard] = useState(false);
 
+  // Pro subscription state
+  const [proSubscribed, setProSubscribed] = useState(false);
+  const [proEnd, setProEnd] = useState<string | null>(null);
+  const [proLoading, setProLoading] = useState(true);
+  const [proCheckoutLoading, setProCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
   useEffect(() => {
     checkConnectStatus();
-    // Show toast on return from Stripe onboarding
+    checkProSubscription();
     const connectParam = searchParams.get("connect");
     if (connectParam === "success") {
       toast.success("Stripe account setup in progress. Checking status...");
     } else if (connectParam === "refresh") {
       toast.info("Please complete your Stripe setup to receive payouts.");
+    }
+    const proParam = searchParams.get("pro");
+    if (proParam === "success") {
+      toast.success("Welcome to Pro Helpr! 🎉 Your benefits are now active.");
+      checkProSubscription();
     }
   }, []);
 
@@ -55,6 +67,20 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
     }
   };
 
+  const checkProSubscription = async () => {
+    setProLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-pro-subscription");
+      if (error) throw error;
+      setProSubscribed(data?.subscribed || false);
+      setProEnd(data?.subscription_end || null);
+    } catch (err) {
+      console.error("Failed to check pro subscription:", err);
+    } finally {
+      setProLoading(false);
+    }
+  };
+
   const startOnboarding = async () => {
     setOnboarding(true);
     try {
@@ -62,9 +88,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
         body: { action: "onboard" },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message || "Failed to start setup");
     } finally {
@@ -79,13 +103,41 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
         body: { action: "dashboard" },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
       toast.error(err.message || "Failed to open dashboard");
     } finally {
       setOpeningDashboard(false);
+    }
+  };
+
+  const handleProCheckout = async () => {
+    setProCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-pro-checkout");
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+    } finally {
+      setProCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to open portal");
+    } finally {
+      setPortalLoading(false);
     }
   };
 
@@ -94,6 +146,69 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold text-foreground">Payment Settings</h1>
+
+      {/* Pro Helpr Subscription */}
+      {isHelper && (
+        <div className={`rounded-xl border-2 bg-card p-5 space-y-4 ${proSubscribed ? "border-primary" : "border-border"}`}>
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" /> Pro Helpr
+            </h2>
+            {proSubscribed && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                <CheckCircle className="w-3 h-3" /> Active
+              </span>
+            )}
+          </div>
+
+          {proLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" /> Checking subscription…
+            </div>
+          ) : proSubscribed ? (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-2">
+                <p className="text-sm font-medium text-foreground">You're a Pro Helpr! 🎉</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-primary" /> Early access to new jobs (10 min head start)</li>
+                  <li className="flex items-center gap-2"><DollarSign className="w-3 h-3 text-primary" /> Lower platform fee (10% vs 15%)</li>
+                  <li className="flex items-center gap-2"><Crown className="w-3 h-3 text-primary" /> Pro badge on your profile</li>
+                </ul>
+                {proEnd && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Renews: {new Date(proEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </p>
+                )}
+              </div>
+              <Button variant="outline" onClick={handleManageSubscription} disabled={portalLoading} className="w-full">
+                {portalLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</>
+                ) : (
+                  <><ExternalLink className="w-4 h-4 mr-2" /> Manage subscription</>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-secondary/30 border border-border p-4 space-y-2">
+                <p className="text-sm font-medium text-foreground">Upgrade to Pro — $14.99/mo</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-primary" /> See new jobs 10 minutes before free users</li>
+                  <li className="flex items-center gap-2"><DollarSign className="w-3 h-3 text-primary" /> Lower platform fee: 10% instead of 15%</li>
+                  <li className="flex items-center gap-2"><Crown className="w-3 h-3 text-primary" /> Pro badge on your profile & in search</li>
+                </ul>
+              </div>
+              <Button onClick={handleProCheckout} disabled={proCheckoutLoading} className="w-full">
+                {proCheckoutLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading…</>
+                ) : (
+                  <><Crown className="w-4 h-4 mr-2" /> Subscribe to Pro</>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stripe Connect Section — visible to helpers */}
       {isHelper && (

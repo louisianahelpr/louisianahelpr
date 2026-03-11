@@ -720,7 +720,19 @@ const ProfilePage = () => {
                                 <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
+                            <div className="flex flex-col items-end gap-1">
+                              <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
+                              {job._source === "posted" && job.status === "completed" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-7 px-2"
+                                  onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                                >
+                                  <RotateCcw className="w-3 h-3 mr-1" /> Rebook
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

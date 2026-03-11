@@ -668,6 +668,7 @@ const Activity = () => {
                               helperConfirmedAt={(app.job as any)?.helper_confirmed_at}
                               dateNeeded={app.job?.date_needed || ""}
                             />
+                            <JobTracking jobId={app.job_id} helperId={user.id} isHelper={true} isOwner={false} />
                             <ScopeAgreement jobId={app.job_id} isOwner={false} isHelper={true} />
                             <AddonRequests jobId={app.job_id} isOwner={false} isHelper={true} userId={user.id} />
                             <JobMilestones jobId={app.job_id} isOwner={false} isHelper={true} totalBudget={app.job?.budget || 0} />

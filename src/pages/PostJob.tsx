@@ -127,7 +127,10 @@ const PostJob = () => {
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       budget: parseFloat(budget),
       special_requirements: specialRequirements.trim() || null,
-    }).select("id").single();
+      is_recurring: isRecurring,
+      recurrence_interval: isRecurring ? recurrenceInterval : null,
+      recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+    } as any).select("id").single();
 
     if (error || !jobData) {
       toast.error(error?.message || "Failed to create job");

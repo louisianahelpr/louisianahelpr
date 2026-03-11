@@ -285,7 +285,7 @@ const Activity = () => {
       link: "/activity",
     });
 
-    toast.success(`Offer sent! Helper has ${deadlineHours}h to respond.`);
+    toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);

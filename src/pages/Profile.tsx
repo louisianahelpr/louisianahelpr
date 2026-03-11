@@ -20,7 +20,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability" | "reviews";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",

@@ -243,6 +243,7 @@ export type Database = {
           id_document_url: string | null
           location: string | null
           phone: string | null
+          portfolio_urls: string[] | null
           role: string
           skills: string | null
           updated_at: string
@@ -259,6 +260,7 @@ export type Database = {
           id_document_url?: string | null
           location?: string | null
           phone?: string | null
+          portfolio_urls?: string[] | null
           role?: string
           skills?: string | null
           updated_at?: string
@@ -275,6 +277,7 @@ export type Database = {
           id_document_url?: string | null
           location?: string | null
           phone?: string | null
+          portfolio_urls?: string[] | null
           role?: string
           skills?: string | null
           updated_at?: string

@@ -106,7 +106,12 @@ const Dashboard = () => {
     ]);
 
     if (feeRes.data) setPlatformFee(feeRes.data.platform_fee_percent);
-    if (profileRes.data) setProfile(profileRes.data);
+    if (profileRes.data) {
+      setProfile(profileRes.data);
+      // Gate: redirect based on approval status
+      if (profileRes.data.approval_status === "pending") { navigate("/account-pending"); return; }
+      if (profileRes.data.approval_status === "denied") { navigate("/account-denied"); return; }
+    }
     setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
 
     if (openJobsRes.data && openJobsRes.data.length > 0) {

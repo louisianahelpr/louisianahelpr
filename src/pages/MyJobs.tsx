@@ -38,6 +38,8 @@ const MyJobs = () => {
   const [tipAmount, setTipAmount] = useState("");
   const [tipping, setTipping] = useState(false);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("tip") === "success") {

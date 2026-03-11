@@ -220,7 +220,7 @@ const Activity = () => {
           for (const admin of adminRoles) {
             await supabase.from("notifications").insert({
               user_id: admin.user_id,
-              title: "⚠️ Helper declined job offer",
+              title: "⚠️ Helpr declined job offer",
               message: `Helper declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
               type: "warning",
               link: "/admin",

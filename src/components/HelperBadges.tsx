@@ -1,4 +1,4 @@
-import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target } from "lucide-react";
+import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target, Sparkles } from "lucide-react";
 
 export type HelperBadge = {
   key: string;

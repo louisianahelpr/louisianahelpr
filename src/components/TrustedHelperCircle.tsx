@@ -172,7 +172,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
         <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center space-y-2">
           <Users className="w-10 h-10 text-muted-foreground mx-auto" />
           <p className="text-sm text-muted-foreground">
-            Create a Trusted Helper Circle to organize and instantly rebook your favorite helpers.
+            Create a Trusted Helpr Circle to organize and instantly rebook your favorite helprs.
           </p>
           <Button size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="w-4 h-4 mr-1" /> Create your first circle

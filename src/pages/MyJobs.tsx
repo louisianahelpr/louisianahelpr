@@ -91,7 +91,7 @@ const MyJobs = () => {
       response_deadline: deadline,
     } as any).eq("id", selectedJob.id);
     await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob.id).neq("id", deadlineDialogApp.id);
-    toast.success(`Helper accepted! They have ${deadlineHours}h to confirm.`);
+    toast.success(`Helpr accepted! They have ${deadlineHours}h to confirm.`);
     setDeadlineDialogApp(null);
     loadJobs();
     setSelectedJob(null);
@@ -116,7 +116,7 @@ const MyJobs = () => {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Job completed! Helper receives $${data.helperPayout.toFixed(2)} (platform fee: $${data.platformFee.toFixed(2)})`);
+      toast.success(`Job completed! Helpr receives $${data.helperPayout.toFixed(2)} (platform fee: $${data.platformFee.toFixed(2)})`);
       loadJobs();
     } catch (err: any) {
       toast.error(err.message || "Failed to complete job");
@@ -261,7 +261,7 @@ const MyJobs = () => {
                         </div>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>
-                          <Gift className="w-4 h-4 mr-1" /> Tip helper
+                          <Gift className="w-4 h-4 mr-1" /> Tip helpr
                         </Button>
                       )}
                     </div>
@@ -284,7 +284,7 @@ const MyJobs = () => {
                   {applications.map((app) => (
                     <div key={app.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
                       <div>
-                        <p className="font-medium text-foreground">{app.profiles?.full_name || "Helper"}</p>
+                        <p className="font-medium text-foreground">{app.profiles?.full_name || "Helpr"}</p>
                         {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
                         {app.proposed_rate && <p className="text-xs text-muted-foreground">Proposed: ${app.proposed_rate}/hr</p>}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
@@ -305,14 +305,14 @@ const MyJobs = () => {
           onClose={() => { setReviewJob(null); }}
           jobId={reviewJob.id}
           revieweeId={reviewJob.helper_id}
-          revieweeName="Helper"
+          revieweeName="Helpr"
         />
       )}
 
       {deadlineDialogApp && (
         <ResponseDeadlineDialog
           open={!!deadlineDialogApp}
-          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helper"}
+          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helpr"}
           onConfirm={confirmAcceptWithDeadline}
           onClose={() => setDeadlineDialogApp(null)}
         />

@@ -196,7 +196,7 @@ const AdminUsers = () => {
         });
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", banProfile.user_id);
         await supabase.from("notifications").insert({
-          user_id: banProfile.user_id, title: "⚠️ Warning from Helpr",
+          user_id: banProfile.user_id, title: "⚠️ Warning from Admin",
           message: banReason.trim() || "You have received a warning for violating platform rules. Another violation may result in a ban.",
           type: "warning", link: "/profile",
         });

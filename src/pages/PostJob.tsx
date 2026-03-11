@@ -466,13 +466,13 @@ const PostJob = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-primary" />
-                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helpers)</Label>
+                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helprs)</Label>
                     </div>
                     <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
                   </div>
                   {isGroupJob && (
                     <div className="space-y-2 pt-1">
-                      <Label>How many helpers needed?</Label>
+                      <Label>How many helprs needed?</Label>
                       <Input
                         type="number"
                         min="2"
@@ -482,7 +482,7 @@ const PostJob = () => {
                         className="w-24"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helper
+                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
                       </p>
                     </div>
                   )}
@@ -506,8 +506,8 @@ const PostJob = () => {
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {jobDuration === "none"
-                      ? "Your job will stay open until you manually select a helper or close it."
-                      : `Your job listing will automatically close after ${jobDuration} days if no helper is selected.`}
+                       ? "Your job will stay open until you manually select a helpr or close it."
+                       : `Your job listing will automatically close after ${jobDuration} days if no helpr is selected.`}
                   </p>
                 </div>
 
@@ -607,7 +607,7 @@ const PostJob = () => {
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Helper receives</span>
+                    <span className="font-semibold text-foreground">Helpr receives</span>
                     <span className="text-xl font-bold text-foreground">${helperEarns.toFixed(2)}</span>
                   </div>
                 </div>

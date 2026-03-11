@@ -56,7 +56,7 @@ const JobStoriesSection = () => {
         supabase.from("reviews").select("job_id, rating, feedback").in("job_id", jobIds),
       ]);
 
-      const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, p.full_name || "Helper"]) || []);
+      const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, p.full_name || "Helpr"]) || []);
       const reviewMap = new Map(reviewsRes.data?.map(r => [r.job_id, r]) || []);
 
       setStories(withPhotos.slice(0, 3).map(j => {
@@ -67,7 +67,7 @@ const JobStoriesSection = () => {
           category: j.category,
           beforeUrls: j.proof_before_urls || [],
           afterUrls: j.proof_after_urls || [],
-          helperName: nameMap.get(j.helper_id || "") || "Helper",
+          helperName: nameMap.get(j.helper_id || "") || "Helpr",
           helperId: j.helper_id || "",
           rating: review?.rating || null,
           feedback: review?.feedback || null,

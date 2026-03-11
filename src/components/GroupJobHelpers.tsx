@@ -37,11 +37,11 @@ export function GroupJobHelpers({
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", helperIds);
-      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "Helper"]) || []);
+      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "Helpr"]) || []);
       setHelpers(
         (data as any[]).map((h: any) => ({
           ...h,
-          helperName: nameMap.get(h.helper_id) || "Helper",
+          helperName: nameMap.get(h.helper_id) || "Helpr",
         }))
       );
     } else {
@@ -51,7 +51,7 @@ export function GroupJobHelpers({
 
   const removeHelper = async (id: string) => {
     await (supabase.from("group_job_helpers" as any) as any).delete().eq("id", id);
-    toast.success("Helper removed from group");
+    toast.success("Helpr removed from group");
     loadHelpers();
   };
 
@@ -70,7 +70,7 @@ export function GroupJobHelpers({
           />
         </div>
         <span className="text-xs font-medium text-foreground">
-          {filledSlots}/{helpersNeeded} helpers
+          {filledSlots}/{helpersNeeded} helprs
         </span>
       </div>
 
@@ -101,7 +101,7 @@ export function GroupJobHelpers({
 
       {filledSlots < helpersNeeded && (
         <p className="text-xs text-muted-foreground text-center">
-          {helpersNeeded - filledSlots} more helper{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
+          {helpersNeeded - filledSlots} more helpr{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
         </p>
       )}
     </div>

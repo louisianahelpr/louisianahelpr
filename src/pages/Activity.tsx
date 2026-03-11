@@ -220,8 +220,8 @@ const Activity = () => {
           for (const admin of adminRoles) {
             await supabase.from("notifications").insert({
               user_id: admin.user_id,
-              title: "⚠️ Helper declined job offer",
-              message: `Helper declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
+              title: "⚠️ Helpr declined job offer",
+              message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
               type: "warning",
               link: "/admin",
             });
@@ -285,7 +285,7 @@ const Activity = () => {
       link: "/activity",
     });
 
-    toast.success(`Offer sent! Helper has ${deadlineHours}h to respond.`);
+    toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);
@@ -428,7 +428,7 @@ const Activity = () => {
     // Poster reviewing helper
     if (!job.helper_id) return;
     const { data: helperProfile } = await supabase.from("profiles").select("full_name").eq("user_id", job.helper_id).single();
-    setReviewTarget({ id: job.helper_id, name: (helperProfile?.full_name || "Helper").split(" ")[0] });
+    setReviewTarget({ id: job.helper_id, name: (helperProfile?.full_name || "Helpr").split(" ")[0] });
     setReviewJob(job);
   };
 
@@ -473,7 +473,7 @@ const Activity = () => {
         for (const admin of adminRoles) {
           await supabase.from("notifications").insert({
             user_id: admin.user_id, title: "🚫 No-show reported",
-            message: `Helper no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
+            message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
             type: "warning", link: "/admin",
           });
         }
@@ -563,9 +563,9 @@ const Activity = () => {
                           {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                             <div className="mt-1 flex items-center gap-2 flex-wrap">
                               {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
-                              {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helper confirmed</span>}
-                              {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
-                              {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helper</span>}
+              {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>}
+                               {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                               {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helpr</span>}
                             </div>
                           )}
                           {/* New features for posted jobs */}
@@ -690,7 +690,7 @@ const Activity = () => {
                         <div key={app.id} className="p-3 rounded-lg border border-border space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
-                              <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helper").split(" ")[0]}</a>
+                              <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helpr").split(" ")[0]}</a>
                               {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
                               {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
                               {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
@@ -871,7 +871,7 @@ const Activity = () => {
             <DialogTitle className="font-display">Request Revision</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Describe what needs to be fixed or redone. The helper will be notified.</p>
+            <p className="text-sm text-muted-foreground">Describe what needs to be fixed or redone. The helpr will be notified.</p>
             <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} />
           </div>
           <DialogFooter>
@@ -973,10 +973,10 @@ const Activity = () => {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Are you sure the helper didn't show up? This will:
+              Are you sure the helpr didn't show up? This will:
             </p>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
-              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helper (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
+              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helpr (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
               <li>Reopen your job so you can pick another applicant</li>
               <li>Notify the admin team</li>
             </ul>

@@ -260,7 +260,7 @@ const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFi
               <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
                 <span>Budget: ${j.budget}</span>
                 <span>Fee: ${j.platform_fee_amount || 0}</span>
-                <span>Helper payout: ${j.budget - (j.platform_fee_amount || 0)}</span>
+                <span>Helpr payout: ${j.budget - (j.platform_fee_amount || 0)}</span>
               </div>
             )}
             <p className="text-[10px] text-muted-foreground mt-1.5">Created {new Date(j.created_at).toLocaleDateString()}</p>

@@ -262,7 +262,7 @@ const UserProfile = () => {
             <RetainerAgreement
               customerId={currentUserId}
               helperId={userId!}
-              helperName={profile.full_name || "Helper"}
+              helperName={profile.full_name || "Helpr"}
             />
           )}
 

@@ -79,11 +79,11 @@ const HelperSpotlightSection = () => {
         <div className="flex items-center justify-center gap-2 mb-4">
           <Award className="w-6 h-6 text-primary" />
           <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground">
-            Helper Spotlight
+            Helpr Spotlight
           </h2>
         </div>
         <p className="text-muted-foreground max-w-md mx-auto mb-12">
-          Meet some of our top-rated helpers making a difference in Louisiana
+          Meet some of our top-rated helprs making a difference in Louisiana
         </p>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -105,7 +105,7 @@ const HelperSpotlightSection = () => {
                     {initials}
                   </div>
                 )}
-                <h3 className="text-lg font-display font-semibold text-foreground mt-3">{h.full_name || "Helper"}</h3>
+                <h3 className="text-lg font-display font-semibold text-foreground mt-3">{h.full_name || "Helpr"}</h3>
                 {h.location && (
                   <p className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
                     <MapPin className="w-3 h-3" /> {h.location}

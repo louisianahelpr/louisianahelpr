@@ -106,7 +106,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
           const ratings = ratingMap.get(m.helper_id) || [];
           return {
             ...m,
-            helperName: profile?.full_name || "Helper",
+            helperName: profile?.full_name || "Helpr",
             helperAvatar: profile?.avatar_url,
             helperSkills: profile?.skills,
             helperLocation: profile?.location,
@@ -141,7 +141,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
     });
     if (error) {
       if (error.code === "23505") toast.error("Already in this circle");
-      else toast.error("Failed to add helper");
+      else toast.error("Failed to add helpr");
     } else {
       toast.success(`${helperName} added to ${selectedCircle.name}!`);
       setShowAddHelper(false);
@@ -172,7 +172,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
         <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center space-y-2">
           <Users className="w-10 h-10 text-muted-foreground mx-auto" />
           <p className="text-sm text-muted-foreground">
-            Create a Trusted Helper Circle to organize and instantly rebook your favorite helpers.
+            Create a Trusted Helpr Circle to organize and instantly rebook your favorite helprs.
           </p>
           <Button size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="w-4 h-4 mr-1" /> Create your first circle
@@ -212,13 +212,13 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-foreground">{selectedCircle.name}</h3>
             <Button size="sm" variant="outline" onClick={() => setShowAddHelper(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add Helper
+              <Plus className="w-4 h-4 mr-1" /> Add Helpr
             </Button>
           </div>
 
           {members.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No helpers in this circle yet. Add your trusted helpers!
+              No helprs in this circle yet. Add your trusted helprs!
             </p>
           ) : (
             <div className="space-y-2">
@@ -287,7 +287,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Helper Circle</DialogTitle>
+            <DialogTitle>Create Helpr Circle</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input
@@ -313,7 +313,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
       <Dialog open={showAddHelper} onOpenChange={setShowAddHelper}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Helper to {selectedCircle?.name}</DialogTitle>
+            <DialogTitle>Add Helpr to {selectedCircle?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex gap-2">

@@ -54,7 +54,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           </div>
           <div className="rounded-lg bg-muted/50 border border-border p-3">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helpers who decline jobs repeatedly will face escalating consequences:
+              <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helprs who decline jobs repeatedly will face escalating consequences:
             </p>
             <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
               <li>1st & 2nd decline — no penalty</li>

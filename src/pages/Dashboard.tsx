@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   LogOut, Search, X, Flag, MapPin, Calendar, DollarSign,
   SlidersHorizontal, ChevronDown, ChevronUp, Clock, XCircle,
-  Shield, Briefcase, Star,
+  Shield, Briefcase, Star, ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
@@ -38,6 +39,9 @@ const Dashboard = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
+
+  // Job detail dialog
+  const [detailJob, setDetailJob] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number }) | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -152,6 +156,8 @@ const Dashboard = () => {
     );
   }
 
+  const photos = detailJob?.photos || [];
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
@@ -245,12 +251,21 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {filteredJobs.map((job) => (
-                <div key={job.id} className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-shadow">
+                <div
+                  key={job.id}
+                  className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setDetailJob(job)}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-foreground">{job.title}</h3>
                         <Badge variant="secondary" className="text-xs">{categoryLabels[job.category] || job.category}</Badge>
+                        {job.photos && job.photos.length > 0 && (
+                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                            <ImageIcon className="w-3 h-3" /> {job.photos.length}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -268,7 +283,7 @@ const Dashboard = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
                       <Button size="sm" onClick={() => handleApply(job.id)}>Apply</Button>
                       <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}><Flag className="w-3.5 h-3.5" /></Button>
                     </div>
@@ -279,6 +294,96 @@ const Dashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Job Detail Dialog */}
+      <Dialog open={!!detailJob} onOpenChange={() => setDetailJob(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">{detailJob?.title}</DialogTitle>
+          </DialogHeader>
+          {detailJob && (
+            <div className="space-y-4">
+              {/* Photos */}
+              {photos.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {photos.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                      <img src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">{categoryLabels[detailJob.category] || detailJob.category}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  Posted {new Date(detailJob.created_at).toLocaleDateString()}
+                </span>
+              </div>
+
+              <p className="text-sm text-foreground">{detailJob.description}</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Budget</p>
+                  <p className="font-semibold text-foreground">${detailJob.budget}</p>
+                </div>
+                <div className="rounded-lg bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
+                  <p className="font-semibold text-foreground">{detailJob.location}</p>
+                </div>
+                <div className="rounded-lg bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
+                  <p className="font-semibold text-foreground">{new Date(detailJob.date_needed).toLocaleDateString()}</p>
+                </div>
+                {detailJob.start_time && (
+                  <div className="rounded-lg bg-secondary/30 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
+                    <p className="font-semibold text-foreground">{detailJob.start_time}</p>
+                  </div>
+                )}
+                {detailJob.estimated_hours && (
+                  <div className="rounded-lg bg-secondary/30 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                    <p className="font-semibold text-foreground">{detailJob.estimated_hours}h</p>
+                  </div>
+                )}
+              </div>
+
+              {detailJob.special_requirements && (
+                <div className="rounded-lg bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Special Requirements</p>
+                  <p className="text-sm text-foreground">{detailJob.special_requirements}</p>
+                </div>
+              )}
+
+              {/* Poster info */}
+              <div className="flex items-center gap-2 pt-2 border-t border-border">
+                <span className="text-sm text-muted-foreground">
+                  Posted by <span className="font-medium text-foreground">{detailJob.posterName}</span>
+                </span>
+                {detailJob.posterReviewCount !== undefined && detailJob.posterReviewCount > 0 && (
+                  <span className="flex items-center gap-0.5 text-sm">
+                    <Star className="w-3.5 h-3.5 fill-accent text-accent" />
+                    <span className="text-foreground font-medium">{detailJob.posterAvgRating?.toFixed(1)}</span>
+                    <span className="text-muted-foreground">({detailJob.posterReviewCount})</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2 pt-2">
+                <Button className="flex-1" onClick={() => { handleApply(detailJob.id); setDetailJob(null); }}>
+                  Apply for this task
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => { setReportJobId(detailJob.id); setDetailJob(null); }}>
+                  <Flag className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
     </div>

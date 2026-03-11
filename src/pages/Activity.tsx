@@ -395,9 +395,15 @@ const Activity = () => {
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
                               {job.status === "in_progress" && (
-                                <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
-                                  <AlertTriangle className="w-4 h-4 mr-1" /> Revision
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
+                                    <AlertTriangle className="w-4 h-4 mr-1" /> Revision
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    onClick={() => setNoShowJobId(job.id)}>
+                                    No-Show
+                                  </Button>
+                                </>
                               )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>

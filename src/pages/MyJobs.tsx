@@ -85,7 +85,19 @@ const MyJobs = () => {
       .eq("job_id", selectedJob!.id)
       .neq("id", app.id);
 
-    toast.success("Helper accepted!");
+    toast.success("Helper accepted! Redirecting to payment…");
+
+    // Create Stripe checkout for this job
+    const { data, error } = await supabase.functions.invoke("create-payment", {
+      body: { jobId: selectedJob!.id },
+    });
+
+    if (error || !data?.url) {
+      toast.error("Payment setup failed. You can pay later from your dashboard.");
+    } else {
+      window.open(data.url, "_blank");
+    }
+
     loadJobs();
     setSelectedJob(null);
     setApplications([]);

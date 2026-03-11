@@ -121,10 +121,8 @@ const PostJob = () => {
     return () => clearTimeout(timer);
   }, [autoSave]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (imageFiles.length + files.length > 5) {
-      toast.error("Maximum 5 images allowed");
+
+
 
   const handleAiBuild = async () => {
     if (!aiPrompt.trim()) { toast.error("Describe what you need help with"); return; }

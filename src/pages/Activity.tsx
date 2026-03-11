@@ -221,7 +221,7 @@ const Activity = () => {
             await supabase.from("notifications").insert({
               user_id: admin.user_id,
               title: "⚠️ Helpr declined job offer",
-              message: `Helper declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
+              message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
               type: "warning",
               link: "/admin",
             });

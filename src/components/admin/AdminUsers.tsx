@@ -276,9 +276,10 @@ const AdminUsers = () => {
                     <Badge variant="secondary" className="capitalize text-xs">{p.role}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    {p.location && <span>{p.location}</span>}
-                    {p.phone && <span>{p.phone}</span>}
-                    <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
+                     {(p as any).email && <span>{(p as any).email}</span>}
+                     {p.location && <span>{p.location}</span>}
+                     {p.phone && <span>{p.phone}</span>}
+                     <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
                   </div>
                   {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                 </div>
@@ -312,6 +313,10 @@ const AdminUsers = () => {
           {viewProfile && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="col-span-2">
+                  <p className="text-muted-foreground text-xs">Email</p>
+                  <p className="font-medium text-foreground">{(viewProfile as any).email || "—"}</p>
+                </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Role</p>
                   <p className="font-medium text-foreground capitalize">{viewProfile.role}</p>

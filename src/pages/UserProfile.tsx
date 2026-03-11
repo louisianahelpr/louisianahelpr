@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import { HelperPortfolio } from "@/components/HelperPortfolio";
+import { RetainerAgreement } from "@/components/RetainerAgreement";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 

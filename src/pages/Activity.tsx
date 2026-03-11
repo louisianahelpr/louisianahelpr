@@ -516,15 +516,20 @@ const Activity = () => {
                             </Button>
                           </>
                         )}
-                        {app.status === "accepted" && app.job?.status === "in_progress" && (
-                          <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
-                            <MessageSquare className="w-4 h-4 mr-1" /> Message
-                          </Button>
-                        )}
-                        {app.status === "accepted" && app.job?.status === "revision_requested" && (
-                          <Button size="sm" onClick={() => resolveRevision(app.job_id)}>
-                            <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
-                          </Button>
+                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
+                          <>
+                            <Button size="sm" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
+                              <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                            </Button>
+                            {app.job?.status === "revision_requested" && (
+                              <Button size="sm" variant="outline" onClick={() => resolveRevision(app.job_id)}>
+                                <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                              <MessageSquare className="w-4 h-4 mr-1" /> Message
+                            </Button>
+                          </>
                         )}
                         {app.status === "accepted" && app.job?.status === "completed" && (
                           <>

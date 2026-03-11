@@ -753,6 +753,7 @@ export type Database = {
           ban_status: string | null
           bio: string | null
           created_at: string
+          date_of_birth: string | null
           denial_email_count: number
           denial_reason: string | null
           drip_step: number
@@ -779,6 +780,7 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           denial_email_count?: number
           denial_reason?: string | null
           drip_step?: number
@@ -805,6 +807,7 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           denial_email_count?: number
           denial_reason?: string | null
           drip_step?: number

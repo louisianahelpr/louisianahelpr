@@ -41,6 +41,7 @@ const Dashboard = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
+  const [recommendedJobs, setRecommendedJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
 
   // Job detail dialog
   const [detailJob, setDetailJob] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean }) | null>(null);

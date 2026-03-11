@@ -506,6 +506,7 @@ export type Database = {
           date_needed: string
           description: string
           estimated_hours: number | null
+          expires_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_id: string | null
@@ -527,6 +528,7 @@ export type Database = {
           recurrence_end_date: string | null
           recurrence_interval: string | null
           response_deadline: string | null
+          review_reminder_sent: boolean
           revision_note: string | null
           revision_requested_at: string | null
           special_requirements: string | null
@@ -550,6 +552,7 @@ export type Database = {
           date_needed: string
           description: string
           estimated_hours?: number | null
+          expires_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
@@ -571,6 +574,7 @@ export type Database = {
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           response_deadline?: string | null
+          review_reminder_sent?: boolean
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null
@@ -594,6 +598,7 @@ export type Database = {
           date_needed?: string
           description?: string
           estimated_hours?: number | null
+          expires_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
@@ -615,6 +620,7 @@ export type Database = {
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           response_deadline?: string | null
+          review_reminder_sent?: boolean
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null

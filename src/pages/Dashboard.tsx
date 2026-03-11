@@ -96,6 +96,11 @@ const Dashboard = () => {
       if (!session?.user) { navigate("/login"); return; }
       setUser(session.user);
       await loadData(session.user.id);
+      // Check Pro subscription
+      try {
+        const { data } = await supabase.functions.invoke("check-pro-subscription");
+        if (data?.subscribed) setIsProHelpr(true);
+      } catch {}
     };
     init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

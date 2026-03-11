@@ -90,7 +90,7 @@ const Dashboard = () => {
                 </div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Profile under review</h1>
                 <p className="text-muted-foreground">
-                  Thanks for signing up, {fullName}! Your profile is currently being reviewed by our admin team.
+                  Thanks for signing up, {firstName}! Your profile is currently being reviewed by our admin team.
                   You'll be able to access all features once your account is approved.
                 </p>
               </>

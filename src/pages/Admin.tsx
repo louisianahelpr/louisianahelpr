@@ -90,6 +90,7 @@ const Admin = () => {
           {view === "people" && <AdminUsers />}
           {view === "jobs" && <AdminJobs />}
           {view === "settings" && <AdminSettings />}
+          {view === "disputes" && <AdminDisputes />}
         </div>
       </div>
     );

@@ -9,3 +9,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.complete-signup]
     verify_jwt = false
+  [functions.send-account-status-email]
+    verify_jwt = false

@@ -107,6 +107,10 @@ const AdminUsers = () => {
           : "Your account was not approved. Please contact support for details.",
         type: "warning", link: "/profile",
       });
+      // Send denial email
+      supabase.functions.invoke("send-account-status-email", {
+        body: { userId: denyProfile.user_id, status: "denied", reason: denyReason.trim() },
+      }).catch((err) => console.error("Failed to send denial email:", err));
       loadProfiles();
       setDenyProfile(null);
       setDenyReason("");

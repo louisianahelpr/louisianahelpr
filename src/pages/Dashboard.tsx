@@ -33,7 +33,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
+  const [platformFee, setPlatformFee] = useState(15);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");

@@ -36,8 +36,6 @@ const AdminAnalytics = () => {
 
       setStats({
         totalUsers: profiles.length,
-        totalCustomers: profiles.filter((p) => p.role === "customer").length,
-        totalHelpers: profiles.filter((p) => p.role === "helper").length,
         totalJobs: allJobs.length,
         openJobs: allJobs.filter((j) => j.status === "open").length,
         completedJobs: completedJobs.length,

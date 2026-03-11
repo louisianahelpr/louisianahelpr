@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Briefcase, MessageSquare, User } from "lucide-react";
+import { Home, ClipboardList, MessageSquare, User } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/post-job", icon: Briefcase, label: "Post" },
+  { path: "/activity", icon: ClipboardList, label: "Activity" },
   { path: "/messages", icon: MessageSquare, label: "Messages" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -12,8 +12,7 @@ const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Only show on authenticated pages
-  const authPages = ["/dashboard", "/browse-jobs", "/post-job", "/my-jobs", "/profile", "/earnings", "/messages", "/admin", "/schedule", "/job-history"];
+  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
   return (

@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, LogOut } from "lucide-react";
+import {
+  ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, LogOut,
+  ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -13,7 +16,26 @@ import type { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "profile" | "earnings";
+type Tab = "profile" | "earnings" | "schedule" | "history";
+
+const statusColors: Record<string, string> = {
+  open: "bg-primary/10 text-primary",
+  accepted: "bg-accent/20 text-accent-foreground",
+  in_progress: "bg-accent/20 text-accent-foreground",
+  completed: "bg-secondary text-secondary-foreground",
+  cancelled: "bg-destructive/10 text-destructive",
+};
+
+const scheduleStatusColors: Record<string, string> = {
+  open: "bg-primary/10 text-primary border-primary/20",
+  accepted: "bg-accent/20 text-accent-foreground border-accent/30",
+  in_progress: "bg-accent/20 text-accent-foreground border-accent/30",
+  completed: "bg-secondary text-secondary-foreground border-border",
+  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+};
+
+type HistoryTab = "all" | "posted" | "worked";
+type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -23,6 +45,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<Tab>("profile");
 
+  // Profile fields
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
@@ -31,9 +54,23 @@ const ProfilePage = () => {
   const [hourlyRate, setHourlyRate] = useState("");
 
   // Earnings state
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [earningsJobs, setEarningsJobs] = useState<Job[]>([]);
   const [tips, setTips] = useState<{ amount: number; job_id: string; created_at: string }[]>([]);
   const [earningsLoading, setEarningsLoading] = useState(false);
+
+  // Schedule state
+  const [schedulePostedJobs, setSchedulePostedJobs] = useState<Job[]>([]);
+  const [scheduleAssignedJobs, setScheduleAssignedJobs] = useState<Job[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // History state
+  const [histPostedJobs, setHistPostedJobs] = useState<Job[]>([]);
+  const [histWorkedJobs, setHistWorkedJobs] = useState<Job[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [histTab, setHistTab] = useState<HistoryTab>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -41,13 +78,11 @@ const ProfilePage = () => {
       setUser(session.user);
       loadProfile(session.user.id);
     });
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) { navigate("/login"); return; }
       setUser(session.user);
       loadProfile(session.user.id);
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
@@ -65,6 +100,14 @@ const ProfilePage = () => {
     setLoading(false);
   };
 
+  // Load tab data on demand
+  useEffect(() => {
+    if (!user) return;
+    if (tab === "earnings") loadEarnings();
+    if (tab === "schedule") loadSchedule();
+    if (tab === "history") loadHistory();
+  }, [tab, user]);
+
   const loadEarnings = async () => {
     if (!user) return;
     setEarningsLoading(true);
@@ -72,14 +115,34 @@ const ProfilePage = () => {
       supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
       supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", user.id).eq("payment_status", "pending"),
     ]);
-    if (jobsRes.data) setJobs(jobsRes.data);
+    if (jobsRes.data) setEarningsJobs(jobsRes.data);
     if (tipsRes.data) setTips(tipsRes.data);
     setEarningsLoading(false);
   };
 
-  useEffect(() => {
-    if (tab === "earnings" && user) loadEarnings();
-  }, [tab, user]);
+  const loadSchedule = async () => {
+    if (!user) return;
+    setScheduleLoading(true);
+    const [posted, assigned] = await Promise.all([
+      supabase.from("jobs").select("*").eq("customer_id", user.id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
+      supabase.from("jobs").select("*").eq("helper_id", user.id).in("status", ["accepted", "in_progress"]).order("date_needed"),
+    ]);
+    if (posted.data) setSchedulePostedJobs(posted.data);
+    if (assigned.data) setScheduleAssignedJobs(assigned.data);
+    setScheduleLoading(false);
+  };
+
+  const loadHistory = async () => {
+    if (!user) return;
+    setHistoryLoading(true);
+    const [posted, worked] = await Promise.all([
+      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
+    ]);
+    if (posted.data) setHistPostedJobs(posted.data);
+    if (worked.data) setHistWorkedJobs(worked.data);
+    setHistoryLoading(false);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,20 +158,58 @@ const ProfilePage = () => {
     else toast.success("Profile updated!");
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
   }
 
   const role = profile?.role || "customer";
-  const completedJobs = jobs.filter((j) => j.status === "completed");
-  const inProgressJobs = jobs.filter((j) => j.status === "in_progress");
+
+  // Earnings calculations
+  const completedJobs = earningsJobs.filter((j) => j.status === "completed");
+  const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce((sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)), 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
+
+  // Schedule calculations
+  const allScheduleJobs = [...schedulePostedJobs, ...scheduleAssignedJobs];
+  const jobsByDate = new Map<string, Job[]>();
+  allScheduleJobs.forEach((j) => {
+    const key = j.date_needed;
+    if (!jobsByDate.has(key)) jobsByDate.set(key, []);
+    jobsByDate.get(key)!.push(j);
+  });
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date().toISOString().split("T")[0];
+  const days: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+  const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const selectedJobs = selectedDate ? (jobsByDate.get(selectedDate) || []) : [];
+  const upcomingJobs = allScheduleJobs.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
+
+  // History calculations
+  const getHistoryJobs = () => {
+    let jobs: (Job & { _source: "posted" | "worked" })[] = [];
+    if (histTab === "all" || histTab === "posted") jobs = [...jobs, ...histPostedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
+    if (histTab === "all" || histTab === "worked") jobs = [...jobs, ...histWorkedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
+    const seen = new Set<string>();
+    jobs = jobs.filter((j) => { if (seen.has(j.id)) return false; seen.add(j.id); return true; });
+    if (statusFilter !== "all") jobs = jobs.filter((j) => j.status === statusFilter);
+    return jobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  };
+  const historyJobs = getHistoryJobs();
+
+  const tabItems: { key: Tab; label: string }[] = [
+    { key: "profile", label: "Profile" },
+    { key: "earnings", label: "Earnings" },
+    { key: "schedule", label: "Schedule" },
+    { key: "history", label: "History" },
+  ];
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -124,15 +225,15 @@ const ProfilePage = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-lg mx-auto space-y-6">
+      <main className="container mx-auto px-4 py-4">
+        <div className="max-w-lg mx-auto space-y-4">
           {/* Tabs */}
-          <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-            {([{ key: "profile", label: "Profile" }, { key: "earnings", label: "Earnings" }] as const).map((t) => (
+          <div className="flex gap-1 bg-secondary/50 rounded-lg p-1 overflow-x-auto">
+            {tabItems.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex-1 px-2 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -141,11 +242,12 @@ const ProfilePage = () => {
             ))}
           </div>
 
+          {/* PROFILE TAB */}
           {tab === "profile" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-3xl font-display font-bold text-foreground">Edit profile</h1>
-                <p className="text-muted-foreground mt-1">Keep your info up to date</p>
+                <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
+                <p className="text-muted-foreground text-sm mt-1">Keep your info up to date</p>
               </div>
               <form onSubmit={handleSave} className="space-y-5">
                 <div className="space-y-2">
@@ -183,9 +285,10 @@ const ProfilePage = () => {
             </div>
           )}
 
+          {/* EARNINGS TAB */}
           {tab === "earnings" && (
             <div className="space-y-6">
-              <h1 className="text-3xl font-display font-bold text-foreground">My Earnings</h1>
+              <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
               {earningsLoading ? (
                 <p className="text-muted-foreground">Loading…</p>
               ) : (
@@ -216,31 +319,26 @@ const ProfilePage = () => {
                       <p className="text-xs text-muted-foreground mt-1">in progress</p>
                     </div>
                   </div>
-
                   <div>
-                    <h2 className="text-lg font-display font-semibold text-foreground mb-3">Job History</h2>
-                    {jobs.length === 0 ? (
+                    <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
+                    {earningsJobs.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-muted-foreground mb-4">No jobs yet.</p>
                         <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {jobs.map((job) => {
+                        {earningsJobs.map((job) => {
                           const payout = job.status === "completed" ? job.budget - (job.platform_fee_amount || 0) : null;
                           const jobTips = tips.filter((t) => t.job_id === job.id);
                           const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                           return (
-                            <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                            <div key={job.id} className="rounded-xl border border-border bg-card p-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
-                                      job.status === "completed" ? "bg-primary/10 text-primary"
-                                      : job.status === "in_progress" ? "bg-accent/20 text-accent-foreground"
-                                      : "bg-secondary text-secondary-foreground"
-                                    }`}>{job.status.replace("_", " ")}</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
                                   </div>
                                   <p className="text-xs text-muted-foreground">{job.location} · {new Date(job.date_needed).toLocaleDateString()}</p>
                                 </div>
@@ -260,10 +358,174 @@ const ProfilePage = () => {
               )}
             </div>
           )}
+
+          {/* SCHEDULE TAB */}
+          {tab === "schedule" && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
+              {scheduleLoading ? (
+                <p className="text-muted-foreground">Loading…</p>
+              ) : (
+                <>
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}><ChevronLeft className="w-4 h-4" /></Button>
+                      <h2 className="font-display font-semibold text-foreground text-sm">
+                        {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                      </h2>
+                      <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}><ChevronRight className="w-4 h-4" /></Button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                        <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {days.map((day, i) => {
+                        if (day === null) return <div key={`e-${i}`} />;
+                        const dateStr = getDateStr(day);
+                        const hasJobs = jobsByDate.has(dateStr);
+                        const isToday = dateStr === today;
+                        const isSelected = dateStr === selectedDate;
+                        return (
+                          <button
+                            key={day}
+                            onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                            className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
+                              isSelected ? "bg-primary text-primary-foreground" :
+                              isToday ? "bg-primary/10 text-primary font-bold" :
+                              "hover:bg-secondary text-foreground"
+                            }`}
+                          >
+                            {day}
+                            {hasJobs && (
+                              <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {selectedDate && (
+                    <div className="space-y-3">
+                      <h3 className="font-display font-semibold text-foreground text-sm">
+                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                      </h3>
+                      {selectedJobs.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+                      ) : (
+                        selectedJobs.map((job) => (
+                          <ScheduleCard key={job.id} job={job} isPosted={schedulePostedJobs.some((j) => j.id === job.id)} />
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {!selectedDate && (
+                    <div className="space-y-3">
+                      <h3 className="font-display font-semibold text-foreground text-sm">Upcoming</h3>
+                      {upcomingJobs.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No upcoming jobs.</p>
+                      ) : (
+                        upcomingJobs.map((job) => (
+                          <ScheduleCard key={job.id} job={job} isPosted={schedulePostedJobs.some((j) => j.id === job.id)} />
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* HISTORY TAB */}
+          {tab === "history" && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground">Job History</h1>
+              {historyLoading ? (
+                <p className="text-muted-foreground">Loading…</p>
+              ) : (
+                <>
+                  <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+                    {(["all", "posted", "worked"] as HistoryTab[]).map((t) => (
+                      <button key={t} onClick={() => setHistTab(t)}
+                        className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${
+                          histTab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        }`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["all", "open", "in_progress", "completed", "cancelled"] as StatusFilter[]).map((s) => (
+                      <button key={s} onClick={() => setStatusFilter(s)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${
+                          statusFilter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}>
+                        {s === "in_progress" ? "In Progress" : s}
+                      </button>
+                    ))}
+                  </div>
+                  {historyJobs.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No jobs found.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">{historyJobs.length} job{historyJobs.length !== 1 ? "s" : ""}</p>
+                      {historyJobs.map((job) => (
+                        <div key={`${job.id}-${job._source}`} className="rounded-xl border border-border bg-card p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">{job._source === "posted" ? "Posted" : "Worked"}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
+                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
+                                <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
 };
+
+const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
+  <div className={`rounded-xl border p-3 ${
+    job.status === "open" ? "bg-primary/10 text-primary border-primary/20" :
+    job.status === "in_progress" || job.status === "accepted" ? "bg-accent/20 text-accent-foreground border-accent/30" :
+    "border-border bg-card"
+  }`}>
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex-1">
+        <div className="flex items-center gap-2 flex-wrap mb-1">
+          <h4 className="font-semibold text-sm">{job.title}</h4>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
+          <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
+          {job.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.start_time}</span>}
+        </div>
+      </div>
+      <span className="text-xs font-medium capitalize">{job.status.replace("_", " ")}</span>
+    </div>
+  </div>
+);
 
 export default ProfilePage;

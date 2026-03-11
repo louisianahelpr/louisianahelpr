@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect } from "react";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -36,11 +35,51 @@ const PostJob = () => {
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
 
+  // Image upload state
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate("/login");
     });
   }, [navigate]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (imageFiles.length + files.length > 5) {
+      toast.error("Maximum 5 images allowed");
+      return;
+    }
+    const newFiles = [...imageFiles, ...files].slice(0, 5);
+    setImageFiles(newFiles);
+    // Generate previews
+    const previews = newFiles.map((f) => URL.createObjectURL(f));
+    setImagePreviews(previews);
+  };
+
+  const removeImage = (index: number) => {
+    const newFiles = imageFiles.filter((_, i) => i !== index);
+    setImageFiles(newFiles);
+    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+  };
+
+  const uploadImages = async (jobId: string): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of imageFiles) {
+      const ext = file.name.split(".").pop();
+      const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("job-photos").upload(path, file);
+      if (error) {
+        console.error("Upload error:", error);
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+      urls.push(urlData.publicUrl);
+    }
+    return urls;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +91,9 @@ const PostJob = () => {
       setSaving(false);
       return;
     }
+
+    // Upload images first if any
+    let photoUrls: string[] = [];
 
     const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
@@ -72,6 +114,16 @@ const PostJob = () => {
       return;
     }
 
+    // Upload images after job creation
+    if (imageFiles.length > 0) {
+      setUploading(true);
+      photoUrls = await uploadImages(jobData.id);
+      if (photoUrls.length > 0) {
+        await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobData.id);
+      }
+      setUploading(false);
+    }
+
     // Trigger escrow payment
     toast.info("Redirecting to payment…");
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
@@ -88,7 +140,7 @@ const PostJob = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
@@ -98,7 +150,7 @@ const PostJob = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-lg mx-auto space-y-8">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
@@ -116,12 +168,42 @@ const PostJob = () => {
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
             </div>
 
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label>Photos (optional, max 5)</Label>
+              <div className="flex flex-wrap gap-3">
+                {imagePreviews.map((src, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {imageFiles.length < 5 && (
+                  <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                    <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
                     <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
@@ -162,8 +244,8 @@ const PostJob = () => {
               <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={saving}>
-              {saving ? "Posting…" : "Post task"}
+            <Button type="submit" className="w-full" size="lg" disabled={saving || uploading}>
+              {uploading ? "Uploading photos…" : saving ? "Posting…" : "Post task"}
             </Button>
           </form>
         </div>

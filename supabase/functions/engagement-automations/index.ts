@@ -171,9 +171,8 @@ Deno.serve(async (_req) => {
       })
 
       const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'auth_emails',
+        queue_name: 'transactional_emails',
         payload: {
-          run_id: messageId,
           message_id: messageId,
           to: user.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
@@ -254,9 +253,8 @@ Deno.serve(async (_req) => {
       })
 
       const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'auth_emails',
+        queue_name: 'transactional_emails',
         payload: {
-          run_id: messageId,
           message_id: messageId,
           to: user.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
@@ -316,9 +314,8 @@ Deno.serve(async (_req) => {
       })
 
       const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'auth_emails',
+        queue_name: 'transactional_emails',
         payload: {
-          run_id: messageId,
           message_id: messageId,
           to: user.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
@@ -390,9 +387,8 @@ Deno.serve(async (_req) => {
       })
 
       await supabase.rpc('enqueue_email', {
-        queue_name: 'auth_emails',
+        queue_name: 'transactional_emails',
         payload: {
-          run_id: messageId,
           message_id: messageId,
           to: adminProfile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,

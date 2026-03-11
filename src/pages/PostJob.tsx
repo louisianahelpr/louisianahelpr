@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +41,9 @@ const PostJob = () => {
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [platformFee, setPlatformFee] = useState(15);
 
   // Image upload state
@@ -123,7 +127,10 @@ const PostJob = () => {
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       budget: parseFloat(budget),
       special_requirements: specialRequirements.trim() || null,
-    }).select("id").single();
+      is_recurring: isRecurring,
+      recurrence_interval: isRecurring ? recurrenceInterval : null,
+      recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+    } as any).select("id").single();
 
     if (error || !jobData) {
       toast.error(error?.message || "Failed to create job");
@@ -269,6 +276,37 @@ const PostJob = () => {
                   <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
                 </div>
 
+                {/* Recurring Job */}
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Repeat className="w-4 h-4 text-primary" />
+                      <Label htmlFor="recurring" className="cursor-pointer">Recurring task</Label>
+                    </div>
+                    <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                  </div>
+                  {isRecurring && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-2">
+                        <Label>Frequency</Label>
+                        <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Until</Label>
+                        <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button type="submit" className="w-full" size="lg">
                   Review & Pay
                 </Button>
@@ -332,10 +370,16 @@ const PostJob = () => {
                     )}
                   </div>
 
-                  {specialRequirements && (
+                   {specialRequirements && (
                     <div className="rounded-lg bg-secondary/30 p-3 mt-2">
                       <p className="text-xs text-muted-foreground font-medium mb-1">Special Requirements</p>
                       <p className="text-sm text-foreground">{specialRequirements}</p>
+                    </div>
+                  )}
+                  {isRecurring && (
+                    <div className="rounded-lg bg-primary/5 p-3 mt-2">
+                      <p className="text-xs text-primary font-medium mb-1 flex items-center gap-1"><Repeat className="w-3 h-3" /> Recurring Task</p>
+                      <p className="text-sm text-foreground capitalize">{recurrenceInterval}{recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}</p>
                     </div>
                   )}
                 </div>

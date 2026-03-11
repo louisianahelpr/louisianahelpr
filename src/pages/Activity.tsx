@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { JobBoostDialog } from "@/components/JobBoostDialog";
 import { TipDialog } from "@/components/TipDialog";
+import { PhotoProof } from "@/components/PhotoProof";
+import { CancellationDialog } from "@/components/CancellationDialog";
+import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -61,6 +64,8 @@ const Activity = () => {
   const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
+  const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
+  const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState("");
@@ -200,6 +205,16 @@ const Activity = () => {
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
         toast.success(`Job completed! Payment released.`);
+        // Trigger completion prompts (review + tip)
+        const job = postedJobs.find(j => j.id === jobId) || appliedApps.find(a => a.job_id === jobId)?.job;
+        if (job && user) {
+          const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user.id);
+          const revieweeId = isHelper ? job.customer_id : (job.helper_id || "");
+          if (revieweeId) {
+            const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", revieweeId).single();
+            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: (prof?.full_name || "User").split(" ")[0] });
+          }
+        }
       } else {
         toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
       }
@@ -444,7 +459,7 @@ const Activity = () => {
                               <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                               <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (
@@ -464,7 +479,7 @@ const Activity = () => {
                                 </>
                               )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
                           {job.status === "cancelled" && <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>}
@@ -616,6 +631,8 @@ const Activity = () => {
                         )}
                         {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
                           <>
+                            <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
+                            <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
                             <Button size="sm" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
                               <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
                             </Button>
@@ -797,6 +814,31 @@ const Activity = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancellation Dialog */}
+      {cancelDialogJob && user && (
+        <CancellationDialog
+          jobId={cancelDialogJob.id}
+          jobTitle={cancelDialogJob.title}
+          jobDate={cancelDialogJob.date_needed}
+          userId={user.id}
+          open={!!cancelDialogJob}
+          onClose={() => setCancelDialogJob(null)}
+          onCancelled={() => { if (user) loadData(user.id); }}
+        />
+      )}
+
+      {/* Completion Prompts (review + tip) */}
+      {completionPromptJob && user && (
+        <CompletionPrompts
+          jobId={completionPromptJob.job.id}
+          jobTitle={completionPromptJob.job.title}
+          revieweeId={completionPromptJob.revieweeId}
+          revieweeName={completionPromptJob.revieweeName}
+          userId={user.id}
+          onDone={() => setCompletionPromptJob(null)}
+        />
+      )}
     </div>
   );
 };

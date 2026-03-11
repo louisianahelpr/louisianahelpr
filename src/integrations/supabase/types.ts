@@ -117,6 +117,9 @@ export type Database = {
           boost_expires_at: string | null
           boosted_at: string | null
           budget: number
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
           created_at: string
           customer_id: string
@@ -126,12 +129,19 @@ export type Database = {
           helper_completed_at: string | null
           helper_id: string | null
           id: string
+          is_recurring: boolean | null
+          late_cancellation: boolean | null
           location: string
+          parent_job_id: string | null
           payment_status: string | null
           photos: string[] | null
           platform_fee_amount: number | null
           platform_fee_percent: number | null
           poster_completed_at: string | null
+          proof_after_urls: string[] | null
+          proof_before_urls: string[] | null
+          recurrence_end_date: string | null
+          recurrence_interval: string | null
           revision_note: string | null
           revision_requested_at: string | null
           special_requirements: string | null
@@ -146,6 +156,9 @@ export type Database = {
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
           created_at?: string
           customer_id: string
@@ -155,12 +168,19 @@ export type Database = {
           helper_completed_at?: string | null
           helper_id?: string | null
           id?: string
+          is_recurring?: boolean | null
+          late_cancellation?: boolean | null
           location: string
+          parent_job_id?: string | null
           payment_status?: string | null
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
           poster_completed_at?: string | null
+          proof_after_urls?: string[] | null
+          proof_before_urls?: string[] | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null
@@ -175,6 +195,9 @@ export type Database = {
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
           created_at?: string
           customer_id?: string
@@ -184,12 +207,19 @@ export type Database = {
           helper_completed_at?: string | null
           helper_id?: string | null
           id?: string
+          is_recurring?: boolean | null
+          late_cancellation?: boolean | null
           location?: string
+          parent_job_id?: string | null
           payment_status?: string | null
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
           poster_completed_at?: string | null
+          proof_after_urls?: string[] | null
+          proof_before_urls?: string[] | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null
@@ -200,7 +230,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {

@@ -74,11 +74,12 @@ serve(async (req) => {
         .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
         .eq("id", job.id);
 
+      const helperPayout = job.budget - (job.platform_fee_amount || 0);
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
-          title: "Payment auto-released!",
-          message: `"${job.title}" was auto-completed after 72 hours. You earned $${helperPayout.toFixed(2)}.`,
+          title: "Job auto-completed!",
+          message: `"${job.title}" was auto-completed after 72 hours. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
           type: "payment", link: "/activity",
         });
       }
@@ -86,7 +87,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job auto-completed",
-          message: `"${job.title}" was automatically marked complete after 72 hours. Payment has been captured.`,
+          message: `"${job.title}" was automatically marked complete after 72 hours. Payment has been captured and the helpr will be paid in 24 hours.`,
           type: "info", link: "/activity",
         });
       }

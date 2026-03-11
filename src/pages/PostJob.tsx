@@ -479,6 +479,29 @@ const PostJob = () => {
                   )}
                 </div>
 
+                {/* Job Listing Duration */}
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <Label>How long to keep this listing open?</Label>
+                  </div>
+                  <Select value={jobDuration} onValueChange={setJobDuration}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Until I choose an applicant (no expiry)</SelectItem>
+                      <SelectItem value="3">3 days</SelectItem>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="14">14 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {jobDuration === "none"
+                      ? "Your job will stay open until you manually select a helper or close it."
+                      : `Your job listing will automatically close after ${jobDuration} days if no helper is selected.`}
+                  </p>
+                </div>
+
                 <Button type="submit" className="w-full" size="lg">
                   Review & Pay
                 </Button>

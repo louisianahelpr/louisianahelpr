@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminReviews from "@/components/admin/AdminReviews";
+import AdminDisputes from "@/components/admin/AdminDisputes";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes";
 
 const Admin = () => {
   const { loading } = useAdminAuth();

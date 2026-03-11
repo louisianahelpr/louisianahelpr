@@ -580,10 +580,15 @@ const AdminUsers = () => {
                   </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                    <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
-                  </Button>
+                  <>
+                    <Button variant="outline" className="flex-1" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                      <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
+                    </Button>
+                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                      <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
+                    </Button>
+                  </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <Button variant="outline" className="flex-1" onClick={() => unbanUser(viewProfile)}>

@@ -83,6 +83,10 @@ const AdminUsers = () => {
         message: "Your account has been approved. You can now use the platform.",
         type: "success", link: "/dashboard",
       });
+      // Send approval email
+      supabase.functions.invoke("send-account-status-email", {
+        body: { userId: profile.user_id, status: "approved" },
+      }).catch((err) => console.error("Failed to send approval email:", err));
       loadProfiles();
       setViewProfile(null);
     }

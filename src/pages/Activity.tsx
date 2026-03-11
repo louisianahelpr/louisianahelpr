@@ -82,6 +82,8 @@ const Activity = () => {
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState("");
   const [requestingRevision, setRequestingRevision] = useState(false);
+  // Dispute
+  const [disputeJob, setDisputeJob] = useState<Job | null>(null);
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);

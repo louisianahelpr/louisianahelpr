@@ -12,7 +12,7 @@ type DrillDown = "users" | "jobs" | "revenue" | "fees" | null;
 
 const AdminAnalytics = () => {
   const [stats, setStats] = useState({
-    totalUsers: 0, totalCustomers: 0, totalHelpers: 0,
+    totalUsers: 0,
     totalJobs: 0, openJobs: 0, completedJobs: 0, inProgressJobs: 0, cancelledJobs: 0,
     totalRevenue: 0, totalFees: 0,
   });
@@ -36,8 +36,6 @@ const AdminAnalytics = () => {
 
       setStats({
         totalUsers: profiles.length,
-        totalCustomers: profiles.filter((p) => p.role === "customer").length,
-        totalHelpers: profiles.filter((p) => p.role === "helper").length,
         totalJobs: allJobs.length,
         openJobs: allJobs.filter((j) => j.status === "open").length,
         completedJobs: completedJobs.length,
@@ -70,7 +68,7 @@ const AdminAnalytics = () => {
   if (loading) return <p className="text-muted-foreground">Loading analytics…</p>;
 
   const cards = [
-    { key: "users" as DrillDown, label: "Total Users", value: stats.totalUsers, sub: `${stats.totalCustomers} customers · ${stats.totalHelpers} helpers`, icon: Users },
+    { key: "users" as DrillDown, label: "Total Users", value: stats.totalUsers, sub: `${stats.totalUsers} registered users`, icon: Users },
     { key: "jobs" as DrillDown, label: "Total Jobs", value: stats.totalJobs, sub: `${stats.openJobs} open · ${stats.inProgressJobs} active · ${stats.completedJobs} done`, icon: Briefcase },
     { key: "revenue" as DrillDown, label: "Total Revenue", value: `$${stats.totalRevenue.toFixed(2)}`, sub: `From ${stats.completedJobs} completed jobs`, icon: DollarSign },
     { key: "fees" as DrillDown, label: "Platform Fees", value: `$${stats.totalFees.toFixed(2)}`, sub: "Helpr's earnings", icon: TrendingUp },
@@ -148,11 +146,9 @@ const AdminAnalytics = () => {
 
 // --- Drill-down: Users ---
 const UsersDrillDown = ({ users }: { users: Profile[] }) => {
-  const [roleFilter, setRoleFilter] = useState<"all" | "customer" | "helper">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "denied">("all");
 
   const filtered = users
-    .filter((u) => roleFilter === "all" || u.role === roleFilter)
     .filter((u) => statusFilter === "all" || u.approval_status === statusFilter);
 
   const statusColor = (status: string) => {
@@ -165,22 +161,10 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
 
   return (
     <div className="space-y-3">
-      {/* Role filter */}
-      <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-        {(["all", "customer", "helper"] as const).map((f) => (
-          <button key={f} onClick={() => setRoleFilter(f)}
-            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${roleFilter === f ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {f} {f === "all" ? `(${users.length})` : `(${users.filter(u => u.role === f).length})`}
-          </button>
-        ))}
-      </div>
-
       {/* Approval status filter */}
       <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
         {statusOptions.map((s) => {
-          const count = users
-            .filter((u) => roleFilter === "all" || u.role === roleFilter)
-            .filter((u) => s === "all" || u.approval_status === s).length;
+          const count = users.filter((u) => s === "all" || u.approval_status === s).length;
           return (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -207,7 +191,6 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <Badge className={`text-xs capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
-                <Badge variant="secondary" className="text-xs capitalize">{u.role}</Badge>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()}</p>

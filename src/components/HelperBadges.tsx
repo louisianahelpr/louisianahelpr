@@ -1,4 +1,4 @@
-import { Star, Trophy, Zap, Shield } from "lucide-react";
+import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target } from "lucide-react";
 
 export type HelperBadge = {
   key: string;
@@ -12,16 +12,18 @@ export function computeBadges(stats: {
   reviewCount: number;
   completedJobs: number;
   cancellations?: number;
+  responseHours?: number;
+  memberSinceDays?: number;
 }): HelperBadge[] {
   const badges: HelperBadge[] = [];
 
-  // ⭐ Trusted Helper: 5+ completed jobs, 4.0+ rating
-  if (stats.completedJobs >= 5 && stats.avgRating >= 4.0) {
+  // 👑 Elite Helper: 25+ completed jobs, 4.8+ rating, 10+ reviews
+  if (stats.completedJobs >= 25 && stats.avgRating >= 4.8 && stats.reviewCount >= 10) {
     badges.push({
-      key: "trusted",
-      label: "Trusted Helper",
-      icon: <Shield className="w-3 h-3" />,
-      color: "bg-primary/10 text-primary",
+      key: "elite",
+      label: "Elite Helper",
+      icon: <Crown className="w-3 h-3" />,
+      color: "bg-primary/15 text-primary border border-primary/20",
     });
   }
 
@@ -35,8 +37,35 @@ export function computeBadges(stats: {
     });
   }
 
-  // ⚡ Fast Responder: 10+ completed jobs (proxy for responsiveness)
+  // ⭐ Trusted Helper: 5+ completed jobs, 4.0+ rating
+  if (stats.completedJobs >= 5 && stats.avgRating >= 4.0) {
+    badges.push({
+      key: "trusted",
+      label: "Trusted",
+      icon: <Shield className="w-3 h-3" />,
+      color: "bg-primary/10 text-primary",
+    });
+  }
+
+  // 🔥 On a Streak: 10+ completed jobs (high activity)
   if (stats.completedJobs >= 10) {
+    badges.push({
+      key: "streak",
+      label: "On Fire",
+      icon: <Flame className="w-3 h-3" />,
+      color: "bg-destructive/10 text-destructive",
+    });
+  }
+
+  // ⚡ Fast Responder: based on actual response time if available
+  if (stats.responseHours !== undefined && stats.responseHours < 2) {
+    badges.push({
+      key: "fast_responder",
+      label: "Fast Responder",
+      icon: <Zap className="w-3 h-3" />,
+      color: "bg-accent/15 text-accent-foreground",
+    });
+  } else if (stats.completedJobs >= 15) {
     badges.push({
       key: "fast_responder",
       label: "Fast Responder",
@@ -45,7 +74,38 @@ export function computeBadges(stats: {
     });
   }
 
-  return badges;
+  // 🎯 Reliable: 0 cancellations with 5+ jobs
+  if (stats.cancellations !== undefined && stats.cancellations === 0 && stats.completedJobs >= 5) {
+    badges.push({
+      key: "reliable",
+      label: "Reliable",
+      icon: <Target className="w-3 h-3" />,
+      color: "bg-primary/10 text-primary",
+    });
+  }
+
+  // ❤️ Community Favorite: 15+ reviews
+  if (stats.reviewCount >= 15) {
+    badges.push({
+      key: "community_fav",
+      label: "Community Fav",
+      icon: <Heart className="w-3 h-3" />,
+      color: "bg-destructive/10 text-destructive",
+    });
+  }
+
+  // 🌟 Rising Star: 3+ completed, <10, good rating
+  if (stats.completedJobs >= 3 && stats.completedJobs < 10 && stats.avgRating >= 4.0) {
+    badges.push({
+      key: "rising_star",
+      label: "Rising Star",
+      icon: <Star className="w-3 h-3" />,
+      color: "bg-secondary text-secondary-foreground",
+    });
+  }
+
+  // Cap at 4 badges max for clean display
+  return badges.slice(0, 4);
 }
 
 export function HelperBadges({ badges }: { badges: HelperBadge[] }) {

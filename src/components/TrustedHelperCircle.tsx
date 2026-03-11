@@ -287,7 +287,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Helper Circle</DialogTitle>
+            <DialogTitle>Create Helpr Circle</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input

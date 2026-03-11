@@ -20,6 +20,7 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];

@@ -209,6 +209,14 @@ const PostJob = () => {
 
     let photoUrls: string[] = [];
 
+    // Calculate expiry date
+    let expiresAt: string | null = null;
+    if (jobDuration !== "none") {
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + parseInt(jobDuration));
+      expiresAt = expiry.toISOString();
+    }
+
     const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
       title: title.trim(),
@@ -225,6 +233,7 @@ const PostJob = () => {
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
       is_group_job: isGroupJob,
       helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
+      expires_at: expiresAt,
     } as any).select("id").single();
 
     if (error || !jobData) {

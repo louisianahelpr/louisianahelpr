@@ -53,7 +53,7 @@ const PostJob = () => {
       return;
     }
 
-    const { error } = await supabase.from("jobs").insert({
+    const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
       title: title.trim(),
       description: description.trim(),
@@ -64,14 +64,26 @@ const PostJob = () => {
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       budget: parseFloat(budget),
       special_requirements: specialRequirements.trim() || null,
+    }).select("id").single();
+
+    if (error || !jobData) {
+      toast.error(error?.message || "Failed to create job");
+      setSaving(false);
+      return;
+    }
+
+    // Trigger escrow payment
+    toast.info("Redirecting to payment…");
+    const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
+      body: { action: "escrow", jobId: jobData.id },
     });
 
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Job posted!");
+    if (paymentError || !paymentData?.url) {
+      toast.error("Job created but payment failed. You can pay from your dashboard.");
       navigate("/dashboard");
+    } else {
+      window.open(paymentData.url, "_blank");
     }
   };
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, LayoutDashboard, Search, ClipboardList } from "lucide-react";
+import { LogOut, User, Briefcase, Search, ClipboardList, Shield } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myJobs, setMyJobs] = useState<Job[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,13 +40,15 @@ const Dashboard = () => {
   }, [navigate]);
 
   const loadData = async (userId: string) => {
-    const [profileRes, jobsRes] = await Promise.all([
+    const [profileRes, jobsRes, rolesRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
     if (jobsRes.data) setMyJobs(jobsRes.data);
+    setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
     setLoading(false);
   };
 
@@ -121,6 +124,15 @@ const Dashboard = () => {
                 title="Browse tasks"
                 desc="Find available jobs in your area."
                 onClick={() => navigate("/browse-jobs")}
+              />
+            )}
+
+            {isAdmin && (
+              <DashCard
+                icon={<Shield className="w-5 h-5 text-destructive" />}
+                title="Admin panel"
+                desc="Manage users, jobs, payments, and platform settings."
+                onClick={() => navigate("/admin")}
               />
             )}
           </div>

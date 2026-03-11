@@ -67,10 +67,15 @@ export type Database = {
           helper_id: string | null
           id: string
           location: string
+          payment_status: string | null
           photos: string[] | null
+          platform_fee_amount: number | null
+          platform_fee_percent: number | null
           special_requirements: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["job_status"]
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           title: string
           updated_at: string
         }
@@ -85,10 +90,15 @@ export type Database = {
           helper_id?: string | null
           id?: string
           location: string
+          payment_status?: string | null
           photos?: string[] | null
+          platform_fee_amount?: number | null
+          platform_fee_percent?: number | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           title: string
           updated_at?: string
         }
@@ -103,12 +113,38 @@ export type Database = {
           helper_id?: string | null
           id?: string
           location?: string
+          payment_status?: string | null
           photos?: string[] | null
+          platform_fee_amount?: number | null
+          platform_fee_percent?: number | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          id: string
+          platform_fee_percent: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          platform_fee_percent?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          platform_fee_percent?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

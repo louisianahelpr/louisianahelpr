@@ -345,6 +345,11 @@ const AdminUsers = () => {
                       <ShieldAlert className="w-4 h-4" />
                     </Button>
                   )}
+                  {p.approval_status === "denied" && (
+                    <Button size="sm" variant="outline" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>
+                      <MailIcon className="w-4 h-4 mr-1" /> {resending === p.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Resend"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

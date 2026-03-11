@@ -74,7 +74,11 @@ const AdminUsers = () => {
   };
 
   const approveUser = async (profile: Profile) => {
-    const { error } = await supabase.from("profiles").update({ approval_status: "approved" }).eq("id", profile.id);
+    const { error } = await supabase.from("profiles").update({
+      approval_status: "approved",
+      approval_email_count: 1,
+      last_approval_email_at: new Date().toISOString(),
+    } as any).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
       toast.success(`${profile.full_name || "User"} approved!`);
@@ -89,6 +93,29 @@ const AdminUsers = () => {
       }).catch((err) => console.error("Failed to send approval email:", err));
       loadProfiles();
       setViewProfile(null);
+    }
+  };
+
+  const resendApprovalEmail = async (profile: Profile) => {
+    setResending(profile.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-account-status-email", {
+        body: { userId: profile.user_id, status: "approved" },
+      });
+      if (error) throw error;
+
+      await supabase.from("profiles").update({
+        approval_email_count: ((profile as any).approval_email_count || 0) + 1,
+        last_approval_email_at: new Date().toISOString(),
+      } as any).eq("id", profile.id);
+
+      toast.success("Approval email resent");
+      loadProfiles();
+    } catch (err: any) {
+      toast.error("Failed to resend email");
+      console.error(err);
+    } finally {
+      setResending(null);
     }
   };
 
@@ -339,10 +366,15 @@ const AdminUsers = () => {
                     </>
                   )}
                   {p.approval_status === "approved" && (
-                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
-                      <ShieldAlert className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
+                        <MailIcon className="w-4 h-4 mr-1" /> {resending === p.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Resend"}
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                        onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
+                        <ShieldAlert className="w-4 h-4" />
+                      </Button>
+                    </div>
                   )}
                   {p.approval_status === "denied" && (
                     <Button size="sm" variant="outline" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>
@@ -506,6 +538,26 @@ const AdminUsers = () => {
                 )}
               </div>
 
+              {/* Approval email tracking */}
+              {viewProfile.approval_status === "approved" && (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
+                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Emails sent: {(viewProfile as any).approval_email_count || 0} / 3</span>
+                    {(viewProfile as any).last_approval_email_at && (
+                      <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {((viewProfile as any).approval_email_count || 0) < 3
+                      ? "Auto-resends every 3 days until the user logs in (max 3 emails)."
+                      : "Maximum emails sent. No more auto-resends."}
+                  </p>
+                </div>
+              )}
+
               {/* Denial email tracking */}
               {viewProfile.approval_status === "denied" && (
                 <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
@@ -548,10 +600,15 @@ const AdminUsers = () => {
                   </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                    <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
-                  </Button>
+                  <>
+                    <Button variant="outline" className="flex-1" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                      <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
+                    </Button>
+                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                      <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
+                    </Button>
+                  </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <Button variant="outline" className="flex-1" onClick={() => unbanUser(viewProfile)}>

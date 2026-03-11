@@ -402,21 +402,7 @@ async function transferToHelper(
     .single();
 
   if (!helperProfile?.stripe_account_id) {
-    console.warn(`Helper ${helperId} has no Stripe Connect account. Payout will need manual processing.`);
-    // Notify admin about manual payout needed
-    const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-    if (adminRoles) {
-      for (const admin of adminRoles) {
-        await supabaseAdmin.from("notifications").insert({
-          user_id: admin.user_id,
-          title: "⚠️ Manual payout needed",
-          message: `Helper on job ${jobId} doesn't have Stripe Connect set up. $${amount.toFixed(2)} payout needs manual processing.`,
-          type: "warning",
-          link: "/admin",
-        });
-      }
-    }
-    return;
+    throw new Error("Helper must set up their payout account before payment can be released. Please ask the helper to connect their payout account in their profile settings.");
   }
 
   try {

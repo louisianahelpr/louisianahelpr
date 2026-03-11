@@ -47,6 +47,7 @@ const PostJob = () => {
   const [specialRequirements, setSpecialRequirements] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
+  const [jobDuration, setJobDuration] = useState("none"); // none, 3days, 7days, 14days, 30days
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
@@ -208,6 +209,14 @@ const PostJob = () => {
 
     let photoUrls: string[] = [];
 
+    // Calculate expiry date
+    let expiresAt: string | null = null;
+    if (jobDuration !== "none") {
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + parseInt(jobDuration));
+      expiresAt = expiry.toISOString();
+    }
+
     const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
       title: title.trim(),
@@ -224,6 +233,7 @@ const PostJob = () => {
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
       is_group_job: isGroupJob,
       helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
+      expires_at: expiresAt,
     } as any).select("id").single();
 
     if (error || !jobData) {
@@ -476,6 +486,29 @@ const PostJob = () => {
                       </p>
                     </div>
                   )}
+                </div>
+
+                {/* Job Listing Duration */}
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <Label>How long to keep this listing open?</Label>
+                  </div>
+                  <Select value={jobDuration} onValueChange={setJobDuration}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Until I choose an applicant (no expiry)</SelectItem>
+                      <SelectItem value="3">3 days</SelectItem>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="14">14 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {jobDuration === "none"
+                      ? "Your job will stay open until you manually select a helper or close it."
+                      : `Your job listing will automatically close after ${jobDuration} days if no helper is selected.`}
+                  </p>
                 </div>
 
                 <Button type="submit" className="w-full" size="lg">

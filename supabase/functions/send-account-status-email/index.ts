@@ -164,6 +164,15 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
+    // Reset denial tracking on approval
+    if (status === 'approved') {
+      await supabaseAdmin.from('profiles').update({
+        denial_email_count: 0,
+        last_denial_email_at: null,
+        denial_reason: null,
+      }).eq('user_id', userId)
+    }
+
     // Enqueue email
     const { error: enqueueError } = await supabaseAdmin.rpc('enqueue_email', {
       queue_name: 'auth_emails',

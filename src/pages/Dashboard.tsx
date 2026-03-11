@@ -79,6 +79,7 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);

@@ -506,7 +506,8 @@ const PostJob = () => {
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {jobDuration === "none"
-                      ? "Your job will stay open until you manually select a helper or close it."
+                       ? "Your job will stay open until you manually select a helpr or close it."
+                       : `Your job listing will automatically close after ${jobDuration} days if no helpr is selected.`}
                       : `Your job listing will automatically close after ${jobDuration} days if no helper is selected.`}
                   </p>
                 </div>

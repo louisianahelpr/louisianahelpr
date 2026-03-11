@@ -330,11 +330,22 @@ const AdminUsers = () => {
           </DialogHeader>
           {viewProfile && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="col-span-2">
-                  <p className="text-muted-foreground text-xs">Email</p>
-                  <p className="font-medium text-foreground">{(viewProfile as any).email || "—"}</p>
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                {viewProfile.avatar_url ? (
+                  <img src={viewProfile.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-border" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-xl font-medium">
+                    {(viewProfile.full_name || "?")[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="font-semibold text-foreground text-lg">{viewProfile.full_name || "—"}</p>
+                  <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "—"}</p>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground text-xs">Role</p>
                   <p className="font-medium text-foreground capitalize">{viewProfile.role}</p>

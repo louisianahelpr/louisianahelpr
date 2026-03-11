@@ -128,7 +128,7 @@ Deno.serve(async (_req) => {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(supabaseUrl, supabaseKey)
 
-  const results = { drip: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
+  const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
 
   try {
     // ─── 1. Welcome Drip Sequence ─────────────────────────────────

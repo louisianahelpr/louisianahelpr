@@ -108,6 +108,12 @@ const Admin = () => {
       icon: <Briefcase className="w-5 h-5" />,
     },
     {
+      id: "disputes", label: "Disputes", description: "Review disputed jobs & payments",
+      icon: <ShieldAlert className="w-5 h-5" />,
+      badge: stats.disputedJobs > 0 ? stats.disputedJobs : undefined,
+      badgeColor: "bg-destructive/10 text-destructive",
+    },
+    {
       id: "analytics", label: "Analytics", description: "Revenue, stats & breakdowns",
       icon: <BarChart3 className="w-5 h-5" />,
     },

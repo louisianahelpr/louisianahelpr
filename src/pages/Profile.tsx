@@ -881,6 +881,11 @@ const ProfilePage = () => {
             </div>
           )}
 
+          {/* REFERRAL TAB */}
+          {tab === "referral" && user && (
+            <ReferralSection userId={user.id} />
+          )}
+
           {/* LEGAL TAB */}
           {tab === "legal" && (
             <div className="space-y-6">

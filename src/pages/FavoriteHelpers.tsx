@@ -20,6 +20,7 @@ const FavoriteHelpers = () => {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<FavoriteHelper[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadFavorites();

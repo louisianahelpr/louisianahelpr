@@ -49,6 +49,7 @@ const statusColors: Record<string, string> = {
   revision_requested: "bg-destructive/10 text-destructive",
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-destructive/10 text-destructive",
+  disputed: "bg-destructive/15 text-destructive",
 };
 
 type Tab = "posted" | "applied";

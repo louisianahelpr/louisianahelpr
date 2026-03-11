@@ -138,7 +138,7 @@ const Admin = () => {
         </div>
 
         {/* Alerts */}
-        {(stats.pendingApprovals > 0 || stats.openReports > 0) && (
+        {(stats.pendingApprovals > 0 || stats.openReports > 0 || stats.disputedJobs > 0) && (
           <div className="flex flex-col sm:flex-row gap-3">
             {stats.pendingApprovals > 0 && (
               <button
@@ -151,6 +151,21 @@ const Admin = () => {
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-foreground">{stats.pendingApprovals} pending approval{stats.pendingApprovals !== 1 ? "s" : ""}</p>
                   <p className="text-xs text-muted-foreground">Review new signups</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            {stats.disputedJobs > 0 && (
+              <button
+                onClick={() => setView("disputes")}
+                className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <ShieldAlert className="w-5 h-5 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{stats.disputedJobs} active dispute{stats.disputedJobs !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">Payment on hold</p>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </button>

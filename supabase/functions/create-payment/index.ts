@@ -348,6 +348,111 @@ serve(async (req) => {
       });
     }
 
+    // ─── ADMIN: Release disputed payment to helpr ───
+    if (action === "admin_release_dispute") {
+      const { jobId } = body;
+      if (!jobId) throw new Error("Missing jobId");
+
+      // Verify admin
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Not authorized — admin only");
+
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("jobs").select("*").eq("id", jobId).single();
+      if (jobError || !job) throw new Error("Job not found");
+
+      // Capture payment
+      const paymentIntentId = await captureEscrowPayment(stripe, supabaseAdmin, job);
+
+      // Transfer to helpr
+      const helperPayout = job.budget - (job.platform_fee_amount || 0);
+      if (job.helper_id && helperPayout > 0) {
+        await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, paymentIntentId, job.id);
+      }
+
+      await supabaseAdmin.from("jobs").update({
+        status: "completed",
+        payment_status: "released",
+      }).eq("id", jobId);
+
+      // Notify both parties
+      if (job.helper_id) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: job.helper_id,
+          title: "Dispute resolved — payment released!",
+          message: `The dispute on "${job.title}" has been resolved in your favor. $${helperPayout.toFixed(2)} has been transferred.`,
+          type: "payment", link: "/earnings",
+        });
+      }
+      await supabaseAdmin.from("notifications").insert({
+        user_id: job.customer_id,
+        title: "Dispute resolved",
+        message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
+        type: "info", link: "/activity",
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
+    }
+
+    // ─── ADMIN: Refund disputed payment to customer ───
+    if (action === "admin_refund_dispute") {
+      const { jobId } = body;
+      if (!jobId) throw new Error("Missing jobId");
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Not authorized — admin only");
+
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("jobs").select("*").eq("id", jobId).single();
+      if (jobError || !job) throw new Error("Job not found");
+
+      // Cancel the payment intent (refund)
+      let paymentIntentId = job.stripe_payment_intent_id;
+      if (!paymentIntentId && job.stripe_session_id) {
+        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
+        paymentIntentId = session.payment_intent;
+      }
+      if (paymentIntentId) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (pi.status === "requires_capture") {
+            await stripe.paymentIntents.cancel(paymentIntentId);
+          } else if (pi.status === "succeeded") {
+            await stripe.refunds.create({ payment_intent: paymentIntentId });
+          }
+        } catch (e) {
+          console.error("Refund error:", e);
+        }
+      }
+
+      await supabaseAdmin.from("jobs").update({
+        status: "cancelled",
+        payment_status: "refunded",
+      }).eq("id", jobId);
+
+      // Notify both parties
+      await supabaseAdmin.from("notifications").insert({
+        user_id: job.customer_id,
+        title: "Dispute resolved — refund issued",
+        message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
+        type: "payment", link: "/activity",
+      });
+      if (job.helper_id) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: job.helper_id,
+          title: "Dispute resolved",
+          message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
+          type: "info", link: "/activity",
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
+    }
+
     throw new Error("Invalid action");
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {

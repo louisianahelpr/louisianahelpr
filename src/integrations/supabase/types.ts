@@ -204,6 +204,44 @@ export type Database = {
         }
         Relationships: []
       }
+      fraud_flags: {
+        Row: {
+          created_at: string
+          details: string | null
+          flag_type: string
+          id: string
+          job_id: string | null
+          resolved: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          flag_type: string
+          id?: string
+          job_id?: string | null
+          resolved?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          flag_type?: string
+          id?: string
+          job_id?: string | null
+          resolved?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_flags_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_job_helpers: {
         Row: {
           helper_id: string
@@ -505,6 +543,10 @@ export type Database = {
           customer_id: string
           date_needed: string
           description: string
+          dispute_evidence_urls: string[] | null
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           estimated_hours: number | null
           expires_at: string | null
           flag_reasons: string[] | null
@@ -555,6 +597,10 @@ export type Database = {
           customer_id: string
           date_needed: string
           description: string
+          dispute_evidence_urls?: string[] | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          disputed_by?: string | null
           estimated_hours?: number | null
           expires_at?: string | null
           flag_reasons?: string[] | null
@@ -605,6 +651,10 @@ export type Database = {
           customer_id?: string
           date_needed?: string
           description?: string
+          dispute_evidence_urls?: string[] | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          disputed_by?: string | null
           estimated_hours?: number | null
           expires_at?: string | null
           flag_reasons?: string[] | null
@@ -1262,6 +1312,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "revision_requested"
+        | "disputed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1410,6 +1461,7 @@ export const Constants = {
         "completed",
         "cancelled",
         "revision_requested",
+        "disputed",
       ],
     },
   },

@@ -770,6 +770,33 @@ const Activity = () => {
           onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); }}
         />
       )}
+
+      {/* No-Show Confirmation Dialog */}
+      <Dialog open={!!noShowJobId} onOpenChange={() => setNoShowJobId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" /> Report No-Show
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Are you sure the helper didn't show up? This will:
+            </p>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helper (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
+              <li>Reopen your job so you can pick another applicant</li>
+              <li>Notify the admin team</li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNoShowJobId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => noShowJobId && handleNoShow(noShowJobId)} disabled={reportingNoShow}>
+              {reportingNoShow ? "Reporting…" : "Confirm No-Show"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

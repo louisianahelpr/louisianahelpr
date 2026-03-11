@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, DollarSign, ArrowLeft } from "lucide-react";
+import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -26,6 +28,12 @@ const BrowseJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [maxBudget, setMaxBudget] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+
   useEffect(() => {
     const fetchJobs = async () => {
       const { data, error } = await supabase
@@ -42,10 +50,7 @@ const BrowseJobs = () => {
 
   const handleApply = async (jobId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/login");
-      return;
-    }
+    if (!user) { navigate("/login"); return; }
 
     const { error } = await supabase.from("applications").insert({
       job_id: jobId,
@@ -55,15 +60,34 @@ const BrowseJobs = () => {
 
     if (error) {
       if (error.code === "23505") {
-        // unique violation - already applied
-        alert("You've already applied to this job.");
+        toast.error("You've already applied to this job.");
       } else {
-        alert(error.message);
+        toast.error(error.message);
       }
     } else {
-      alert("Application sent!");
+      toast.success("Application sent!");
     }
   };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory(null);
+    setMaxBudget("");
+    setLocationFilter("");
+  };
+
+  const hasFilters = searchQuery || selectedCategory || maxBudget || locationFilter;
+
+  const filteredJobs = jobs.filter((job) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
+    }
+    if (selectedCategory && job.category !== selectedCategory) return false;
+    if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
+    if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,21 +101,82 @@ const BrowseJobs = () => {
       </header>
 
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Browse tasks</h1>
             <p className="text-muted-foreground mt-1">Find tasks in your area and apply</p>
           </div>
 
+          {/* Search & Filters */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by title or description…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(categoryLabels).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    selectedCategory === key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder="Filter by location…"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                />
+              </div>
+              <div className="w-32">
+                <Input
+                  type="number"
+                  placeholder="Max $"
+                  value={maxBudget}
+                  onChange={(e) => setMaxBudget(e.target.value)}
+                />
+              </div>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="self-center">
+                  <X className="w-4 h-4 mr-1" /> Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Results */}
           {loading ? (
             <p className="text-muted-foreground">Loading tasks…</p>
-          ) : jobs.length === 0 ? (
+          ) : filteredJobs.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground">No open tasks right now. Check back soon!</p>
+              <p className="text-muted-foreground">
+                {hasFilters ? "No tasks match your filters." : "No open tasks right now. Check back soon!"}
+              </p>
+              {hasFilters && (
+                <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
-              {jobs.map((job) => (
+              <p className="text-sm text-muted-foreground">{filteredJobs.length} task{filteredJobs.length !== 1 ? "s" : ""} found</p>
+              {filteredJobs.map((job) => (
                 <div key={job.id} className="rounded-xl border border-border bg-card p-5 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">

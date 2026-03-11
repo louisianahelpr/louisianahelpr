@@ -55,6 +55,24 @@ const BrowseJobs = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
+    // New helpr safety limits: max 3 active jobs until 3 verified completions with 4+ stars
+    const [activeJobsRes, completedRes, reviewsRes] = await Promise.all([
+      supabase.from("applications").select("id", { count: "exact" }).eq("helper_id", user.id).eq("status", "accepted"),
+      supabase.from("jobs").select("id", { count: "exact" }).eq("helper_id", user.id).eq("status", "completed"),
+      supabase.from("reviews").select("rating").eq("reviewee_id", user.id),
+    ]);
+
+    const activeCount = activeJobsRes.count || 0;
+    const completedCount = completedRes.count || 0;
+    const ratings = reviewsRes.data || [];
+    const goodRatings = ratings.filter(r => r.rating >= 4).length;
+    const isNewHelpr = completedCount < 3 || goodRatings < 3;
+
+    if (isNewHelpr && activeCount >= 3) {
+      toast.error("New helprs can only have 3 active jobs. Complete more jobs with 4+ star ratings to unlock full access.");
+      return;
+    }
+
     const { error } = await supabase.from("applications").insert({
       job_id: jobId,
       helper_id: user.id,

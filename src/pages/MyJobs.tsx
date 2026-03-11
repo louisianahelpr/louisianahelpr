@@ -244,7 +244,7 @@ const MyJobs = () => {
                           <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
                           <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={currentUserId} />
                           <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                          <JobCheckins jobId={job.id} userId={currentUserId} isHelper={false} isOwner={true} jobStatus={job.status} />
+                          <JobCheckins jobId={job.id} userId={currentUserId} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
                         </div>
                       )}
                     </div>

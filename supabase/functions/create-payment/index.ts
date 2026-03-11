@@ -141,14 +141,11 @@ serve(async (req) => {
         // Capture the held payment
         const paymentIntentId = await captureEscrowPayment(stripe, supabaseAdmin, job);
 
-        // Transfer helper's share to their connected account
-        const helperPayout = job.budget - (job.platform_fee_amount || 0);
-        if (job.helper_id && helperPayout > 0) {
-          await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, paymentIntentId, job.id);
-        }
-
+        // Schedule payout for 24 hours later instead of immediate transfer
+        const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        updateFields.payout_scheduled_at = payoutTime;
         updateFields.status = "completed";
-        updateFields.payment_status = "released";
+        updateFields.payment_status = "payout_pending";
       }
 
       await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId);
@@ -174,18 +171,19 @@ serve(async (req) => {
       }
 
       if (bothDone) {
+        const helperPayout = job.budget - (job.platform_fee_amount || 0);
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
-            title: "Job completed & paid!",
-            message: `"${job.title}" is complete. $${helperPayout.toFixed(2)} has been transferred to your account.`,
+            title: "Job completed!",
+            message: `"${job.title}" is complete. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
             type: "payment", link: "/earnings",
           });
         }
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job completed!",
-          message: `"${job.title}" is complete. Payment has been captured and the helper has been paid.`,
+          message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
           type: "payment", link: "/activity",
         });
       }

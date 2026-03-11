@@ -586,7 +586,7 @@ const Activity = () => {
                               <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
                               <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
                               <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                              <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} />
+                              <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
                             </div>
                           )}
                           {job.status === "revision_requested" && (job as any).revision_note && (
@@ -775,7 +775,7 @@ const Activity = () => {
                             <ScopeAgreement jobId={app.job_id} isOwner={false} isHelper={true} />
                             <AddonRequests jobId={app.job_id} isOwner={false} isHelper={true} userId={user.id} />
                             <JobMilestones jobId={app.job_id} isOwner={false} isHelper={true} totalBudget={app.job?.budget || 0} />
-                            <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} />
+                            <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
                           </div>
                         )}
 

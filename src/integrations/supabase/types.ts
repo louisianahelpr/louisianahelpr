@@ -558,9 +558,12 @@ export type Database = {
           is_group_job: boolean | null
           is_recurring: boolean | null
           late_cancellation: boolean | null
+          latitude: number | null
           location: string
+          longitude: number | null
           parent_job_id: string | null
           payment_status: string | null
+          payout_scheduled_at: string | null
           photos: string[] | null
           platform_fee_amount: number | null
           platform_fee_percent: number | null
@@ -612,9 +615,12 @@ export type Database = {
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           late_cancellation?: boolean | null
+          latitude?: number | null
           location: string
+          longitude?: number | null
           parent_job_id?: string | null
           payment_status?: string | null
+          payout_scheduled_at?: string | null
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
@@ -666,9 +672,12 @@ export type Database = {
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           late_cancellation?: boolean | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           parent_job_id?: string | null
           payment_status?: string | null
+          payout_scheduled_at?: string | null
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null

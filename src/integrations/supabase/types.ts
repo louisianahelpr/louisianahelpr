@@ -535,6 +535,8 @@ export type Database = {
           boost_expires_at: string | null
           boosted_at: string | null
           budget: number
+          cancellation_fee: number | null
+          cancellation_fee_status: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -557,6 +559,7 @@ export type Database = {
           id: string
           is_group_job: boolean | null
           is_recurring: boolean | null
+          is_urgent: boolean | null
           late_cancellation: boolean | null
           latitude: number | null
           location: string
@@ -587,11 +590,14 @@ export type Database = {
           stripe_session_id: string | null
           title: string
           updated_at: string
+          urgent_fee: number | null
         }
         Insert: {
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget: number
+          cancellation_fee?: number | null
+          cancellation_fee_status?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -614,6 +620,7 @@ export type Database = {
           id?: string
           is_group_job?: boolean | null
           is_recurring?: boolean | null
+          is_urgent?: boolean | null
           late_cancellation?: boolean | null
           latitude?: number | null
           location: string
@@ -644,11 +651,14 @@ export type Database = {
           stripe_session_id?: string | null
           title: string
           updated_at?: string
+          urgent_fee?: number | null
         }
         Update: {
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget?: number
+          cancellation_fee?: number | null
+          cancellation_fee_status?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -671,6 +681,7 @@ export type Database = {
           id?: string
           is_group_job?: boolean | null
           is_recurring?: boolean | null
+          is_urgent?: boolean | null
           late_cancellation?: boolean | null
           latitude?: number | null
           location?: string
@@ -701,6 +712,7 @@ export type Database = {
           stripe_session_id?: string | null
           title?: string
           updated_at?: string
+          urgent_fee?: number | null
         }
         Relationships: [
           {

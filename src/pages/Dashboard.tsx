@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   LogOut, Search, X, Flag, MapPin, Calendar, DollarSign,
   SlidersHorizontal, ChevronDown, ChevronUp, Clock, XCircle,
-  Shield, Briefcase, Star, ImageIcon, Rocket, Heart,
+  Shield, Briefcase, Star, ImageIcon, Rocket, Heart, Zap, ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
@@ -20,6 +20,7 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -64,6 +65,7 @@ const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -79,6 +81,7 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
@@ -213,11 +216,22 @@ const Dashboard = () => {
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
       return true;
     })
-    // Sort boosted jobs to top
     .sort((a, b) => {
+      // Urgent & boosted always first
+      const aUrgent = (a as any).is_urgent;
+      const bUrgent = (b as any).is_urgent;
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;
-      return 0;
+      // Then apply sort
+      switch (sortBy) {
+        case "highest_pay": return b.budget - a.budget;
+        case "lowest_pay": return a.budget - b.budget;
+        case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
+        case "newest":
+        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
     });
 
   // "Jobs Near You" - jobs matching user's location
@@ -314,6 +328,11 @@ const Dashboard = () => {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
+              {(job as any).is_urgent && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-semibold">
+                  <Zap className="w-3 h-3 text-accent" /> Urgent
+                </span>
+              )}
               {job.isBoosted && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
                   <Rocket className="w-3 h-3" /> Boosted
@@ -477,6 +496,22 @@ const Dashboard = () => {
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                       <Input type="number" placeholder="No limit" value={maxBudget} onChange={(e) => setMaxBudget(e.target.value)} className="pl-9 text-sm" />
                     </div>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Sort by</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { value: "newest", label: "Newest" },
+                      { value: "highest_pay", label: "Highest pay" },
+                      { value: "lowest_pay", label: "Lowest pay" },
+                      { value: "ending_soon", label: "Ending soon" },
+                    ].map((opt) => (
+                      <button key={opt.value} onClick={() => setSortBy(opt.value)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${sortBy === opt.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground"><X className="w-4 h-4 mr-1" /> Clear all</Button>}

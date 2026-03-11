@@ -11,12 +11,13 @@ type CancellationDialogProps = {
   jobTitle: string;
   jobDate: string;
   userId: string;
+  hasHelper: boolean;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -24,6 +25,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, open, onC
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
+
+  // Cancellation fee logic
+  const cancellationFee = hasHelper
+    ? (hoursUntilJob < 4 ? 15 : isLateCancellation ? 5 : 0)
+    : 0;
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -34,6 +40,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, open, onC
         cancelled_at: new Date().toISOString(),
         cancellation_reason: reason.trim() || null,
         late_cancellation: isLateCancellation,
+        cancellation_fee: cancellationFee,
+        cancellation_fee_status: cancellationFee > 0 ? "pending" : null,
       };
 
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);
@@ -101,6 +109,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, open, onC
               <p className="text-sm text-destructive font-medium">⚠️ Late Cancellation Warning</p>
               <p className="text-xs text-muted-foreground mt-1">
                 This job is within 24 hours. Late cancellations are tracked. A second late cancellation will result in a permanent ban.
+              </p>
+            </div>
+          )}
+          {cancellationFee > 0 && (
+            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+              <p className="text-sm text-foreground font-medium">💰 Cancellation Fee: ${cancellationFee}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {hoursUntilJob < 4
+                  ? "A helpr has been assigned and the job starts very soon. A $15 fee applies to compensate the helpr."
+                  : "A helpr has been assigned. A $5 cancellation fee applies, with a portion going to the helpr as compensation."}
               </p>
             </div>
           )}

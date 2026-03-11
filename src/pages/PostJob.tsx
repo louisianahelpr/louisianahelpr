@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { categoryPricing } from "@/lib/pricingGuide";
 
 const categories = [
@@ -32,6 +33,7 @@ type Step = "form" | "checkout";
 
 const PostJob = () => {
   const navigate = useNavigate();
+  usePageTitle("Post a Task — Helpr");
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
@@ -51,6 +53,8 @@ const PostJob = () => {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
+  const [isUrgent, setIsUrgent] = useState(false);
+  const urgentFee = 7;
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
@@ -234,6 +238,8 @@ const PostJob = () => {
       is_group_job: isGroupJob,
       helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
       expires_at: expiresAt,
+      is_urgent: isUrgent,
+      urgent_fee: isUrgent ? urgentFee : 0,
     } as any).select("id").single();
 
     if (error || !jobData) {
@@ -271,6 +277,7 @@ const PostJob = () => {
   };
 
   const budgetNum = parseFloat(budget) || 0;
+  const totalCharge = budgetNum + (isUrgent ? urgentFee : 0);
   const feeAmount = budgetNum * (platformFee / 100);
   const helperEarns = budgetNum - feeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
@@ -488,6 +495,22 @@ const PostJob = () => {
                   )}
                 </div>
 
+                {/* Urgent Job */}
+                <div className={`rounded-xl border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-accent" />
+                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent (+${urgentFee})</Label>
+                    </div>
+                    <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
+                  </div>
+                  {isUrgent && (
+                    <p className="text-xs text-muted-foreground">
+                      ⚡ Your job will be highlighted in the feed and nearby helprs will be notified immediately. An additional ${urgentFee} fee applies.
+                    </p>
+                  )}
+                </div>
+
                 {/* Job Listing Duration */}
                 <div className="rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">
@@ -598,17 +621,27 @@ const PostJob = () => {
                 </div>
                 <div className="p-5 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">You pay</span>
+                    <span className="text-muted-foreground">Task budget</span>
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
+                  {isUrgent && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent fee</span>
+                      <span className="font-medium text-foreground">${urgentFee.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
                     <span className="font-medium text-foreground">−${feeAmount.toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Helpr receives</span>
-                    <span className="text-xl font-bold text-foreground">${helperEarns.toFixed(2)}</span>
+                    <span className="font-semibold text-foreground">You pay</span>
+                    <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Helpr receives</span>
+                    <span className="font-medium text-primary">${helperEarns.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -644,7 +677,7 @@ const PostJob = () => {
                   disabled={saving || uploading}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${budgetNum.toFixed(2)}`}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${totalCharge.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

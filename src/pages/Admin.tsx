@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminReviews from "@/components/admin/AdminReviews";
+import AdminDisputes from "@/components/admin/AdminDisputes";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -19,19 +20,20 @@ const Admin = () => {
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    pendingReviews: 0,
+    pendingReviews: 0, disputedJobs: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     if (loading) return;
     const load = async () => {
-      const [profilesRes, pendingRes, reportsRes, jobsRes, reviewsRes] = await Promise.all([
+      const [profilesRes, pendingRes, reportsRes, jobsRes, reviewsRes, disputesRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
         supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("jobs").select("status, budget, platform_fee_amount"),
         supabase.from("reviews").select("id", { count: "exact", head: true }),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
       ]);
       const allJobs = jobsRes.data || [];
       const completed = allJobs.filter(j => j.status === "completed");
@@ -44,6 +46,7 @@ const Admin = () => {
         totalRevenue: completed.reduce((s, j) => s + (j.budget || 0), 0),
         totalFees: completed.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
         pendingReviews: reviewsRes.count || 0,
+        disputedJobs: disputesRes.count || 0,
       });
       setStatsLoading(false);
     };
@@ -87,6 +90,7 @@ const Admin = () => {
           {view === "people" && <AdminUsers />}
           {view === "jobs" && <AdminJobs />}
           {view === "settings" && <AdminSettings />}
+          {view === "disputes" && <AdminDisputes />}
         </div>
       </div>
     );
@@ -102,6 +106,12 @@ const Admin = () => {
     {
       id: "jobs", label: "Jobs", description: "All tasks & listings",
       icon: <Briefcase className="w-5 h-5" />,
+    },
+    {
+      id: "disputes", label: "Disputes", description: "Review disputed jobs & payments",
+      icon: <ShieldAlert className="w-5 h-5" />,
+      badge: stats.disputedJobs > 0 ? stats.disputedJobs : undefined,
+      badgeColor: "bg-destructive/10 text-destructive",
     },
     {
       id: "analytics", label: "Analytics", description: "Revenue, stats & breakdowns",
@@ -128,7 +138,7 @@ const Admin = () => {
         </div>
 
         {/* Alerts */}
-        {(stats.pendingApprovals > 0 || stats.openReports > 0) && (
+        {(stats.pendingApprovals > 0 || stats.openReports > 0 || stats.disputedJobs > 0) && (
           <div className="flex flex-col sm:flex-row gap-3">
             {stats.pendingApprovals > 0 && (
               <button
@@ -141,6 +151,21 @@ const Admin = () => {
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-foreground">{stats.pendingApprovals} pending approval{stats.pendingApprovals !== 1 ? "s" : ""}</p>
                   <p className="text-xs text-muted-foreground">Review new signups</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            {stats.disputedJobs > 0 && (
+              <button
+                onClick={() => setView("disputes")}
+                className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <ShieldAlert className="w-5 h-5 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{stats.disputedJobs} active dispute{stats.disputedJobs !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">Payment on hold</p>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </button>

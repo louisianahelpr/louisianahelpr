@@ -28,6 +28,7 @@ import { JobCheckins } from "@/components/JobCheckins";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
+import { DisputeDialog } from "@/components/DisputeDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -48,6 +49,7 @@ const statusColors: Record<string, string> = {
   revision_requested: "bg-destructive/10 text-destructive",
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-destructive/10 text-destructive",
+  disputed: "bg-destructive/15 text-destructive",
 };
 
 type Tab = "posted" | "applied";
@@ -80,6 +82,8 @@ const Activity = () => {
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState("");
   const [requestingRevision, setRequestingRevision] = useState(false);
+  // Dispute
+  const [disputeJob, setDisputeJob] = useState<Job | null>(null);
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
@@ -606,17 +610,21 @@ const Activity = () => {
                               <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
-                              {job.status === "in_progress" && (
-                                <>
-                                  <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
-                                    <AlertTriangle className="w-4 h-4 mr-1" /> Revision
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                                    onClick={() => setNoShowJobId(job.id)}>
-                                    No-Show
-                                  </Button>
-                                </>
-                              )}
+                                {job.status === "in_progress" && (
+                                  <>
+                                    <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
+                                      <AlertTriangle className="w-4 h-4 mr-1" /> Revision
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                                      onClick={() => setDisputeJob(job)}>
+                                      Dispute
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                                      onClick={() => setNoShowJobId(job.id)}>
+                                      No-Show
+                                    </Button>
+                                  </>
+                                )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
@@ -1011,9 +1019,21 @@ const Activity = () => {
       {deadlineDialogApp && (
         <ResponseDeadlineDialog
           open={!!deadlineDialogApp}
-          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helper"}
+          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helpr"}
           onConfirm={confirmAcceptWithDeadline}
           onClose={() => setDeadlineDialogApp(null)}
+        />
+      )}
+
+      {/* Dispute Dialog */}
+      {disputeJob && user && (
+        <DisputeDialog
+          jobId={disputeJob.id}
+          jobTitle={disputeJob.title}
+          userId={user.id}
+          open={!!disputeJob}
+          onClose={() => setDisputeJob(null)}
+          onDisputed={() => { if (user) loadData(user.id); }}
         />
       )}
     </div>

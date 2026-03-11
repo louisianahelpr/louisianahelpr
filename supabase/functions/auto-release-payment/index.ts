@@ -27,8 +27,9 @@ serve(async (req) => {
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status")
       .in("status", ["in_progress", "revision_requested", "accepted"])
+      .not("status", "eq", "disputed")
       .eq("payment_status", "escrow")
       .or(`poster_completed_at.lte.${cutoff},helper_completed_at.lte.${cutoff}`);
 

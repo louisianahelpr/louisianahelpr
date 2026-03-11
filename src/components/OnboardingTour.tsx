@@ -126,8 +126,9 @@ const OnboardingTour = ({ role = "customer", profileComplete = false }: Onboardi
 
   useEffect(() => {
     const s = getState();
-    if (!s.completed && !s.dismissedAt) {
-      // Show tour after a brief delay for new users
+    if (!s.completed && !s.dismissedAt && !s.seen) {
+      // Show tour only the very first time the user signs in
+      saveState({ ...s, seen: true });
       const timer = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(timer);
     }

@@ -106,7 +106,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
           const ratings = ratingMap.get(m.helper_id) || [];
           return {
             ...m,
-            helperName: profile?.full_name || "Helper",
+            helperName: profile?.full_name || "Helpr",
             helperAvatar: profile?.avatar_url,
             helperSkills: profile?.skills,
             helperLocation: profile?.location,

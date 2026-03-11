@@ -276,9 +276,10 @@ const AdminUsers = () => {
                     <Badge variant="secondary" className="capitalize text-xs">{p.role}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    {p.location && <span>{p.location}</span>}
-                    {p.phone && <span>{p.phone}</span>}
-                    <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
+                     {(p as any).email && <span>{(p as any).email}</span>}
+                     {p.location && <span>{p.location}</span>}
+                     {p.phone && <span>{p.phone}</span>}
+                     <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
                   </div>
                   {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                 </div>

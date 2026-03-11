@@ -34,6 +34,7 @@ const BrowseJobs = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [reportJobId, setReportJobId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {

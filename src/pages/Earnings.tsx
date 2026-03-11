@@ -47,7 +47,7 @@ const Earnings = () => {
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>

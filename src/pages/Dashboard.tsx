@@ -40,13 +40,15 @@ const Dashboard = () => {
   }, [navigate]);
 
   const loadData = async (userId: string) => {
-    const [profileRes, jobsRes] = await Promise.all([
+    const [profileRes, jobsRes, rolesRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
     if (jobsRes.data) setMyJobs(jobsRes.data);
+    setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
     setLoading(false);
   };
 

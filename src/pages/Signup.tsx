@@ -54,6 +54,7 @@ const Signup = () => {
   };
 
   const validateStep2 = () => {
+    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim()) { toast.error("Please tell us about yourself"); return false; }
     if (!location.trim()) { toast.error("Location is required"); return false; }
     return true;

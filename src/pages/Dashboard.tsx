@@ -214,11 +214,22 @@ const Dashboard = () => {
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
       return true;
     })
-    // Sort boosted jobs to top
     .sort((a, b) => {
+      // Urgent & boosted always first
+      const aUrgent = (a as any).is_urgent;
+      const bUrgent = (b as any).is_urgent;
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;
-      return 0;
+      // Then apply sort
+      switch (sortBy) {
+        case "highest_pay": return b.budget - a.budget;
+        case "lowest_pay": return a.budget - b.budget;
+        case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
+        case "newest":
+        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
     });
 
   // "Jobs Near You" - jobs matching user's location

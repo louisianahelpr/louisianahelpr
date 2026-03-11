@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { JobBoostDialog } from "@/components/JobBoostDialog";
 import { TipDialog } from "@/components/TipDialog";
+import { PhotoProof } from "@/components/PhotoProof";
+import { CancellationDialog } from "@/components/CancellationDialog";
+import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import type { User as SupaUser } from "@supabase/supabase-js";

@@ -370,11 +370,18 @@ const PostJob = () => {
                     )}
                   </div>
 
-                  {specialRequirements && (
+                   {specialRequirements && (
                     <div className="rounded-lg bg-secondary/30 p-3 mt-2">
                       <p className="text-xs text-muted-foreground font-medium mb-1">Special Requirements</p>
                       <p className="text-sm text-foreground">{specialRequirements}</p>
                     </div>
+                  )}
+                  {isRecurring && (
+                    <div className="rounded-lg bg-primary/5 p-3 mt-2">
+                      <p className="text-xs text-primary font-medium mb-1 flex items-center gap-1"><Repeat className="w-3 h-3" /> Recurring Task</p>
+                      <p className="text-sm text-foreground capitalize">{recurrenceInterval}{recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}</p>
+                    </div>
+                  )}
                   )}
                 </div>
               </div>

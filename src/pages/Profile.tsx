@@ -161,6 +161,7 @@ const ProfilePage = () => {
     if (tab === "earnings") loadEarnings();
     if (tab === "schedule") loadSchedule();
     if (tab === "history") loadHistory();
+    if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
   const loadEarnings = async () => {

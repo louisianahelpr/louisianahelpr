@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
-  Rocket,
+  Rocket, Clock,
 } from "lucide-react";
 import { JobBoostDialog } from "@/components/JobBoostDialog";
 import { TipDialog } from "@/components/TipDialog";
@@ -27,6 +27,7 @@ import { JobMilestones } from "@/components/JobMilestones";
 import { JobCheckins } from "@/components/JobCheckins";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -73,6 +74,7 @@ const Activity = () => {
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
+  const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
@@ -148,13 +150,84 @@ const Activity = () => {
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     if (accept) {
-      await supabase.from("jobs").update({ status: "in_progress" }).eq("id", app.job_id);
+      await supabase.from("jobs").update({ status: "in_progress", response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can now message the poster.");
       loadData(user.id);
     } else {
+      // Track denial as violation
+      const { data: existing } = await supabase
+        .from("user_violations")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("violation_type", "job_denial");
+      const priorCount = existing?.length || 0;
+
+      let actionTaken = "none";
+      if (priorCount >= 4) actionTaken = "permanent_ban";
+      else if (priorCount >= 3) actionTaken = "temp_ban";
+      else if (priorCount >= 2) actionTaken = "warning";
+
+      // Log the violation
+      await supabase.from("user_violations").insert({
+        user_id: user.id,
+        violation_type: "job_denial",
+        description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`,
+        job_id: app.job_id,
+        action_taken: actionTaken,
+      });
+
+      // Apply penalties
+      if (actionTaken === "warning") {
+        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          title: "⚠️ Decline Warning",
+          message: "You've declined 3 job offers. Further declines may result in account suspension.",
+          type: "warning",
+          link: "/profile",
+        });
+        toast.warning("Warning: You've declined multiple job offers. Further declines may result in suspension.");
+      } else if (actionTaken === "temp_ban") {
+        await supabase.from("user_bans").insert({
+          user_id: user.id,
+          ban_type: "temporary",
+          reason: "Excessive job offer declines",
+          banned_by: user.id,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", user.id);
+        toast.error("Your account has been temporarily suspended for 7 days due to excessive declines.");
+      } else if (actionTaken === "permanent_ban") {
+        await supabase.from("user_bans").insert({
+          user_id: user.id,
+          ban_type: "permanent",
+          reason: "Repeated job offer declines",
+          banned_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
+        toast.error("Your account has been permanently banned due to repeated declines.");
+      }
+
+      // Notify admins
+      if (actionTaken !== "none") {
+        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        if (adminRoles) {
+          for (const admin of adminRoles) {
+            await supabase.from("notifications").insert({
+              user_id: admin.user_id,
+              title: "⚠️ Helper declined job offer",
+              message: `Helper declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
+              type: "warning",
+              link: "/admin",
+            });
+          }
+        }
+      }
+
+      // Reopen job
       await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", app.job_id);
+      await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null } as any).eq("id", app.job_id);
       toast.info("You declined the job. The poster can select someone else.");
       loadData(user.id);
     }
@@ -185,9 +258,31 @@ const Activity = () => {
   };
 
   const acceptApplication = async (app: Application & { profiles?: any }) => {
-    await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    await supabase.from("jobs").update({ status: "accepted", helper_id: app.helper_id }).eq("id", selectedJob!.id);
-    toast.success("Offer sent to helper! Waiting for their confirmation.");
+    // Show deadline dialog instead of immediately accepting
+    setDeadlineDialogApp(app);
+  };
+
+  const confirmAcceptWithDeadline = async (deadlineHours: number) => {
+    if (!deadlineDialogApp || !selectedJob) return;
+    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
+    await supabase.from("jobs").update({
+      status: "accepted",
+      helper_id: deadlineDialogApp.helper_id,
+      response_deadline: deadline,
+    } as any).eq("id", selectedJob.id);
+
+    // Notify helper about the deadline
+    await supabase.from("notifications").insert({
+      user_id: deadlineDialogApp.helper_id,
+      title: "📋 New job offer!",
+      message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`,
+      type: "info",
+      link: "/activity",
+    });
+
+    toast.success(`Offer sent! Helper has ${deadlineHours}h to respond.`);
+    setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);
     if (user) loadData(user.id);
@@ -686,14 +781,20 @@ const Activity = () => {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         {app.status === "accepted" && app.job?.status === "accepted" && (
-                          <>
+                          <div className="flex flex-col gap-1.5">
+                            {(app.job as any)?.response_deadline && (
+                              <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
+                                <Clock className="w-3 h-3 inline mr-1" />
+                                Respond by {new Date((app.job as any).response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
                             <Button size="sm" onClick={() => handleHelperResponse(app, true)}>
                               <ThumbsUp className="w-4 h-4 mr-1" /> Accept
                             </Button>
                             <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
                               <ThumbsDown className="w-4 h-4 mr-1" /> Decline
                             </Button>
-                          </>
+                          </div>
                         )}
                         {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
                           <>
@@ -903,6 +1004,16 @@ const Activity = () => {
           revieweeName={completionPromptJob.revieweeName}
           userId={user.id}
           onDone={() => setCompletionPromptJob(null)}
+        />
+      )}
+
+      {/* Response Deadline Dialog */}
+      {deadlineDialogApp && (
+        <ResponseDeadlineDialog
+          open={!!deadlineDialogApp}
+          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helper"}
+          onConfirm={confirmAcceptWithDeadline}
+          onClose={() => setDeadlineDialogApp(null)}
         />
       )}
     </div>

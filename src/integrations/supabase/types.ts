@@ -526,6 +526,7 @@ export type Database = {
           proof_before_urls: string[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
+          response_deadline: string | null
           revision_note: string | null
           revision_requested_at: string | null
           special_requirements: string | null
@@ -569,6 +570,7 @@ export type Database = {
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          response_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null
@@ -612,6 +614,7 @@ export type Database = {
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          response_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null

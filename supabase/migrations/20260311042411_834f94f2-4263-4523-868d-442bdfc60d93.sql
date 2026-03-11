@@ -1,0 +1,1 @@
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS response_deadline timestamp with time zone DEFAULT NULL;

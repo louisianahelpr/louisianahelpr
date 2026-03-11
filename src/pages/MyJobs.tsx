@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
+import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import { ScopeAgreement } from "@/components/ScopeAgreement";
@@ -13,6 +13,7 @@ import { JobMilestones } from "@/components/JobMilestones";
 import { JobCheckins } from "@/components/JobCheckins";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -42,6 +43,7 @@ const MyJobs = () => {
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deadlineDialogApp, setDeadlineDialogApp] = useState<Application | null>(null);
 
   useEffect(() => {
     if (searchParams.get("tip") === "success") {
@@ -76,10 +78,21 @@ const MyJobs = () => {
   };
 
   const acceptApplication = async (app: Application) => {
-    await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    await supabase.from("jobs").update({ status: "in_progress", helper_id: app.helper_id }).eq("id", selectedJob!.id);
-    await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob!.id).neq("id", app.id);
-    toast.success("Helper accepted! Task is now in progress.");
+    setDeadlineDialogApp(app);
+  };
+
+  const confirmAcceptWithDeadline = async (deadlineHours: number) => {
+    if (!deadlineDialogApp || !selectedJob) return;
+    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
+    await supabase.from("jobs").update({
+      status: "in_progress",
+      helper_id: deadlineDialogApp.helper_id,
+      response_deadline: deadline,
+    } as any).eq("id", selectedJob.id);
+    await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob.id).neq("id", deadlineDialogApp.id);
+    toast.success(`Helper accepted! They have ${deadlineHours}h to confirm.`);
+    setDeadlineDialogApp(null);
     loadJobs();
     setSelectedJob(null);
     setApplications([]);
@@ -293,6 +306,15 @@ const MyJobs = () => {
           jobId={reviewJob.id}
           revieweeId={reviewJob.helper_id}
           revieweeName="Helper"
+        />
+      )}
+
+      {deadlineDialogApp && (
+        <ResponseDeadlineDialog
+          open={!!deadlineDialogApp}
+          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helper"}
+          onConfirm={confirmAcceptWithDeadline}
+          onClose={() => setDeadlineDialogApp(null)}
         />
       )}
     </div>

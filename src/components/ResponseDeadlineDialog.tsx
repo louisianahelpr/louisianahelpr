@@ -1,0 +1,76 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Clock } from "lucide-react";
+
+type Props = {
+  open: boolean;
+  helperName: string;
+  onConfirm: (deadlineHours: number) => void;
+  onClose: () => void;
+};
+
+const deadlineOptions = [
+  { value: "1", label: "1 hour" },
+  { value: "2", label: "2 hours" },
+  { value: "4", label: "4 hours" },
+  { value: "8", label: "8 hours" },
+  { value: "12", label: "12 hours" },
+  { value: "24", label: "24 hours" },
+  { value: "48", label: "48 hours" },
+];
+
+export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }: Props) => {
+  const [hours, setHours] = useState("24");
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Set Response Deadline
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            How long should <span className="font-medium text-foreground">{helperName}</span> have to accept or decline this job?
+          </p>
+          <div className="space-y-2">
+            <Select value={hours} onValueChange={setHours}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {deadlineOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              If they don't respond in time, the job will be reopened automatically.
+            </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 border border-border p-3">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helpers who decline jobs repeatedly will face escalating consequences:
+            </p>
+            <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
+              <li>1st & 2nd decline — no penalty</li>
+              <li>3rd decline — warning issued</li>
+              <li>4th decline — temporary ban</li>
+              <li>5th+ decline — permanent ban</li>
+            </ul>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onConfirm(parseInt(hours))}>
+            Send Offer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

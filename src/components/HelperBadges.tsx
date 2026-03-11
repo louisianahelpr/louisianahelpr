@@ -17,11 +17,11 @@ export function computeBadges(stats: {
 }): HelperBadge[] {
   const badges: HelperBadge[] = [];
 
-  // 👑 Elite Helper: 25+ completed jobs, 4.8+ rating, 10+ reviews
+  // 👑 Elite Helpr: 25+ completed jobs, 4.8+ rating, 10+ reviews
   if (stats.completedJobs >= 25 && stats.avgRating >= 4.8 && stats.reviewCount >= 10) {
     badges.push({
       key: "elite",
-      label: "Elite Helper",
+      label: "Elite Helpr",
       icon: <Crown className="w-3 h-3" />,
       color: "bg-primary/15 text-primary border border-primary/20",
     });

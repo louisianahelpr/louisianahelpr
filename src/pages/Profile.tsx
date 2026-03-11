@@ -248,129 +248,143 @@ const ProfilePage = () => {
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
                 <p className="text-muted-foreground text-sm mt-1">Keep your info up to date</p>
               </div>
-              <form onSubmit={handleSave} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
-                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location (city or ZIP)</Label>
-                  <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Louisiana" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio">About you</Label>
-                  <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell people about yourself…" rows={3} />
-                </div>
-                {role === "helper" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="skills">Skills & services</Label>
-                      <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="Cleaning, yard work, moving…" />
+
+              <form onSubmit={handleSave} className="space-y-4">
+                {/* Personal Info Card */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                  <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-primary" /> Personal Information
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="fullName" className="text-xs">Full name</Label>
+                      <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="rate">Hourly rate ($)</Label>
-                      <Input id="rate" type="number" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} placeholder="25" />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-xs">Phone</Label>
+                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
                     </div>
-                  </>
-                )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="location" className="text-xs">Location (city or ZIP)</Label>
+                    <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Louisiana" />
+                  </div>
+                </div>
+
+                {/* About Card */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                  <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-primary" /> About & Skills
+                  </h2>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bio" className="text-xs">About you</Label>
+                    <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell people about yourself…" rows={3} />
+                  </div>
+                  {role === "helper" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="skills" className="text-xs">Skills & services</Label>
+                        <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="Cleaning, yard work, moving…" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="rate" className="text-xs">Hourly rate ($)</Label>
+                        <Input id="rate" type="number" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} placeholder="25" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Portfolio Card */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-primary" /> Portfolio & Documents
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Work samples, certifications, resume — up to 10 files
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {(profile?.portfolio_urls as string[] || []).map((url, i) => {
+                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                      const fileName = url.split("/").pop() || "Document";
+                      return (
+                        <div key={i} className="relative group">
+                          {isImage ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
+                              <img src={url} alt="" className="w-full h-full object-cover" />
+                            </a>
+                          ) : (
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1 hover:border-primary transition-colors">
+                              <FileText className="w-5 h-5 text-muted-foreground" />
+                              <p className="text-[9px] text-muted-foreground text-center mt-1 truncate w-full">{fileName}</p>
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const currentUrls = (profile?.portfolio_urls as string[] || []).filter((_, idx) => idx !== i);
+                              const { error } = await supabase.from("profiles").update({ portfolio_urls: currentUrls }).eq("user_id", user!.id);
+                              if (error) toast.error("Failed to remove");
+                              else { toast.success("Removed"); loadProfile(user!.id); }
+                            }}
+                            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx"
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length || !user) return;
+                          const currentUrls = (profile?.portfolio_urls as string[] || []);
+                          if (currentUrls.length + files.length > 10) {
+                            toast.error("Maximum 10 files allowed");
+                            return;
+                          }
+                          toast.info("Uploading…");
+                          const newUrls: string[] = [];
+                          for (const file of files) {
+                            const ext = file.name.split(".").pop();
+                            const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+                            const { error } = await supabase.storage.from("user-documents").upload(path, file);
+                            if (!error) {
+                              const { data: urlData } = supabase.storage.from("user-documents").getPublicUrl(path);
+                              newUrls.push(urlData.publicUrl);
+                            }
+                          }
+                          if (newUrls.length > 0) {
+                            const updated = [...currentUrls, ...newUrls];
+                            await supabase.from("profiles").update({ portfolio_urls: updated }).eq("user_id", user.id);
+                            toast.success(`${newUrls.length} file(s) uploaded!`);
+                            loadProfile(user.id);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full" size="lg" disabled={saving}>
                   {saving ? "Saving…" : "Save profile"}
                 </Button>
               </form>
-
-              {/* Portfolio / Documents Section */}
-              <div className="space-y-4 pt-4 border-t border-border">
-                <div>
-                  <h2 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary" /> Portfolio & Documents
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Upload work samples, certifications, resume, or any documents that showcase your experience.
-                  </p>
-                </div>
-
-                {/* Existing portfolio items */}
-                <div className="flex flex-wrap gap-3">
-                  {(profile?.portfolio_urls as string[] || []).map((url, i) => {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-                    const fileName = url.split("/").pop() || "Document";
-                    return (
-                      <div key={i} className="relative group">
-                        {isImage ? (
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                          </a>
-                        ) : (
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1 hover:border-primary transition-colors">
-                            <FileText className="w-5 h-5 text-muted-foreground" />
-                            <p className="text-[9px] text-muted-foreground text-center mt-1 truncate w-full">{fileName}</p>
-                          </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const currentUrls = (profile?.portfolio_urls as string[] || []).filter((_, idx) => idx !== i);
-                            const { error } = await supabase.from("profiles").update({ portfolio_urls: currentUrls }).eq("user_id", user!.id);
-                            if (error) toast.error("Failed to remove");
-                            else { toast.success("Removed"); loadProfile(user!.id); }
-                          }}
-                          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-
-                  {/* Upload new */}
-                  <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                    <Upload className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
-                    <input
-                      type="file"
-                      accept="image/*,.pdf,.doc,.docx"
-                      multiple
-                      className="hidden"
-                      onChange={async (e) => {
-                        const files = Array.from(e.target.files || []);
-                        if (!files.length || !user) return;
-                        const currentUrls = (profile?.portfolio_urls as string[] || []);
-                        if (currentUrls.length + files.length > 10) {
-                          toast.error("Maximum 10 files allowed");
-                          return;
-                        }
-                        toast.info("Uploading…");
-                        const newUrls: string[] = [];
-                        for (const file of files) {
-                          const ext = file.name.split(".").pop();
-                          const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-                          const { error } = await supabase.storage.from("user-documents").upload(path, file);
-                          if (!error) {
-                            const { data: urlData } = supabase.storage.from("user-documents").getPublicUrl(path);
-                            newUrls.push(urlData.publicUrl);
-                          }
-                        }
-                        if (newUrls.length > 0) {
-                          const updated = [...currentUrls, ...newUrls];
-                          await supabase.from("profiles").update({ portfolio_urls: updated }).eq("user_id", user.id);
-                          toast.success(`${newUrls.length} file(s) uploaded!`);
-                          loadProfile(user.id);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-                <p className="text-xs text-muted-foreground">Up to 10 files · Images, PDFs, or documents</p>
-              </div>
             </div>
           )}
 

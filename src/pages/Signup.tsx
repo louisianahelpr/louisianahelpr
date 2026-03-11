@@ -87,6 +87,13 @@ const Signup = () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (password.length < 6) { toast.error("Password must be at least 6 characters"); return false; }
+    if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+    if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
     return true;
   };
 

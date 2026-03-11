@@ -6,9 +6,14 @@ const Footer = () => (
       <Link to="/" className="text-xl font-display font-bold text-primary">
         Helpr
       </Link>
-      <p className="text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Helpr. All rights reserved.
-      </p>
+      <div className="text-center sm:text-right">
+        <p className="text-sm text-muted-foreground">
+          © {new Date().getFullYear()} Helpr. All rights reserved.
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Proudly serving Louisiana communities
+        </p>
+      </div>
     </div>
   </footer>
 );

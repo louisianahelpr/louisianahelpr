@@ -22,6 +22,7 @@ const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
   accepted: "bg-accent/20 text-accent-foreground",
   in_progress: "bg-accent/20 text-accent-foreground",
+  revision_requested: "bg-destructive/10 text-destructive",
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-destructive/10 text-destructive",
 };

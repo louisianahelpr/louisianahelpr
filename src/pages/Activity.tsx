@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
-  Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown,
+  Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
@@ -30,6 +30,7 @@ const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
   accepted: "bg-accent/20 text-accent-foreground",
   in_progress: "bg-accent/20 text-accent-foreground",
+  revision_requested: "bg-destructive/10 text-destructive",
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-destructive/10 text-destructive",
 };
@@ -51,6 +52,12 @@ const Activity = () => {
   const [tipAmount, setTipAmount] = useState("");
   const [tipping, setTipping] = useState(false);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
+
+  // Revision request
+  const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
+  const [revisionNote, setRevisionNote] = useState("");
+  const [requestingRevision, setRequestingRevision] = useState(false);
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
@@ -66,7 +73,13 @@ const Activity = () => {
   const [editSaving, setEditSaving] = useState(false);
 
   // Applied jobs state
-  const [appliedApps, setAppliedApps] = useState<(Application & { job?: Job | null; posterName?: string })[]>([]);
+  const [appliedApps, setAppliedApps] = useState<(Application & { job?: (Job & { revision_note?: string | null }) | null; posterName?: string })[]>([]);
+
+  // Helper tip state (in applied tab)
+  const [helperTipJobId, setHelperTipJobId] = useState<string | null>(null);
+  const [helperTipAmount, setHelperTipAmount] = useState("");
+  const [helperTipping, setHelperTipping] = useState(false);
+  const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -104,7 +117,7 @@ const Activity = () => {
       }
       setAppliedApps(appsRes.data.map((a) => {
         const job = jobMap.get(a.job_id) || null;
-        return { ...a, job, posterName: job ? posterNameMap.get(job.customer_id) || "User" : "User" };
+        return { ...a, job: job as any, posterName: job ? posterNameMap.get(job.customer_id) || "User" : "User" };
       }));
     } else {
       setAppliedApps([]);
@@ -187,6 +200,40 @@ const Activity = () => {
     }
   };
 
+  const requestRevision = async () => {
+    if (!revisionJobId) return;
+    setRequestingRevision(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: { action: "request_revision", jobId: revisionJobId, note: revisionNote.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Revision requested!");
+      setRevisionJobId(null);
+      setRevisionNote("");
+      if (user) loadData(user.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to request revision");
+    } finally {
+      setRequestingRevision(false);
+    }
+  };
+
+  const resolveRevision = async (jobId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: { action: "resolve_revision", jobId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Revision resolved! Job is back in progress.");
+      if (user) loadData(user.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resolve revision");
+    }
+  };
+
   const sendTip = async (jobId: string) => {
     const amount = parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }
@@ -199,6 +246,21 @@ const Activity = () => {
       toast.error(err.message || "Failed to create tip");
     } finally {
       setTipping(false);
+    }
+  };
+
+  const sendHelperTip = async (jobId: string) => {
+    const amount = parseFloat(helperTipAmount);
+    if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }
+    setHelperTipping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "tip", jobId, amount } });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tip");
+    } finally {
+      setHelperTipping(false);
     }
   };
 
@@ -229,6 +291,14 @@ const Activity = () => {
     else { toast.success("Job updated!"); setEditJob(null); if (user) loadData(user.id); }
   };
 
+  const openReviewForPosted = async (job: Job) => {
+    // Poster reviewing helper
+    if (!job.helper_id) return;
+    const { data: helperProfile } = await supabase.from("profiles").select("full_name").eq("user_id", job.helper_id).single();
+    setReviewTarget({ id: job.helper_id, name: (helperProfile?.full_name || "Helper").split(" ")[0] });
+    setReviewJob(job);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
   }
@@ -253,16 +323,10 @@ const Activity = () => {
         <div className="max-w-3xl mx-auto space-y-4">
           <h1 className="text-2xl font-display font-bold text-foreground">My Activity</h1>
 
-          {/* Tabs */}
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
                 <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
               </button>
@@ -285,10 +349,16 @@ const Activity = () => {
                         <div>
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="font-semibold text-foreground">{job.title}</h3>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace(/_/g, " ")}</span>
                             {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
                           </div>
                           <p className="text-sm text-muted-foreground">${job.budget} · {job.location}</p>
+                          {job.status === "revision_requested" && (job as any).revision_note && (
+                            <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                              <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                              <p className="text-xs text-muted-foreground mt-1">{(job as any).revision_note}</p>
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-1.5 flex-wrap justify-end">
                           {(job.status === "open" || job.status === "accepted") && (
@@ -298,21 +368,31 @@ const Activity = () => {
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
-                          {job.status === "in_progress" && (
+                          {(job.status === "in_progress" || job.status === "revision_requested") && (
                             <>
                               <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : "Complete"}
                               </Button>
+                              {job.status === "in_progress" && (
+                                <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
+                                  <AlertTriangle className="w-4 h-4 mr-1" /> Revision
+                                </Button>
+                              )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
                           {job.status === "cancelled" && <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>}
-                          {job.status === "completed" && job.helper_id && <Button size="sm" variant="outline" onClick={() => setReviewJob(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                          {job.status === "completed" && job.helper_id && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
+                            </>
+                          )}
                         </div>
                       </div>
+                      {/* Completed: tip & review */}
                       {job.status === "completed" && job.payment_status === "released" && (
-                        <div className="border-t border-border pt-3">
+                        <div className="border-t border-border pt-3 flex flex-wrap items-center gap-2">
                           {tipJobId === job.id ? (
                             <div className="flex items-center gap-2 flex-wrap">
                               <Input type="number" min="1" placeholder="$" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[80px]" />
@@ -320,7 +400,7 @@ const Activity = () => {
                               <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>Cancel</Button>
                             </div>
                           ) : (
-                            <Button size="sm" variant="outline" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                            <Button size="sm" variant="outline" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}><Gift className="w-4 h-4 mr-1" /> Tip Helper</Button>
                           )}
                         </div>
                       )}
@@ -379,7 +459,7 @@ const Activity = () => {
                 </div>
               ) : (
                 appliedApps.map((app) => (
-                  <div key={app.id} className="rounded-xl border border-border bg-card p-4">
+                  <div key={app.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -391,7 +471,7 @@ const Activity = () => {
                           }`}>{app.status}</span>
                           {app.job && (
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[app.job.status] || ""}`}>
-                              {app.job.status.replace("_", " ")}
+                              {app.job.status.replace(/_/g, " ")}
                             </span>
                           )}
                         </div>
@@ -403,6 +483,14 @@ const Activity = () => {
                           </div>
                         )}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
+
+                        {/* Revision requested notice for helper */}
+                        {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (
+                          <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                            <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                            <p className="text-xs text-muted-foreground mt-1">{(app.job as any).revision_note}</p>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col gap-1.5">
                         {app.status === "accepted" && app.job?.status === "accepted" && (
@@ -420,8 +508,36 @@ const Activity = () => {
                             <MessageSquare className="w-4 h-4 mr-1" /> Message
                           </Button>
                         )}
+                        {app.status === "accepted" && app.job?.status === "revision_requested" && (
+                          <Button size="sm" onClick={() => resolveRevision(app.job_id)}>
+                            <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+                          </Button>
+                        )}
+                        {app.status === "accepted" && app.job?.status === "completed" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => {
+                              setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
+                            }}>
+                              <Star className="w-4 h-4 mr-1" /> Review
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
+                    {/* Helper tip/review section on completed jobs */}
+                    {app.status === "accepted" && app.job?.status === "completed" && app.job?.payment_status === "released" && (
+                      <div className="border-t border-border pt-3 flex flex-wrap items-center gap-2">
+                        {helperTipJobId === app.job_id ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Input type="number" min="1" placeholder="$" value={helperTipAmount} onChange={(e) => setHelperTipAmount(e.target.value)} className="max-w-[80px]" />
+                            <Button size="sm" onClick={() => sendHelperTip(app.job_id)} disabled={helperTipping}>{helperTipping ? "…" : "Send"}</Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setHelperTipJobId(null); setHelperTipAmount(""); }}>Cancel</Button>
+                          </div>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => { setHelperTipJobId(app.job_id); setHelperTipAmount(""); }}><Gift className="w-4 h-4 mr-1" /> Tip Poster</Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -430,7 +546,34 @@ const Activity = () => {
         </div>
       </main>
 
-      {reviewJob && reviewJob.helper_id && <ReviewForm open={!!reviewJob} onClose={() => setReviewJob(null)} jobId={reviewJob.id} revieweeId={reviewJob.helper_id} revieweeName="Helper" />}
+      {/* Poster reviewing helper */}
+      {reviewJob && reviewTarget && (
+        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
+      )}
+
+      {/* Helper reviewing poster */}
+      {helperReviewJob && (
+        <ReviewForm open={!!helperReviewJob} onClose={() => setHelperReviewJob(null)} jobId={helperReviewJob.jobId} revieweeId={helperReviewJob.posterId} revieweeName={helperReviewJob.posterName} />
+      )}
+
+      {/* Revision Request Dialog */}
+      <Dialog open={!!revisionJobId} onOpenChange={() => setRevisionJobId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Request Revision</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Describe what needs to be fixed or redone. The helper will be notified.</p>
+            <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRevisionJobId(null)}>Cancel</Button>
+            <Button onClick={requestRevision} disabled={requestingRevision || !revisionNote.trim()}>
+              {requestingRevision ? "Sending…" : "Request Revision"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Job Dialog */}
       <Dialog open={!!editJob} onOpenChange={() => setEditJob(null)}>

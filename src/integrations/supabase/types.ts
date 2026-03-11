@@ -71,6 +71,8 @@ export type Database = {
           photos: string[] | null
           platform_fee_amount: number | null
           platform_fee_percent: number | null
+          revision_note: string | null
+          revision_requested_at: string | null
           special_requirements: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["job_status"]
@@ -94,6 +96,8 @@ export type Database = {
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
+          revision_note?: string | null
+          revision_requested_at?: string | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -117,6 +121,8 @@ export type Database = {
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
+          revision_note?: string | null
+          revision_requested_at?: string | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -433,6 +439,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+        | "revision_requested"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -574,7 +581,14 @@ export const Constants = {
         "assembly",
         "other",
       ],
-      job_status: ["open", "accepted", "in_progress", "completed", "cancelled"],
+      job_status: [
+        "open",
+        "accepted",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "revision_requested",
+      ],
     },
   },
 } as const

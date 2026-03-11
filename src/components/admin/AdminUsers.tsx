@@ -320,7 +320,6 @@ const AdminUsers = () => {
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <p className="font-semibold text-foreground">{p.full_name || "—"}</p>
                       {statusBadge(p)}
-                      <Badge variant="secondary" className="capitalize text-xs">{p.role}</Badge>
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                        {(p as any).email && <span>{(p as any).email}</span>}

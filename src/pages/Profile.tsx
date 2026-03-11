@@ -20,7 +20,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability" | "reviews";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -46,6 +46,11 @@ const ProfilePage = () => {
   const [completedCount, setCompletedCount] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [reviewCount, setReviewCount] = useState(0);
+
+  // Reviews
+  const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Profile fields
   const [fullName, setFullName] = useState("");
@@ -115,7 +120,39 @@ const ProfilePage = () => {
     }
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
+      setReviewCount(reviewsRes.data.length);
     }
+  };
+
+  const loadReviews = async () => {
+    if (!user) return;
+    setReviewsLoading(true);
+    const { data } = await supabase
+      .from("reviews")
+      .select("rating, feedback, created_at, reviewer_id, job_id")
+      .eq("reviewee_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (data && data.length > 0) {
+      const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
+      const jobIds = [...new Set(data.map((r) => r.job_id))];
+      const [profilesRes, jobsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds),
+        supabase.from("jobs").select("id, title").in("id", jobIds),
+      ]);
+      const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+      const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
+      setReviews(data.map((r) => ({
+        rating: r.rating,
+        feedback: r.feedback,
+        created_at: r.created_at,
+        reviewerName: nameMap.get(r.reviewer_id) || "User",
+        jobTitle: jobMap.get(r.job_id) || "Job",
+      })));
+    } else {
+      setReviews([]);
+    }
+    setReviewsLoading(false);
   };
 
   // Load tab data on demand
@@ -124,6 +161,7 @@ const ProfilePage = () => {
     if (tab === "earnings") loadEarnings();
     if (tab === "schedule") loadSchedule();
     if (tab === "history") loadHistory();
+    if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
   const loadEarnings = async () => {
@@ -291,13 +329,16 @@ const ProfilePage = () => {
                   <p className="text-2xl font-bold text-foreground">${totalEarned.toFixed(0)}</p>
                   <p className="text-xs text-muted-foreground">Earned</p>
                 </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <button
+                  onClick={() => setTab("reviews")}
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:bg-secondary/50 transition-colors"
+                >
                   <div className="flex items-center justify-center gap-1">
                     <Star className="w-4 h-4 text-primary fill-primary" />
                     <p className="text-2xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Rating</p>
-                </div>
+                  <p className="text-xs text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
+                </button>
               </div>
 
               {/* Vertical menu */}
@@ -770,6 +811,58 @@ const ProfilePage = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* REVIEWS TAB */}
+          {tab === "reviews" && (
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
+                </p>
+              </div>
+
+              {reviewsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading reviews...</p>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-12">
+                  <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No reviews yet. Complete jobs to receive reviews!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reviews.map((review, i) => (
+                    <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-0.5">
+                            {Array.from({ length: 5 }).map((_, s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${s < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm font-semibold text-foreground">{review.rating}/5</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      </div>
+                      {review.feedback && (
+                        <p className="text-sm text-foreground">{review.feedback}</p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>By <span className="font-medium text-foreground">{review.reviewerName}</span></span>
+                        <span>·</span>
+                        <span>{review.jobTitle}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

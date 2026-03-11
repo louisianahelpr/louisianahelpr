@@ -371,6 +371,33 @@ const PostJob = () => {
                   )}
                 </div>
 
+                {/* Group Job */}
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helpers)</Label>
+                    </div>
+                    <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
+                  </div>
+                  {isGroupJob && (
+                    <div className="space-y-2 pt-1">
+                      <Label>How many helpers needed?</Label>
+                      <Input
+                        type="number"
+                        min="2"
+                        max="10"
+                        value={helpersNeeded}
+                        onChange={(e) => setHelpersNeeded(e.target.value)}
+                        className="w-24"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helper
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <Button type="submit" className="w-full" size="lg">
                   Review & Pay
                 </Button>

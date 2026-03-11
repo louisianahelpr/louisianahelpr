@@ -11,6 +11,7 @@ type CancellationDialogProps = {
   jobTitle: string;
   jobDate: string;
   userId: string;
+  hasHelper: boolean;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
+import { categoryPricing } from "@/lib/pricingGuide";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },

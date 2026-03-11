@@ -351,6 +351,20 @@ const Dashboard = () => {
               <div className="h-px bg-border" />
             </div>
           )}
+          {/* Recommended for You */}
+          {recommendedJobs.length > 0 && !hasFilters && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Recommended for You</h2>
+                <span className="text-xs text-muted-foreground">based on your skills</span>
+              </div>
+              <div className="space-y-2">
+                {recommendedJobs.slice(0, 3).map((job) => renderJobCard(job))}
+              </div>
+              <div className="h-px bg-border" />
+            </div>
+          )}
 
           {/* Filters */}
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">

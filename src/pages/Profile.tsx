@@ -10,6 +10,7 @@ import {
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
+  LifeBuoy,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -312,6 +313,20 @@ const ProfilePage = () => {
                     <ChevronRightIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                   </button>
                 ))}
+                {/* Support link */}
+                <button
+                  onClick={() => navigate("/support")}
+                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <LifeBuoy className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Support</p>
+                    <p className="text-xs text-muted-foreground">Get help, report issues & suggestions</p>
+                  </div>
+                  <ChevronRightIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
               </div>
 
               {/* Logout */}

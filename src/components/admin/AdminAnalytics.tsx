@@ -191,7 +191,6 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <Badge className={`text-xs capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
-                <Badge variant="secondary" className="text-xs capitalize">{u.role}</Badge>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()}</p>

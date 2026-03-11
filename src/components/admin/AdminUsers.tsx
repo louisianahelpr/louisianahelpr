@@ -381,8 +381,8 @@ const AdminUsers = () => {
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-muted-foreground text-xs">Role</p>
-                  <p className="font-medium text-foreground capitalize">{viewProfile.role}</p>
+                  <p className="text-muted-foreground text-xs">Status</p>
+                  {statusBadge(viewProfile)}
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Status</p>

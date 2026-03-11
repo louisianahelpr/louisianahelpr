@@ -141,7 +141,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
     });
     if (error) {
       if (error.code === "23505") toast.error("Already in this circle");
-      else toast.error("Failed to add helper");
+      else toast.error("Failed to add helpr");
     } else {
       toast.success(`${helperName} added to ${selectedCircle.name}!`);
       setShowAddHelper(false);

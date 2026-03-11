@@ -473,7 +473,7 @@ const Activity = () => {
         for (const admin of adminRoles) {
           await supabase.from("notifications").insert({
             user_id: admin.user_id, title: "🚫 No-show reported",
-            message: `Helper no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
+            message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
             type: "warning", link: "/admin",
           });
         }

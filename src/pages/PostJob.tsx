@@ -220,8 +220,7 @@ const PostJob = () => {
 
   const budgetNum = parseFloat(budget) || 0;
   const feeAmount = budgetNum * (platformFee / 100);
-  const totalCharge = budgetNum + feeAmount;
-  const helperEarns = budgetNum;
+  const helperEarns = budgetNum - feeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (

@@ -12,6 +12,7 @@ import {
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
   LifeBuoy,
 } from "lucide-react";
+import { HelperAvailability } from "@/components/HelperAvailability";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";

@@ -51,6 +51,32 @@ const UserProfile = () => {
       reviewCount: ratings.length,
     });
 
+    // Load response metrics (for helpers)
+    const { data: allApps } = await supabase
+      .from("applications")
+      .select("status, created_at, updated_at")
+      .eq("helper_id", userId);
+
+    if (allApps && allApps.length > 0) {
+      const accepted = allApps.filter(a => a.status === "accepted");
+      const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
+      
+      // Average response time: time between application created and updated (when accepted)
+      const responseTimes = accepted
+        .map(a => {
+          const created = new Date(a.created_at).getTime();
+          const updated = new Date(a.updated_at).getTime();
+          return (updated - created) / (1000 * 60 * 60); // hours
+        })
+        .filter(h => h > 0 && h < 720); // filter out invalid (0) and very old (>30 days)
+
+      setResponseMetrics({
+        avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : null,
+        acceptanceRate,
+        totalApplications: allApps.length,
+      });
+    }
+
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
       const jobIds = [...new Set(reviewsRes.data.map(r => r.job_id))];

@@ -54,6 +54,7 @@ const Signup = () => {
   };
 
   const validateStep2 = () => {
+    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim()) { toast.error("Please tell us about yourself"); return false; }
     if (!location.trim()) { toast.error("Location is required"); return false; }
     return true;
@@ -83,27 +84,34 @@ const Signup = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // 2. Upload avatar if provided
+      // 2. Upload avatar (required)
       let avatarUrl: string | null = null;
-      if (avatarFile) {
-        const ext = avatarFile.name.split(".").pop();
-        const path = `${userId}/avatar.${ext}`;
-        const { error: avatarErr } = await supabase.storage
-          .from("job-photos")
-          .upload(path, avatarFile, { upsert: true });
-        if (!avatarErr) {
-          const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
-          avatarUrl = urlData.publicUrl;
-        }
-      }
+      const avatarExt = avatarFile!.name.split(".").pop();
+      const avatarPath = `${userId}/avatar.${avatarExt}`;
+      const { error: avatarErr } = await supabase.storage
+        .from("job-photos")
+        .upload(avatarPath, avatarFile!, { upsert: true });
+      if (avatarErr) throw new Error("Failed to upload profile picture");
+      const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(avatarPath);
+      avatarUrl = urlData.publicUrl;
 
-      // 3. Upload ID document
+      // 3. Upload ID document using service role via edge function
       const idExt = idFile!.name.split(".").pop();
       const idPath = `${userId}/id-document.${idExt}`;
-      const { error: idErr } = await supabase.storage
-        .from("id-documents")
-        .upload(idPath, idFile!, { upsert: true });
-      if (idErr) throw new Error("Failed to upload ID document");
+      
+      // Convert file to base64 for edge function upload
+      const idBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(idFile!);
+      });
+
+      const { data: uploadRes, error: uploadErr } = await supabase.functions.invoke("upload-id-document", {
+        body: { userId, fileBase64: idBase64, fileName: `id-document.${idExt}`, contentType: idFile!.type },
+      });
+
+      if (uploadErr || uploadRes?.error) throw new Error("Failed to upload ID document");
 
       // 4. Update profile with detailed info
       await supabase
@@ -182,7 +190,7 @@ const Signup = () => {
           <div className="space-y-4">
             {/* Avatar upload */}
             <div className="flex flex-col items-center gap-3">
-              <Label>Profile picture <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Profile picture <span className="text-destructive text-xs">*</span></Label>
               <label className="cursor-pointer group">
                 <div className="w-24 h-24 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary">
                   {avatarPreview ? (

@@ -56,6 +56,9 @@ const Activity = () => {
   const [tipping, setTipping] = useState(false);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
+  const [boostJobId, setBoostJobId] = useState<string | null>(null);
+  const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
+  const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
 
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);

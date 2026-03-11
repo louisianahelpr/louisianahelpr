@@ -88,7 +88,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     if (navigator.share) {
       navigator.share({
         title: "Join Helpr!",
-        text: `Sign up on Helpr with my referral code ${referralCode} and get $5 credit!`,
+        text: `Sign up on Helpr with my referral code ${referralCode} and earn $5 credit when you post or complete your first job!`,
         url,
       }).catch(() => {});
     } else {
@@ -111,7 +111,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Gift className="w-6 h-6 text-primary" /> Referral Program
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Invite friends and you both earn $5 credit!
+          Invite friends — you both earn $5 when they post or complete their first job!
         </p>
       </div>
 
@@ -163,8 +163,8 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <div className="space-y-2">
           {[
             "Share your unique referral code with friends",
-            "They enter it during signup and get $5 credit",
-            "You earn $5 credit when they create their account",
+            "They enter it during signup to link the referral",
+            "You both earn $5 when they post or complete their first job",
             "Credits can be applied to your next job payment",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">
@@ -185,7 +185,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <div key={c.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  {c.reason === "referrer_bonus" ? "Referral bonus" : "Signup bonus"}
+                  {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(c.created_at).toLocaleDateString()}

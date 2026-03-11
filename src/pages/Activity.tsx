@@ -187,9 +187,31 @@ const Activity = () => {
   };
 
   const acceptApplication = async (app: Application & { profiles?: any }) => {
-    await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    await supabase.from("jobs").update({ status: "accepted", helper_id: app.helper_id }).eq("id", selectedJob!.id);
-    toast.success("Offer sent to helper! Waiting for their confirmation.");
+    // Show deadline dialog instead of immediately accepting
+    setDeadlineDialogApp(app);
+  };
+
+  const confirmAcceptWithDeadline = async (deadlineHours: number) => {
+    if (!deadlineDialogApp || !selectedJob) return;
+    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
+    await supabase.from("jobs").update({
+      status: "accepted",
+      helper_id: deadlineDialogApp.helper_id,
+      response_deadline: deadline,
+    } as any).eq("id", selectedJob.id);
+
+    // Notify helper about the deadline
+    await supabase.from("notifications").insert({
+      user_id: deadlineDialogApp.helper_id,
+      title: "📋 New job offer!",
+      message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`,
+      type: "info",
+      link: "/activity",
+    });
+
+    toast.success(`Offer sent! Helper has ${deadlineHours}h to respond.`);
+    setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);
     if (user) loadData(user.id);

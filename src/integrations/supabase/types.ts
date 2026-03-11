@@ -298,6 +298,7 @@ export type Database = {
         Row: {
           approval_status: string
           avatar_url: string | null
+          ban_status: string | null
           bio: string | null
           created_at: string
           full_name: string | null
@@ -315,6 +316,7 @@ export type Database = {
         Insert: {
           approval_status?: string
           avatar_url?: string | null
+          ban_status?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
@@ -332,6 +334,7 @@ export type Database = {
         Update: {
           approval_status?: string
           avatar_url?: string | null
+          ban_status?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
@@ -460,6 +463,39 @@ export type Database = {
           },
         ]
       }
+      user_bans: {
+        Row: {
+          ban_type: string
+          banned_by: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          ban_type?: string
+          banned_by: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          ban_type?: string
+          banned_by?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -477,6 +513,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_violations: {
+        Row: {
+          action_taken: string
+          created_at: string | null
+          description: string | null
+          id: string
+          job_id: string | null
+          reported_by: string | null
+          user_id: string
+          violation_type: string
+        }
+        Insert: {
+          action_taken?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          job_id?: string | null
+          reported_by?: string | null
+          user_id: string
+          violation_type: string
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          job_id?: string | null
+          reported_by?: string | null
+          user_id?: string
+          violation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_violations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

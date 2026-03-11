@@ -313,6 +313,10 @@ const AdminUsers = () => {
           {viewProfile && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="col-span-2">
+                  <p className="text-muted-foreground text-xs">Email</p>
+                  <p className="font-medium text-foreground">{(viewProfile as any).email || "—"}</p>
+                </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Role</p>
                   <p className="font-medium text-foreground capitalize">{viewProfile.role}</p>

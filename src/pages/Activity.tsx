@@ -669,6 +669,26 @@ const Activity = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Boost Dialog */}
+      {boostJobId && (
+        <JobBoostDialog
+          jobId={boostJobId}
+          open={!!boostJobId}
+          onClose={() => setBoostJobId(null)}
+          onBoosted={() => { if (user) loadData(user.id); }}
+        />
+      )}
+
+      {/* Enhanced Tip Dialog */}
+      {enhancedTipJobId && (
+        <TipDialog
+          jobId={enhancedTipJobId}
+          helperName={enhancedTipHelperName}
+          open={!!enhancedTipJobId}
+          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); }}
+        />
+      )}
     </div>
   );
 };

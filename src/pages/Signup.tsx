@@ -168,6 +168,7 @@ const Signup = () => {
           bio,
           location,
           skills: skills || null,
+          dateOfBirth: dateOfBirth || null,
         },
       });
 

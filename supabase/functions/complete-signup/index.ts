@@ -107,6 +107,7 @@ serve(async (req) => {
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
     if (skills) updateData.skills = skills;
+    if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;
     if (idDocumentUrl) updateData.id_document_url = idDocumentUrl;
     if (portfolioUrls.length > 0) updateData.portfolio_urls = portfolioUrls;

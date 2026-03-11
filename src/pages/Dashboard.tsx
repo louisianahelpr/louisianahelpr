@@ -610,6 +610,9 @@ const Dashboard = () => {
 
       {/* Quick Apply from notification link */}
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApply} />
+      
+      {/* Push notification permission prompt */}
+      <PushNotificationPrompt />
     </div>
   );
 };

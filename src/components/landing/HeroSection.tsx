@@ -20,7 +20,7 @@ const HeroSection = () => {
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button variant="hero" size="xl" onClick={() => navigate("/signup")}>
-              Sign up free
+              Get started
             </Button>
             <Button variant="hero-outline" size="xl" onClick={() => navigate("/login")}>
               Log in

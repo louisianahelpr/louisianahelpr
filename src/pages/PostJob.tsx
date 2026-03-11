@@ -382,7 +382,6 @@ const PostJob = () => {
                       <p className="text-sm text-foreground capitalize">{recurrenceInterval}{recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}</p>
                     </div>
                   )}
-                  )}
                 </div>
               </div>
 

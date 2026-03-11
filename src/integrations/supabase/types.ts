@@ -231,6 +231,47 @@ export type Database = {
           },
         ]
       }
+      tips: {
+        Row: {
+          amount: number
+          created_at: string
+          helper_id: string
+          id: string
+          job_id: string
+          payment_status: string
+          stripe_session_id: string | null
+          tipper_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          helper_id: string
+          id?: string
+          job_id: string
+          payment_status?: string
+          stripe_session_id?: string | null
+          tipper_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          helper_id?: string
+          id?: string
+          job_id?: string
+          payment_status?: string
+          stripe_session_id?: string | null
+          tipper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tips_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

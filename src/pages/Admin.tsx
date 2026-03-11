@@ -20,7 +20,7 @@ const Admin = () => {
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    pendingReviews: 0,
+    pendingReviews: 0, disputedJobs: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 

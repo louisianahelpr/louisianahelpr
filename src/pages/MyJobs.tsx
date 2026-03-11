@@ -203,6 +203,34 @@ const MyJobs = () => {
                     </div>
                   </div>
 
+                  {/* Expanded job details with new features */}
+                  {(job.status === "accepted" || job.status === "in_progress" || job.status === "completed") && (
+                    <div className="border-t border-border pt-3">
+                      <button
+                        onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                        className="text-xs text-primary font-medium hover:underline"
+                      >
+                        {expandedJobId === job.id ? "Hide details ▲" : "Show scope, milestones & more ▼"}
+                      </button>
+                      {expandedJobId === job.id && currentUserId && (
+                        <div className="mt-3 space-y-3">
+                          <JobConfirmation
+                            jobId={job.id}
+                            isOwner={true}
+                            isHelper={false}
+                            posterConfirmedAt={(job as any).poster_confirmed_at}
+                            helperConfirmedAt={(job as any).helper_confirmed_at}
+                            dateNeeded={job.date_needed}
+                          />
+                          <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
+                          <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={currentUserId} />
+                          <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
+                          <JobCheckins jobId={job.id} userId={currentUserId} isHelper={false} isOwner={true} jobStatus={job.status} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {job.status === "completed" && job.payment_status === "released" && (
                     <div className="border-t border-border pt-3">
                       {tipJobId === job.id ? (

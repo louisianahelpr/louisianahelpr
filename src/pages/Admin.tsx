@@ -27,6 +27,7 @@ const Admin = () => {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "analytics", label: "Analytics", icon: <BarChart3 className="w-4 h-4" /> },
+    { id: "reviews", label: "Reviews", icon: <ClipboardCheck className="w-4 h-4" /> },
     { id: "users", label: "Users", icon: <Users className="w-4 h-4" /> },
     { id: "jobs", label: "Jobs", icon: <Briefcase className="w-4 h-4" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },

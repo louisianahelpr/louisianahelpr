@@ -185,8 +185,8 @@ const Signup = () => {
         }
       }
 
-      toast.success("Account created! Your profile is pending admin review.");
-      navigate("/dashboard");
+      toast.success("Account created! Please check your email to verify.");
+      navigate("/signup-pending");
     } catch (err: any) {
       toast.error(err.message || "Signup failed");
     } finally {

@@ -249,7 +249,7 @@ const Dashboard = () => {
               <span className="text-primary font-medium">You earn ${(job.budget * (1 - platformFee / 100)).toFixed(2)}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
-              <span>Posted by <span className="font-medium text-foreground">{job.posterName}</span></span>
+              <span>Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => { e.stopPropagation(); }} className="font-medium text-primary hover:underline">{job.posterName}</a></span>
               {job.posterReviewCount !== undefined && job.posterReviewCount > 0 && (
                 <span className="flex items-center gap-0.5">
                   <Star className="w-3 h-3 fill-accent text-accent" />

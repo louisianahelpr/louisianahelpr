@@ -316,8 +316,7 @@ const Dashboard = () => {
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-              <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
-              <span className="text-primary font-medium">You earn ${(job.budget * (1 - platformFee / 100)).toFixed(2)}</span>
+              <span className="flex items-center gap-1 font-medium text-primary"><DollarSign className="w-3 h-3" /> You earn ${(job.budget * (1 - platformFee / 100)).toFixed(2)}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
               <span>Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => { e.stopPropagation(); }} className="font-medium text-primary hover:underline">{job.posterName}</a></span>

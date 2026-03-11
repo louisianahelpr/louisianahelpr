@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import NotificationPanel from "@/components/NotificationPanel";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 

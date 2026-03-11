@@ -19,6 +19,7 @@ import { CancellationDialog } from "@/components/CancellationDialog";
 import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
+import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 

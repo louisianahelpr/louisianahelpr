@@ -171,18 +171,19 @@ serve(async (req) => {
       }
 
       if (bothDone) {
+        const helperPayout = job.budget - (job.platform_fee_amount || 0);
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
-            title: "Job completed & paid!",
-            message: `"${job.title}" is complete. $${helperPayout.toFixed(2)} has been transferred to your account.`,
+            title: "Job completed!",
+            message: `"${job.title}" is complete. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
             type: "payment", link: "/earnings",
           });
         }
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job completed!",
-          message: `"${job.title}" is complete. Payment has been captured and the helper has been paid.`,
+          message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
           type: "payment", link: "/activity",
         });
       }

@@ -15,18 +15,35 @@ type Checkin = {
   user_id: string;
 };
 
+// Haversine formula: distance between two GPS points in feet
+function distanceFeet(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 20902231; // Earth radius in feet
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+const MAX_DISTANCE_FEET = 500;
+
 export function JobCheckins({
   jobId,
   userId,
   isHelper,
   isOwner,
   jobStatus,
+  jobLatitude,
+  jobLongitude,
 }: {
   jobId: string;
   userId: string;
   isHelper: boolean;
   isOwner: boolean;
   jobStatus: string;
+  jobLatitude?: number | null;
+  jobLongitude?: number | null;
 }) {
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [note, setNote] = useState("");
@@ -62,6 +79,25 @@ export function JobCheckins({
   const doCheckin = async (type: "check_in" | "check_out" | "sos") => {
     setLoading(true);
     const loc = await getLocation();
+
+    // GPS proximity validation for check-in
+    if (type === "check_in" && loc && jobLatitude && jobLongitude) {
+      const dist = distanceFeet(loc.lat, loc.lng, jobLatitude, jobLongitude);
+      if (dist > MAX_DISTANCE_FEET) {
+        toast.error(
+          `You must be within 500 feet of the job location to check in. You're currently ${Math.round(dist).toLocaleString()} feet away.`
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (type === "check_in" && !loc) {
+      toast.error("Location access is required to check in. Please enable GPS and try again.");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await (supabase.from("job_checkins" as any) as any).insert({
       job_id: jobId,
       user_id: userId,
@@ -85,8 +121,6 @@ export function JobCheckins({
 
       // For SOS, also send a notification
       if (type === "sos") {
-        // Notify the other party
-        const notifyUserId = isHelper ? undefined : undefined; // We'd need the other user's ID
         toast.info("Emergency contacts and admin have been notified.");
       }
     }
@@ -105,7 +139,7 @@ export function JobCheckins({
         <Shield className="w-4 h-4 text-primary" /> Safety Check-ins
       </h3>
       <p className="text-xs text-muted-foreground">
-        GPS-timestamped check-ins for your safety.
+        GPS-verified check-ins — you must be within 500 ft of the job location.
       </p>
 
       {isActive && isHelper && (

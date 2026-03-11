@@ -690,7 +690,7 @@ const Activity = () => {
                         <div key={app.id} className="p-3 rounded-lg border border-border space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
-                              <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helper").split(" ")[0]}</a>
+                              <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helpr").split(" ")[0]}</a>
                               {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
                               {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
                               {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}

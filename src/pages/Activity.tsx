@@ -244,8 +244,8 @@ const Activity = () => {
     }
   };
 
-  const sendTip = async (jobId: string) => {
-    const amount = parseFloat(tipAmount);
+  const sendTip = async (jobId: string, quickAmount?: number) => {
+    const amount = quickAmount || parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }
     setTipping(true);
     try {

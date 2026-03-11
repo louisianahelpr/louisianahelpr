@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Users, CheckCircle2, Gift } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -22,12 +22,20 @@ const statusColors: Record<string, string> = {
 
 const MyJobs = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completingJobId, setCompletingJobId] = useState<string | null>(null);
+  const [tipJobId, setTipJobId] = useState<string | null>(null);
+  const [tipAmount, setTipAmount] = useState("");
+  const [tipping, setTipping] = useState(false);
 
   useEffect(() => {
+    if (searchParams.get("tip") === "success") {
+      toast.success("Tip sent successfully! Your helper will appreciate it.");
+    }
     loadJobs();
   }, []);
 
@@ -49,14 +57,12 @@ const MyJobs = () => {
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
-    // Fetch applications separately, then fetch profiles
     const { data: apps } = await supabase
       .from("applications")
       .select("*")
       .eq("job_id", job.id);
 
     if (apps && apps.length > 0) {
-      // Fetch profiles for each helper
       const helperIds = apps.map(a => a.helper_id);
       const { data: profiles } = await supabase
         .from("profiles")
@@ -74,11 +80,8 @@ const MyJobs = () => {
   };
 
   const acceptApplication = async (app: Application) => {
-    // Update application status
     await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    // Update job to in_progress and assign helper (payment already in escrow)
     await supabase.from("jobs").update({ status: "in_progress", helper_id: app.helper_id }).eq("id", selectedJob!.id);
-    // Reject other applications
     await supabase
       .from("applications")
       .update({ status: "rejected" })
@@ -89,6 +92,53 @@ const MyJobs = () => {
     loadJobs();
     setSelectedJob(null);
     setApplications([]);
+  };
+
+  const completeJob = async (jobId: string) => {
+    setCompletingJobId(jobId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: { action: "release", jobId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(
+        `Job completed! Helper receives $${data.helperPayout.toFixed(2)} (platform fee: $${data.platformFee.toFixed(2)})`
+      );
+      loadJobs();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to complete job");
+    } finally {
+      setCompletingJobId(null);
+    }
+  };
+
+  const sendTip = async (jobId: string) => {
+    const amount = parseFloat(tipAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid tip amount");
+      return;
+    }
+
+    setTipping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: { action: "tip", jobId, amount },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tip");
+    } finally {
+      setTipping(false);
+    }
   };
 
   return (
@@ -116,7 +166,7 @@ const MyJobs = () => {
           ) : (
             <div className="space-y-4">
               {jobs.map((job) => (
-                <div key={job.id} className="rounded-xl border border-border bg-card p-5">
+                <div key={job.id} className="rounded-xl border border-border bg-card p-5 space-y-3">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -124,21 +174,72 @@ const MyJobs = () => {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
                           {job.status.replace("_", " ")}
                         </span>
+                        {job.payment_status === "released" && (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                            Paid
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">${job.budget} · {job.location}</p>
                     </div>
-                    {job.status === "open" && (
-                      <Button size="sm" variant="outline" onClick={() => loadApplications(job)}>
-                        <Users className="w-4 h-4 mr-1" /> View applicants
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {job.status === "open" && (
+                        <Button size="sm" variant="outline" onClick={() => loadApplications(job)}>
+                          <Users className="w-4 h-4 mr-1" /> View applicants
+                        </Button>
+                      )}
+                      {job.status === "in_progress" && (
+                        <Button
+                          size="sm"
+                          onClick={() => completeJob(job.id)}
+                          disabled={completingJobId === job.id}
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          {completingJobId === job.id ? "Completing…" : "Mark complete"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Tip section for completed jobs */}
+                  {job.status === "completed" && job.payment_status === "released" && (
+                    <div className="border-t border-border pt-3">
+                      {tipJobId === job.id ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">Tip amount ($):</span>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="5"
+                            value={tipAmount}
+                            onChange={(e) => setTipAmount(e.target.value)}
+                            className="max-w-[100px]"
+                          />
+                          <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>
+                            {tipping ? "Processing…" : "Send tip"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setTipJobId(job.id); setTipAmount(""); }}
+                        >
+                          <Gift className="w-4 h-4 mr-1" /> Tip your helper
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          {/* Applicants modal-like section */}
+          {/* Applicants section */}
           {selectedJob && (
             <div className="border border-border rounded-xl bg-card p-6 space-y-4">
               <div className="flex items-center justify-between">

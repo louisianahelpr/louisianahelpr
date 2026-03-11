@@ -45,7 +45,6 @@ serve(async (req) => {
     }
 
     if (action === "escrow") {
-      // ESCROW: Customer pays when posting a job — funds held
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
 
@@ -58,7 +57,6 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
-      // Get platform fee
       const { data: settings } = await supabaseAdmin
         .from("platform_settings")
         .select("platform_fee_percent")
@@ -100,7 +98,6 @@ serve(async (req) => {
         },
       });
 
-      // Update job with payment info
       const feeAmount = (job.budget * feePercent) / 100;
       await supabaseAdmin
         .from("jobs")
@@ -111,6 +108,103 @@ serve(async (req) => {
           platform_fee_amount: feeAmount,
         })
         .eq("id", jobId);
+
+      return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    if (action === "release") {
+      // Mark job as completed and release escrow
+      const { jobId } = body;
+      if (!jobId) throw new Error("Missing jobId");
+
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("jobs")
+        .select("*")
+        .eq("id", jobId)
+        .single();
+
+      if (jobError || !job) throw new Error("Job not found");
+      if (job.customer_id !== user.id) throw new Error("Not authorized");
+      if (job.status !== "in_progress") throw new Error("Job is not in progress");
+
+      // Update job status to completed and payment to released
+      await supabaseAdmin
+        .from("jobs")
+        .update({
+          status: "completed",
+          payment_status: "released",
+        })
+        .eq("id", jobId);
+
+      const helperPayout = job.budget - (job.platform_fee_amount || 0);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          helperPayout,
+          platformFee: job.platform_fee_amount,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+
+    if (action === "tip") {
+      const { jobId, amount } = body;
+      if (!jobId || !amount || amount <= 0) throw new Error("Missing jobId or invalid tip amount");
+
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("jobs")
+        .select("*")
+        .eq("id", jobId)
+        .single();
+
+      if (jobError || !job) throw new Error("Job not found");
+      if (job.customer_id !== user.id) throw new Error("Not authorized");
+      if (job.status !== "completed") throw new Error("Job must be completed to tip");
+      if (!job.helper_id) throw new Error("No helper assigned");
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Tip for Helper — ${job.title}`,
+                description: "Thank you tip for your helper. 100% goes to the helper.",
+              },
+              unit_amount: Math.round(amount * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${req.headers.get("origin")}/my-jobs?tip=success`,
+        cancel_url: `${req.headers.get("origin")}/my-jobs`,
+        metadata: {
+          job_id: jobId,
+          tipper_id: user.id,
+          helper_id: job.helper_id,
+          type: "tip",
+        },
+      });
+
+      // Create tip record
+      await supabaseAdmin.from("tips").insert({
+        job_id: jobId,
+        tipper_id: user.id,
+        helper_id: job.helper_id,
+        amount,
+        stripe_session_id: session.id,
+        payment_status: "pending",
+      });
 
       return new Response(JSON.stringify({ url: session.url }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

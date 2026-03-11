@@ -46,6 +46,11 @@ const ProfilePage = () => {
   const [completedCount, setCompletedCount] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [reviewCount, setReviewCount] = useState(0);
+
+  // Reviews
+  const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Profile fields
   const [fullName, setFullName] = useState("");

@@ -311,6 +311,11 @@ const Dashboard = () => {
                   <ImageIcon className="w-3 h-3" /> {job.photos.length}
                 </span>
               )}
+              {(job as any).is_group_job && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground text-[10px] font-semibold">
+                  👥 Group · {(job as any).helpers_needed} needed
+                </span>
+              )}
             </div>
             <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

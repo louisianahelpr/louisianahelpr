@@ -25,6 +25,8 @@ import { AddonRequests } from "@/components/AddonRequests";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobMilestones } from "@/components/JobMilestones";
 import { JobCheckins } from "@/components/JobCheckins";
+import { JobTracking } from "@/components/JobTracking";
+import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -478,6 +480,10 @@ const Activity = () => {
                                 helperConfirmedAt={(job as any).helper_confirmed_at}
                                 dateNeeded={job.date_needed}
                               />
+                              <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
+                              {(job as any).is_group_job && (
+                                <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />
+                              )}
                               <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
                               <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
                               <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
@@ -662,6 +668,7 @@ const Activity = () => {
                               helperConfirmedAt={(app.job as any)?.helper_confirmed_at}
                               dateNeeded={app.job?.date_needed || ""}
                             />
+                            <JobTracking jobId={app.job_id} helperId={user.id} isHelper={true} isOwner={false} />
                             <ScopeAgreement jobId={app.job_id} isOwner={false} isHelper={true} />
                             <AddonRequests jobId={app.job_id} isOwner={false} isHelper={true} userId={user.id} />
                             <JobMilestones jobId={app.job_id} isOwner={false} isHelper={true} totalBudget={app.job?.budget || 0} />

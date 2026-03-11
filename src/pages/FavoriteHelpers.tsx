@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Heart, MapPin, Star, Briefcase, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -19,6 +20,7 @@ const FavoriteHelpers = () => {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<FavoriteHelper[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadFavorites();
@@ -27,6 +29,7 @@ const FavoriteHelpers = () => {
   const loadFavorites = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { navigate("/login"); return; }
+    setCurrentUserId(session.user.id);
 
     const { data: favs } = await supabase
       .from("favorite_helpers")
@@ -168,6 +171,13 @@ const FavoriteHelpers = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Trusted Helper Circles */}
+          {currentUserId && (
+            <div className="pt-4 border-t border-border">
+              <TrustedHelperCircle userId={currentUserId} />
             </div>
           )}
         </div>

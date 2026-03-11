@@ -204,6 +204,38 @@ export type Database = {
         }
         Relationships: []
       }
+      group_job_helpers: {
+        Row: {
+          helper_id: string
+          id: string
+          job_id: string
+          joined_at: string | null
+          status: string
+        }
+        Insert: {
+          helper_id: string
+          id?: string
+          job_id: string
+          joined_at?: string | null
+          status?: string
+        }
+        Update: {
+          helper_id?: string
+          id?: string
+          job_id?: string
+          joined_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_job_helpers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helper_availability: {
         Row: {
           created_at: string | null
@@ -237,6 +269,65 @@ export type Database = {
           specific_date?: string | null
           start_time?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      helper_circle_members: {
+        Row: {
+          added_at: string | null
+          category: string | null
+          circle_id: string
+          helper_id: string
+          id: string
+          nickname: string | null
+        }
+        Insert: {
+          added_at?: string | null
+          category?: string | null
+          circle_id: string
+          helper_id: string
+          id?: string
+          nickname?: string | null
+        }
+        Update: {
+          added_at?: string | null
+          category?: string | null
+          circle_id?: string
+          helper_id?: string
+          id?: string
+          nickname?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helper_circle_members_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "helper_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helper_circles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
         }
         Relationships: []
       }
@@ -357,6 +448,50 @@ export type Database = {
           },
         ]
       }
+      job_tracking: {
+        Row: {
+          created_at: string | null
+          eta_minutes: number | null
+          helper_id: string
+          id: string
+          job_id: string
+          latitude: number | null
+          longitude: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          eta_minutes?: number | null
+          helper_id: string
+          id?: string
+          job_id: string
+          latitude?: number | null
+          longitude?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          eta_minutes?: number | null
+          helper_id?: string
+          id?: string
+          job_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_tracking_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           boost_expires_at: string | null
@@ -374,7 +509,9 @@ export type Database = {
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_id: string | null
+          helpers_needed: number | null
           id: string
+          is_group_job: boolean | null
           is_recurring: boolean | null
           late_cancellation: boolean | null
           location: string
@@ -415,7 +552,9 @@ export type Database = {
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
+          helpers_needed?: number | null
           id?: string
+          is_group_job?: boolean | null
           is_recurring?: boolean | null
           late_cancellation?: boolean | null
           location: string
@@ -456,7 +595,9 @@ export type Database = {
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
+          helpers_needed?: number | null
           id?: string
+          is_group_job?: boolean | null
           is_recurring?: boolean | null
           late_cancellation?: boolean | null
           location?: string

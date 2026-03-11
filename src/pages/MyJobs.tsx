@@ -11,6 +11,8 @@ import { AddonRequests } from "@/components/AddonRequests";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobMilestones } from "@/components/JobMilestones";
 import { JobCheckins } from "@/components/JobCheckins";
+import { JobTracking } from "@/components/JobTracking";
+import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -222,6 +224,10 @@ const MyJobs = () => {
                             helperConfirmedAt={(job as any).helper_confirmed_at}
                             dateNeeded={job.date_needed}
                           />
+                          <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
+                          {(job as any).is_group_job && (
+                            <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />
+                          )}
                           <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
                           <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={currentUserId} />
                           <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />

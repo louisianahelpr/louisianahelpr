@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
@@ -48,6 +48,8 @@ const PostJob = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+  const [isGroupJob, setIsGroupJob] = useState(false);
+  const [helpersNeeded, setHelpersNeeded] = useState("2");
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
@@ -183,6 +185,8 @@ const PostJob = () => {
       is_recurring: isRecurring,
       recurrence_interval: isRecurring ? recurrenceInterval : null,
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+      is_group_job: isGroupJob,
+      helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
     } as any).select("id").single();
 
     if (error || !jobData) {
@@ -365,6 +369,33 @@ const PostJob = () => {
                         <Label>Until</Label>
                         <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Group Job */}
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helpers)</Label>
+                    </div>
+                    <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
+                  </div>
+                  {isGroupJob && (
+                    <div className="space-y-2 pt-1">
+                      <Label>How many helpers needed?</Label>
+                      <Input
+                        type="number"
+                        min="2"
+                        max="10"
+                        value={helpersNeeded}
+                        onChange={(e) => setHelpersNeeded(e.target.value)}
+                        className="w-24"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helper
+                      </p>
                     </div>
                   )}
                 </div>

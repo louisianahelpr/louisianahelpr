@@ -88,7 +88,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     if (navigator.share) {
       navigator.share({
         title: "Join Helpr!",
-        text: `Sign up on Helpr with my referral code ${referralCode} and earn $5 credit when you post or complete your first job!`,
+        text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job and we both earn $5!`,
         url,
       }).catch(() => {});
     } else {
@@ -111,7 +111,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Gift className="w-6 h-6 text-primary" /> Referral Program
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Invite friends — you both earn $5 when they post or complete their first job!
+          When they complete their first job — as poster or crew — you both earn $5!
         </p>
       </div>
 
@@ -164,7 +164,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your unique referral code with friends",
             "They enter it during signup to link the referral",
-            "You both earn $5 when they post or complete their first job",
+            "When they complete their first job — as poster or crew — you both earn $5",
             "Credits can be applied to your next job payment",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">

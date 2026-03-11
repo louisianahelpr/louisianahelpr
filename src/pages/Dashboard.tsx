@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import ReportDialog from "@/components/ReportDialog";
 import NotificationPanel from "@/components/NotificationPanel";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
+import OnboardingTour from "@/components/OnboardingTour";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -27,8 +28,41 @@ const categoryLabels: Record<string, string> = {
   assembly: "Assembly", other: "Other",
 };
 
+// Quick Apply handler for notification deep links
+const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
+  searchParams: URLSearchParams;
+  user: SupaUser | null;
+  allJobs: any[];
+  onApply: (jobId: string) => void;
+}) => {
+  const [shown, setShown] = useState(false);
+  const quickApplyId = searchParams.get("quickApply");
+
+  useEffect(() => {
+    if (quickApplyId && user && allJobs.length > 0 && !shown) {
+      setShown(true);
+      const job = allJobs.find(j => j.id === quickApplyId);
+      if (job && job.customer_id !== user.id) {
+        toast(
+          `Quick Apply: "${job.title}" ($${job.budget})`,
+          {
+            action: {
+              label: "Apply now",
+              onClick: () => onApply(quickApplyId),
+            },
+            duration: 10000,
+          }
+        );
+      }
+    }
+  }, [quickApplyId, user, allJobs, shown, onApply]);
+
+  return null;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -551,6 +585,12 @@ const Dashboard = () => {
       </Dialog>
 
       {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
+
+      {/* Onboarding Tour */}
+      <OnboardingTour role={profile?.role || "customer"} />
+
+      {/* Quick Apply from notification link */}
+      <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApply} />
     </div>
   );
 };

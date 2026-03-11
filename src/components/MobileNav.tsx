@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
+import { Home, ClipboardList, MessageSquare, User, Plus, LifeBuoy } from "lucide-react";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -8,14 +8,14 @@ const leftItems = [
 
 const rightItems = [
   { path: "/messages", icon: MessageSquare, label: "Messages" },
-  { path: "/profile", icon: User, label: "Profile" },
+  { path: "/support", icon: LifeBuoy, label: "Support" },
 ];
 
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin"];
+  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
   const renderItem = ({ path, icon: Icon, label }: { path: string; icon: any; label: string }) => {

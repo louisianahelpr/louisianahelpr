@@ -79,7 +79,8 @@ const BrowseJobs = () => {
     setLocationFilter("");
   };
 
-  const hasFilters = searchQuery || selectedCategory || maxBudget || locationFilter;
+  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
+  const hasFilters = activeFilterCount > 0;
 
   const filteredJobs = jobs.filter((job) => {
     if (searchQuery) {

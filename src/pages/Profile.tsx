@@ -268,6 +268,7 @@ const ProfilePage = () => {
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "View upcoming jobs" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
+    { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "payment", label: "Payment & Security", icon: <CreditCard className="w-5 h-5" />, desc: "Account & payment settings" },
     { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
   ];

@@ -58,7 +58,6 @@ serve(async (req) => {
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
       const feePercent = settings?.platform_fee_percent ?? 15;
 
-      // Use manual capture so funds are authorized but NOT charged yet
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
@@ -100,7 +99,7 @@ serve(async (req) => {
       });
     }
 
-    // ─── RELEASE: Both parties confirm → capture the held payment ───
+    // ─── RELEASE: Both parties confirm → capture + transfer ───
     if (action === "release") {
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
@@ -116,7 +115,6 @@ serve(async (req) => {
         throw new Error("Job is not in progress");
       }
 
-      // Mark this party as completed
       const updateFields: Record<string, any> = {};
       if (isPoster) updateFields.poster_completed_at = new Date().toISOString();
       if (isHelper) updateFields.helper_completed_at = new Date().toISOString();
@@ -126,8 +124,15 @@ serve(async (req) => {
       const bothDone = posterDone && helperDone;
 
       if (bothDone) {
-        // Capture the held payment on Stripe
-        await captureEscrowPayment(stripe, supabaseAdmin, job);
+        // Capture the held payment
+        const paymentIntentId = await captureEscrowPayment(stripe, supabaseAdmin, job);
+
+        // Transfer helper's share to their connected account
+        const helperPayout = job.budget - (job.platform_fee_amount || 0);
+        if (job.helper_id && helperPayout > 0) {
+          await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, paymentIntentId, job.id);
+        }
+
         updateFields.status = "completed";
         updateFields.payment_status = "released";
       }
@@ -159,14 +164,14 @@ serve(async (req) => {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
             title: "Job completed & paid!",
-            message: `"${job.title}" is complete. You earned $${helperPayout.toFixed(2)}.`,
-            type: "payment", link: "/activity",
+            message: `"${job.title}" is complete. $${helperPayout.toFixed(2)} has been transferred to your account.`,
+            type: "payment", link: "/earnings",
           });
         }
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job completed!",
-          message: `"${job.title}" is complete. Payment has been captured and released.`,
+          message: `"${job.title}" is complete. Payment has been captured and the helper has been paid.`,
           type: "payment", link: "/activity",
         });
       }
@@ -260,6 +265,13 @@ serve(async (req) => {
         throw new Error("Not authorized to tip on this job");
       }
 
+      // Check if helper has a connected Stripe account for direct tip transfer
+      const { data: helperProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("user_id", helperId)
+        .single();
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
@@ -272,6 +284,11 @@ serve(async (req) => {
           quantity: 1,
         }],
         mode: "payment",
+        payment_intent_data: helperProfile?.stripe_account_id ? {
+          transfer_data: {
+            destination: helperProfile.stripe_account_id,
+          },
+        } : undefined,
         success_url: `${req.headers.get("origin")}/activity?tip=success`,
         cancel_url: `${req.headers.get("origin")}/activity`,
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
@@ -287,7 +304,7 @@ serve(async (req) => {
       });
     }
 
-    // ─── CANCEL ESCROW: void the held authorization ───
+    // ─── CANCEL ESCROW ───
     if (action === "cancel_escrow") {
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
@@ -297,7 +314,6 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
-      // Cancel the uncaptured payment intent
       if (job.stripe_payment_intent_id) {
         try {
           await stripe.paymentIntents.cancel(job.stripe_payment_intent_id);
@@ -328,17 +344,15 @@ serve(async (req) => {
 
 /**
  * Capture the held (manual capture) payment for a job.
- * Retrieves the PaymentIntent from the Checkout Session and captures it.
+ * Returns the payment intent ID.
  */
-async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any) {
+async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): Promise<string | null> {
   let paymentIntentId = job.stripe_payment_intent_id;
 
-  // If we don't have it stored, retrieve from the checkout session
   if (!paymentIntentId && job.stripe_session_id) {
     try {
       const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
       paymentIntentId = session.payment_intent;
-      // Store it for future reference
       if (paymentIntentId) {
         await supabaseAdmin.from("jobs").update({
           stripe_payment_intent_id: paymentIntentId,
@@ -351,7 +365,7 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any) {
 
   if (!paymentIntentId) {
     console.warn(`No payment intent found for job ${job.id}, skipping capture`);
-    return;
+    return null;
   }
 
   try {
@@ -362,8 +376,85 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any) {
     } else {
       console.log(`Payment ${paymentIntentId} status is ${pi.status}, no capture needed`);
     }
+    return paymentIntentId;
   } catch (e) {
     console.error(`Failed to capture payment for job ${job.id}:`, e);
     throw new Error("Failed to capture escrow payment. Please contact support.");
+  }
+}
+
+/**
+ * Transfer funds to the helper's connected Stripe account.
+ */
+async function transferToHelper(
+  stripe: any,
+  supabaseAdmin: any,
+  helperId: string,
+  amount: number,
+  paymentIntentId: string | null,
+  jobId: string
+) {
+  // Get helper's connected account
+  const { data: helperProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("stripe_account_id")
+    .eq("user_id", helperId)
+    .single();
+
+  if (!helperProfile?.stripe_account_id) {
+    console.warn(`Helper ${helperId} has no Stripe Connect account. Payout will need manual processing.`);
+    // Notify admin about manual payout needed
+    const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+    if (adminRoles) {
+      for (const admin of adminRoles) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: admin.user_id,
+          title: "⚠️ Manual payout needed",
+          message: `Helper on job ${jobId} doesn't have Stripe Connect set up. $${amount.toFixed(2)} payout needs manual processing.`,
+          type: "warning",
+          link: "/admin",
+        });
+      }
+    }
+    return;
+  }
+
+  try {
+    const transferParams: any = {
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: "usd",
+      destination: helperProfile.stripe_account_id,
+      metadata: { job_id: jobId, helper_id: helperId },
+    };
+
+    // Link the transfer to the source charge if we have one
+    if (paymentIntentId) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.latest_charge) {
+          transferParams.source_transaction = pi.latest_charge;
+        }
+      } catch (e) {
+        console.warn("Could not retrieve charge for transfer linking:", e);
+      }
+    }
+
+    const transfer = await stripe.transfers.create(transferParams);
+    console.log(`Transferred $${amount.toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
+  } catch (e) {
+    console.error(`Failed to transfer to helper ${helperId}:`, e);
+    // Notify admin
+    const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+    if (adminRoles) {
+      for (const admin of adminRoles) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: admin.user_id,
+          title: "⚠️ Transfer failed",
+          message: `Failed to transfer $${amount.toFixed(2)} to helper for job ${jobId}. Error: ${e.message}`,
+          type: "warning",
+          link: "/admin",
+        });
+      }
+    }
   }
 }

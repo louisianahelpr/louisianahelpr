@@ -23,7 +23,6 @@ serve(async (req) => {
   });
 
   try {
-    // Find in_progress jobs where at least one party marked complete 72+ hours ago
     const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
 
     const { data: jobs, error } = await supabaseAdmin
@@ -37,7 +36,7 @@ serve(async (req) => {
 
     let released = 0;
     for (const job of (jobs || [])) {
-      // Capture the held payment on Stripe before marking as released
+      // Capture the held payment
       let paymentIntentId = job.stripe_payment_intent_id;
 
       if (!paymentIntentId && job.stripe_session_id) {
@@ -63,7 +62,56 @@ serve(async (req) => {
           }
         } catch (e) {
           console.error(`Failed to capture payment for job ${job.id}:`, e);
-          // Continue — still mark as complete so it doesn't loop forever
+        }
+      }
+
+      // Transfer to helper's connected account
+      const helperPayout = job.budget - (job.platform_fee_amount || 0);
+      if (job.helper_id && helperPayout > 0) {
+        const { data: helperProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("stripe_account_id")
+          .eq("user_id", job.helper_id)
+          .single();
+
+        if (helperProfile?.stripe_account_id) {
+          try {
+            const transferParams: any = {
+              amount: Math.round(helperPayout * 100),
+              currency: "usd",
+              destination: helperProfile.stripe_account_id,
+              metadata: { job_id: job.id, helper_id: job.helper_id, auto_release: "true" },
+            };
+
+            if (paymentIntentId) {
+              try {
+                const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+                if (pi.latest_charge) {
+                  transferParams.source_transaction = pi.latest_charge;
+                }
+              } catch (e) {
+                console.warn("Could not link charge:", e);
+              }
+            }
+
+            await stripe.transfers.create(transferParams);
+            console.log(`Auto-transferred $${helperPayout.toFixed(2)} to helper ${job.helper_id}`);
+          } catch (e) {
+            console.error(`Auto-transfer failed for job ${job.id}:`, e);
+          }
+        } else {
+          console.warn(`Helper ${job.helper_id} has no Stripe Connect. Manual payout needed.`);
+          const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+          if (adminRoles) {
+            for (const admin of adminRoles) {
+              await supabaseAdmin.from("notifications").insert({
+                user_id: admin.user_id,
+                title: "⚠️ Manual payout needed",
+                message: `Auto-released job "${job.title}" but helper has no Stripe Connect. $${helperPayout.toFixed(2)} needs manual payout.`,
+                type: "warning", link: "/admin",
+              });
+            }
+          }
         }
       }
 
@@ -72,7 +120,6 @@ serve(async (req) => {
         .update({ status: "completed", payment_status: "released" })
         .eq("id", job.id);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0);
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

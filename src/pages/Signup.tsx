@@ -237,6 +237,11 @@ const Signup = () => {
               <Input id="password" type="password" placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="dob">Date of birth <span className="text-destructive text-xs">*</span></Label>
+              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} />
+              <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="phone">Phone number <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>

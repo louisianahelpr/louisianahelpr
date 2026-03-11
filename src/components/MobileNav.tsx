@@ -15,7 +15,7 @@ const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin"];
+  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
   const renderItem = ({ path, icon: Icon, label }: { path: string; icon: any; label: string }) => {

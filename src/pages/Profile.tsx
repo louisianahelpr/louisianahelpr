@@ -153,8 +153,8 @@ const ProfilePage = () => {
     if (!user) return;
     setHistoryLoading(true);
     const [posted, worked] = await Promise.all([
-      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("customer_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("helper_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
     ]);
     if (posted.data) setHistPostedJobs(posted.data);
     if (worked.data) setHistWorkedJobs(worked.data);
@@ -650,16 +650,6 @@ const ProfilePage = () => {
                           histTab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                         }`}>
                         {t}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(["all", "open", "in_progress", "completed", "cancelled"] as StatusFilter[]).map((s) => (
-                      <button key={s} onClick={() => setStatusFilter(s)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${
-                          statusFilter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        }`}>
-                        {s === "in_progress" ? "In Progress" : s}
                       </button>
                     ))}
                   </div>

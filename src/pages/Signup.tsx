@@ -237,6 +237,24 @@ const Signup = () => {
               <Label htmlFor="phone">Phone number <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="referral" className="flex items-center gap-1.5">
+                <Gift className="w-3.5 h-3.5 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <Input
+                id="referral"
+                placeholder="Enter referral code for $5 credit"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                maxLength={10}
+                className="uppercase"
+              />
+              {referralCode && (
+                <p className="text-xs text-primary flex items-center gap-1">
+                  <Gift className="w-3 h-3" /> You'll get $5 credit when you sign up!
+                </p>
+              )}
+            </div>
             <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)}>
               Continue <ArrowRight className="w-4 h-4 ml-1" />
             </Button>

@@ -675,7 +675,7 @@ const PostJob = () => {
                   disabled={saving || uploading}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${budgetNum.toFixed(2)}`}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${totalCharge.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

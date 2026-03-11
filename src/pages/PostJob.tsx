@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   CreditCard, Shield, ChevronLeft, Briefcase, Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDraftJob } from "@/hooks/useDraftJob";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -30,6 +31,8 @@ type Step = "form" | "checkout";
 
 const PostJob = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [title, setTitle] = useState("");
@@ -45,6 +48,7 @@ const PostJob = () => {
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [platformFee, setPlatformFee] = useState(15);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Image upload state
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -60,6 +64,54 @@ const PostJob = () => {
         if (data) setPlatformFee(data.platform_fee_percent);
       });
   }, [navigate]);
+
+  // One-tap rebook: load from query params
+  useEffect(() => {
+    const rebookId = searchParams.get("rebook");
+    if (rebookId) {
+      supabase.from("jobs").select("*").eq("id", rebookId).single().then(({ data }) => {
+        if (data) {
+          setTitle(data.title);
+          setDescription(data.description);
+          setCategory(data.category);
+          setLocation(data.location);
+          setBudget(data.budget.toString());
+          setEstimatedHours(data.estimated_hours?.toString() || "");
+          setSpecialRequirements(data.special_requirements || "");
+          setIsRecurring(data.is_recurring || false);
+          setRecurrenceInterval(data.recurrence_interval || "weekly");
+          setDraftLoaded(true);
+          toast.info("Job details pre-filled from previous booking!");
+        }
+      });
+      return;
+    }
+
+    // Load draft if no rebook
+    if (hasDraft && !draftLoaded) {
+      setTitle(draft.title); setDescription(draft.description);
+      setCategory(draft.category); setLocation(draft.location);
+      setDateNeeded(draft.dateNeeded); setStartTime(draft.startTime);
+      setEstimatedHours(draft.estimatedHours); setBudget(draft.budget);
+      setSpecialRequirements(draft.specialRequirements);
+      setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
+      setRecurrenceEndDate(draft.recurrenceEndDate);
+      setDraftLoaded(true);
+      toast.info("Draft restored! Your previous progress was saved.");
+    }
+  }, [searchParams, hasDraft, draftLoaded]);
+
+  // Auto-save draft on field changes (debounced)
+  const autoSave = useCallback(() => {
+    if (title || description || location || budget) {
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate });
+    }
+  }, [title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, saveDraft]);
+
+  useEffect(() => {
+    const timer = setTimeout(autoSave, 2000);
+    return () => clearTimeout(timer);
+  }, [autoSave]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -148,6 +200,7 @@ const PostJob = () => {
     }
 
     toast.info("Redirecting to payment…");
+    clearDraft(); // Clear saved draft on successful submission
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
       body: { action: "escrow", jobId: jobData.id },
     });

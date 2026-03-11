@@ -10,8 +10,9 @@ import {
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
-  LifeBuoy,
+  LifeBuoy, RotateCcw,
 } from "lucide-react";
+import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
 import { toast } from "sonner";
@@ -218,7 +219,21 @@ const ProfilePage = () => {
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-0">
+        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="container mx-auto flex items-center justify-between h-16 px-4">
+            <span className="text-2xl font-display font-bold text-primary">Helpr</span>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-4">
+          <div className="max-w-lg mx-auto space-y-4">
+            <ProfileCardSkeleton />
+            <StatsSkeleton />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const role = profile?.role || "customer";
@@ -720,7 +735,19 @@ const ProfilePage = () => {
                                 <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
+                            <div className="flex flex-col items-end gap-1">
+                              <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
+                              {job._source === "posted" && job.status === "completed" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-7 px-2"
+                                  onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                                >
+                                  <RotateCcw className="w-3 h-3 mr-1" /> Rebook
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

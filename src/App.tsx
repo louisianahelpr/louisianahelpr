@@ -38,6 +38,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/signup-pending" element={<SignupPending />} />
+          <Route path="/account-pending" element={<AccountPending />} />
+          <Route path="/account-denied" element={<AccountDenied />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />

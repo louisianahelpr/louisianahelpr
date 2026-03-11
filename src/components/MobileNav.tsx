@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, MessageSquare, User, Plus, LifeBuoy } from "lucide-react";
+import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -8,7 +8,7 @@ const leftItems = [
 
 const rightItems = [
   { path: "/messages", icon: MessageSquare, label: "Messages" },
-  { path: "/support", icon: LifeBuoy, label: "Support" },
+  { path: "/profile", icon: User, label: "Profile" },
 ];
 
 const MobileNav = () => {

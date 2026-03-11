@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Camera, ArrowRight, ArrowLeft } from "lucide-react";
+import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus } from "lucide-react";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -26,7 +26,11 @@ const Signup = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // Step 3 fields
+  // Step 3 fields - Portfolio / Documents
+  const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
+  const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
+
+  // Step 4 fields
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState("");
 
@@ -46,6 +50,35 @@ const Signup = () => {
     }
   };
 
+  const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (portfolioFiles.length + files.length > 10) {
+      toast.error("Maximum 10 files allowed");
+      return;
+    }
+    const newFiles = [...portfolioFiles, ...files].slice(0, 10);
+    setPortfolioFiles(newFiles);
+    setPortfolioPreviews(
+      newFiles.map((f) => ({
+        name: f.name,
+        type: f.type,
+        url: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
+      }))
+    );
+  };
+
+  const removePortfolioFile = (index: number) => {
+    const newFiles = portfolioFiles.filter((_, i) => i !== index);
+    setPortfolioFiles(newFiles);
+    setPortfolioPreviews(
+      newFiles.map((f) => ({
+        name: f.name,
+        type: f.type,
+        url: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
+      }))
+    );
+  };
+
   const validateStep1 = () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
@@ -60,13 +93,13 @@ const Signup = () => {
     return true;
   };
 
-  const validateStep3 = () => {
+  const validateStep4 = () => {
     if (!idFile) { toast.error("Please upload a proof of ID"); return false; }
     return true;
   };
 
   const handleSignup = async () => {
-    if (!validateStep3()) return;
+    if (!validateStep4()) return;
 
     setLoading(true);
     try {
@@ -84,7 +117,7 @@ const Signup = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // 2. Upload avatar (required)
+      // 2. Upload avatar
       let avatarUrl: string | null = null;
       const avatarExt = avatarFile!.name.split(".").pop();
       const avatarPath = `${userId}/avatar.${avatarExt}`;
@@ -95,11 +128,8 @@ const Signup = () => {
       const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(avatarPath);
       avatarUrl = urlData.publicUrl;
 
-      // 3. Upload ID document using service role via edge function
+      // 3. Upload ID document
       const idExt = idFile!.name.split(".").pop();
-      const idPath = `${userId}/id-document.${idExt}`;
-      
-      // Convert file to base64 for edge function upload
       const idBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve((reader.result as string).split(",")[1]);
@@ -113,7 +143,19 @@ const Signup = () => {
 
       if (uploadErr || uploadRes?.error) throw new Error("Failed to upload ID document");
 
-      // 4. Update profile with detailed info
+      // 4. Upload portfolio files
+      const portfolioUrls: string[] = [];
+      for (const file of portfolioFiles) {
+        const ext = file.name.split(".").pop();
+        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: pErr } = await supabase.storage.from("user-documents").upload(path, file);
+        if (!pErr) {
+          const { data: pUrl } = supabase.storage.from("user-documents").getPublicUrl(path);
+          portfolioUrls.push(pUrl.publicUrl);
+        }
+      }
+
+      // 5. Update profile
       await supabase
         .from("profiles")
         .update({
@@ -122,8 +164,9 @@ const Signup = () => {
           location,
           skills: skills || null,
           avatar_url: avatarUrl,
-          id_document_url: idPath,
+          id_document_url: `${userId}/id-document.${idExt}`,
           approval_status: "pending",
+          portfolio_urls: portfolioUrls.length > 0 ? portfolioUrls : [],
         })
         .eq("user_id", userId);
 
@@ -136,17 +179,16 @@ const Signup = () => {
     }
   };
 
+  const totalSteps = 4;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <Link to="/" className="text-3xl font-display font-bold text-primary">
-            Helpr
-          </Link>
+          <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
           <p className="mt-2 text-muted-foreground">Create your account</p>
-          {/* Step indicator */}
           <div className="flex items-center justify-center gap-2 mt-4">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className={`h-2 rounded-full transition-all ${
@@ -156,7 +198,8 @@ const Signup = () => {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Step {step} of 3: {step === 1 ? "Account details" : step === 2 ? "Your profile" : "Verify identity"}
+            Step {step} of {totalSteps}:{" "}
+            {step === 1 ? "Account details" : step === 2 ? "Your profile" : step === 3 ? "Portfolio & docs" : "Verify identity"}
           </p>
         </div>
 
@@ -188,7 +231,6 @@ const Signup = () => {
         {/* Step 2: Profile details */}
         {step === 2 && (
           <div className="space-y-4">
-            {/* Avatar upload */}
             <div className="flex flex-col items-center gap-3">
               <Label>Profile picture <span className="text-destructive text-xs">*</span></Label>
               <label className="cursor-pointer group">
@@ -234,8 +276,72 @@ const Signup = () => {
           </div>
         )}
 
-        {/* Step 3: ID verification */}
+        {/* Step 3: Portfolio & Documents */}
         {step === 3 && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+              <div className="text-center space-y-2">
+                <FileText className="w-10 h-10 text-primary mx-auto" />
+                <h3 className="font-semibold text-foreground">Portfolio & Documents</h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload previous work photos, certifications, resume, or any documents that showcase your experience.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {portfolioPreviews.map((preview, i) => (
+                  <div key={i} className="relative group">
+                    {preview.type.startsWith("image/") ? (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
+                        <img src={preview.url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1">
+                        <FileText className="w-5 h-5 text-muted-foreground" />
+                        <p className="text-[9px] text-muted-foreground text-center mt-1 truncate w-full">{preview.name}</p>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePortfolioFile(i)}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {portfolioFiles.length < 10 && (
+                  <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                    <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      multiple
+                      className="hidden"
+                      onChange={handlePortfolioSelect}
+                    />
+                  </label>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Up to 10 files · Images, PDFs, or documents · Optional
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              <Button className="flex-1" onClick={() => setStep(4)}>
+                {portfolioFiles.length > 0 ? "Continue" : "Skip"} <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: ID verification */}
+        {step === 4 && (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
@@ -259,11 +365,11 @@ const Signup = () => {
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              Your ID will be securely stored and only reviewed by admins for verification purposes. Your profile will be pending until approved.
+              Your ID will be securely stored and only reviewed by admins for verification purposes.
             </p>
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+              <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <Button className="flex-1" size="lg" onClick={handleSignup} disabled={loading}>
@@ -275,9 +381,7 @@ const Signup = () => {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">
-            Log in
-          </Link>
+          <Link to="/login" className="text-primary font-medium hover:underline">Log in</Link>
         </p>
       </div>
     </div>

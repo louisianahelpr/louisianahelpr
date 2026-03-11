@@ -43,6 +43,7 @@ const MyJobs = () => {
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deadlineDialogApp, setDeadlineDialogApp] = useState<Application | null>(null);
 
   useEffect(() => {
     if (searchParams.get("tip") === "success") {

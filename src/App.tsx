@@ -13,6 +13,8 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
 import Earnings from "./pages/Earnings";
 import Messages from "./pages/Messages";
+import Schedule from "./pages/Schedule";
+import JobHistory from "./pages/JobHistory";
 import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +39,8 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/earnings" element={<Earnings />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/job-history" element={<JobHistory />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <MobileNav />

@@ -366,10 +366,15 @@ const AdminUsers = () => {
                     </>
                   )}
                   {p.approval_status === "approved" && (
-                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
-                      <ShieldAlert className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
+                        <MailIcon className="w-4 h-4 mr-1" /> {resending === p.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Resend"}
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                        onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
+                        <ShieldAlert className="w-4 h-4" />
+                      </Button>
+                    </div>
                   )}
                   {p.approval_status === "denied" && (
                     <Button size="sm" variant="outline" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>

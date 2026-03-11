@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
@@ -10,12 +10,45 @@ import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminReviews from "@/components/admin/AdminReviews";
 
-type Tab = "analytics" | "reviews" | "users" | "jobs" | "settings";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>("analytics");
+  const [view, setView] = useState<View>("home");
+  const [stats, setStats] = useState({
+    totalUsers: 0, pendingApprovals: 0, openReports: 0,
+    activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
+    pendingReviews: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    if (loading) return;
+    const load = async () => {
+      const [profilesRes, pendingRes, reportsRes, jobsRes, reviewsRes] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("jobs").select("status, budget, platform_fee_amount"),
+        supabase.from("reviews").select("id", { count: "exact", head: true }),
+      ]);
+      const allJobs = jobsRes.data || [];
+      const completed = allJobs.filter(j => j.status === "completed");
+      setStats({
+        totalUsers: profilesRes.count || 0,
+        pendingApprovals: pendingRes.count || 0,
+        openReports: reportsRes.count || 0,
+        activeJobs: allJobs.filter(j => ["open", "accepted", "in_progress"].includes(j.status)).length,
+        completedJobs: completed.length,
+        totalRevenue: completed.reduce((s, j) => s + (j.budget || 0), 0),
+        totalFees: completed.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
+        pendingReviews: reviewsRes.count || 0,
+      });
+      setStatsLoading(false);
+    };
+    load();
+  }, [loading]);
 
   if (loading) {
     return (
@@ -25,52 +58,162 @@ const Admin = () => {
     );
   }
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "analytics", label: "Analytics", icon: <BarChart3 className="w-4 h-4" /> },
-    { id: "reviews", label: "Reviews", icon: <ClipboardCheck className="w-4 h-4" /> },
-    { id: "users", label: "Users", icon: <Users className="w-4 h-4" /> },
-    { id: "jobs", label: "Jobs", icon: <Briefcase className="w-4 h-4" /> },
-    { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
+  const header = (
+    <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+        <div className="flex items-center gap-3">
+          {view !== "home" && (
+            <Button variant="ghost" size="icon" onClick={() => setView("home")} className="mr-1">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          )}
+          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
+          <span className="text-xs font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
+        </div>
+        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}>
+          <LogOut className="w-4 h-4" />
+        </Button>
+      </div>
+    </header>
+  );
+
+  if (view !== "home") {
+    return (
+      <div className="min-h-screen bg-background">
+        {header}
+        <div className="container mx-auto px-4 py-6">
+          {view === "analytics" && <AdminAnalytics />}
+          {view === "reviews" && <AdminReviews />}
+          {view === "people" && <AdminUsers />}
+          {view === "jobs" && <AdminJobs />}
+          {view === "settings" && <AdminSettings />}
+        </div>
+      </div>
+    );
+  }
+
+  const quickActions: { id: View; label: string; description: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[] = [
+    {
+      id: "people", label: "People", description: "Users, approvals & moderation",
+      icon: <Users className="w-5 h-5" />,
+      badge: stats.pendingApprovals > 0 ? stats.pendingApprovals : undefined,
+      badgeColor: "bg-destructive/10 text-destructive",
+    },
+    {
+      id: "jobs", label: "Jobs", description: "All tasks & listings",
+      icon: <Briefcase className="w-5 h-5" />,
+    },
+    {
+      id: "analytics", label: "Analytics", description: "Revenue, stats & breakdowns",
+      icon: <BarChart3 className="w-5 h-5" />,
+    },
+    {
+      id: "reviews", label: "Reviews", description: "Ratings & feedback",
+      icon: <ClipboardCheck className="w-5 h-5" />,
+    },
+    {
+      id: "settings", label: "Settings", description: "Platform configuration",
+      icon: <Settings className="w-5 h-5" />,
+    },
   ];
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-            <span className="text-xs font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}>
-            <LogOut className="w-4 h-4" />
-          </Button>
+      {header}
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Welcome */}
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Platform overview and management</p>
         </div>
-      </header>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Tab navigation */}
-        <div className="flex gap-1 mb-8 overflow-x-auto pb-2">
-          {tabs.map((tab) => (
+        {/* Alerts */}
+        {(stats.pendingApprovals > 0 || stats.openReports > 0) && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            {stats.pendingApprovals > 0 && (
+              <button
+                onClick={() => setView("people")}
+                className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 flex-1 text-left hover:bg-accent/10 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{stats.pendingApprovals} pending approval{stats.pendingApprovals !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">Review new signups</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            {stats.openReports > 0 && (
+              <button
+                onClick={() => setView("people")}
+                className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{stats.openReports} open report{stats.openReports !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">Needs attention</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Stats overview */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Total Users", value: statsLoading ? "…" : stats.totalUsers, icon: Users, onClick: () => setView("people") },
+            { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => setView("jobs") },
+            { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => setView("analytics") },
+            { label: "Platform Fees", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(0)}`, icon: DollarSign, onClick: () => setView("analytics") },
+          ].map((card) => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary"
-              }`}
+              key={card.label}
+              onClick={card.onClick}
+              className="rounded-xl border border-border bg-card p-5 text-left hover:bg-secondary/30 hover:border-primary/20 transition-all group"
             >
-              {tab.icon}
-              {tab.label}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground">{card.label}</span>
+                <card.icon className="w-4 h-4 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{card.value}</p>
             </button>
           ))}
         </div>
 
-        {activeTab === "analytics" && <AdminAnalytics />}
-        {activeTab === "reviews" && <AdminReviews />}
-        {activeTab === "users" && <AdminUsers />}
-        {activeTab === "jobs" && <AdminJobs />}
-        {activeTab === "settings" && <AdminSettings />}
+        {/* Navigation cards */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Manage</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {quickActions.map((action) => (
+              <button
+                key={action.id}
+                onClick={() => setView(action.id)}
+                className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 text-left hover:bg-secondary/20 hover:border-primary/20 transition-all group"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors flex-shrink-0">
+                  {action.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-foreground">{action.label}</p>
+                    {action.badge && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${action.badgeColor}`}>
+                        {action.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

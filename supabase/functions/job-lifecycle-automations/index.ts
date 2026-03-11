@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
       autoCompleted: 0,
       noShowFlagged: 0,
       expiredJobs: 0,
+      autoEscalated: 0,
+      autoRestricted: 0,
     }
 
     const now = new Date()
@@ -273,6 +275,173 @@ Deno.serve(async (req) => {
           link: '/post-job',
         })
         results.expiredJobs++
+      }
+    }
+
+    // ── 6. AUTO-ESCALATE USERS WITH 3+ REPORTS ──
+    // Find users with 3+ pending reports who haven't been restricted yet
+    const { data: reportCounts } = await supabase
+      .from('reports')
+      .select('reported_id')
+      .eq('status', 'pending')
+
+    if (reportCounts) {
+      // Count reports per user
+      const counts: Record<string, number> = {}
+      for (const r of reportCounts) {
+        counts[r.reported_id] = (counts[r.reported_id] || 0) + 1
+      }
+
+      for (const [userId, count] of Object.entries(counts)) {
+        if (count < 3) continue
+
+        // Check if already restricted/banned
+        const { data: existingBan } = await supabase
+          .from('user_bans')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .limit(1)
+
+        if (existingBan?.length) continue
+
+        // Check if we already created a violation for this escalation
+        const { data: existingViolation } = await supabase
+          .from('user_violations')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('violation_type', 'auto_escalation')
+          .gte('created_at', new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .limit(1)
+
+        if (existingViolation?.length) continue
+
+        // Auto-restrict: create violation + temporary ban pending admin review
+        await supabase.from('user_violations').insert({
+          user_id: userId,
+          violation_type: 'auto_escalation',
+          description: `Automatically escalated: ${count} pending reports from different users.`,
+          action_taken: 'temporary_restriction',
+        })
+
+        await supabase.from('user_bans').insert({
+          user_id: userId,
+          ban_type: 'temporary',
+          reason: `Auto-restricted: ${count} pending reports. Awaiting admin review.`,
+          banned_by: userId, // system-initiated
+          expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          is_active: true,
+        })
+
+        // Update profile ban status
+        await supabase.from('profiles')
+          .update({ ban_status: 'suspended' })
+          .eq('user_id', userId)
+
+        // Notify admins
+        const { data: adminRoles } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin')
+
+        const adminNotifs = (adminRoles || []).map(a => ({
+          user_id: a.user_id,
+          title: 'User auto-restricted ⚠️',
+          message: `A user has been automatically restricted due to ${count} reports. Please review.`,
+          type: 'warning',
+          link: '/admin',
+        }))
+
+        // Notify the restricted user
+        adminNotifs.push({
+          user_id: userId,
+          title: 'Account temporarily restricted',
+          message: 'Your account has been temporarily restricted due to multiple reports. An admin will review shortly.',
+          type: 'warning',
+          link: '/support',
+        })
+
+        if (adminNotifs.length > 0) {
+          await supabase.from('notifications').insert(adminNotifs)
+        }
+
+        results.autoEscalated++
+      }
+    }
+
+    // ── 7. AUTO-RESTRICT REPEAT VIOLATORS ──
+    // Users with 2+ violations in the past 30 days who aren't already banned
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    const { data: recentViolations } = await supabase
+      .from('user_violations')
+      .select('user_id')
+      .gte('created_at', thirtyDaysAgo)
+
+    if (recentViolations) {
+      const violationCounts: Record<string, number> = {}
+      for (const v of recentViolations) {
+        violationCounts[v.user_id] = (violationCounts[v.user_id] || 0) + 1
+      }
+
+      for (const [userId, vCount] of Object.entries(violationCounts)) {
+        if (vCount < 2) continue
+
+        // Check if already banned
+        const { data: existingBan } = await supabase
+          .from('user_bans')
+          .select('id, ban_type')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .limit(1)
+
+        // Skip if already permanently banned, or if already has a temp ban (handled by escalation above)
+        if (existingBan?.length) {
+          if (existingBan[0].ban_type === 'permanent') continue
+          // Upgrade temp ban to longer restriction for repeat violators
+          if (vCount >= 4) {
+            await supabase.from('user_bans')
+              .update({ ban_type: 'permanent', reason: `Permanent ban: ${vCount} violations in 30 days.` })
+              .eq('id', existingBan[0].id)
+
+            await supabase.from('profiles')
+              .update({ ban_status: 'banned' })
+              .eq('user_id', userId)
+
+            await supabase.from('notifications').insert({
+              user_id: userId,
+              title: 'Account permanently restricted',
+              message: 'Due to repeated violations, your account has been permanently restricted. Contact support to appeal.',
+              type: 'warning',
+              link: '/support',
+            })
+
+            results.autoRestricted++
+          }
+          continue
+        }
+
+        // 2-3 violations: warning notification only (first offense handled elsewhere)
+        if (vCount >= 2 && vCount < 4) {
+          const { data: recentWarning } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', userId)
+            .ilike('title', '%violation warning%')
+            .gte('created_at', new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
+            .limit(1)
+
+          if (!recentWarning?.length) {
+            await supabase.from('notifications').insert({
+              user_id: userId,
+              title: 'Violation warning ⚠️',
+              message: `You have ${vCount} violations in the past 30 days. Further violations may result in account restriction.`,
+              type: 'warning',
+              link: '/support',
+            })
+            results.autoRestricted++
+          }
+        }
       }
     }
 

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -353,6 +354,10 @@ const AdminUsers = () => {
                        {p.location && <span>{p.location}</span>}
                        {p.phone && <span>{p.phone}</span>}
                        <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
+                       <span className="flex items-center gap-0.5">
+                         <Clock className="w-3 h-3" />
+                         Active {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
+                       </span>
                     </div>
                     {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                   </div>
@@ -437,6 +442,10 @@ const AdminUsers = () => {
                 <div>
                   <p className="text-muted-foreground text-xs">Joined</p>
                   <p className="font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Last Active</p>
+                  <p className="font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
                 </div>
               </div>
 

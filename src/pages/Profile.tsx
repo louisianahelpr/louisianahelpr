@@ -153,8 +153,8 @@ const ProfilePage = () => {
     if (!user) return;
     setHistoryLoading(true);
     const [posted, worked] = await Promise.all([
-      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("customer_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("helper_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
     ]);
     if (posted.data) setHistPostedJobs(posted.data);
     if (worked.data) setHistWorkedJobs(worked.data);

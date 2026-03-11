@@ -37,7 +37,7 @@ export function GroupJobHelpers({
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", helperIds);
-      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "Helper"]) || []);
+      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "Helpr"]) || []);
       setHelpers(
         (data as any[]).map((h: any) => ({
           ...h,

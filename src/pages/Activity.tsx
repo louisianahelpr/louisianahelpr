@@ -10,7 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
+  Rocket,
 } from "lucide-react";
+import { JobBoostDialog } from "@/components/JobBoostDialog";
+import { TipDialog } from "@/components/TipDialog";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import type { User as SupaUser } from "@supabase/supabase-js";

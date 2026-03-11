@@ -96,6 +96,7 @@ type OnboardingState = {
   currentStep: number;
   dismissedAt?: string;
   completedSteps: string[];
+  seen?: boolean;
 };
 
 const getState = (): OnboardingState => {

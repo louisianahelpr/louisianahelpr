@@ -6,6 +6,10 @@ const Footer = () => (
       <Link to="/" className="text-xl font-display font-bold text-primary">
         Helpr
       </Link>
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>
+        <Link to="/support" className="hover:text-primary transition-colors">Support</Link>
+      </div>
       <div className="text-center sm:text-right">
         <p className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} Helpr. All rights reserved.

@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   LogOut, Search, X, Flag, MapPin, Calendar, DollarSign,
   SlidersHorizontal, ChevronDown, ChevronUp, Clock, XCircle,
-  Shield, Briefcase, Star, ImageIcon, Rocket,
+  Shield, Briefcase, Star, ImageIcon, Rocket, Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
@@ -290,6 +290,9 @@ const Dashboard = () => {
             )}
             <Button variant="ghost" size="sm" onClick={() => navigate("/post-job")} className="hidden sm:flex">
               <Briefcase className="w-4 h-4 mr-1" /> Post task
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/favorites")} title="Favorite Helpers">
+              <Heart className="w-4 h-4" />
             </Button>
             <NotificationPanel />
             <Button variant="ghost" size="icon" onClick={handleLogout}>

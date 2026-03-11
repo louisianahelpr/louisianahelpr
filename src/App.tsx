@@ -19,6 +19,8 @@ import Messages from "./pages/Messages";
 import Support from "./pages/Support";
 import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
+import FavoriteHelpers from "./pages/FavoriteHelpers";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,8 @@ const App = () => (
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/favorites" element={<FavoriteHelpers />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/schedule" element={<Navigate to="/profile" replace />} />
           <Route path="/job-history" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<NotFound />} />

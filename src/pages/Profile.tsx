@@ -887,7 +887,7 @@ const ProfilePage = () => {
               <div className="space-y-3">
                 <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                   <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary" /> Terms of Service
+                    <FileText className="w-4 h-4 text-primary" /> <Link to="/terms" className="hover:text-primary">Terms of Service</Link>
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     By using Helpr, you agree to our Terms of Service. These terms govern your use of the platform, including posting tasks, applying for jobs, and processing payments.

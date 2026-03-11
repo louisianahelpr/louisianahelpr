@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -16,6 +16,7 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
   const [stats, setStats] = useState({ completedJobs: 0, avgRating: 0, reviewCount: 0 });
+  const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
 
@@ -49,6 +50,32 @@ const UserProfile = () => {
       avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
       reviewCount: ratings.length,
     });
+
+    // Load response metrics (for helpers)
+    const { data: allApps } = await supabase
+      .from("applications")
+      .select("status, created_at, updated_at")
+      .eq("helper_id", userId);
+
+    if (allApps && allApps.length > 0) {
+      const accepted = allApps.filter(a => a.status === "accepted");
+      const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
+      
+      // Average response time: time between application created and updated (when accepted)
+      const responseTimes = accepted
+        .map(a => {
+          const created = new Date(a.created_at).getTime();
+          const updated = new Date(a.updated_at).getTime();
+          return (updated - created) / (1000 * 60 * 60); // hours
+        })
+        .filter(h => h > 0 && h < 720); // filter out invalid (0) and very old (>30 days)
+
+      setResponseMetrics({
+        avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : null,
+        acceptanceRate,
+        totalApplications: allApps.length,
+      });
+    }
 
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
@@ -170,6 +197,40 @@ const UserProfile = () => {
               <p className="text-xs text-muted-foreground">Reviews</p>
             </div>
           </div>
+
+          {/* Response Metrics */}
+          {responseMetrics.totalApplications > 0 && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <h2 className="text-sm font-display font-semibold text-foreground flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" /> Response Metrics
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {responseMetrics.avgResponseHours !== null && (
+                  <div className="rounded-lg bg-secondary/30 p-3 text-center">
+                    <p className="text-lg font-bold text-foreground">
+                      {responseMetrics.avgResponseHours < 1
+                        ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
+                        : responseMetrics.avgResponseHours < 24
+                        ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
+                        : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3" /> Avg Response
+                    </p>
+                  </div>
+                )}
+                {responseMetrics.acceptanceRate !== null && (
+                  <div className="rounded-lg bg-secondary/30 p-3 text-center">
+                    <p className="text-lg font-bold text-foreground">{responseMetrics.acceptanceRate.toFixed(0)}%</p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <CheckCircle className="w-3 h-3" /> Acceptance Rate
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center">Based on {responseMetrics.totalApplications} application{responseMetrics.totalApplications !== 1 ? "s" : ""}</p>
+            </div>
+          )}
 
           {profile.hourly_rate && (
             <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">

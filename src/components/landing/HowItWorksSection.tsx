@@ -9,7 +9,7 @@ const steps = [
   {
     icon: Users,
     title: "Get matched",
-    description: "Trusted helpers apply to your task. Review profiles, ratings, and pick the best fit.",
+    description: "Trusted helprs apply to your task. Review profiles, ratings, and pick the best fit.",
   },
   {
     icon: CheckCircle,

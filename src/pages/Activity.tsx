@@ -150,13 +150,84 @@ const Activity = () => {
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     if (accept) {
-      await supabase.from("jobs").update({ status: "in_progress" }).eq("id", app.job_id);
+      await supabase.from("jobs").update({ status: "in_progress", response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can now message the poster.");
       loadData(user.id);
     } else {
+      // Track denial as violation
+      const { data: existing } = await supabase
+        .from("user_violations")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("violation_type", "job_denial");
+      const priorCount = existing?.length || 0;
+
+      let actionTaken = "none";
+      if (priorCount >= 4) actionTaken = "permanent_ban";
+      else if (priorCount >= 3) actionTaken = "temp_ban";
+      else if (priorCount >= 2) actionTaken = "warning";
+
+      // Log the violation
+      await supabase.from("user_violations").insert({
+        user_id: user.id,
+        violation_type: "job_denial",
+        description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`,
+        job_id: app.job_id,
+        action_taken: actionTaken,
+      });
+
+      // Apply penalties
+      if (actionTaken === "warning") {
+        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          title: "⚠️ Decline Warning",
+          message: "You've declined 3 job offers. Further declines may result in account suspension.",
+          type: "warning",
+          link: "/profile",
+        });
+        toast.warning("Warning: You've declined multiple job offers. Further declines may result in suspension.");
+      } else if (actionTaken === "temp_ban") {
+        await supabase.from("user_bans").insert({
+          user_id: user.id,
+          ban_type: "temporary",
+          reason: "Excessive job offer declines",
+          banned_by: user.id,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", user.id);
+        toast.error("Your account has been temporarily suspended for 7 days due to excessive declines.");
+      } else if (actionTaken === "permanent_ban") {
+        await supabase.from("user_bans").insert({
+          user_id: user.id,
+          ban_type: "permanent",
+          reason: "Repeated job offer declines",
+          banned_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
+        toast.error("Your account has been permanently banned due to repeated declines.");
+      }
+
+      // Notify admins
+      if (actionTaken !== "none") {
+        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        if (adminRoles) {
+          for (const admin of adminRoles) {
+            await supabase.from("notifications").insert({
+              user_id: admin.user_id,
+              title: "⚠️ Helper declined job offer",
+              message: `Helper declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
+              type: "warning",
+              link: "/admin",
+            });
+          }
+        }
+      }
+
+      // Reopen job
       await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", app.job_id);
+      await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null } as any).eq("id", app.job_id);
       toast.info("You declined the job. The poster can select someone else.");
       loadData(user.id);
     }

@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
+  const [platformFee, setPlatformFee] = useState(15);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
@@ -61,12 +62,14 @@ const Dashboard = () => {
   }, [navigate]);
 
   const loadData = async (userId: string) => {
-    const [profileRes, rolesRes, openJobsRes] = await Promise.all([
+    const [profileRes, rolesRes, openJobsRes, feeRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("jobs").select("*").eq("status", "open").order("created_at", { ascending: false }),
+      supabase.from("platform_settings").select("platform_fee_percent").limit(1).single(),
     ]);
 
+    if (feeRes.data) setPlatformFee(feeRes.data.platform_fee_percent);
     if (profileRes.data) setProfile(profileRes.data);
     setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
 
@@ -111,6 +114,8 @@ const Dashboard = () => {
 
   const handleApply = async (jobId: string) => {
     if (!user) { navigate("/login"); return; }
+    const job = allJobs.find((j) => j.id === jobId);
+    if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
     const { error } = await supabase.from("applications").insert({ job_id: jobId, helper_id: user.id, message: "I'd like to help with this task!" });
     if (error) {
       if (error.code === "23505") toast.error("You've already applied.");
@@ -221,6 +226,7 @@ const Dashboard = () => {
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
               <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
+              <span className="text-primary font-medium">You earn ${(job.budget * (1 - platformFee / 100)).toFixed(2)}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
               <span>Posted by <span className="font-medium text-foreground">{job.posterName}</span></span>
@@ -233,7 +239,7 @@ const Dashboard = () => {
               <HelperBadges badges={posterBadges} />
             </div>
           </div>
-          {showApply && (
+          {showApply && user?.id !== job.customer_id && (
             <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
               <Button size="sm" onClick={() => handleApply(job.id)}>Apply</Button>
               <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}><Flag className="w-3.5 h-3.5" /></Button>

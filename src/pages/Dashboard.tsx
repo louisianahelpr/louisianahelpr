@@ -326,6 +326,11 @@ const Dashboard = () => {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
+              {(a as any).is_urgent && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-semibold">
+                  <Zap className="w-3 h-3 text-accent" /> Urgent
+                </span>
+              )}
               {job.isBoosted && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
                   <Rocket className="w-3 h-3" /> Boosted

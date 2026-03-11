@@ -2,3 +2,6 @@ project_id = "steigdwrpkosbiycshwz"
 
 [functions.create-payment]
 verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = false

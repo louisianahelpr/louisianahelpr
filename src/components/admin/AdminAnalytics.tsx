@@ -148,8 +148,12 @@ const AdminAnalytics = () => {
 
 // --- Drill-down: Users ---
 const UsersDrillDown = ({ users }: { users: Profile[] }) => {
-  const [filter, setFilter] = useState<"all" | "customer" | "helper">("all");
-  const filtered = filter === "all" ? users : users.filter((u) => u.role === filter);
+  const [roleFilter, setRoleFilter] = useState<"all" | "customer" | "helper">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "denied">("all");
+
+  const filtered = users
+    .filter((u) => roleFilter === "all" || u.role === roleFilter)
+    .filter((u) => statusFilter === "all" || u.approval_status === statusFilter);
 
   const statusColor = (status: string) => {
     if (status === "approved") return "bg-primary/10 text-primary";
@@ -157,15 +161,33 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
     return "bg-accent/20 text-accent-foreground";
   };
 
+  const statusOptions = ["all", "pending", "approved", "denied"] as const;
+
   return (
     <div className="space-y-3">
+      {/* Role filter */}
       <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
         {(["all", "customer", "helper"] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${filter === f ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <button key={f} onClick={() => setRoleFilter(f)}
+            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${roleFilter === f ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {f} {f === "all" ? `(${users.length})` : `(${users.filter(u => u.role === f).length})`}
           </button>
         ))}
+      </div>
+
+      {/* Approval status filter */}
+      <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+        {statusOptions.map((s) => {
+          const count = users
+            .filter((u) => roleFilter === "all" || u.role === roleFilter)
+            .filter((u) => s === "all" || u.approval_status === s).length;
+          return (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {s} ({count})
+            </button>
+          );
+        })}
       </div>
 
       <div className="text-xs text-muted-foreground">{filtered.length} users</div>

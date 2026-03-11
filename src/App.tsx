@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import UserProfile from "./pages/UserProfile";
 import Admin from "./pages/Admin";
 import Activity from "./pages/Activity";
 import Messages from "./pages/Messages";

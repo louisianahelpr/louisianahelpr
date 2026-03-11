@@ -14,76 +14,39 @@ type TourStep = {
   position?: "center" | "top" | "bottom";
 };
 
-const CUSTOMER_STEPS: TourStep[] = [
+const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
     title: "Welcome to Helpr! 🎉",
-    description: "Let's walk you through the basics so you can get help fast. This will only take a minute.",
+    description: "Let's walk you through the basics so you can get started. This will only take a minute.",
     icon: <Sparkles className="w-6 h-6" />,
     position: "center",
   },
   {
     id: "profile",
     title: "Complete your profile",
-    description: "Add your name, location, and photo so helpers know who they're working with.",
+    description: "Add your name, location, and photo so others know who they're working with.",
     icon: <User className="w-6 h-6" />,
     action: "/profile",
   },
   {
+    id: "browse",
+    title: "Explore the dashboard",
+    description: "Post tasks, browse open jobs, track applications, and manage everything from one place.",
+    icon: <Search className="w-6 h-6" />,
+    action: "/dashboard",
+  },
+  {
     id: "post-job",
-    title: "Post your first task",
-    description: "Describe what you need help with, set a budget, and we'll match you with top helpers nearby.",
+    title: "Post or apply to tasks",
+    description: "Need help? Post a task with your budget. Want to earn? Browse and apply to jobs nearby.",
     icon: <Briefcase className="w-6 h-6" />,
     action: "/post-job",
   },
   {
-    id: "browse",
-    title: "Browse & manage",
-    description: "Track applications, chat with helpers, and manage your tasks all from the dashboard.",
-    icon: <Search className="w-6 h-6" />,
-    action: "/dashboard",
-  },
-  {
     id: "messages",
-    title: "Chat with helpers",
-    description: "Once a helper applies, you can message them directly to discuss details before accepting.",
-    icon: <MessageCircle className="w-6 h-6" />,
-    action: "/messages",
-  },
-];
-
-const HELPER_STEPS: TourStep[] = [
-  {
-    id: "welcome",
-    title: "Welcome to Helpr! 🎉",
-    description: "Let's get you set up to start earning. This quick tour covers the essentials.",
-    icon: <Sparkles className="w-6 h-6" />,
-    position: "center",
-  },
-  {
-    id: "profile",
-    title: "Set up your profile",
-    description: "Add your skills, hourly rate, location, and upload an ID to get approved faster.",
-    icon: <User className="w-6 h-6" />,
-    action: "/profile",
-  },
-  {
-    id: "browse-jobs",
-    title: "Find jobs that match",
-    description: "Browse open tasks, filter by category or location, and apply with one tap.",
-    icon: <Search className="w-6 h-6" />,
-    action: "/dashboard",
-  },
-  {
-    id: "apply",
-    title: "Quick Apply",
-    description: "When you see a matching job, hit Apply — the poster gets notified instantly.",
-    icon: <Briefcase className="w-6 h-6" />,
-  },
-  {
-    id: "messages",
-    title: "Stay in touch",
-    description: "Chat with customers, share photos, and send updates — all in the Messages tab.",
+    title: "Chat & collaborate",
+    description: "Message others directly to discuss details, share updates, and coordinate work.",
     icon: <MessageCircle className="w-6 h-6" />,
     action: "/messages",
   },
@@ -112,16 +75,15 @@ const saveState = (state: OnboardingState) => {
 };
 
 interface OnboardingTourProps {
-  role?: string;
   profileComplete?: boolean;
 }
 
-const OnboardingTour = ({ role = "customer", profileComplete = false }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const navigate = useNavigate();
   const [state, setState] = useState<OnboardingState>(getState);
   const [visible, setVisible] = useState(false);
 
-  const steps = role === "helper" ? HELPER_STEPS : CUSTOMER_STEPS;
+  const steps = TOUR_STEPS;
   const currentStep = steps[state.currentStep] || steps[0];
   const progress = ((state.currentStep + 1) / steps.length) * 100;
 

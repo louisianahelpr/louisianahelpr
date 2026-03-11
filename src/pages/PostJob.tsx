@@ -40,6 +40,9 @@ const PostJob = () => {
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [platformFee, setPlatformFee] = useState(15);
 
   // Image upload state

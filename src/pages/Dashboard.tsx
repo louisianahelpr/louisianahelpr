@@ -211,6 +211,9 @@ const Dashboard = () => {
   const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
+  // Pro helpers get lower platform fee
+  const effectiveFee = isProHelpr ? 10 : platformFee;
+
   const filteredJobs = allJobs
     .filter((job) => {
       if (searchQuery) {
@@ -220,6 +223,12 @@ const Dashboard = () => {
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+      // Non-Pro helpers can't see jobs posted in last 10 minutes
+      if (!isProHelpr && profile?.role === "helper") {
+        const jobAge = Date.now() - new Date(job.created_at).getTime();
+        const tenMinutes = 10 * 60 * 1000;
+        if (jobAge < tenMinutes) return false;
+      }
       return true;
     })
     .sort((a, b) => {

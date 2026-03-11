@@ -64,6 +64,7 @@ export type Database = {
           date_needed: string
           description: string
           estimated_hours: number | null
+          helper_completed_at: string | null
           helper_id: string | null
           id: string
           location: string
@@ -71,6 +72,7 @@ export type Database = {
           photos: string[] | null
           platform_fee_amount: number | null
           platform_fee_percent: number | null
+          poster_completed_at: string | null
           revision_note: string | null
           revision_requested_at: string | null
           special_requirements: string | null
@@ -89,6 +91,7 @@ export type Database = {
           date_needed: string
           description: string
           estimated_hours?: number | null
+          helper_completed_at?: string | null
           helper_id?: string | null
           id?: string
           location: string
@@ -96,6 +99,7 @@ export type Database = {
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
+          poster_completed_at?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null
@@ -114,6 +118,7 @@ export type Database = {
           date_needed?: string
           description?: string
           estimated_hours?: number | null
+          helper_completed_at?: string | null
           helper_id?: string | null
           id?: string
           location?: string
@@ -121,6 +126,7 @@ export type Database = {
           photos?: string[] | null
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
+          poster_completed_at?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null

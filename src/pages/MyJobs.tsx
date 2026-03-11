@@ -305,7 +305,7 @@ const MyJobs = () => {
           onClose={() => { setReviewJob(null); }}
           jobId={reviewJob.id}
           revieweeId={reviewJob.helper_id}
-          revieweeName="Helper"
+          revieweeName="Helpr"
         />
       )}
 

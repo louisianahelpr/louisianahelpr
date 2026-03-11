@@ -18,6 +18,8 @@ import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import OnboardingTour from "@/components/OnboardingTour";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { useRealtimePush } from "@/hooks/useRealtimePush";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -67,6 +69,9 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Enable realtime push notifications
+  useRealtimePush(user?.id ?? null);
 
   const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
   const [platformFee, setPlatformFee] = useState(15);
@@ -605,6 +610,9 @@ const Dashboard = () => {
 
       {/* Quick Apply from notification link */}
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApply} />
+      
+      {/* Push notification permission prompt */}
+      <PushNotificationPrompt />
     </div>
   );
 };

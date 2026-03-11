@@ -212,7 +212,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-foreground">{selectedCircle.name}</h3>
             <Button size="sm" variant="outline" onClick={() => setShowAddHelper(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add Helper
+              <Plus className="w-4 h-4 mr-1" /> Add Helpr
             </Button>
           </div>
 

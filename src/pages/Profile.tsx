@@ -10,6 +10,7 @@ import {
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
+  LifeBuoy,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";

@@ -37,7 +37,7 @@ export function computeBadges(stats: {
     });
   }
 
-  // ⭐ Trusted Helper: 5+ completed jobs, 4.0+ rating
+  // ⭐ Trusted Helpr: 5+ completed jobs, 4.0+ rating
   if (stats.completedJobs >= 5 && stats.avgRating >= 4.0) {
     badges.push({
       key: "trusted",

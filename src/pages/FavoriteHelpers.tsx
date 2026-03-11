@@ -107,8 +107,8 @@ const FavoriteHelpers = () => {
           {favorites.length === 0 ? (
             <div className="text-center py-16">
               <Heart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">No favorite helpers yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Visit a helper's profile and tap the heart icon to save them</p>
+              <p className="text-muted-foreground">No favorite helprs yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Visit a helpr's profile and tap the heart icon to save them</p>
             </div>
           ) : (
             <div className="space-y-3">

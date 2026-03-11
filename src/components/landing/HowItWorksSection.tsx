@@ -14,7 +14,7 @@ const steps = [
   {
     icon: CheckCircle,
     title: "Get it done",
-    description: "Your helper completes the job, you pay securely, and leave a review.",
+    description: "Your helpr completes the job, you pay securely, and leave a review.",
   },
 ];
 

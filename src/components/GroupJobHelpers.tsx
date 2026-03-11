@@ -101,7 +101,7 @@ export function GroupJobHelpers({
 
       {filledSlots < helpersNeeded && (
         <p className="text-xs text-muted-foreground text-center">
-          {helpersNeeded - filledSlots} more helper{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
+          {helpersNeeded - filledSlots} more helpr{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
         </p>
       )}
     </div>

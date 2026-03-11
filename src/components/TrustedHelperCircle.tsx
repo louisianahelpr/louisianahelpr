@@ -313,7 +313,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
       <Dialog open={showAddHelper} onOpenChange={setShowAddHelper}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Helper to {selectedCircle?.name}</DialogTitle>
+            <DialogTitle>Add Helpr to {selectedCircle?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex gap-2">

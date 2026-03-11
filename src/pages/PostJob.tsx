@@ -608,7 +608,7 @@ const PostJob = () => {
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Helper receives</span>
+                    <span className="font-semibold text-foreground">Helpr receives</span>
                     <span className="text-xl font-bold text-foreground">${helperEarns.toFixed(2)}</span>
                   </div>
                 </div>

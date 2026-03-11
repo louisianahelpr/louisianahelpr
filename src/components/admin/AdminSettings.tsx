@@ -224,7 +224,7 @@ const AdminSettings = () => {
         <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
           <li>Customer pays the full job budget at time of posting (escrow)</li>
           <li>When the job is completed, Helpr retains the platform fee</li>
-          <li>The remaining amount goes to the helper</li>
+          <li>The remaining amount goes to the helpr</li>
           <li>Current fee: <strong className="text-foreground">{feePercent}%</strong></li>
         </ul>
       </div>

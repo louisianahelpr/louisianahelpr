@@ -45,7 +45,7 @@ export function JobConfirmation({
 
   const myConfirmed = isOwner ? posterConfirmedAt : helperConfirmedAt;
   const otherConfirmed = isOwner ? helperConfirmedAt : posterConfirmedAt;
-  const otherLabel = isOwner ? "Helper" : "Poster";
+  const otherLabel = isOwner ? "Helpr" : "Poster";
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">

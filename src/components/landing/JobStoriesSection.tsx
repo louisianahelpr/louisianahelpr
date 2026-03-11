@@ -67,7 +67,7 @@ const JobStoriesSection = () => {
           category: j.category,
           beforeUrls: j.proof_before_urls || [],
           afterUrls: j.proof_after_urls || [],
-          helperName: nameMap.get(j.helper_id || "") || "Helper",
+          helperName: nameMap.get(j.helper_id || "") || "Helpr",
           helperId: j.helper_id || "",
           rating: review?.rating || null,
           feedback: review?.feedback || null,

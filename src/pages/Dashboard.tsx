@@ -275,8 +275,18 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
-          {/* Greeting */}
-          <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
+          {/* Quick links */}
+          <div className="flex items-center justify-between">
+            <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/schedule")} className="text-xs">
+                <Calendar className="w-3.5 h-3.5 mr-1" /> Schedule
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate("/job-history")} className="text-xs">
+                <ClipboardList className="w-3.5 h-3.5 mr-1" /> History
+              </Button>
+            </div>
+          </div>
 
           {/* Tabs */}
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">

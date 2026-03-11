@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   LogOut, Search, X, Flag, MapPin, Calendar, DollarSign,
   SlidersHorizontal, ChevronDown, ChevronUp, Clock, XCircle,
-  Shield, Briefcase, Star, ImageIcon, Rocket, Heart,
+  Shield, Briefcase, Star, ImageIcon, Rocket, Heart, Zap, ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";

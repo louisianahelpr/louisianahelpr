@@ -51,6 +51,7 @@ const MyJobs = () => {
   const loadJobs = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
+    setCurrentUserId(user.id);
     const { data } = await supabase
       .from("jobs")
       .select("*")

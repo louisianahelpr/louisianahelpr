@@ -131,9 +131,6 @@ const Dashboard = () => {
             <h1 className="text-3xl font-display font-bold text-foreground">
               Welcome, {fullName} 👋
             </h1>
-            <p className="text-muted-foreground mt-1">
-              You're signed in as a <span className="font-medium text-primary capitalize">{role}</span>.
-            </p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -143,32 +140,24 @@ const Dashboard = () => {
               desc="Update your info, skills, and availability."
               onClick={() => navigate("/profile")}
             />
-
-            {role === "customer" && (
-              <>
-                <DashCard
-                  icon={<Briefcase className="w-5 h-5 text-primary" />}
-                  title="Post a task"
-                  desc="Create a new job listing for helpers to apply to."
-                  onClick={() => navigate("/post-job")}
-                />
-                <DashCard
-                  icon={<ClipboardList className="w-5 h-5 text-primary" />}
-                  title="My posted tasks"
-                  desc={`You have ${myJobs.length} task${myJobs.length !== 1 ? "s" : ""} posted.`}
-                  onClick={() => navigate("/my-jobs")}
-                />
-              </>
-            )}
-
-            {role === "helper" && (
-              <DashCard
-                icon={<Search className="w-5 h-5 text-primary" />}
-                title="Browse tasks"
-                desc="Find available jobs in your area."
-                onClick={() => navigate("/browse-jobs")}
-              />
-            )}
+            <DashCard
+              icon={<Briefcase className="w-5 h-5 text-primary" />}
+              title="Post a task"
+              desc="Create a new job listing for helpers to apply to."
+              onClick={() => navigate("/post-job")}
+            />
+            <DashCard
+              icon={<ClipboardList className="w-5 h-5 text-primary" />}
+              title="My posted tasks"
+              desc={`You have ${myJobs.length} task${myJobs.length !== 1 ? "s" : ""} posted.`}
+              onClick={() => navigate("/my-jobs")}
+            />
+            <DashCard
+              icon={<Search className="w-5 h-5 text-primary" />}
+              title="Browse tasks"
+              desc="Find available jobs in your area."
+              onClick={() => navigate("/browse-jobs")}
+            />
 
             {isAdmin && (
               <DashCard

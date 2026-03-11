@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus } from "lucide-react";
+import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +20,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
 
   // Step 2 fields
   const [bio, setBio] = useState("");
@@ -170,6 +173,18 @@ const Signup = () => {
         })
         .eq("user_id", userId);
 
+      // 6. Process referral code if provided
+      if (referralCode.trim()) {
+        try {
+          await supabase.rpc("process_referral", {
+            p_referral_code: referralCode.trim().toUpperCase(),
+            p_new_user_id: userId,
+          });
+        } catch (refErr) {
+          console.log("Referral processing skipped:", refErr);
+        }
+      }
+
       toast.success("Account created! Your profile is pending admin review.");
       navigate("/dashboard");
     } catch (err: any) {
@@ -221,6 +236,24 @@ const Signup = () => {
             <div className="space-y-2">
               <Label htmlFor="phone">Phone number <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="referral" className="flex items-center gap-1.5">
+                <Gift className="w-3.5 h-3.5 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <Input
+                id="referral"
+                placeholder="Enter referral code for $5 credit"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                maxLength={10}
+                className="uppercase"
+              />
+              {referralCode && (
+                <p className="text-xs text-primary flex items-center gap-1">
+                  <Gift className="w-3 h-3" /> You'll get $5 credit when you sign up!
+                </p>
+              )}
             </div>
             <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)}>
               Continue <ArrowRight className="w-4 h-4 ml-1" />

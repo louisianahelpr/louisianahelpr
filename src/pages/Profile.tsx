@@ -13,6 +13,7 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import { HelperAvailability } from "@/components/HelperAvailability";
+import ReferralSection from "@/components/ReferralSection";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -20,7 +21,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability" | "reviews";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal" | "availability" | "reviews" | "referral";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -267,6 +268,7 @@ const ProfilePage = () => {
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "View upcoming jobs" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
+    { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "payment", label: "Payment & Security", icon: <CreditCard className="w-5 h-5" />, desc: "Account & payment settings" },
     { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
   ];
@@ -877,6 +879,11 @@ const ProfilePage = () => {
                 <HelperAvailability userId={user.id} />
               )}
             </div>
+          )}
+
+          {/* REFERRAL TAB */}
+          {tab === "referral" && user && (
+            <ReferralSection userId={user.id} />
           )}
 
           {/* LEGAL TAB */}

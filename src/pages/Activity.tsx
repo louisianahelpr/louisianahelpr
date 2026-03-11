@@ -814,6 +814,31 @@ const Activity = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancellation Dialog */}
+      {cancelDialogJob && user && (
+        <CancellationDialog
+          jobId={cancelDialogJob.id}
+          jobTitle={cancelDialogJob.title}
+          jobDate={cancelDialogJob.date_needed}
+          userId={user.id}
+          open={!!cancelDialogJob}
+          onClose={() => setCancelDialogJob(null)}
+          onCancelled={() => { if (user) loadData(user.id); }}
+        />
+      )}
+
+      {/* Completion Prompts (review + tip) */}
+      {completionPromptJob && user && (
+        <CompletionPrompts
+          jobId={completionPromptJob.job.id}
+          jobTitle={completionPromptJob.job.title}
+          revieweeId={completionPromptJob.revieweeId}
+          revieweeName={completionPromptJob.revieweeName}
+          userId={user.id}
+          onDone={() => setCompletionPromptJob(null)}
+        />
+      )}
     </div>
   );
 };

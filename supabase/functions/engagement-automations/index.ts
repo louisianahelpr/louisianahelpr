@@ -200,6 +200,89 @@ Deno.serve(async (_req) => {
       results.drip++
     }
 
+    // ─── 1b. Auto-resend Approval Emails ─────────────────────────
+    // Approved users who haven't logged in, resend every 3 days up to 3 emails total
+    const { data: approvedUsers } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email, approval_email_count, last_approval_email_at')
+      .eq('approval_status', 'approved')
+      .lt('approval_email_count', 3)
+      .not('email', 'is', null)
+
+    for (const user of approvedUsers || []) {
+      const emailCount = user.approval_email_count || 0
+      if (emailCount < 1) continue // First email sent on approval, skip if 0
+
+      // Check if 3+ days since last approval email
+      if (user.last_approval_email_at) {
+        const daysSinceLast = (now.getTime() - new Date(user.last_approval_email_at).getTime()) / (1000 * 60 * 60 * 24)
+        if (daysSinceLast < 3) continue
+      }
+
+      // Check if user has any activity (jobs, messages, recent profile update)
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()
+      const [jobsRes, msgsRes] = await Promise.all([
+        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('customer_id', user.user_id),
+        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('sender_id', user.user_id),
+      ])
+
+      // If user has posted jobs or sent messages, they're active — stop resending
+      if ((jobsRes.count || 0) > 0 || (msgsRes.count || 0) > 0) {
+        await supabase.from('profiles').update({ approval_email_count: 3 }).eq('user_id', user.user_id)
+        continue
+      }
+
+      const subject = emailCount === 1
+        ? "Don't forget — your Helpr account is ready! 🎉"
+        : "Your Helpr account is waiting for you 👋"
+
+      const htmlContent = wrapEmail(`
+        ${h1("Your account is approved!")}
+        ${p(`Hey ${user.full_name || "there"}, just a reminder — your Helpr account has been approved and is ready to go!`)}
+        ${p("Browse tasks, post jobs, or connect with people in your area. It only takes a minute to get started.")}
+        ${btn("Browse Jobs", `${SITE_URL}/dashboard`)}
+        ${p("We'd love to see you on the platform. 💚")}
+      `)
+      const textContent = `Hey ${user.full_name || "there"}, your Helpr account is approved! Browse jobs and get started: ${SITE_URL}/dashboard`
+
+      const messageId = crypto.randomUUID()
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: 'approval_reminder',
+        recipient_email: user.email,
+        status: 'pending',
+      })
+
+      const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
+        queue_name: 'auth_emails',
+        payload: {
+          run_id: messageId,
+          message_id: messageId,
+          to: user.email,
+          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+          sender_domain: SENDER_DOMAIN,
+          subject,
+          html: htmlContent,
+          text: textContent,
+          purpose: 'transactional',
+          label: 'approval_reminder',
+          queued_at: now.toISOString(),
+        },
+      })
+
+      if (enqueueErr) {
+        results.errors.push(`Approval resend failed for ${user.email}: ${enqueueErr.message}`)
+        continue
+      }
+
+      await supabase.from('profiles').update({
+        approval_email_count: emailCount + 1,
+        last_approval_email_at: now.toISOString(),
+      }).eq('user_id', user.user_id)
+
+      results.approvalResend++
+    }
+
     // ─── 2. Re-engagement Nudges ──────────────────────────────────
     // Users inactive for 14+ days (no job posted, no message, no login update)
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()

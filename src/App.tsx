@@ -39,6 +39,8 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/earnings" element={<Earnings />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/job-history" element={<JobHistory />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <MobileNav />

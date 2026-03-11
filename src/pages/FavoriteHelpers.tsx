@@ -173,6 +173,13 @@ const FavoriteHelpers = () => {
               })}
             </div>
           )}
+
+          {/* Trusted Helper Circles */}
+          {currentUserId && (
+            <div className="pt-4 border-t border-border">
+              <TrustedHelperCircle userId={currentUserId} />
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, Search, ClipboardList, Shield } from "lucide-react";
+import { LogOut, User, Briefcase, Search, ClipboardList, Shield, Clock, XCircle } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -67,6 +67,49 @@ const Dashboard = () => {
 
   const role = profile?.role || user?.user_metadata?.role || "customer";
   const fullName = profile?.full_name || user?.user_metadata?.full_name || "User";
+  const approvalStatus = (profile as any)?.approval_status || "pending";
+
+  // Show pending/denied state for non-admin users
+  if (!isAdmin && approvalStatus !== "approved") {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="container mx-auto flex items-center justify-between h-16 px-4">
+            <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-12">
+          <div className="max-w-lg mx-auto text-center space-y-6">
+            {approvalStatus === "pending" ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Clock className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-foreground">Profile under review</h1>
+                <p className="text-muted-foreground">
+                  Thanks for signing up, {fullName}! Your profile is currently being reviewed by our admin team.
+                  You'll be able to access all features once your account is approved.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                  <XCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-foreground">Profile not approved</h1>
+                <p className="text-muted-foreground">
+                  Unfortunately, your profile was not approved. Please contact support if you believe this was a mistake.
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,9 +131,6 @@ const Dashboard = () => {
             <h1 className="text-3xl font-display font-bold text-foreground">
               Welcome, {fullName} 👋
             </h1>
-            <p className="text-muted-foreground mt-1">
-              You're signed in as a <span className="font-medium text-primary capitalize">{role}</span>.
-            </p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -100,32 +140,24 @@ const Dashboard = () => {
               desc="Update your info, skills, and availability."
               onClick={() => navigate("/profile")}
             />
-
-            {role === "customer" && (
-              <>
-                <DashCard
-                  icon={<Briefcase className="w-5 h-5 text-primary" />}
-                  title="Post a task"
-                  desc="Create a new job listing for helpers to apply to."
-                  onClick={() => navigate("/post-job")}
-                />
-                <DashCard
-                  icon={<ClipboardList className="w-5 h-5 text-primary" />}
-                  title="My posted tasks"
-                  desc={`You have ${myJobs.length} task${myJobs.length !== 1 ? "s" : ""} posted.`}
-                  onClick={() => navigate("/my-jobs")}
-                />
-              </>
-            )}
-
-            {role === "helper" && (
-              <DashCard
-                icon={<Search className="w-5 h-5 text-primary" />}
-                title="Browse tasks"
-                desc="Find available jobs in your area."
-                onClick={() => navigate("/browse-jobs")}
-              />
-            )}
+            <DashCard
+              icon={<Briefcase className="w-5 h-5 text-primary" />}
+              title="Post a task"
+              desc="Create a new job listing for helpers to apply to."
+              onClick={() => navigate("/post-job")}
+            />
+            <DashCard
+              icon={<ClipboardList className="w-5 h-5 text-primary" />}
+              title="My posted tasks"
+              desc={`You have ${myJobs.length} task${myJobs.length !== 1 ? "s" : ""} posted.`}
+              onClick={() => navigate("/my-jobs")}
+            />
+            <DashCard
+              icon={<Search className="w-5 h-5 text-primary" />}
+              title="Browse tasks"
+              desc="Find available jobs in your area."
+              onClick={() => navigate("/browse-jobs")}
+            />
 
             {isAdmin && (
               <DashCard

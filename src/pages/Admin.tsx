@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3 } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
+import AdminReviews from "@/components/admin/AdminReviews";
 
-type Tab = "analytics" | "users" | "jobs" | "settings";
+type Tab = "analytics" | "reviews" | "users" | "jobs" | "settings";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -26,6 +27,7 @@ const Admin = () => {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "analytics", label: "Analytics", icon: <BarChart3 className="w-4 h-4" /> },
+    { id: "reviews", label: "Reviews", icon: <ClipboardCheck className="w-4 h-4" /> },
     { id: "users", label: "Users", icon: <Users className="w-4 h-4" /> },
     { id: "jobs", label: "Jobs", icon: <Briefcase className="w-4 h-4" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
@@ -65,6 +67,7 @@ const Admin = () => {
         </div>
 
         {activeTab === "analytics" && <AdminAnalytics />}
+        {activeTab === "reviews" && <AdminReviews />}
         {activeTab === "users" && <AdminUsers />}
         {activeTab === "jobs" && <AdminJobs />}
         {activeTab === "settings" && <AdminSettings />}

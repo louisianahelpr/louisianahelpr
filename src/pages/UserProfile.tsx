@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -16,6 +16,7 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
   const [stats, setStats] = useState({ completedJobs: 0, avgRating: 0, reviewCount: 0 });
+  const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
 

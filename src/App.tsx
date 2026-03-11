@@ -14,6 +14,8 @@ import MyJobs from "./pages/MyJobs";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
 import Earnings from "./pages/Earnings";
+import Messages from "./pages/Messages";
+import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,8 +38,10 @@ const App = () => (
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/earnings" element={<Earnings />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <MobileNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

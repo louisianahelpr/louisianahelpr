@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, Search, ClipboardList, Shield, Clock, XCircle, DollarSign } from "lucide-react";
+import { LogOut, User, Briefcase, Search, ClipboardList, Shield, Clock, XCircle, DollarSign, MessageSquare } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -112,7 +112,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
@@ -163,6 +163,12 @@ const Dashboard = () => {
               title="My earnings"
               desc="View your completed jobs, payouts, and tips."
               onClick={() => navigate("/earnings")}
+            />
+            <DashCard
+              icon={<MessageSquare className="w-5 h-5 text-primary" />}
+              title="Messages"
+              desc="Chat with customers and helpers about tasks."
+              onClick={() => navigate("/messages")}
             />
 
             {isAdmin && (

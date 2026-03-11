@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X } from "lucide-react";
+import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag } from "lucide-react";
 import { toast } from "sonner";
+import ReportDialog from "@/components/ReportDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -33,6 +34,7 @@ const BrowseJobs = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [reportJobId, setReportJobId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -90,7 +92,7 @@ const BrowseJobs = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
@@ -199,9 +201,14 @@ const BrowseJobs = () => {
                         </span>
                       </div>
                     </div>
-                    <Button size="sm" onClick={() => handleApply(job.id)}>
-                      Apply
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button size="sm" onClick={() => handleApply(job.id)}>
+                        Apply
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}>
+                        <Flag className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -209,6 +216,15 @@ const BrowseJobs = () => {
           )}
         </div>
       </main>
+
+      {reportJobId && (
+        <ReportDialog
+          open={!!reportJobId}
+          onClose={() => setReportJobId(null)}
+          reportedType="job"
+          reportedId={reportJobId}
+        />
+      )}
     </div>
   );
 };

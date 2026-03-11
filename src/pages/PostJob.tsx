@@ -200,7 +200,11 @@ const PostJob = () => {
     }
 
     toast.info("Redirecting to payment…");
-    clearDraft(); // Clear saved draft on successful submission
+    clearDraft();
+
+    // Trigger instant job matching in background
+    supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } }).catch(() => {});
+
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
       body: { action: "escrow", jobId: jobData.id },
     });

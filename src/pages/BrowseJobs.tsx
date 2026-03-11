@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag } from "lucide-react";
+import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import type { Database } from "@/integrations/supabase/types";
@@ -35,6 +35,7 @@ const BrowseJobs = () => {
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [reportJobId, setReportJobId] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -78,7 +79,8 @@ const BrowseJobs = () => {
     setLocationFilter("");
   };
 
-  const hasFilters = searchQuery || selectedCategory || maxBudget || locationFilter;
+  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
+  const hasFilters = activeFilterCount > 0;
 
   const filteredJobs = jobs.filter((job) => {
     if (searchQuery) {
@@ -110,55 +112,123 @@ const BrowseJobs = () => {
           </div>
 
           {/* Search & Filters */}
-          <div className="space-y-3">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            {/* Search bar — always visible */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by title or description…"
+                placeholder="Search tasks…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-10"
               />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(categoryLabels).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    selectedCategory === key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {label}
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
                 </button>
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Filter by location…"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                />
-              </div>
-              <div className="w-32">
-                <Input
-                  type="number"
-                  placeholder="Max $"
-                  value={maxBudget}
-                  onChange={(e) => setMaxBudget(e.target.value)}
-                />
-              </div>
-              {hasFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="self-center">
-                  <X className="w-4 h-4 mr-1" /> Clear
-                </Button>
               )}
             </div>
+
+            {/* Toggle filters */}
+            <button
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+              <span className="flex-1" />
+              {filtersOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {/* Collapsible filter panel */}
+            {filtersOpen && (
+              <div className="space-y-4 pt-2 border-t border-border">
+                {/* Category */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Category</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(categoryLabels).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          selectedCategory === key
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Location & Budget row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Location</p>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Any location"
+                        value={locationFilter}
+                        onChange={(e) => setLocationFilter(e.target.value)}
+                        className="pl-9 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Max budget</p>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        placeholder="No limit"
+                        value={maxBudget}
+                        onChange={(e) => setMaxBudget(e.target.value)}
+                        className="pl-9 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Clear all */}
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                    <X className="w-4 h-4 mr-1" /> Clear all filters
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Active filter pills (shown when collapsed) */}
+            {!filtersOpen && hasFilters && (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedCategory && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    {categoryLabels[selectedCategory]}
+                    <button onClick={() => setSelectedCategory(null)}><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {locationFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    {locationFilter}
+                    <button onClick={() => setLocationFilter("")}><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {maxBudget && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    ≤ ${maxBudget}
+                    <button onClick={() => setMaxBudget("")}><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Results */}

@@ -173,6 +173,18 @@ const Signup = () => {
         })
         .eq("user_id", userId);
 
+      // 6. Process referral code if provided
+      if (referralCode.trim()) {
+        try {
+          await supabase.rpc("process_referral", {
+            p_referral_code: referralCode.trim().toUpperCase(),
+            p_new_user_id: userId,
+          });
+        } catch (refErr) {
+          console.log("Referral processing skipped:", refErr);
+        }
+      }
+
       toast.success("Account created! Your profile is pending admin review.");
       navigate("/dashboard");
     } catch (err: any) {

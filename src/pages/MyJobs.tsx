@@ -78,10 +78,21 @@ const MyJobs = () => {
   };
 
   const acceptApplication = async (app: Application) => {
-    await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    await supabase.from("jobs").update({ status: "in_progress", helper_id: app.helper_id }).eq("id", selectedJob!.id);
-    await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob!.id).neq("id", app.id);
-    toast.success("Helper accepted! Task is now in progress.");
+    setDeadlineDialogApp(app);
+  };
+
+  const confirmAcceptWithDeadline = async (deadlineHours: number) => {
+    if (!deadlineDialogApp || !selectedJob) return;
+    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
+    await supabase.from("jobs").update({
+      status: "in_progress",
+      helper_id: deadlineDialogApp.helper_id,
+      response_deadline: deadline,
+    } as any).eq("id", selectedJob.id);
+    await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob.id).neq("id", deadlineDialogApp.id);
+    toast.success(`Helper accepted! They have ${deadlineHours}h to confirm.`);
+    setDeadlineDialogApp(null);
     loadJobs();
     setSelectedJob(null);
     setApplications([]);

@@ -9,6 +9,7 @@ import {
   ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, LogOut,
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
+  User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -17,7 +18,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "profile" | "earnings" | "schedule" | "history" | "payment" | "legal";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "legal";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -26,14 +27,6 @@ const statusColors: Record<string, string> = {
   revision_requested: "bg-destructive/10 text-destructive",
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-destructive/10 text-destructive",
-};
-
-const scheduleStatusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary border-primary/20",
-  accepted: "bg-accent/20 text-accent-foreground border-accent/30",
-  in_progress: "bg-accent/20 text-accent-foreground border-accent/30",
-  completed: "bg-secondary text-secondary-foreground border-border",
-  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 type HistoryTab = "all" | "posted" | "worked";
@@ -45,7 +38,12 @@ const ProfilePage = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<Tab>("profile");
+  const [tab, setTab] = useState<Tab>("landing");
+
+  // Stats
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalEarned, setTotalEarned] = useState(0);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
 
   // Profile fields
   const [fullName, setFullName] = useState("");
@@ -79,11 +77,13 @@ const ProfilePage = () => {
       if (!session?.user) { navigate("/login"); return; }
       setUser(session.user);
       loadProfile(session.user.id);
+      loadStats(session.user.id);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) { navigate("/login"); return; }
       setUser(session.user);
       loadProfile(session.user.id);
+      loadStats(session.user.id);
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
@@ -100,6 +100,20 @@ const ProfilePage = () => {
       setHourlyRate(data.hourly_rate?.toString() || "");
     }
     setLoading(false);
+  };
+
+  const loadStats = async (userId: string) => {
+    const [jobsRes, reviewsRes] = await Promise.all([
+      supabase.from("jobs").select("budget, platform_fee_amount").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
+      supabase.from("reviews").select("rating").eq("reviewee_id", userId),
+    ]);
+    if (jobsRes.data) {
+      setCompletedCount(jobsRes.data.length);
+      setTotalEarned(jobsRes.data.reduce((s, j) => s + (j.budget - (j.platform_fee_amount || 0)), 0));
+    }
+    if (reviewsRes.data && reviewsRes.data.length > 0) {
+      setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
+    }
   };
 
   // Load tab data on demand
@@ -167,6 +181,7 @@ const ProfilePage = () => {
   }
 
   const role = profile?.role || "customer";
+  const initials = (profile?.full_name || user?.email || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
   // Earnings calculations
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
@@ -206,13 +221,13 @@ const ProfilePage = () => {
   };
   const historyJobs = getHistoryJobs();
 
-  const tabItems: { key: Tab; label: string }[] = [
-    { key: "profile", label: "Profile" },
-    { key: "earnings", label: "Earnings" },
-    { key: "schedule", label: "Schedule" },
-    { key: "history", label: "History" },
-    { key: "payment", label: "Payment" },
-    { key: "legal", label: "Legal" },
+  const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
+    { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
+    { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
+    { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "View upcoming jobs" },
+    { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
+    { key: "payment", label: "Payment & Security", icon: <CreditCard className="w-5 h-5" />, desc: "Account & payment settings" },
+    { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
   ];
 
   return (
@@ -220,31 +235,91 @@ const ProfilePage = () => {
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+            {tab !== "landing" ? (
+              <Button variant="ghost" size="icon" onClick={() => setTab("landing")}>
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            )}
             <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
+          {tab === "landing" && (
+            <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
+          )}
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-lg mx-auto space-y-4">
-          {/* Tabs */}
-          <div className="flex gap-1 bg-secondary/50 rounded-lg p-1 overflow-x-auto">
-            {tabItems.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex-1 px-2 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+
+          {/* LANDING VIEW */}
+          {tab === "landing" && (
+            <div className="space-y-5">
+              {/* Profile header card */}
+              <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
+                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
+                  {initials}
+                </div>
+                <div>
+                  <h1 className="text-xl font-display font-bold text-foreground">{profile?.full_name || "Set up your profile"}</h1>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{role}</span>
+                    {profile?.location && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
+                </div>
+              </div>
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground">{completedCount}</p>
+                  <p className="text-xs text-muted-foreground">Jobs Done</p>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground">${totalEarned.toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">Earned</p>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Star className="w-4 h-4 text-primary fill-primary" />
+                    <p className="text-2xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Rating</p>
+                </div>
+              </div>
+
+              {/* Vertical menu */}
+              <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                {menuItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setTab(item.key)}
+                    className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                    <ChevronRightIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                ))}
+              </div>
+
+              {/* Logout */}
+              <Button variant="outline" className="w-full" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              </Button>
+            </div>
+          )}
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
@@ -608,7 +683,6 @@ const ProfilePage = () => {
             <div className="space-y-6">
               <h1 className="text-2xl font-display font-bold text-foreground">Payment Settings</h1>
 
-              {/* Account security */}
               <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                 <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
                   <Lock className="w-4 h-4 text-primary" /> Account Security
@@ -656,7 +730,6 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* Payment info */}
               <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                 <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" /> Payment Methods
@@ -670,7 +743,6 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* Payment history summary */}
               <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-primary" /> Payment Summary

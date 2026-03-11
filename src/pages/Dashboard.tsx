@@ -41,6 +41,7 @@ const Dashboard = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
+  const [recommendedJobs, setRecommendedJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
 
   // Job detail dialog
   const [detailJob, setDetailJob] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean }) | null>(null);
@@ -107,6 +108,28 @@ const Dashboard = () => {
     } else {
       setAllJobs([]);
     }
+
+    // Build recommended jobs based on user skills + location
+    if (profileRes.data && openJobsRes.data) {
+      const userSkills = (profileRes.data.skills || "").toLowerCase().split(",").map((s: string) => s.trim()).filter(Boolean);
+      const userLoc = (profileRes.data.location || "").toLowerCase();
+      const enrichedJobs = allJobs.length > 0 ? allJobs : (openJobsRes.data || []).map(j => ({ ...j }));
+      
+      const scored = enrichedJobs
+        .filter(j => j.customer_id !== userId)
+        .map(j => {
+          let score = 0;
+          if (userLoc && j.location.toLowerCase().includes(userLoc)) score += 2;
+          if (userSkills.some(s => j.category.includes(s) || j.title.toLowerCase().includes(s) || j.description.toLowerCase().includes(s))) score += 3;
+          return { ...j, _score: score };
+        })
+        .filter(j => j._score > 0)
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 5);
+      
+      setRecommendedJobs(scored);
+    }
+
     setLoading(false);
   };
 
@@ -325,6 +348,20 @@ const Dashboard = () => {
                   View all {nearbyJobs.length} nearby jobs →
                 </button>
               )}
+              <div className="h-px bg-border" />
+            </div>
+          )}
+          {/* Recommended for You */}
+          {recommendedJobs.length > 0 && !hasFilters && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Recommended for You</h2>
+                <span className="text-xs text-muted-foreground">based on your skills</span>
+              </div>
+              <div className="space-y-2">
+                {recommendedJobs.slice(0, 3).map((job) => renderJobCard(job))}
+              </div>
               <div className="h-px bg-border" />
             </div>
           )}

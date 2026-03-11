@@ -20,6 +20,11 @@ import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
+import { ScopeAgreement } from "@/components/ScopeAgreement";
+import { AddonRequests } from "@/components/AddonRequests";
+import { JobConfirmation } from "@/components/JobConfirmation";
+import { JobMilestones } from "@/components/JobMilestones";
+import { JobCheckins } from "@/components/JobCheckins";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -462,6 +467,23 @@ const Activity = () => {
                               {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helper</span>}
                             </div>
                           )}
+                          {/* New features for posted jobs */}
+                          {(job.status === "in_progress" || job.status === "accepted") && user && (
+                            <div className="mt-3 space-y-3">
+                              <JobConfirmation
+                                jobId={job.id}
+                                isOwner={true}
+                                isHelper={false}
+                                posterConfirmedAt={(job as any).poster_confirmed_at}
+                                helperConfirmedAt={(job as any).helper_confirmed_at}
+                                dateNeeded={job.date_needed}
+                              />
+                              <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
+                              <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
+                              <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
+                              <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} />
+                            </div>
+                          )}
                           {job.status === "revision_requested" && (job as any).revision_note && (
                             <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
@@ -626,6 +648,24 @@ const Activity = () => {
                             {(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Poster confirmed</span>}
                             {!(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
                             {!(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for poster</span>}
+                          </div>
+                        )}
+
+                        {/* New features for helper */}
+                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "accepted") && user && (
+                          <div className="mt-3 space-y-3">
+                            <JobConfirmation
+                              jobId={app.job_id}
+                              isOwner={false}
+                              isHelper={true}
+                              posterConfirmedAt={(app.job as any)?.poster_confirmed_at}
+                              helperConfirmedAt={(app.job as any)?.helper_confirmed_at}
+                              dateNeeded={app.job?.date_needed || ""}
+                            />
+                            <ScopeAgreement jobId={app.job_id} isOwner={false} isHelper={true} />
+                            <AddonRequests jobId={app.job_id} isOwner={false} isHelper={true} userId={user.id} />
+                            <JobMilestones jobId={app.job_id} isOwner={false} isHelper={true} totalBudget={app.job?.budget || 0} />
+                            <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} />
                           </div>
                         )}
 

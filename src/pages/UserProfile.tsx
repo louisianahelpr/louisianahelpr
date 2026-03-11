@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import { HelperPortfolio } from "@/components/HelperPortfolio";
+import { RetainerAgreement } from "@/components/RetainerAgreement";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -240,6 +242,18 @@ const UserProfile = () => {
                 <p className="text-xs text-muted-foreground">Hourly rate</p>
               </div>
             </div>
+          )}
+
+          {/* Portfolio */}
+          {profile.role === "helper" && <HelperPortfolio helperId={userId!} />}
+
+          {/* Retainer */}
+          {!isOwnProfile && currentUserId && profile.role === "helper" && (
+            <RetainerAgreement
+              customerId={currentUserId}
+              helperId={userId!}
+              helperName={profile.full_name || "Helper"}
+            />
           )}
 
           {/* Reviews */}

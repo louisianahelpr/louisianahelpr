@@ -6,6 +6,11 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
+import { ScopeAgreement } from "@/components/ScopeAgreement";
+import { AddonRequests } from "@/components/AddonRequests";
+import { JobConfirmation } from "@/components/JobConfirmation";
+import { JobMilestones } from "@/components/JobMilestones";
+import { JobCheckins } from "@/components/JobCheckins";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -33,6 +38,8 @@ const MyJobs = () => {
   const [tipAmount, setTipAmount] = useState("");
   const [tipping, setTipping] = useState(false);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("tip") === "success") {
@@ -44,6 +51,7 @@ const MyJobs = () => {
   const loadJobs = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
+    setCurrentUserId(user.id);
     const { data } = await supabase
       .from("jobs")
       .select("*")
@@ -194,6 +202,34 @@ const MyJobs = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Expanded job details with new features */}
+                  {(job.status === "accepted" || job.status === "in_progress" || job.status === "completed") && (
+                    <div className="border-t border-border pt-3">
+                      <button
+                        onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                        className="text-xs text-primary font-medium hover:underline"
+                      >
+                        {expandedJobId === job.id ? "Hide details ▲" : "Show scope, milestones & more ▼"}
+                      </button>
+                      {expandedJobId === job.id && currentUserId && (
+                        <div className="mt-3 space-y-3">
+                          <JobConfirmation
+                            jobId={job.id}
+                            isOwner={true}
+                            isHelper={false}
+                            posterConfirmedAt={(job as any).poster_confirmed_at}
+                            helperConfirmedAt={(job as any).helper_confirmed_at}
+                            dateNeeded={job.date_needed}
+                          />
+                          <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
+                          <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={currentUserId} />
+                          <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
+                          <JobCheckins jobId={job.id} userId={currentUserId} isHelper={false} isOwner={true} jobStatus={job.status} />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {job.status === "completed" && job.payment_status === "released" && (
                     <div className="border-t border-border pt-3">

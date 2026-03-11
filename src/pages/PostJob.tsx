@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
+import { categoryPricing } from "@/lib/pricingGuide";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -324,6 +325,11 @@ const PostJob = () => {
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget ($)</Label>
                     <Input id="budget" type="number" step="1" min="5" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
+                    {category && categoryPricing[category] && (
+                      <p className="text-xs text-muted-foreground">
+                        💡 Suggested: <span className="font-medium text-primary">${categoryPricing[category].min}–${categoryPricing[category].max}</span> for {categoryPricing[category].label} jobs
+                      </p>
+                    )}
                   </div>
                 </div>
 

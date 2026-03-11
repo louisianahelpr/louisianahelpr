@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_requests: {
+        Row: {
+          additional_cost: number
+          approved_at: string | null
+          created_at: string | null
+          description: string
+          id: string
+          job_id: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          additional_cost?: number
+          approved_at?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          job_id: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          additional_cost?: number
+          approved_at?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          job_id?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           created_at: string
@@ -199,6 +240,123 @@ export type Database = {
         }
         Relationships: []
       }
+      job_checkins: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_id: string
+          latitude: number | null
+          longitude: number | null
+          note: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_id: string
+          latitude?: number | null
+          longitude?: number | null
+          note?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          note?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_checkins_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_milestones: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          job_id: string
+          payment_status: string | null
+          sort_order: number | null
+          status: string
+          title: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          job_id: string
+          payment_status?: string | null
+          sort_order?: number | null
+          status?: string
+          title: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          payment_status?: string | null
+          sort_order?: number | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_milestones_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_scope_items: {
+        Row: {
+          completed: boolean | null
+          created_at: string | null
+          description: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string | null
+          description: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_scope_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           boost_expires_at: string | null
@@ -214,6 +372,7 @@ export type Database = {
           description: string
           estimated_hours: number | null
           helper_completed_at: string | null
+          helper_confirmed_at: string | null
           helper_id: string | null
           id: string
           is_recurring: boolean | null
@@ -225,6 +384,7 @@ export type Database = {
           platform_fee_amount: number | null
           platform_fee_percent: number | null
           poster_completed_at: string | null
+          poster_confirmed_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
           recurrence_end_date: string | null
@@ -253,6 +413,7 @@ export type Database = {
           description: string
           estimated_hours?: number | null
           helper_completed_at?: string | null
+          helper_confirmed_at?: string | null
           helper_id?: string | null
           id?: string
           is_recurring?: boolean | null
@@ -264,6 +425,7 @@ export type Database = {
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
           poster_completed_at?: string | null
+          poster_confirmed_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
@@ -292,6 +454,7 @@ export type Database = {
           description?: string
           estimated_hours?: number | null
           helper_completed_at?: string | null
+          helper_confirmed_at?: string | null
           helper_id?: string | null
           id?: string
           is_recurring?: boolean | null
@@ -303,6 +466,7 @@ export type Database = {
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
           poster_completed_at?: string | null
+          poster_confirmed_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
@@ -600,6 +764,51 @@ export type Database = {
           reported_type?: string
           reporter_id?: string
           status?: string
+        }
+        Relationships: []
+      }
+      retainer_agreements: {
+        Row: {
+          budget_per_session: number
+          category: string
+          created_at: string | null
+          customer_id: string
+          description: string | null
+          discount_percent: number | null
+          frequency: string
+          helper_id: string
+          id: string
+          next_job_date: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          budget_per_session: number
+          category: string
+          created_at?: string | null
+          customer_id: string
+          description?: string | null
+          discount_percent?: number | null
+          frequency: string
+          helper_id: string
+          id?: string
+          next_job_date?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          budget_per_session?: number
+          category?: string
+          created_at?: string | null
+          customer_id?: string
+          description?: string | null
+          discount_percent?: number | null
+          frequency?: string
+          helper_id?: string
+          id?: string
+          next_job_date?: string | null
+          status?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

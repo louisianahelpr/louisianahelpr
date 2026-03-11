@@ -116,7 +116,7 @@ const MyJobs = () => {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Job completed! Helper receives $${data.helperPayout.toFixed(2)} (platform fee: $${data.platformFee.toFixed(2)})`);
+      toast.success(`Job completed! Helpr receives $${data.helperPayout.toFixed(2)} (platform fee: $${data.platformFee.toFixed(2)})`);
       loadJobs();
     } catch (err: any) {
       toast.error(err.message || "Failed to complete job");

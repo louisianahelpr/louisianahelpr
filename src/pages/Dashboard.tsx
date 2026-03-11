@@ -66,7 +66,7 @@ const Dashboard = () => {
   }
 
   const role = profile?.role || user?.user_metadata?.role || "customer";
-  const fullName = profile?.full_name || user?.user_metadata?.full_name || "User";
+  const firstName = (profile?.full_name || user?.user_metadata?.full_name || "User").split(" ")[0];
   const approvalStatus = (profile as any)?.approval_status || "pending";
 
   // Show pending/denied state for non-admin users

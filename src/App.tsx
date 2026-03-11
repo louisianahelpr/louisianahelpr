@@ -14,6 +14,8 @@ import MyJobs from "./pages/MyJobs";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
 import Earnings from "./pages/Earnings";
+import Messages from "./pages/Messages";
+import MobileNav from "./components/MobileNav";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

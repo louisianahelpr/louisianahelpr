@@ -428,7 +428,7 @@ const Activity = () => {
     // Poster reviewing helper
     if (!job.helper_id) return;
     const { data: helperProfile } = await supabase.from("profiles").select("full_name").eq("user_id", job.helper_id).single();
-    setReviewTarget({ id: job.helper_id, name: (helperProfile?.full_name || "Helper").split(" ")[0] });
+    setReviewTarget({ id: job.helper_id, name: (helperProfile?.full_name || "Helpr").split(" ")[0] });
     setReviewJob(job);
   };
 

@@ -211,6 +211,8 @@ const ProfilePage = () => {
     { key: "earnings", label: "Earnings" },
     { key: "schedule", label: "Schedule" },
     { key: "history", label: "History" },
+    { key: "payment", label: "Payment" },
+    { key: "legal", label: "Legal" },
   ];
 
   return (

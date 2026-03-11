@@ -41,7 +41,7 @@ export function GroupJobHelpers({
       setHelpers(
         (data as any[]).map((h: any) => ({
           ...h,
-          helperName: nameMap.get(h.helper_id) || "Helper",
+          helperName: nameMap.get(h.helper_id) || "Helpr",
         }))
       );
     } else {

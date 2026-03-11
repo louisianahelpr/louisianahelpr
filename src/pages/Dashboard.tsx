@@ -470,7 +470,7 @@ const Dashboard = () => {
               {/* Poster info with badges */}
               <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
                 <span className="text-sm text-muted-foreground">
-                  Posted by <span className="font-medium text-foreground">{detailJob.posterName}</span>
+                  Posted by <a href={`/user/${detailJob.customer_id}`} className="font-medium text-primary hover:underline">{detailJob.posterName}</a>
                 </span>
                 {detailJob.posterReviewCount !== undefined && detailJob.posterReviewCount > 0 && (
                   <span className="flex items-center gap-0.5 text-sm">

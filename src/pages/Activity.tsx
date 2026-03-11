@@ -533,6 +533,9 @@ const Activity = () => {
                                 <Star className="w-3.5 h-3.5 mr-1" /> Review
                               </Button>
                             )}
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
+                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Rebook
+                            </Button>
                           </div>
                         </div>
                       )}

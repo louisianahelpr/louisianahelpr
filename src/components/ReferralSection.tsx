@@ -88,7 +88,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     if (navigator.share) {
       navigator.share({
         title: "Join Helpr!",
-        text: `Sign up on Helpr with my referral code ${referralCode} and earn $5 credit when you post or complete your first job!`,
+        text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job and we both earn $5!`,
         url,
       }).catch(() => {});
     } else {

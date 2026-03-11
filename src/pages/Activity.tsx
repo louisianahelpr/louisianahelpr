@@ -205,6 +205,16 @@ const Activity = () => {
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
         toast.success(`Job completed! Payment released.`);
+        // Trigger completion prompts (review + tip)
+        const job = postedJobs.find(j => j.id === jobId) || appliedApps.find(a => a.job_id === jobId)?.job;
+        if (job && user) {
+          const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user.id);
+          const revieweeId = isHelper ? job.customer_id : (job.helper_id || "");
+          if (revieweeId) {
+            const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", revieweeId).single();
+            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: (prof?.full_name || "User").split(" ")[0] });
+          }
+        }
       } else {
         toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
       }

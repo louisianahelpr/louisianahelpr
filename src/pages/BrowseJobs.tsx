@@ -201,9 +201,14 @@ const BrowseJobs = () => {
                         </span>
                       </div>
                     </div>
-                    <Button size="sm" onClick={() => handleApply(job.id)}>
-                      Apply
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button size="sm" onClick={() => handleApply(job.id)}>
+                        Apply
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setReportJobId(job.id)}>
+                        <Flag className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -211,6 +216,15 @@ const BrowseJobs = () => {
           )}
         </div>
       </main>
+
+      {reportJobId && (
+        <ReportDialog
+          open={!!reportJobId}
+          onClose={() => setReportJobId(null)}
+          reportedType="job"
+          reportedId={reportJobId}
+        />
+      )}
     </div>
   );
 };

@@ -38,8 +38,10 @@ const App = () => (
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/earnings" element={<Earnings />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <MobileNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

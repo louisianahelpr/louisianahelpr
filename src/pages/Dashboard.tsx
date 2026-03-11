@@ -164,6 +164,12 @@ const Dashboard = () => {
               desc="View your completed jobs, payouts, and tips."
               onClick={() => navigate("/earnings")}
             />
+            <DashCard
+              icon={<MessageSquare className="w-5 h-5 text-primary" />}
+              title="Messages"
+              desc="Chat with customers and helpers about tasks."
+              onClick={() => navigate("/messages")}
+            />
 
             {isAdmin && (
               <DashCard

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag } from "lucide-react";
+import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import type { Database } from "@/integrations/supabase/types";

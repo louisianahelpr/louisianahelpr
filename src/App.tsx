@@ -43,6 +43,7 @@ const App = () => (
           <Route path="/activity" element={<Activity />} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/schedule" element={<Navigate to="/profile" replace />} />
           <Route path="/job-history" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<NotFound />} />

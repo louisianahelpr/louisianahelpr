@@ -74,44 +74,42 @@ serve(async (req) => {
           .eq("user_id", job.helper_id)
           .single();
 
-        if (helperProfile?.stripe_account_id) {
-          try {
-            const transferParams: any = {
-              amount: Math.round(helperPayout * 100),
-              currency: "usd",
-              destination: helperProfile.stripe_account_id,
-              metadata: { job_id: job.id, helper_id: job.helper_id, auto_release: "true" },
-            };
+        if (!helperProfile?.stripe_account_id) {
+          console.error(`Helper ${job.helper_id} has no Stripe Connect. Skipping auto-release for job ${job.id}.`);
+          // Notify helper they need to set up their account
+          await supabaseAdmin.from("notifications").insert({
+            user_id: job.helper_id,
+            title: "⚠️ Payout account required",
+            message: `Your payment of $${helperPayout.toFixed(2)} for "${job.title}" is waiting. Please set up your payout account in your profile to receive funds.`,
+            type: "warning", link: "/profile?tab=payment",
+          });
+          continue; // Skip this job — don't mark complete without transfer
+        }
 
-            if (paymentIntentId) {
-              try {
-                const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-                if (pi.latest_charge) {
-                  transferParams.source_transaction = pi.latest_charge;
-                }
-              } catch (e) {
-                console.warn("Could not link charge:", e);
+        try {
+          const transferParams: any = {
+            amount: Math.round(helperPayout * 100),
+            currency: "usd",
+            destination: helperProfile.stripe_account_id,
+            metadata: { job_id: job.id, helper_id: job.helper_id, auto_release: "true" },
+          };
+
+          if (paymentIntentId) {
+            try {
+              const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+              if (pi.latest_charge) {
+                transferParams.source_transaction = pi.latest_charge;
               }
+            } catch (e) {
+              console.warn("Could not link charge:", e);
             }
+          }
 
-            await stripe.transfers.create(transferParams);
-            console.log(`Auto-transferred $${helperPayout.toFixed(2)} to helper ${job.helper_id}`);
-          } catch (e) {
-            console.error(`Auto-transfer failed for job ${job.id}:`, e);
-          }
-        } else {
-          console.warn(`Helper ${job.helper_id} has no Stripe Connect. Manual payout needed.`);
-          const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-          if (adminRoles) {
-            for (const admin of adminRoles) {
-              await supabaseAdmin.from("notifications").insert({
-                user_id: admin.user_id,
-                title: "⚠️ Manual payout needed",
-                message: `Auto-released job "${job.title}" but helper has no Stripe Connect. $${helperPayout.toFixed(2)} needs manual payout.`,
-                type: "warning", link: "/admin",
-              });
-            }
-          }
+          await stripe.transfers.create(transferParams);
+          console.log(`Auto-transferred $${helperPayout.toFixed(2)} to helper ${job.helper_id}`);
+        } catch (e) {
+          console.error(`Auto-transfer failed for job ${job.id}:`, e);
+          continue; // Don't mark complete if transfer failed
         }
       }
 

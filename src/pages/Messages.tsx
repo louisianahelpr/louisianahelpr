@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Flag } from "lucide-react";
+import { ArrowLeft, Send, Flag, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
+import { scanMessage } from "@/lib/messageScanner";
 
 type Message = {
   id: string;
@@ -36,6 +37,7 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
+  const [warningShown, setWarningShown] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,7 +60,6 @@ const Messages = () => {
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 
-    // Group by job + other user
     const convoMap = new Map<string, { otherUserId: string; jobId: string; messages: Message[] }>();
     for (const m of msgs) {
       const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
@@ -67,10 +68,9 @@ const Messages = () => {
       convoMap.get(key)!.messages.push(m);
     }
 
-    // Fetch profiles and job titles
     const otherIds = [...new Set([...convoMap.values()].map((c) => c.otherUserId))];
     const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))];
-    
+
     const [profilesRes, jobsRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name").in("user_id", otherIds),
       supabase.from("jobs").select("id, title").in("id", jobIds),
@@ -105,7 +105,6 @@ const Messages = () => {
 
     if (data) {
       setMessages(data);
-      // Mark as read
       const unreadIds = data.filter((m) => m.receiver_id === userId && !m.read).map((m) => m.id);
       if (unreadIds.length > 0) {
         await supabase.from("messages").update({ read: true }).in("id", unreadIds);
@@ -137,8 +136,96 @@ const Messages = () => {
     return () => { supabase.removeChannel(channel); };
   }, [userId, activeConvo]);
 
+  const logViolation = async (violationDescription: string) => {
+    if (!userId) return;
+    // Check if user already has a warning for off-platform
+    const { data: existing } = await supabase
+      .from("user_violations" as any)
+      .select("id")
+      .eq("user_id", userId)
+      .eq("violation_type", "off_platform");
+
+    const priorCount = (existing as any[] | null)?.length || 0;
+
+    if (priorCount >= 1) {
+      // 2nd offense: permanent ban
+      await (supabase.from("user_bans" as any) as any).insert({
+        user_id: userId,
+        ban_type: "permanent",
+        reason: "Repeated off-platform activity: " + violationDescription,
+        banned_by: userId, // system-issued
+      });
+      await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
+      await (supabase.from("user_violations" as any) as any).insert({
+        user_id: userId,
+        violation_type: "off_platform",
+        description: violationDescription,
+        action_taken: "permanent_ban",
+      });
+      // Notify admins
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRoles) {
+        for (const admin of adminRoles) {
+          await supabase.from("notifications").insert({
+            user_id: admin.user_id,
+            title: "⛔ User permanently banned",
+            message: `A user was auto-banned for repeated off-platform activity: ${violationDescription}`,
+            type: "warning",
+            link: "/admin",
+          });
+        }
+      }
+      toast.error("Your account has been banned for violating platform rules.");
+    } else {
+      // 1st offense: warning
+      await (supabase.from("user_violations" as any) as any).insert({
+        user_id: userId,
+        violation_type: "off_platform",
+        description: violationDescription,
+        action_taken: "warning",
+      });
+      await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
+      // Notify admins
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRoles) {
+        for (const admin of adminRoles) {
+          await supabase.from("notifications").insert({
+            user_id: admin.user_id,
+            title: "⚠️ Off-platform attempt detected",
+            message: `A user attempted off-platform activity: ${violationDescription}`,
+            type: "warning",
+            link: "/admin",
+          });
+        }
+      }
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !activeConvo || !userId) return;
+
+    // Scan for off-platform activity
+    const violations = scanMessage(newMessage);
+    if (violations.length > 0) {
+      const violationDesc = violations.map((v) => v.label).join(", ");
+
+      if (!warningShown) {
+        // Show warning first
+        setWarningShown(true);
+        toast.error(
+          "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
+          { duration: 8000 }
+        );
+        // Log the violation
+        await logViolation(violationDesc);
+        return; // Block the message
+      } else {
+        // Already warned, log and ban
+        await logViolation(violationDesc);
+        return;
+      }
+    }
+
     const { error } = await supabase.from("messages").insert({
       job_id: activeConvo.jobId,
       sender_id: userId,
@@ -215,6 +302,14 @@ const Messages = () => {
             </div>
           ) : (
             <div className="flex flex-col" style={{ height: "calc(100vh - 10rem)" }}>
+              {/* Community rules banner */}
+              <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 mb-3 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
+                <p className="text-xs text-accent-foreground">
+                  Keep all communication and payments on Helpr. Sharing contact info or taking business off-platform will result in a warning, then a permanent ban.
+                </p>
+              </div>
+
               <div className="flex-1 overflow-y-auto space-y-3 py-4">
                 {messages.map((m) => (
                   <div key={m.id} className={`flex ${m.sender_id === userId ? "justify-end" : "justify-start"}`}>

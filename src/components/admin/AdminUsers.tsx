@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Eye, Star, FileText } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-type Tab = "pending" | "approved" | "denied" | "all";
+type Tab = "pending" | "approved" | "denied" | "banned" | "all";
 
 const AdminUsers = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -20,11 +22,20 @@ const AdminUsers = () => {
   // Profile detail view
   const [viewProfile, setViewProfile] = useState<Profile | null>(null);
   const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string }[]>([]);
+  const [profileViolations, setProfileViolations] = useState<any[]>([]);
+  const [profileBans, setProfileBans] = useState<any[]>([]);
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
   const [denyReason, setDenyReason] = useState("");
   const [denying, setDenying] = useState(false);
+
+  // Ban dialog
+  const [banProfile, setBanProfile] = useState<Profile | null>(null);
+  const [banType, setBanType] = useState<"warning" | "temporary" | "permanent">("warning");
+  const [banReason, setBanReason] = useState("");
+  const [banDuration, setBanDuration] = useState("7"); // days
+  const [banning, setBanning] = useState(false);
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -41,45 +52,36 @@ const AdminUsers = () => {
 
   const openProfile = async (profile: Profile) => {
     setViewProfile(profile);
-    // Load reviews for this user
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("rating, feedback, reviewer_id")
-      .eq("reviewee_id", profile.user_id);
-    if (reviews && reviews.length > 0) {
-      const reviewerIds = [...new Set(reviews.map((r) => r.reviewer_id))];
-      const { data: reviewerProfiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", reviewerIds);
+    const [reviewsRes, violationsRes, bansRes] = await Promise.all([
+      supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
+      (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+    ]);
+
+    if (reviewsRes.data && reviewsRes.data.length > 0) {
+      const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
+      const { data: reviewerProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds);
       const nameMap = new Map(reviewerProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
-      setProfileReviews(
-        reviews.map((r) => ({
-          rating: r.rating,
-          feedback: r.feedback,
-          reviewer_name: nameMap.get(r.reviewer_id) || "User",
-        }))
-      );
+      setProfileReviews(reviewsRes.data.map((r: any) => ({
+        rating: r.rating, feedback: r.feedback, reviewer_name: nameMap.get(r.reviewer_id) || "User",
+      })));
     } else {
       setProfileReviews([]);
     }
+
+    setProfileViolations(violationsRes.data || []);
+    setProfileBans(bansRes.data || []);
   };
 
   const approveUser = async (profile: Profile) => {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ approval_status: "approved" })
-      .eq("id", profile.id);
+    const { error } = await supabase.from("profiles").update({ approval_status: "approved" }).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
       toast.success(`${profile.full_name || "User"} approved!`);
-      // Notify user
       await supabase.from("notifications").insert({
-        user_id: profile.user_id,
-        title: "Account approved!",
+        user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",
-        type: "success",
-        link: "/dashboard",
+        type: "success", link: "/dashboard",
       });
       loadProfiles();
       setViewProfile(null);
@@ -89,22 +91,17 @@ const AdminUsers = () => {
   const denyUser = async () => {
     if (!denyProfile) return;
     setDenying(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ approval_status: "denied" })
-      .eq("id", denyProfile.id);
+    const { error } = await supabase.from("profiles").update({ approval_status: "denied" }).eq("id", denyProfile.id);
     if (error) {
       toast.error(error.message);
     } else {
       toast.success(`${denyProfile.full_name || "User"} denied.`);
       await supabase.from("notifications").insert({
-        user_id: denyProfile.user_id,
-        title: "Account not approved",
+        user_id: denyProfile.user_id, title: "Account not approved",
         message: denyReason.trim()
           ? `Your account was not approved. Reason: ${denyReason.trim()}`
           : "Your account was not approved. Please contact support for details.",
-        type: "warning",
-        link: "/profile",
+        type: "warning", link: "/profile",
       });
       loadProfiles();
       setDenyProfile(null);
@@ -114,18 +111,118 @@ const AdminUsers = () => {
     setDenying(false);
   };
 
+  const handleBanAction = async () => {
+    if (!banProfile) return;
+    setBanning(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setBanning(false); return; }
+
+    try {
+      if (banType === "warning") {
+        // Issue warning
+        await (supabase.from("user_violations" as any) as any).insert({
+          user_id: banProfile.user_id,
+          violation_type: "admin_warning",
+          description: banReason.trim(),
+          action_taken: "warning",
+          reported_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", banProfile.user_id);
+        await supabase.from("notifications").insert({
+          user_id: banProfile.user_id, title: "⚠️ Warning from Helpr",
+          message: banReason.trim() || "You have received a warning for violating platform rules. Another violation may result in a ban.",
+          type: "warning", link: "/profile",
+        });
+        toast.success("Warning issued.");
+      } else if (banType === "temporary") {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(banDuration));
+        await (supabase.from("user_bans" as any) as any).insert({
+          user_id: banProfile.user_id,
+          ban_type: "temporary",
+          reason: banReason.trim(),
+          banned_by: user.id,
+          expires_at: expiresAt.toISOString(),
+        });
+        await (supabase.from("user_violations" as any) as any).insert({
+          user_id: banProfile.user_id,
+          violation_type: "admin_action",
+          description: banReason.trim(),
+          action_taken: "temp_ban",
+          reported_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", banProfile.user_id);
+        await supabase.from("notifications").insert({
+          user_id: banProfile.user_id, title: "🚫 Temporary Ban",
+          message: `Your account has been temporarily banned for ${banDuration} days. Reason: ${banReason.trim() || "Platform rule violation."}`,
+          type: "warning", link: "/profile",
+        });
+        toast.success(`User temporarily banned for ${banDuration} days.`);
+      } else {
+        await (supabase.from("user_bans" as any) as any).insert({
+          user_id: banProfile.user_id,
+          ban_type: "permanent",
+          reason: banReason.trim(),
+          banned_by: user.id,
+        });
+        await (supabase.from("user_violations" as any) as any).insert({
+          user_id: banProfile.user_id,
+          violation_type: "admin_action",
+          description: banReason.trim(),
+          action_taken: "permanent_ban",
+          reported_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", banProfile.user_id);
+        await supabase.from("notifications").insert({
+          user_id: banProfile.user_id, title: "⛔ Account Permanently Banned",
+          message: `Your account has been permanently banned. Reason: ${banReason.trim() || "Severe platform rule violation."}`,
+          type: "warning", link: "/profile",
+        });
+        toast.success("User permanently banned.");
+      }
+
+      loadProfiles();
+      setBanProfile(null);
+      setBanReason("");
+      setViewProfile(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to take action");
+    } finally {
+      setBanning(false);
+    }
+  };
+
+  const unbanUser = async (profile: Profile) => {
+    await (supabase.from("user_bans" as any) as any).update({ is_active: false }).eq("user_id", profile.user_id).eq("is_active", true);
+    await supabase.from("profiles").update({ ban_status: "active" } as any).eq("user_id", profile.user_id);
+    await supabase.from("notifications").insert({
+      user_id: profile.user_id, title: "✅ Ban lifted",
+      message: "Your account ban has been lifted. Please follow community guidelines going forward.",
+      type: "success", link: "/dashboard",
+    });
+    toast.success("User unbanned.");
+    loadProfiles();
+    setViewProfile(null);
+  };
+
   const filtered = profiles.filter((p) => {
     if (tab === "pending") return p.approval_status === "pending";
-    if (tab === "approved") return p.approval_status === "approved";
+    if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
     if (tab === "denied") return p.approval_status === "denied";
+    if (tab === "banned") return ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
     return true;
   });
 
   const pendingCount = profiles.filter((p) => p.approval_status === "pending").length;
+  const bannedCount = profiles.filter((p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")).length;
 
-  const statusBadge = (status: string) => {
-    if (status === "approved") return <Badge className="bg-primary/10 text-primary text-xs">Approved</Badge>;
-    if (status === "denied") return <Badge className="bg-destructive/10 text-destructive text-xs">Denied</Badge>;
+  const statusBadge = (profile: Profile) => {
+    const banStatus = (profile as any).ban_status || "active";
+    if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Permanently Banned</Badge>;
+    if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Temp Banned</Badge>;
+    if (banStatus === "warned") return <Badge className="bg-accent/20 text-accent-foreground text-xs">Warned</Badge>;
+    if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-xs">Approved</Badge>;
+    if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-xs">Denied</Badge>;
     return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending</Badge>;
   };
 
@@ -133,10 +230,13 @@ const AdminUsers = () => {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "pending", label: "Pending", count: pendingCount },
-    { key: "approved", label: "Approved" },
+    { key: "approved", label: "Active" },
+    { key: "banned", label: "Banned", count: bannedCount },
     { key: "denied", label: "Denied" },
     { key: "all", label: "All" },
   ];
+
+  const viewBanStatus = (viewProfile as any)?.ban_status || "active";
 
   return (
     <div className="space-y-6">
@@ -151,16 +251,12 @@ const AdminUsers = () => {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === t.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span className="ml-1.5 text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">
-                {t.count}
-              </span>
+              <span className="ml-1.5 text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{t.count}</span>
             )}
           </button>
         ))}
@@ -176,7 +272,7 @@ const AdminUsers = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="font-semibold text-foreground">{p.full_name || "—"}</p>
-                    {statusBadge(p.approval_status)}
+                    {statusBadge(p)}
                     <Badge variant="secondary" className="capitalize text-xs">{p.role}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -189,18 +285,16 @@ const AdminUsers = () => {
                 <div className="flex gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   {p.approval_status === "pending" && (
                     <>
-                      <Button size="sm" onClick={() => approveUser(p)}>
-                        <CheckCircle2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                        onClick={() => { setDenyProfile(p); setDenyReason(""); }}
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </Button>
+                      <Button size="sm" onClick={() => approveUser(p)}><CheckCircle2 className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                        onClick={() => { setDenyProfile(p); setDenyReason(""); }}><XCircle className="w-4 h-4" /></Button>
                     </>
+                  )}
+                  {p.approval_status === "approved" && (
+                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
+                      <ShieldAlert className="w-4 h-4" />
+                    </Button>
                   )}
                 </div>
               </div>
@@ -224,7 +318,7 @@ const AdminUsers = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Status</p>
-                  {statusBadge(viewProfile.approval_status)}
+                  {statusBadge(viewProfile)}
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Location</p>
@@ -263,22 +357,14 @@ const AdminUsers = () => {
               {viewProfile.id_document_url && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1"><FileText className="w-3 h-3" /> ID Document</p>
-                  <a
-                    href={viewProfile.id_document_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary underline"
-                  >
-                    View uploaded document
-                  </a>
+                  <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">View uploaded document</a>
                 </div>
               )}
 
-              {/* Portfolio & Documents */}
               {((viewProfile as any).portfolio_urls as string[] || []).length > 0 && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
-                    <FileText className="w-3 h-3" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[]).length})
+                    <FileText className="w-3 h-3" /> Portfolio ({((viewProfile as any).portfolio_urls as string[]).length})
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
@@ -295,6 +381,33 @@ const AdminUsers = () => {
                         </a>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* Violations History */}
+              {profileViolations.length > 0 && (
+                <div>
+                  <p className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Violations ({profileViolations.length})
+                  </p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {profileViolations.map((v: any) => (
+                      <div key={v.id} className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
+                            v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive" :
+                            "bg-accent/20 text-accent-foreground"
+                          }`}>
+                            {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize">{v.violation_type?.replace(/_/g, " ")}</span>
+                          <span className="text-xs text-muted-foreground ml-auto">{new Date(v.created_at).toLocaleDateString()}</span>
+                        </div>
+                        {v.description && <p className="text-xs text-foreground">{v.description}</p>}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -326,20 +439,30 @@ const AdminUsers = () => {
               </div>
 
               {/* Action buttons */}
-              {viewProfile.approval_status === "pending" && (
-                <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button className="flex-1" onClick={() => approveUser(viewProfile)}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
+              <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
+                {viewProfile.approval_status === "pending" && (
+                  <>
+                    <Button className="flex-1" onClick={() => approveUser(viewProfile)}>
+                      <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
+                    </Button>
+                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
+                      <XCircle className="w-4 h-4 mr-1" /> Deny
+                    </Button>
+                  </>
+                )}
+                {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
+                  <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                    <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}
-                  >
-                    <XCircle className="w-4 h-4 mr-1" /> Deny
+                )}
+                {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
+                  <Button variant="outline" className="flex-1" onClick={() => unbanUser(viewProfile)}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
@@ -352,24 +475,84 @@ const AdminUsers = () => {
             <DialogTitle className="font-display">Deny {denyProfile?.full_name || "User"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Provide a reason for denying this application. The user will be notified.
-            </p>
-            <Textarea
-              value={denyReason}
-              onChange={(e) => setDenyReason(e.target.value)}
-              placeholder="Reason for denial (optional)…"
-              rows={3}
-            />
+            <p className="text-sm text-muted-foreground">Provide a reason for denying this application.</p>
+            <Textarea value={denyReason} onChange={(e) => setDenyReason(e.target.value)} placeholder="Reason for denial (optional)…" rows={3} />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDenyProfile(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={denyUser} disabled={denying}>{denying ? "Denying…" : "Deny User"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ban / Warning Dialog */}
+      <Dialog open={!!banProfile} onOpenChange={() => setBanProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-destructive" /> Take Action: {banProfile?.full_name || "User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { key: "warning", label: "Warning", icon: <AlertTriangle className="w-4 h-4" />, color: "border-accent/40 bg-accent/10" },
+                  { key: "temporary", label: "Temp Ban", icon: <Clock className="w-4 h-4" />, color: "border-destructive/40 bg-destructive/10" },
+                  { key: "permanent", label: "Perm Ban", icon: <Ban className="w-4 h-4" />, color: "border-destructive/60 bg-destructive/20" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setBanType(opt.key)}
+                    className={`p-3 rounded-xl border text-center space-y-1 transition-colors ${
+                      banType === opt.key ? opt.color : "border-border bg-card hover:bg-secondary/30"
+                    }`}
+                  >
+                    <div className="flex justify-center">{opt.icon}</div>
+                    <p className="text-xs font-medium">{opt.label}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {banType === "temporary" && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Duration (days)</p>
+                <Select value={banDuration} onValueChange={setBanDuration}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 day</SelectItem>
+                    <SelectItem value="3">3 days</SelectItem>
+                    <SelectItem value="7">7 days</SelectItem>
+                    <SelectItem value="14">14 days</SelectItem>
+                    <SelectItem value="30">30 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
+              <Textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Describe the reason for this action…" rows={3} />
+            </div>
+
+            {banType === "permanent" && (
+              <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> This action is severe. The user will lose access permanently.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBanProfile(null)}>Cancel</Button>
             <Button
-              variant="destructive"
-              onClick={denyUser}
-              disabled={denying}
+              variant={banType === "warning" ? "default" : "destructive"}
+              onClick={handleBanAction}
+              disabled={banning || !banReason.trim()}
             >
-              {denying ? "Denying…" : "Deny User"}
+              {banning ? "Processing…" : banType === "warning" ? "Issue Warning" : banType === "temporary" ? `Ban for ${banDuration} days` : "Permanently Ban"}
             </Button>
           </DialogFooter>
         </DialogContent>

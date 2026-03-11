@@ -12,7 +12,7 @@ type DrillDown = "users" | "jobs" | "revenue" | "fees" | null;
 
 const AdminAnalytics = () => {
   const [stats, setStats] = useState({
-    totalUsers: 0, totalCustomers: 0, totalHelpers: 0,
+    totalUsers: 0,
     totalJobs: 0, openJobs: 0, completedJobs: 0, inProgressJobs: 0, cancelledJobs: 0,
     totalRevenue: 0, totalFees: 0,
   });

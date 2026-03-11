@@ -79,7 +79,7 @@ const HelperSpotlightSection = () => {
         <div className="flex items-center justify-center gap-2 mb-4">
           <Award className="w-6 h-6 text-primary" />
           <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground">
-            Helper Spotlight
+            Helpr Spotlight
           </h2>
         </div>
         <p className="text-muted-foreground max-w-md mx-auto mb-12">

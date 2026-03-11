@@ -67,6 +67,49 @@ const Dashboard = () => {
 
   const role = profile?.role || user?.user_metadata?.role || "customer";
   const fullName = profile?.full_name || user?.user_metadata?.full_name || "User";
+  const approvalStatus = (profile as any)?.approval_status || "pending";
+
+  // Show pending/denied state for non-admin users
+  if (!isAdmin && approvalStatus !== "approved") {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="container mx-auto flex items-center justify-between h-16 px-4">
+            <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-12">
+          <div className="max-w-lg mx-auto text-center space-y-6">
+            {approvalStatus === "pending" ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Clock className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-foreground">Profile under review</h1>
+                <p className="text-muted-foreground">
+                  Thanks for signing up, {fullName}! Your profile is currently being reviewed by our admin team.
+                  You'll be able to access all features once your account is approved.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                  <XCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-foreground">Profile not approved</h1>
+                <p className="text-muted-foreground">
+                  Unfortunately, your profile was not approved. Please contact support if you believe this was a mistake.
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

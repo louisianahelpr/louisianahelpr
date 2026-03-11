@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { ReviewForm } from "@/components/ReviewPanel";
+import NotificationPanel from "@/components/NotificationPanel";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 

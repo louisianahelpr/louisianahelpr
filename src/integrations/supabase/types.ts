@@ -734,6 +734,7 @@ export type Database = {
           ban_status: string | null
           bio: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           hourly_rate: number | null
           id: string
@@ -752,6 +753,7 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
@@ -770,6 +772,7 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           hourly_rate?: number | null
           id?: string

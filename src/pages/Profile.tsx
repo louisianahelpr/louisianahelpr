@@ -273,6 +273,9 @@ const ProfilePage = () => {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
+                  {profile?.created_at && (
+                    <p className="text-xs text-muted-foreground mt-0.5">Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                  )}
                 </div>
               </div>
 

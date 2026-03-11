@@ -310,6 +310,64 @@ const Activity = () => {
     setReviewJob(job);
   };
 
+  const handleNoShow = async (jobId: string) => {
+    if (!user) return;
+    setReportingNoShow(true);
+    try {
+      const job = postedJobs.find((j) => j.id === jobId);
+      if (!job?.helper_id) return;
+
+      const { data: existing } = await (supabase.from("user_violations" as any) as any)
+        .select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
+      const priorCount = (existing as any[] | null)?.length || 0;
+
+      await (supabase.from("user_violations" as any) as any).insert({
+        user_id: job.helper_id, violation_type: "no_show",
+        description: `No-show for job: ${job.title}`, job_id: jobId,
+        reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning",
+      });
+
+      if (priorCount >= 1) {
+        await (supabase.from("user_bans" as any) as any).insert({
+          user_id: job.helper_id, ban_type: "permanent",
+          reason: "Repeated no-show violations", banned_by: user.id,
+        });
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", job.helper_id);
+      } else {
+        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", job.helper_id);
+      }
+
+      await supabase.from("notifications").insert({
+        user_id: job.helper_id,
+        title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning",
+        message: priorCount >= 1
+          ? "Your account has been permanently banned for repeated no-shows."
+          : `You received a no-show warning for "${job.title}". Another no-show will result in a permanent ban.`,
+        type: "warning", link: "/profile",
+      });
+
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRoles) {
+        for (const admin of adminRoles) {
+          await supabase.from("notifications").insert({
+            user_id: admin.user_id, title: "🚫 No-show reported",
+            message: `Helper no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
+            type: "warning", link: "/admin",
+          });
+        }
+      }
+
+      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+      toast.success("No-show reported. Job reopened so you can pick another applicant.");
+      loadData(user.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to report no-show");
+    } finally {
+      setReportingNoShow(false);
+      setNoShowJobId(null);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
   }

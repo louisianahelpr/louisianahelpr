@@ -185,7 +185,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <div key={c.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  {c.reason === "referrer_bonus" ? "Referral bonus" : "Signup bonus"}
+                  {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(c.created_at).toLocaleDateString()}

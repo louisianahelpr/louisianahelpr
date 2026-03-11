@@ -251,7 +251,7 @@ const Signup = () => {
               />
               {referralCode && (
                 <p className="text-xs text-primary flex items-center gap-1">
-                  <Gift className="w-3 h-3" /> You'll get $5 credit when you sign up!
+                  <Gift className="w-3 h-3" /> You'll earn $5 credit when you post or complete your first job!
                 </p>
               )}
             </div>

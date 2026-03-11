@@ -146,11 +146,9 @@ const AdminAnalytics = () => {
 
 // --- Drill-down: Users ---
 const UsersDrillDown = ({ users }: { users: Profile[] }) => {
-  const [roleFilter, setRoleFilter] = useState<"all" | "customer" | "helper">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "denied">("all");
 
   const filtered = users
-    .filter((u) => roleFilter === "all" || u.role === roleFilter)
     .filter((u) => statusFilter === "all" || u.approval_status === statusFilter);
 
   const statusColor = (status: string) => {
@@ -163,22 +161,10 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
 
   return (
     <div className="space-y-3">
-      {/* Role filter */}
-      <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-        {(["all", "customer", "helper"] as const).map((f) => (
-          <button key={f} onClick={() => setRoleFilter(f)}
-            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${roleFilter === f ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {f} {f === "all" ? `(${users.length})` : `(${users.filter(u => u.role === f).length})`}
-          </button>
-        ))}
-      </div>
-
       {/* Approval status filter */}
       <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
         {statusOptions.map((s) => {
-          const count = users
-            .filter((u) => roleFilter === "all" || u.role === roleFilter)
-            .filter((u) => s === "all" || u.approval_status === s).length;
+          const count = users.filter((u) => s === "all" || u.approval_status === s).length;
           return (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>

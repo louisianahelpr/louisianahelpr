@@ -66,57 +66,12 @@ serve(async (req) => {
         }
       }
 
-      // Transfer to helper's connected account
-      const helperPayout = job.budget - (job.platform_fee_amount || 0);
-      if (job.helper_id && helperPayout > 0) {
-        const { data: helperProfile } = await supabaseAdmin
-          .from("profiles")
-          .select("stripe_account_id")
-          .eq("user_id", job.helper_id)
-          .single();
-
-        if (!helperProfile?.stripe_account_id) {
-          console.error(`Helper ${job.helper_id} has no Stripe Connect. Skipping auto-release for job ${job.id}.`);
-          // Notify helper they need to set up their account
-          await supabaseAdmin.from("notifications").insert({
-            user_id: job.helper_id,
-            title: "⚠️ Payout account required",
-            message: `Your payment of $${helperPayout.toFixed(2)} for "${job.title}" is waiting. Please set up your payout account in your profile to receive funds.`,
-            type: "warning", link: "/profile?tab=payment",
-          });
-          continue; // Skip this job — don't mark complete without transfer
-        }
-
-        try {
-          const transferParams: any = {
-            amount: Math.round(helperPayout * 100),
-            currency: "usd",
-            destination: helperProfile.stripe_account_id,
-            metadata: { job_id: job.id, helper_id: job.helper_id, auto_release: "true" },
-          };
-
-          if (paymentIntentId) {
-            try {
-              const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-              if (pi.latest_charge) {
-                transferParams.source_transaction = pi.latest_charge;
-              }
-            } catch (e) {
-              console.warn("Could not link charge:", e);
-            }
-          }
-
-          await stripe.transfers.create(transferParams);
-          console.log(`Auto-transferred $${helperPayout.toFixed(2)} to helper ${job.helper_id}`);
-        } catch (e) {
-          console.error(`Auto-transfer failed for job ${job.id}:`, e);
-          continue; // Don't mark complete if transfer failed
-        }
-      }
+      // Schedule payout for 24 hours later instead of immediate transfer
+      const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       await supabaseAdmin
         .from("jobs")
-        .update({ status: "completed", payment_status: "released" })
+        .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
         .eq("id", job.id);
 
       if (job.helper_id) {

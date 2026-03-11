@@ -120,7 +120,39 @@ const ProfilePage = () => {
     }
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
+      setReviewCount(reviewsRes.data.length);
     }
+  };
+
+  const loadReviews = async () => {
+    if (!user) return;
+    setReviewsLoading(true);
+    const { data } = await supabase
+      .from("reviews")
+      .select("rating, feedback, created_at, reviewer_id, job_id")
+      .eq("reviewee_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (data && data.length > 0) {
+      const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
+      const jobIds = [...new Set(data.map((r) => r.job_id))];
+      const [profilesRes, jobsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds),
+        supabase.from("jobs").select("id, title").in("id", jobIds),
+      ]);
+      const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+      const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
+      setReviews(data.map((r) => ({
+        rating: r.rating,
+        feedback: r.feedback,
+        created_at: r.created_at,
+        reviewerName: nameMap.get(r.reviewer_id) || "User",
+        jobTitle: jobMap.get(r.job_id) || "Job",
+      })));
+    } else {
+      setReviews([]);
+    }
+    setReviewsLoading(false);
   };
 
   // Load tab data on demand

@@ -538,6 +538,26 @@ const AdminUsers = () => {
                 )}
               </div>
 
+              {/* Approval email tracking */}
+              {viewProfile.approval_status === "approved" && (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
+                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Emails sent: {(viewProfile as any).approval_email_count || 0} / 3</span>
+                    {(viewProfile as any).last_approval_email_at && (
+                      <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {((viewProfile as any).approval_email_count || 0) < 3
+                      ? "Auto-resends every 3 days until the user logs in (max 3 emails)."
+                      : "Maximum emails sent. No more auto-resends."}
+                  </p>
+                </div>
+              )}
+
               {/* Denial email tracking */}
               {viewProfile.approval_status === "denied" && (
                 <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">

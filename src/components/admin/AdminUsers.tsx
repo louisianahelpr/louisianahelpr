@@ -354,6 +354,10 @@ const AdminUsers = () => {
                        {p.location && <span>{p.location}</span>}
                        {p.phone && <span>{p.phone}</span>}
                        <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
+                       <span className="flex items-center gap-0.5">
+                         <Clock className="w-3 h-3" />
+                         Active {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
+                       </span>
                     </div>
                     {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                   </div>

@@ -218,7 +218,21 @@ const ProfilePage = () => {
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-0">
+        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="container mx-auto flex items-center justify-between h-16 px-4">
+            <span className="text-2xl font-display font-bold text-primary">Helpr</span>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-4">
+          <div className="max-w-lg mx-auto space-y-4">
+            <ProfileCardSkeleton />
+            <StatsSkeleton />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const role = profile?.role || "customer";

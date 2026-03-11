@@ -6,6 +6,11 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
+import { ScopeAgreement } from "@/components/ScopeAgreement";
+import { AddonRequests } from "@/components/AddonRequests";
+import { JobConfirmation } from "@/components/JobConfirmation";
+import { JobMilestones } from "@/components/JobMilestones";
+import { JobCheckins } from "@/components/JobCheckins";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];

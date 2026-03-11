@@ -16,7 +16,7 @@ const HeroSection = () => {
             Louisiana's helping hand for everyday tasks
           </h1>
           <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
-            Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more. From Baton Rouge to New Orleans, we've got you covered.
+            Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button variant="hero" size="xl" onClick={() => navigate("/signup")}>

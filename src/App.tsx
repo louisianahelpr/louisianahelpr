@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,8 +9,6 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
-import BrowseJobs from "./pages/BrowseJobs";
-import MyJobs from "./pages/MyJobs";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
 import Earnings from "./pages/Earnings";
@@ -33,8 +31,8 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/post-job" element={<PostJob />} />
-          <Route path="/browse-jobs" element={<BrowseJobs />} />
-          <Route path="/my-jobs" element={<MyJobs />} />
+          <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/my-jobs" element={<Navigate to="/dashboard" replace />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/earnings" element={<Earnings />} />

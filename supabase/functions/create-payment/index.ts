@@ -96,25 +96,71 @@ serve(async (req) => {
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
-      if (job.customer_id !== user.id) throw new Error("Not authorized");
-      if (job.status !== "in_progress" && job.status !== "revision_requested") throw new Error("Job is not in progress");
 
-      await supabaseAdmin.from("jobs").update({ status: "completed", payment_status: "released" }).eq("id", jobId);
+      const isPoster = job.customer_id === user.id;
+      const isHelper = job.helper_id === user.id;
+      if (!isPoster && !isHelper) throw new Error("Not authorized");
+      if (job.status !== "in_progress" && job.status !== "revision_requested" && job.status !== "accepted") throw new Error("Job is not in progress");
+
+      // Mark this party as completed
+      const updateFields: Record<string, any> = {};
+      if (isPoster) updateFields.poster_completed_at = new Date().toISOString();
+      if (isHelper) updateFields.helper_completed_at = new Date().toISOString();
+
+      const posterDone = isPoster ? true : !!job.poster_completed_at;
+      const helperDone = isHelper ? true : !!job.helper_completed_at;
+      const bothDone = posterDone && helperDone;
+
+      if (bothDone) {
+        updateFields.status = "completed";
+        updateFields.payment_status = "released";
+      }
+
+      await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId);
 
       const helperPayout = job.budget - (job.platform_fee_amount || 0);
 
-      // Notify helper
-      if (job.helper_id) {
+      // Notify the other party
+      if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
-          title: "Job completed & paid!",
-          message: `"${job.title}" is complete. You earned $${helperPayout.toFixed(2)}.`,
+          title: "Poster marked job complete",
+          message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
+          type: "info",
+          link: "/activity",
+        });
+      }
+      if (isHelper && !posterDone) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: job.customer_id,
+          title: "Helper marked job complete",
+          message: `The helper marked "${job.title}" as complete. Please confirm completion to release payment.`,
+          type: "info",
+          link: "/activity",
+        });
+      }
+
+      if (bothDone) {
+        // Notify both
+        if (job.helper_id) {
+          await supabaseAdmin.from("notifications").insert({
+            user_id: job.helper_id,
+            title: "Job completed & paid!",
+            message: `"${job.title}" is complete. You earned $${helperPayout.toFixed(2)}.`,
+            type: "payment",
+            link: "/activity",
+          });
+        }
+        await supabaseAdmin.from("notifications").insert({
+          user_id: job.customer_id,
+          title: "Job completed!",
+          message: `"${job.title}" is complete. Payment has been released.`,
           type: "payment",
           link: "/activity",
         });
       }
 
-      return new Response(JSON.stringify({ success: true, helperPayout, platformFee: job.platform_fee_amount }), {
+      return new Response(JSON.stringify({ success: true, bothDone, helperPayout: bothDone ? helperPayout : 0, platformFee: bothDone ? job.platform_fee_amount : 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }

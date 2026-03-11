@@ -191,7 +191,11 @@ const Activity = () => {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Job completed! Helper receives $${data.helperPayout.toFixed(2)}`);
+      if (data?.bothDone) {
+        toast.success(`Job completed! Payment released.`);
+      } else {
+        toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
+      }
       if (user) loadData(user.id);
     } catch (err: any) {
       toast.error(err.message || "Failed to complete job");
@@ -353,6 +357,15 @@ const Activity = () => {
                             {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
                           </div>
                           <p className="text-sm text-muted-foreground">${job.budget} · {job.location}</p>
+                          {/* Show who has confirmed completion */}
+                          {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
+                            <div className="mt-1 flex items-center gap-2 flex-wrap">
+                              {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
+                              {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helper confirmed</span>}
+                              {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                              {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helper</span>}
+                            </div>
+                          )}
                           {job.status === "revision_requested" && (job as any).revision_note && (
                             <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
@@ -370,8 +383,8 @@ const Activity = () => {
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (
                             <>
-                              <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : "Complete"}
+                              <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
                               {job.status === "in_progress" && (
                                 <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
@@ -484,6 +497,16 @@ const Activity = () => {
                         )}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
 
+                        {/* Completion status for helper */}
+                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && ((app.job as any)?.poster_completed_at || (app.job as any)?.helper_completed_at) && (
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            {(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
+                            {(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Poster confirmed</span>}
+                            {!(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                            {!(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for poster</span>}
+                          </div>
+                        )}
+
                         {/* Revision requested notice for helper */}
                         {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (
                           <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
@@ -503,15 +526,20 @@ const Activity = () => {
                             </Button>
                           </>
                         )}
-                        {app.status === "accepted" && app.job?.status === "in_progress" && (
-                          <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
-                            <MessageSquare className="w-4 h-4 mr-1" /> Message
-                          </Button>
-                        )}
-                        {app.status === "accepted" && app.job?.status === "revision_requested" && (
-                          <Button size="sm" onClick={() => resolveRevision(app.job_id)}>
-                            <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
-                          </Button>
+                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
+                          <>
+                            <Button size="sm" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
+                              <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                            </Button>
+                            {app.job?.status === "revision_requested" && (
+                              <Button size="sm" variant="outline" onClick={() => resolveRevision(app.job_id)}>
+                                <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                              <MessageSquare className="w-4 h-4 mr-1" /> Message
+                            </Button>
+                          </>
                         )}
                         {app.status === "accepted" && app.job?.status === "completed" && (
                           <>

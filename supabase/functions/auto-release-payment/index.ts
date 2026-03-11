@@ -18,15 +18,15 @@ serve(async (req) => {
   );
 
   try {
-    // Find in_progress jobs older than 72 hours that haven't been completed
+    // Find in_progress jobs where at least one party marked complete 72+ hours ago
     const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount")
-      .eq("status", "in_progress")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, poster_completed_at, helper_completed_at")
+      .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
-      .lte("updated_at", cutoff);
+      .or(`poster_completed_at.lte.${cutoff},helper_completed_at.lte.${cutoff}`);
 
     if (error) throw error;
 

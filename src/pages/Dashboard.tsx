@@ -60,8 +60,7 @@ const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
   return null;
 };
 
-
-  const navigate = useNavigate();
+const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);

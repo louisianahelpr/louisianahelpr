@@ -37,7 +37,7 @@ const App = () => (
           <Route path="/my-jobs" element={<Navigate to="/dashboard" replace />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/earnings" element={<Earnings />} />
+          <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/job-history" element={<JobHistory />} />

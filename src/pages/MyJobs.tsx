@@ -76,8 +76,8 @@ const MyJobs = () => {
   const acceptApplication = async (app: Application) => {
     // Update application status
     await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    // Update job status and assign helper
-    await supabase.from("jobs").update({ status: "accepted", helper_id: app.helper_id }).eq("id", selectedJob!.id);
+    // Update job to in_progress and assign helper (payment already in escrow)
+    await supabase.from("jobs").update({ status: "in_progress", helper_id: app.helper_id }).eq("id", selectedJob!.id);
     // Reject other applications
     await supabase
       .from("applications")
@@ -85,19 +85,7 @@ const MyJobs = () => {
       .eq("job_id", selectedJob!.id)
       .neq("id", app.id);
 
-    toast.success("Helper accepted! Redirecting to payment…");
-
-    // Create Stripe checkout for this job
-    const { data, error } = await supabase.functions.invoke("create-payment", {
-      body: { jobId: selectedJob!.id },
-    });
-
-    if (error || !data?.url) {
-      toast.error("Payment setup failed. You can pay later from your dashboard.");
-    } else {
-      window.open(data.url, "_blank");
-    }
-
+    toast.success("Helper accepted! Task is now in progress.");
     loadJobs();
     setSelectedJob(null);
     setApplications([]);

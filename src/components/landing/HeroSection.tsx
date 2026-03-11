@@ -18,14 +18,6 @@ const HeroSection = () => {
           <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
             Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
           </p>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button variant="hero" size="xl" onClick={() => navigate("/signup")}>
-              Post a task
-            </Button>
-            <Button variant="hero-outline" size="xl" onClick={() => navigate("/signup")}>
-              Become a Helper
-            </Button>
-          </div>
         </div>
 
         <div className="animate-fade-in [animation-delay:200ms] opacity-0">

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, LogOut,
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
+  CreditCard, Shield, FileText, ExternalLink, Mail, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";

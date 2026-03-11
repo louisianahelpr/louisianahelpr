@@ -218,7 +218,7 @@ export function TrustedHelperCircle({ userId }: { userId: string }) {
 
           {members.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No helpers in this circle yet. Add your trusted helpers!
+              No helprs in this circle yet. Add your trusted helprs!
             </p>
           ) : (
             <div className="space-y-2">

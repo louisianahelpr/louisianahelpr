@@ -383,8 +383,8 @@ const Activity = () => {
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (
                             <>
-                              <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : "Complete"}
+                              <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
                               {job.status === "in_progress" && (
                                 <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>

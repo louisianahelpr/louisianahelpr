@@ -31,7 +31,7 @@ const HeroSection = () => {
         <div className="animate-fade-in [animation-delay:200ms] opacity-0">
           <img
             src={heroImage}
-            alt="People helping each other with everyday tasks"
+            alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
             className="w-full rounded-2xl shadow-lg"
           />
         </div>

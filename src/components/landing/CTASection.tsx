@@ -12,7 +12,7 @@ const CTASection = () => {
             Ready to get started?
           </h2>
           <p className="text-primary-foreground/80 max-w-md mx-auto mb-8">
-            Join thousands of people using Helpr to get things done — or earn extra income helping others.
+            Join your Louisiana neighbors on Helpr to get things done — or earn extra income helping others.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button

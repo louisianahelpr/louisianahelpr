@@ -8,8 +8,6 @@ const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
 
 // Check if an error is a rate-limit (429) response.
-// Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
-// falls back to parsing the error message for older versions.
 function isRateLimited(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
     return (error as { status: number }).status === 429
@@ -37,9 +35,6 @@ Deno.serve(async (req) => {
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
-
-  // Auth: verify_jwt = true in config.toml — Supabase gateway validates the
-  // service role JWT from the pg_cron Authorization header before this runs.
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -137,7 +132,7 @@ Deno.serve(async (req) => {
         continue
       }
 
-      // Guard: skip if another worker already sent this message (VT expired race)
+      // Guard: skip if another worker already sent this message
       if (payload.message_id) {
         const { data: alreadySent } = await supabase
           .from('email_send_log')
@@ -164,51 +159,29 @@ Deno.serve(async (req) => {
       }
 
       try {
-        if (payload.run_id) {
-          // Auth emails: use sendLovableEmail with run_id from webhook
-          await sendLovableEmail(
-            {
-              run_id: payload.run_id,
-              to: payload.to,
-              from: payload.from,
-              sender_domain: payload.sender_domain,
-              subject: payload.subject,
-              html: payload.html,
-              text: payload.text,
-              purpose: payload.purpose,
-              label: payload.label,
-              external_id: payload.external_id,
-              idempotency_key: payload.idempotency_key,
-              unsubscribe_token: payload.unsubscribe_token,
-            },
-            { apiKey, apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
-          )
-        } else {
-          // Transactional emails without run_id: send via direct API call
-          const apiBase = Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev'
-          const response = await fetch(`${apiBase}/api/v1/email/send`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              to: payload.to,
-              from: payload.from,
-              sender_domain: payload.sender_domain,
-              subject: payload.subject,
-              html: payload.html,
-              text: payload.text,
-              purpose: payload.purpose || 'transactional',
-              label: payload.label,
-            }),
-          })
-
-          if (!response.ok) {
-            const body = await response.text()
-            throw new Error(`Email API error: ${response.status} ${body}`)
-          }
+        // Use sendLovableEmail for ALL emails (auth and transactional)
+        // Auth emails include run_id, transactional emails don't need it
+        const emailParams: Record<string, unknown> = {
+          to: payload.to,
+          from: payload.from,
+          sender_domain: payload.sender_domain,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text,
+          purpose: payload.purpose || 'transactional',
+          label: payload.label,
         }
+
+        // Include auth-specific fields when present
+        if (payload.run_id) emailParams.run_id = payload.run_id
+        if (payload.external_id) emailParams.external_id = payload.external_id
+        if (payload.idempotency_key) emailParams.idempotency_key = payload.idempotency_key
+        if (payload.unsubscribe_token) emailParams.unsubscribe_token = payload.unsubscribe_token
+
+        await sendLovableEmail(
+          emailParams,
+          { apiKey, apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
+        )
 
         // Log success
         await supabase.from('email_send_log').insert({
@@ -236,7 +209,7 @@ Deno.serve(async (req) => {
           error: errorMsg,
         })
 
-        // Log every send failure to email_send_log for visibility
+        // Log every send failure
         await supabase.from('email_send_log').insert({
           message_id: payload.message_id,
           template_name: payload.label || queue,
@@ -257,17 +230,14 @@ Deno.serve(async (req) => {
             })
             .eq('id', 1)
 
-          // Stop processing — remaining messages stay in queue (VT expires, retried next cycle)
           return new Response(
             JSON.stringify({ processed: totalProcessed, stopped: 'rate_limited' }),
             { headers: { 'Content-Type': 'application/json' } }
           )
         }
-
-        // Non-429 errors: message stays invisible until VT expires, then retried
       }
 
-      // Small delay between sends to smooth bursts
+      // Small delay between sends
       if (i < messages.length - 1) {
         await new Promise((r) => setTimeout(r, sendDelayMs))
       }

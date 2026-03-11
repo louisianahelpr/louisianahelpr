@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,6 +55,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    const apiKey = Deno.env.get('LOVABLE_API_KEY')
+
     // Find denied profiles where:
     // - denial_email_count < 3
     // - last_denial_email_at is more than 3 days ago
@@ -104,25 +107,35 @@ Deno.serve(async (req) => {
         status: 'pending',
       })
 
-      // Enqueue
-      const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'transactional_emails',
-        payload: {
-          message_id: messageId,
-          to: profile.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject: `Reminder: Update your Helpr profile to get approved`,
-          html,
-          text,
-          purpose: 'transactional',
-          label: 'denial_reminder',
-          queued_at: new Date().toISOString(),
-        },
-      })
+      // Send directly using sendLovableEmail
+      try {
+        await sendLovableEmail(
+          {
+            to: profile.email,
+            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+            sender_domain: SENDER_DOMAIN,
+            subject: `Reminder: Update your Helpr profile to get approved`,
+            html,
+            text,
+            purpose: 'transactional',
+            label: 'denial_reminder',
+          },
+          { apiKey: apiKey || '', apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
+        )
 
-      if (enqueueErr) {
-        console.error(`Failed to enqueue for ${profile.email}:`, enqueueErr)
+        await supabase.from('email_send_log').update({
+          status: 'sent',
+        }).eq('message_id', messageId)
+
+        console.log(`Denial reminder #${newCount} sent to ${profile.email}`)
+      } catch (sendErr) {
+        const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+        console.error(`Failed to send denial reminder to ${profile.email}:`, errMsg)
+
+        await supabase.from('email_send_log').update({
+          status: 'failed',
+          error_message: errMsg,
+        }).eq('message_id', messageId)
         continue
       }
 
@@ -136,7 +149,6 @@ Deno.serve(async (req) => {
         .eq('id', profile.id)
 
       sentCount++
-      console.log(`Denial reminder #${newCount} sent to ${profile.email}`)
     }
 
     return new Response(JSON.stringify({ sent: sentCount }), {

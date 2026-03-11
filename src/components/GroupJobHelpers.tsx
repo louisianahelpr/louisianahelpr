@@ -70,7 +70,7 @@ export function GroupJobHelpers({
           />
         </div>
         <span className="text-xs font-medium text-foreground">
-          {filledSlots}/{helpersNeeded} helpers
+          {filledSlots}/{helpersNeeded} helprs
         </span>
       </div>
 

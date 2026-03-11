@@ -483,6 +483,7 @@ const Activity = () => {
                               <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
                               <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} />
                             </div>
+                          )}
                           {job.status === "revision_requested" && (job as any).revision_note && (
                             <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>

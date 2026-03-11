@@ -244,8 +244,8 @@ const Activity = () => {
     }
   };
 
-  const sendTip = async (jobId: string) => {
-    const amount = parseFloat(tipAmount);
+  const sendTip = async (jobId: string, quickAmount?: number) => {
+    const amount = quickAmount || parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }
     setTipping(true);
     try {
@@ -412,16 +412,32 @@ const Activity = () => {
                       </div>
                       {/* Completed: tip & review */}
                       {job.status === "completed" && job.payment_status === "released" && (
-                        <div className="border-t border-border pt-3 flex flex-wrap items-center gap-2">
-                          {tipJobId === job.id ? (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Input type="number" min="1" placeholder="$" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[80px]" />
-                              <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
-                              <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>Cancel</Button>
-                            </div>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}><Gift className="w-4 h-4 mr-1" /> Tip Helper</Button>
-                          )}
+                        <div className="border-t border-border pt-3 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 5)} disabled={tipping}>
+                              <Gift className="w-3.5 h-3.5 mr-1" /> $5
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 10)} disabled={tipping}>
+                              <Gift className="w-3.5 h-3.5 mr-1" /> $10
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 20)} disabled={tipping}>
+                              <Gift className="w-3.5 h-3.5 mr-1" /> $20
+                            </Button>
+                            {tipJobId === job.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input type="number" min="1" placeholder="Custom $" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[90px]" />
+                                <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>✕</Button>
+                              </div>
+                            ) : (
+                              <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>Custom</Button>
+                            )}
+                            {job.helper_id && (
+                              <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)} className="ml-auto">
+                                <Star className="w-3.5 h-3.5 mr-1" /> Review
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

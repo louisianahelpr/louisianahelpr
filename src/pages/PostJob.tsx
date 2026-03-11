@@ -492,6 +492,22 @@ const PostJob = () => {
                   )}
                 </div>
 
+                {/* Urgent Job */}
+                <div className={`rounded-xl border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-accent" />
+                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent (+${urgentFee})</Label>
+                    </div>
+                    <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
+                  </div>
+                  {isUrgent && (
+                    <p className="text-xs text-muted-foreground">
+                      ⚡ Your job will be highlighted in the feed and nearby helprs will be notified immediately. An additional ${urgentFee} fee applies.
+                    </p>
+                  )}
+                </div>
+
                 {/* Job Listing Duration */}
                 <div className="rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">

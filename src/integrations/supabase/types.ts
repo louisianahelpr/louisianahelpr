@@ -734,11 +734,14 @@ export type Database = {
           ban_status: string | null
           bio: string | null
           created_at: string
+          denial_email_count: number
+          denial_reason: string | null
           email: string | null
           full_name: string | null
           hourly_rate: number | null
           id: string
           id_document_url: string | null
+          last_denial_email_at: string | null
           location: string | null
           phone: string | null
           portfolio_urls: string[] | null
@@ -753,11 +756,14 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           created_at?: string
+          denial_email_count?: number
+          denial_reason?: string | null
           email?: string | null
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          last_denial_email_at?: string | null
           location?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
@@ -772,11 +778,14 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           created_at?: string
+          denial_email_count?: number
+          denial_reason?: string | null
           email?: string | null
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          last_denial_email_at?: string | null
           location?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null

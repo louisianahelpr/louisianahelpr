@@ -586,7 +586,7 @@ const Activity = () => {
                               <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
                               <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
                               <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                              <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} />
+                              <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
                             </div>
                           )}
                           {job.status === "revision_requested" && (job as any).revision_note && (

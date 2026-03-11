@@ -45,10 +45,10 @@ const PaymentSuccess = () => {
         <h1 className="text-3xl font-display font-bold text-foreground">Payment authorized!</h1>
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
           <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <p>Your payment is held in escrow. Funds will only be captured when both you and the helper confirm the job is complete.</p>
+          <p>Your payment is held in escrow. Funds will only be captured when both you and the helpr confirm the job is complete.</p>
         </div>
         <p className="text-muted-foreground">
-          The helper has been notified and the task is now in progress. If neither party confirms within 72 hours of the first confirmation, payment is auto-released.
+          Your helpr has been notified and the task is now in progress. Once one party marks the job complete, the other has 72 hours to confirm — after that, payment is automatically released.
         </p>
         <Button size="lg" onClick={() => navigate("/dashboard")}>
           Back to dashboard

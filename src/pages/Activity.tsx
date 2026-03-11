@@ -308,7 +308,7 @@ const Activity = () => {
   }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "posted", label: "My Posted", count: postedJobs.length },
+    { key: "posted", label: "Posted", count: postedJobs.length },
     { key: "applied", label: "Applied", count: appliedApps.length },
   ];
 

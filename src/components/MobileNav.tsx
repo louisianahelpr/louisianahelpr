@@ -47,7 +47,6 @@ const MobileNav = () => {
           >
             <Plus className="w-7 h-7" strokeWidth={2.5} />
           </button>
-          <span className="text-xs font-medium text-primary -mt-0.5">Post</span>
         </div>
 
         {rightItems.map(renderItem)}

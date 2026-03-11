@@ -653,16 +653,6 @@ const ProfilePage = () => {
                       </button>
                     ))}
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(["all", "open", "in_progress", "completed", "cancelled"] as StatusFilter[]).map((s) => (
-                      <button key={s} onClick={() => setStatusFilter(s)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${
-                          statusFilter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        }`}>
-                        {s === "in_progress" ? "In Progress" : s}
-                      </button>
-                    ))}
-                  </div>
                   {historyJobs.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-muted-foreground">No jobs found.</p>

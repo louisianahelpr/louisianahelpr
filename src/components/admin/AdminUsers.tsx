@@ -443,6 +443,10 @@ const AdminUsers = () => {
                   <p className="text-muted-foreground text-xs">Joined</p>
                   <p className="font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString()}</p>
                 </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Last Active</p>
+                  <p className="font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                </div>
               </div>
 
               {viewProfile.bio && (

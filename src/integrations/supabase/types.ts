@@ -507,6 +507,7 @@ export type Database = {
           description: string
           estimated_hours: number | null
           expires_at: string | null
+          flag_reasons: string[] | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_id: string | null
@@ -527,6 +528,9 @@ export type Database = {
           proof_before_urls: string[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
           response_deadline: string | null
           review_reminder_sent: boolean
           revision_note: string | null
@@ -553,6 +557,7 @@ export type Database = {
           description: string
           estimated_hours?: number | null
           expires_at?: string | null
+          flag_reasons?: string[] | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
@@ -573,6 +578,9 @@ export type Database = {
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
           response_deadline?: string | null
           review_reminder_sent?: boolean
           revision_note?: string | null
@@ -599,6 +607,7 @@ export type Database = {
           description?: string
           estimated_hours?: number | null
           expires_at?: string | null
+          flag_reasons?: string[] | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
@@ -619,6 +628,9 @@ export type Database = {
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
           response_deadline?: string | null
           review_reminder_sent?: boolean
           revision_note?: string | null

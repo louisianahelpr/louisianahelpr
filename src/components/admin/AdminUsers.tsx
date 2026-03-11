@@ -74,7 +74,11 @@ const AdminUsers = () => {
   };
 
   const approveUser = async (profile: Profile) => {
-    const { error } = await supabase.from("profiles").update({ approval_status: "approved" }).eq("id", profile.id);
+    const { error } = await supabase.from("profiles").update({
+      approval_status: "approved",
+      approval_email_count: 1,
+      last_approval_email_at: new Date().toISOString(),
+    } as any).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
       toast.success(`${profile.full_name || "User"} approved!`);
@@ -89,6 +93,29 @@ const AdminUsers = () => {
       }).catch((err) => console.error("Failed to send approval email:", err));
       loadProfiles();
       setViewProfile(null);
+    }
+  };
+
+  const resendApprovalEmail = async (profile: Profile) => {
+    setResending(profile.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-account-status-email", {
+        body: { userId: profile.user_id, status: "approved" },
+      });
+      if (error) throw error;
+
+      await supabase.from("profiles").update({
+        approval_email_count: ((profile as any).approval_email_count || 0) + 1,
+        last_approval_email_at: new Date().toISOString(),
+      } as any).eq("id", profile.id);
+
+      toast.success("Approval email resent");
+      loadProfiles();
+    } catch (err: any) {
+      toast.error("Failed to resend email");
+      console.error(err);
+    } finally {
+      setResending(null);
     }
   };
 

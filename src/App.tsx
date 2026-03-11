@@ -11,7 +11,7 @@ import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
-import Earnings from "./pages/Earnings";
+
 import Messages from "./pages/Messages";
 import Schedule from "./pages/Schedule";
 import JobHistory from "./pages/JobHistory";

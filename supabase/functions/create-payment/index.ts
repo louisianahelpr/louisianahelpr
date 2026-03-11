@@ -44,6 +44,7 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
@@ -57,21 +58,29 @@ serve(async (req) => {
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
       const feePercent = settings?.platform_fee_percent ?? 15;
 
+      // Use manual capture so funds are authorized but NOT charged yet
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
         line_items: [{
           price_data: {
             currency: "usd",
-            product_data: { name: `Helpr Task: ${job.title}`, description: `Escrow payment. Platform fee: ${feePercent}%` },
+            product_data: {
+              name: `Helpr Task: ${job.title}`,
+              description: `Escrow payment — funds are held until the job is complete. Platform fee: ${feePercent}%`,
+            },
             unit_amount: Math.round(job.budget * 100),
           },
           quantity: 1,
         }],
         mode: "payment",
         payment_intent_data: {
-          capture_method: "automatic",
-          metadata: { job_id: jobId, customer_id: user.id, platform_fee_percent: String(feePercent) },
+          capture_method: "manual",
+          metadata: {
+            job_id: jobId,
+            customer_id: user.id,
+            platform_fee_percent: String(feePercent),
+          },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
         cancel_url: `${req.headers.get("origin")}/post-job`,
@@ -80,8 +89,10 @@ serve(async (req) => {
 
       const feeAmount = (job.budget * feePercent) / 100;
       await supabaseAdmin.from("jobs").update({
-        stripe_session_id: session.id, payment_status: "escrow",
-        platform_fee_percent: feePercent, platform_fee_amount: feeAmount,
+        stripe_session_id: session.id,
+        payment_status: "escrow",
+        platform_fee_percent: feePercent,
+        platform_fee_amount: feeAmount,
       }).eq("id", jobId);
 
       return new Response(JSON.stringify({ url: session.url }), {
@@ -89,6 +100,7 @@ serve(async (req) => {
       });
     }
 
+    // ─── RELEASE: Both parties confirm → capture the held payment ───
     if (action === "release") {
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
@@ -100,7 +112,9 @@ serve(async (req) => {
       const isPoster = job.customer_id === user.id;
       const isHelper = job.helper_id === user.id;
       if (!isPoster && !isHelper) throw new Error("Not authorized");
-      if (job.status !== "in_progress" && job.status !== "revision_requested" && job.status !== "accepted") throw new Error("Job is not in progress");
+      if (!["in_progress", "revision_requested", "accepted"].includes(job.status)) {
+        throw new Error("Job is not in progress");
+      }
 
       // Mark this party as completed
       const updateFields: Record<string, any> = {};
@@ -112,6 +126,8 @@ serve(async (req) => {
       const bothDone = posterDone && helperDone;
 
       if (bothDone) {
+        // Capture the held payment on Stripe
+        await captureEscrowPayment(stripe, supabaseAdmin, job);
         updateFields.status = "completed";
         updateFields.payment_status = "released";
       }
@@ -126,8 +142,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Poster marked job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info",
-          link: "/activity",
+          type: "info", link: "/activity",
         });
       }
       if (isHelper && !posterDone) {
@@ -135,36 +150,37 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Helper marked job complete",
           message: `The helper marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info",
-          link: "/activity",
+          type: "info", link: "/activity",
         });
       }
 
       if (bothDone) {
-        // Notify both
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
             title: "Job completed & paid!",
             message: `"${job.title}" is complete. You earned $${helperPayout.toFixed(2)}.`,
-            type: "payment",
-            link: "/activity",
+            type: "payment", link: "/activity",
           });
         }
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job completed!",
-          message: `"${job.title}" is complete. Payment has been released.`,
-          type: "payment",
-          link: "/activity",
+          message: `"${job.title}" is complete. Payment has been captured and released.`,
+          type: "payment", link: "/activity",
         });
       }
 
-      return new Response(JSON.stringify({ success: true, bothDone, helperPayout: bothDone ? helperPayout : 0, platformFee: bothDone ? job.platform_fee_amount : 0 }), {
+      return new Response(JSON.stringify({
+        success: true, bothDone,
+        helperPayout: bothDone ? helperPayout : 0,
+        platformFee: bothDone ? job.platform_fee_amount : 0,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
 
+    // ─── REQUEST REVISION ───
     if (action === "request_revision") {
       const { jobId, note } = body;
       if (!jobId) throw new Error("Missing jobId");
@@ -181,14 +197,12 @@ serve(async (req) => {
         revision_requested_at: new Date().toISOString(),
       }).eq("id", jobId);
 
-      // Notify helper
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
-          type: "warning",
-          link: "/activity",
+          type: "warning", link: "/activity",
         });
       }
 
@@ -197,8 +211,8 @@ serve(async (req) => {
       });
     }
 
+    // ─── RESOLVE REVISION ───
     if (action === "resolve_revision") {
-      // Helper marks revision as done, job goes back to in_progress
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
 
@@ -214,13 +228,11 @@ serve(async (req) => {
         revision_requested_at: null,
       }).eq("id", jobId);
 
-      // Notify poster
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
         title: "Revision completed",
         message: `The helper has addressed your revision request for "${job.title}".`,
-        type: "success",
-        link: "/activity",
+        type: "success", link: "/activity",
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -228,6 +240,7 @@ serve(async (req) => {
       });
     }
 
+    // ─── TIP ───
     if (action === "tip") {
       const { jobId, amount } = body;
       if (!jobId || !amount || amount <= 0) throw new Error("Missing jobId or invalid tip amount");
@@ -237,14 +250,11 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.status !== "completed") throw new Error("Job must be completed to tip");
 
-      // Determine who is tipping whom
       let helperId: string;
       if (user.id === job.customer_id) {
-        // Poster tipping helper
         if (!job.helper_id) throw new Error("No helper assigned");
         helperId = job.helper_id;
       } else if (user.id === job.helper_id) {
-        // Helper tipping poster (poster is the "helper_id" in the tip record conceptually)
         helperId = job.customer_id;
       } else {
         throw new Error("Not authorized to tip on this job");
@@ -277,6 +287,37 @@ serve(async (req) => {
       });
     }
 
+    // ─── CANCEL ESCROW: void the held authorization ───
+    if (action === "cancel_escrow") {
+      const { jobId } = body;
+      if (!jobId) throw new Error("Missing jobId");
+
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("jobs").select("*").eq("id", jobId).single();
+      if (jobError || !job) throw new Error("Job not found");
+      if (job.customer_id !== user.id) throw new Error("Not authorized");
+
+      // Cancel the uncaptured payment intent
+      if (job.stripe_payment_intent_id) {
+        try {
+          await stripe.paymentIntents.cancel(job.stripe_payment_intent_id);
+        } catch (e) {
+          console.error("Failed to cancel payment intent:", e);
+        }
+      }
+
+      await supabaseAdmin.from("jobs").update({
+        payment_status: "cancelled",
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: user.id,
+      }).eq("id", jobId);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
+    }
+
     throw new Error("Invalid action");
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -284,3 +325,45 @@ serve(async (req) => {
     });
   }
 });
+
+/**
+ * Capture the held (manual capture) payment for a job.
+ * Retrieves the PaymentIntent from the Checkout Session and captures it.
+ */
+async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any) {
+  let paymentIntentId = job.stripe_payment_intent_id;
+
+  // If we don't have it stored, retrieve from the checkout session
+  if (!paymentIntentId && job.stripe_session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
+      paymentIntentId = session.payment_intent;
+      // Store it for future reference
+      if (paymentIntentId) {
+        await supabaseAdmin.from("jobs").update({
+          stripe_payment_intent_id: paymentIntentId,
+        }).eq("id", job.id);
+      }
+    } catch (e) {
+      console.error("Failed to retrieve checkout session:", e);
+    }
+  }
+
+  if (!paymentIntentId) {
+    console.warn(`No payment intent found for job ${job.id}, skipping capture`);
+    return;
+  }
+
+  try {
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (pi.status === "requires_capture") {
+      await stripe.paymentIntents.capture(paymentIntentId);
+      console.log(`Captured payment ${paymentIntentId} for job ${job.id}`);
+    } else {
+      console.log(`Payment ${paymentIntentId} status is ${pi.status}, no capture needed`);
+    }
+  } catch (e) {
+    console.error(`Failed to capture payment for job ${job.id}:`, e);
+    throw new Error("Failed to capture escrow payment. Please contact support.");
+  }
+}

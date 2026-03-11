@@ -7,3 +7,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = false
+  [functions.complete-signup]
+    verify_jwt = false

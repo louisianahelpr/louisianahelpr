@@ -75,16 +75,15 @@ const saveState = (state: OnboardingState) => {
 };
 
 interface OnboardingTourProps {
-  role?: string;
   profileComplete?: boolean;
 }
 
-const OnboardingTour = ({ role = "customer", profileComplete = false }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const navigate = useNavigate();
   const [state, setState] = useState<OnboardingState>(getState);
   const [visible, setVisible] = useState(false);
 
-  const steps = role === "helper" ? HELPER_STEPS : CUSTOMER_STEPS;
+  const steps = TOUR_STEPS;
   const currentStep = steps[state.currentStep] || steps[0];
   const progress = ((state.currentStep + 1) / steps.length) * 100;
 

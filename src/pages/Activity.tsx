@@ -74,6 +74,7 @@ const Activity = () => {
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
+  const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);

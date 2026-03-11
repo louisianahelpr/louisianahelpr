@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
+import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import { ScopeAgreement } from "@/components/ScopeAgreement";

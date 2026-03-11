@@ -651,6 +651,23 @@ const Activity = () => {
                           </div>
                         )}
 
+                        {/* New features for helper */}
+                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "accepted") && user && (
+                          <div className="mt-3 space-y-3">
+                            <JobConfirmation
+                              jobId={app.job_id}
+                              isOwner={false}
+                              isHelper={true}
+                              posterConfirmedAt={(app.job as any)?.poster_confirmed_at}
+                              helperConfirmedAt={(app.job as any)?.helper_confirmed_at}
+                              dateNeeded={app.job?.date_needed || ""}
+                            />
+                            <ScopeAgreement jobId={app.job_id} isOwner={false} isHelper={true} />
+                            <AddonRequests jobId={app.job_id} isOwner={false} isHelper={true} userId={user.id} />
+                            <JobMilestones jobId={app.job_id} isOwner={false} isHelper={true} totalBudget={app.job?.budget || 0} />
+                            <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} />
+                          </div>
+
                         {/* Revision requested notice for helper */}
                         {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (
                           <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">

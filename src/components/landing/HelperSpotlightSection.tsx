@@ -83,7 +83,7 @@ const HelperSpotlightSection = () => {
           </h2>
         </div>
         <p className="text-muted-foreground max-w-md mx-auto mb-12">
-          Meet some of our top-rated helpers making a difference in Louisiana
+          Meet some of our top-rated helprs making a difference in Louisiana
         </p>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">

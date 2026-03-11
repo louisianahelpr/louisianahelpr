@@ -357,6 +357,15 @@ const Activity = () => {
                             {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
                           </div>
                           <p className="text-sm text-muted-foreground">${job.budget} · {job.location}</p>
+                          {/* Show who has confirmed completion */}
+                          {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
+                            <div className="mt-1 flex items-center gap-2 flex-wrap">
+                              {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
+                              {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helper confirmed</span>}
+                              {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                              {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helper</span>}
+                            </div>
+                          )}
                           {job.status === "revision_requested" && (job as any).revision_note && (
                             <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>

@@ -117,7 +117,7 @@ const Dashboard = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:block">{fullName}</span>
+            <span className="text-sm text-muted-foreground hidden sm:block">{firstName}</span>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
             </Button>

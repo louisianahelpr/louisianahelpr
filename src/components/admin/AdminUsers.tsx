@@ -277,19 +277,29 @@ const AdminUsers = () => {
           {filtered.map((p) => (
             <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-2 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
               <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <p className="font-semibold text-foreground">{p.full_name || "—"}</p>
-                    {statusBadge(p)}
-                    <Badge variant="secondary" className="capitalize text-xs">{p.role}</Badge>
+                <div className="flex gap-3 flex-1 min-w-0">
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium flex-shrink-0">
+                      {(p.full_name || "?")[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="font-semibold text-foreground">{p.full_name || "—"}</p>
+                      {statusBadge(p)}
+                      <Badge variant="secondary" className="capitalize text-xs">{p.role}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                       {(p as any).email && <span>{(p as any).email}</span>}
+                       {p.location && <span>{p.location}</span>}
+                       {p.phone && <span>{p.phone}</span>}
+                       <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
                   </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                     {(p as any).email && <span>{(p as any).email}</span>}
-                     {p.location && <span>{p.location}</span>}
-                     {p.phone && <span>{p.phone}</span>}
-                     <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
-                  </div>
-                  {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
+                </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   {p.approval_status === "pending" && (

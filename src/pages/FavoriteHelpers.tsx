@@ -100,8 +100,8 @@ const FavoriteHelpers = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-lg mx-auto space-y-5">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Favorite Helpers</h1>
-            <p className="text-sm text-muted-foreground mt-1">Helpers you've saved for quick rehiring</p>
+            <h1 className="text-2xl font-display font-bold text-foreground">Favorite Helprs</h1>
+            <p className="text-sm text-muted-foreground mt-1">Helprs you've saved for quick rehiring</p>
           </div>
 
           {favorites.length === 0 ? (

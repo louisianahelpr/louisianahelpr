@@ -853,7 +853,6 @@ const ProfilePage = () => {
                 </div>
               </div>
             </div>
-          )
           )}
 
           {/* REVIEWS TAB */}

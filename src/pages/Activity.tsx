@@ -25,6 +25,8 @@ import { AddonRequests } from "@/components/AddonRequests";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobMilestones } from "@/components/JobMilestones";
 import { JobCheckins } from "@/components/JobCheckins";
+import { JobTracking } from "@/components/JobTracking";
+import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 

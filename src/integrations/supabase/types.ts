@@ -735,6 +735,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_email_count: number
           approval_status: string
           avatar_url: string | null
           ban_status: string | null
@@ -748,6 +749,7 @@ export type Database = {
           hourly_rate: number | null
           id: string
           id_document_url: string | null
+          last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
           location: string | null
@@ -759,6 +761,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_email_count?: number
           approval_status?: string
           avatar_url?: string | null
           ban_status?: string | null
@@ -772,6 +775,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
           location?: string | null
@@ -783,6 +787,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_email_count?: number
           approval_status?: string
           avatar_url?: string | null
           ban_status?: string | null
@@ -796,6 +801,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
           location?: string | null

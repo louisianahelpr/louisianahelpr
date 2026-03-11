@@ -4,14 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   LogOut, Search, X, Flag, MapPin, Calendar, DollarSign,
   SlidersHorizontal, ChevronDown, ChevronUp, Clock, XCircle,
-  Shield, ClipboardList, Briefcase, CheckCircle2, Gift, RotateCcw, Star, MessageSquare, Users,
+  Shield, ClipboardList, Briefcase, CheckCircle2, Gift, RotateCcw, Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
-import { ReviewForm } from "@/components/ReviewPanel";
+import { ReviewForm, ReviewList } from "@/components/ReviewPanel";
 import NotificationPanel from "@/components/NotificationPanel";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -25,6 +29,8 @@ const categoryLabels: Record<string, string> = {
   handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
   assembly: "Assembly", other: "Other",
 };
+
+const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -45,7 +51,7 @@ const Dashboard = () => {
   const [tab, setTab] = useState<Tab>("browse");
 
   // Browse state
-  const [allJobs, setAllJobs] = useState<Job[]>([]);
+  const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number })[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
@@ -56,15 +62,28 @@ const Dashboard = () => {
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [applications, setApplications] = useState<(Application & { profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null } | null })[]>([]);
+  const [applications, setApplications] = useState<(Application & { profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null; reviewCount?: number; avgRating?: number })[]>([]);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [tipJobId, setTipJobId] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");
   const [tipping, setTipping] = useState(false);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
 
+  // Edit job state
+  const [editJob, setEditJob] = useState<Job | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("other");
+  const [editLocation, setEditLocation] = useState("");
+  const [editDateNeeded, setEditDateNeeded] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEstimatedHours, setEditEstimatedHours] = useState("");
+  const [editBudget, setEditBudget] = useState("");
+  const [editSpecialReq, setEditSpecialReq] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   // Applied jobs state
-  const [appliedApps, setAppliedApps] = useState<(Application & { job?: Job | null })[]>([]);
+  const [appliedApps, setAppliedApps] = useState<(Application & { job?: Job | null; posterName?: string })[]>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -94,15 +113,50 @@ const Dashboard = () => {
 
     if (profileRes.data) setProfile(profileRes.data);
     setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
-    if (openJobsRes.data) setAllJobs(openJobsRes.data);
+
+    // Enrich open jobs with poster first name and reviews
+    if (openJobsRes.data && openJobsRes.data.length > 0) {
+      const posterIds = [...new Set(openJobsRes.data.map((j) => j.customer_id))];
+      const [profilesRes, reviewsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name").in("user_id", posterIds),
+        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", posterIds),
+      ]);
+      const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
+      const reviewMap = new Map<string, number[]>();
+      reviewsRes.data?.forEach((r) => {
+        if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
+        reviewMap.get(r.reviewee_id)!.push(r.rating);
+      });
+      setAllJobs(openJobsRes.data.map((j) => {
+        const ratings = reviewMap.get(j.customer_id) || [];
+        return {
+          ...j,
+          posterName: nameMap.get(j.customer_id) || "User",
+          posterReviewCount: ratings.length,
+          posterAvgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+        };
+      }));
+    } else {
+      setAllJobs([]);
+    }
+
     if (postedRes.data) setPostedJobs(postedRes.data);
 
-    // Enrich applied apps with job data
+    // Enrich applied apps with job data and poster names
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];
       const { data: jobs } = await supabase.from("jobs").select("*").in("id", jobIds);
       const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
-      setAppliedApps(appsRes.data.map((a) => ({ ...a, job: jobMap.get(a.job_id) || null })));
+      const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];
+      let posterNameMap = new Map<string, string>();
+      if (posterIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", posterIds);
+        posterNameMap = new Map(profiles?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
+      }
+      setAppliedApps(appsRes.data.map((a) => {
+        const job = jobMap.get(a.job_id) || null;
+        return { ...a, job, posterName: job ? posterNameMap.get(job.customer_id) || "User" : "User" };
+      }));
     } else {
       setAppliedApps([]);
     }
@@ -110,10 +164,7 @@ const Dashboard = () => {
     setLoading(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   // Browse actions
   const handleApply = async (jobId: string) => {
@@ -128,14 +179,46 @@ const Dashboard = () => {
     }
   };
 
+  // Helper approve/deny an accepted offer
+  const handleHelperResponse = async (app: Application, accept: boolean) => {
+    if (!user) return;
+    if (accept) {
+      // Helper accepts - job stays in_progress
+      toast.success("You accepted the job!");
+    } else {
+      // Helper rejects - revert job to open, reset helper, revert application
+      await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
+      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", app.job_id);
+      toast.info("You declined the job. The poster can select someone else.");
+      loadData(user.id);
+    }
+  };
+
   // Posted jobs actions
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
     const { data: apps } = await supabase.from("applications").select("*").eq("job_id", job.id);
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, skills, hourly_rate").in("user_id", helperIds);
-      setApplications(apps.map((app) => ({ ...app, profiles: profiles?.find((p) => p.user_id === app.helper_id) || null })));
+      const [profilesRes, reviewsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name, skills, hourly_rate").in("user_id", helperIds),
+        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds),
+      ]);
+      const reviewMap = new Map<string, number[]>();
+      reviewsRes.data?.forEach((r) => {
+        if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
+        reviewMap.get(r.reviewee_id)!.push(r.rating);
+      });
+      setApplications(apps.map((app) => {
+        const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
+        const ratings = reviewMap.get(app.helper_id) || [];
+        return {
+          ...app,
+          profiles: prof,
+          reviewCount: ratings.length,
+          avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+        };
+      }));
     } else {
       setApplications([]);
     }
@@ -143,9 +226,9 @@ const Dashboard = () => {
 
   const acceptApplication = async (app: Application & { profiles?: any }) => {
     await supabase.from("applications").update({ status: "accepted" }).eq("id", app.id);
-    await supabase.from("jobs").update({ status: "in_progress", helper_id: app.helper_id }).eq("id", selectedJob!.id);
-    await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob!.id).neq("id", app.id);
-    toast.success("Helper accepted!");
+    await supabase.from("jobs").update({ status: "accepted", helper_id: app.helper_id }).eq("id", selectedJob!.id);
+    // Don't reject others yet - wait for helper to confirm
+    toast.success("Offer sent to helper! Waiting for their confirmation.");
     setSelectedJob(null);
     setApplications([]);
     if (user) loadData(user.id);
@@ -193,6 +276,43 @@ const Dashboard = () => {
     }
   };
 
+  // Edit job
+  const openEditJob = (job: Job) => {
+    setEditJob(job);
+    setEditTitle(job.title);
+    setEditDescription(job.description);
+    setEditCategory(job.category);
+    setEditLocation(job.location);
+    setEditDateNeeded(job.date_needed);
+    setEditStartTime(job.start_time || "");
+    setEditEstimatedHours(job.estimated_hours?.toString() || "");
+    setEditBudget(job.budget.toString());
+    setEditSpecialReq(job.special_requirements || "");
+  };
+
+  const saveEditJob = async () => {
+    if (!editJob) return;
+    setEditSaving(true);
+    const { error } = await supabase.from("jobs").update({
+      title: editTitle.trim(),
+      description: editDescription.trim(),
+      category: editCategory as any,
+      location: editLocation.trim(),
+      date_needed: editDateNeeded,
+      start_time: editStartTime || null,
+      estimated_hours: editEstimatedHours ? parseFloat(editEstimatedHours) : null,
+      budget: parseFloat(editBudget),
+      special_requirements: editSpecialReq.trim() || null,
+    }).eq("id", editJob.id);
+    setEditSaving(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Job updated!");
+      setEditJob(null);
+      if (user) loadData(user.id);
+    }
+  };
+
   const clearFilters = () => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); };
   const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
@@ -230,13 +350,13 @@ const Dashboard = () => {
               <>
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Clock className="w-8 h-8 text-primary" /></div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Profile under review</h1>
-                <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed. You'll have access once approved.</p>
+                <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed.</p>
               </>
             ) : (
               <>
                 <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Profile not approved</h1>
-                <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support if you believe this was a mistake.</p>
+                <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
               </>
             )}
           </div>
@@ -275,7 +395,6 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
-          {/* Quick links */}
           <div className="flex items-center justify-between">
             <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
             <div className="flex gap-2">
@@ -300,9 +419,7 @@ const Dashboard = () => {
               >
                 {t.label}
                 {t.count !== undefined && (
-                  <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>
-                    {t.count}
-                  </span>
+                  <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
                 )}
               </button>
             ))}
@@ -311,7 +428,6 @@ const Dashboard = () => {
           {/* BROWSE TAB */}
           {tab === "browse" && (
             <div className="space-y-4">
-              {/* Filters */}
               <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -369,7 +485,6 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Job list */}
               {filteredJobs.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">{hasFilters ? "No tasks match your filters." : "No open tasks right now."}</p>
@@ -390,6 +505,16 @@ const Dashboard = () => {
                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
                             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
                             <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
+                          </div>
+                          {/* Poster info */}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                            <span>Posted by <span className="font-medium text-foreground">{job.posterName}</span></span>
+                            {job.posterReviewCount !== undefined && job.posterReviewCount > 0 && (
+                              <span className="flex items-center gap-0.5">
+                                <Star className="w-3 h-3 fill-accent text-accent" />
+                                {job.posterAvgRating?.toFixed(1)} ({job.posterReviewCount})
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -426,8 +551,9 @@ const Dashboard = () => {
                           <p className="text-sm text-muted-foreground">${job.budget} · {job.location}</p>
                         </div>
                         <div className="flex gap-1.5 flex-wrap justify-end">
-                          {job.status === "open" && (
+                          {(job.status === "open" || job.status === "accepted") && (
                             <>
+                              <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}><XCircle className="w-4 h-4" /></Button>
                             </>
@@ -463,7 +589,7 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* Applicants modal */}
+              {/* Applicants panel */}
               {selectedJob && (
                 <div className="border border-border rounded-xl bg-card p-5 space-y-4">
                   <div className="flex items-center justify-between">
@@ -475,14 +601,26 @@ const Dashboard = () => {
                   ) : (
                     <div className="space-y-3">
                       {applications.map((app) => (
-                        <div key={app.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                          <div>
-                            <p className="font-medium text-foreground">{app.profiles?.full_name || "Helper"}</p>
-                            {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
-                            {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
-                            {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
+                        <div key={app.id} className="p-3 rounded-lg border border-border space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-foreground">{(app.profiles?.full_name || "Helper").split(" ")[0]}</p>
+                              {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
+                              {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
+                              {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
+                              {/* Applicant reviews */}
+                              {app.reviewCount !== undefined && app.reviewCount > 0 && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Star className="w-3 h-3 fill-accent text-accent" />
+                                  <span className="text-xs text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
+                                </div>
+                              )}
+                              {app.reviewCount === 0 && <p className="text-xs text-muted-foreground mt-1">No reviews yet</p>}
+                            </div>
+                            {app.status === "pending" && <Button size="sm" onClick={() => acceptApplication(app)}>Select</Button>}
+                            {app.status === "accepted" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
+                            {app.status === "rejected" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
                           </div>
-                          {app.status === "pending" && <Button size="sm" onClick={() => acceptApplication(app)}>Accept</Button>}
                         </div>
                       ))}
                     </div>
@@ -522,15 +660,35 @@ const Dashboard = () => {
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {app.job.location}</span>
                             <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${app.job.budget}</span>
+                            <span>Posted by <span className="font-medium text-foreground">{app.posterName}</span></span>
                           </div>
                         )}
                         {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
                       </div>
-                      {app.status === "accepted" && app.job?.status === "in_progress" && (
-                        <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
-                          <MessageSquare className="w-4 h-4 mr-1" /> Message
-                        </Button>
-                      )}
+                      <div className="flex flex-col gap-1.5">
+                        {/* Helper can accept or decline when selected (status=accepted, job=accepted) */}
+                        {app.status === "accepted" && app.job?.status === "accepted" && (
+                          <>
+                            <Button size="sm" onClick={async () => {
+                              await supabase.from("jobs").update({ status: "in_progress" }).eq("id", app.job_id);
+                              // Reject other pending applications
+                              await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
+                              toast.success("Job accepted! You can now message the poster.");
+                              if (user) loadData(user.id);
+                            }}>
+                              <ThumbsUp className="w-4 h-4 mr-1" /> Accept
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
+                              <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                            </Button>
+                          </>
+                        )}
+                        {app.status === "accepted" && app.job?.status === "in_progress" && (
+                          <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                            <MessageSquare className="w-4 h-4 mr-1" /> Message
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -542,6 +700,66 @@ const Dashboard = () => {
 
       {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
       {reviewJob && reviewJob.helper_id && <ReviewForm open={!!reviewJob} onClose={() => setReviewJob(null)} jobId={reviewJob.id} revieweeId={reviewJob.helper_id} revieweeName="Helper" />}
+
+      {/* Edit Job Dialog */}
+      <Dialog open={!!editJob} onOpenChange={() => setEditJob(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">Edit Job</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editTitle">Title</Label>
+              <Input id="editTitle" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editDesc">Description</Label>
+              <Textarea id="editDesc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={editCategory} onValueChange={setEditCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editLoc">Location</Label>
+              <Input id="editLoc" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Date needed</Label>
+                <Input type="date" value={editDateNeeded} onChange={(e) => setEditDateNeeded(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Start time</Label>
+                <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Est. hours</Label>
+                <Input type="number" step="0.5" value={editEstimatedHours} onChange={(e) => setEditEstimatedHours(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Budget ($)</Label>
+                <Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Special requirements</Label>
+              <Textarea value={editSpecialReq} onChange={(e) => setEditSpecialReq(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditJob(null)}>Cancel</Button>
+            <Button onClick={saveEditJob} disabled={editSaving}>{editSaving ? "Saving…" : "Save changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

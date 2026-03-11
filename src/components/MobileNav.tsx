@@ -1,11 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Briefcase, MessageSquare, DollarSign, User } from "lucide-react";
+import { Home, Briefcase, MessageSquare, User } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
   { path: "/post-job", icon: Briefcase, label: "Post" },
   { path: "/messages", icon: MessageSquare, label: "Messages" },
-  { path: "/earnings", icon: DollarSign, label: "Earnings" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
 

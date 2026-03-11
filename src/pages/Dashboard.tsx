@@ -70,6 +70,9 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Enable realtime push notifications
+  useRealtimePush(user?.id ?? null);
+
   const [allJobs, setAllJobs] = useState<(Job & { posterName?: string; posterReviewCount?: number; posterAvgRating?: number; posterCompletedJobs?: number; isBoosted?: boolean })[]>([]);
   const [platformFee, setPlatformFee] = useState(15);
   const [searchQuery, setSearchQuery] = useState("");

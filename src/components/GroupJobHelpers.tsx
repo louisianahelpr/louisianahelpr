@@ -51,7 +51,7 @@ export function GroupJobHelpers({
 
   const removeHelper = async (id: string) => {
     await (supabase.from("group_job_helpers" as any) as any).delete().eq("id", id);
-    toast.success("Helper removed from group");
+    toast.success("Helpr removed from group");
     loadHelpers();
   };
 

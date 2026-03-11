@@ -503,6 +503,158 @@ const ProfilePage = () => {
               )}
             </div>
           )}
+
+          {/* PAYMENT TAB */}
+          {tab === "payment" && (
+            <div className="space-y-6">
+              <h1 className="text-2xl font-display font-bold text-foreground">Payment Settings</h1>
+
+              {/* Account security */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-primary" /> Account Security
+                </h2>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Email</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        const newEmail = prompt("Enter new email address:");
+                        if (!newEmail) return;
+                        const { error } = await supabase.auth.updateUser({ email: newEmail });
+                        if (error) toast.error(error.message);
+                        else toast.success("Confirmation sent to your new email!");
+                      }}
+                    >
+                      <Mail className="w-4 h-4 mr-1" /> Change
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Password</p>
+                      <p className="text-xs text-muted-foreground">••••••••</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if (!user?.email) return;
+                        const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                          redirectTo: `${window.location.origin}/reset-password`,
+                        });
+                        if (error) toast.error(error.message);
+                        else toast.success("Password reset link sent to your email!");
+                      }}
+                    >
+                      <Lock className="w-4 h-4 mr-1" /> Reset
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment info */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-primary" /> Payment Methods
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Payments are securely processed through Stripe. Your card details are saved with Stripe and never stored on our servers.
+                </p>
+                <div className="rounded-lg bg-secondary/30 border border-border p-4 text-center">
+                  <CreditCard className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Your payment methods are managed securely through Stripe during checkout.</p>
+                </div>
+              </div>
+
+              {/* Payment history summary */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-primary" /> Payment Summary
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-secondary/30 p-3">
+                    <p className="text-xs text-muted-foreground">Total Spent</p>
+                    <p className="text-lg font-bold text-foreground">
+                      ${earningsJobs.length > 0 ? earningsJobs.filter(j => j.status === "completed").reduce((s, j) => s + j.budget, 0).toFixed(2) : "0.00"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/30 p-3">
+                    <p className="text-xs text-muted-foreground">Total Earned</p>
+                    <p className="text-lg font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* LEGAL TAB */}
+          {tab === "legal" && (
+            <div className="space-y-6">
+              <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
+
+              <div className="space-y-3">
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" /> Terms of Service
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    By using Helpr, you agree to our Terms of Service. These terms govern your use of the platform, including posting tasks, applying for jobs, and processing payments.
+                  </p>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account and all activity under it.</p>
+                    <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helper, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
+                    <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, or any conduct that violates the rights of others.</p>
+                    <p><strong className="text-foreground">Account Termination:</strong> Helpr reserves the right to suspend or terminate accounts that violate these terms.</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" /> Privacy Policy
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Your privacy is important to us. Here's how we handle your data:
+                  </p>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Data Collection:</strong> We collect information you provide (name, email, location) and usage data to improve the platform.</p>
+                    <p><strong className="text-foreground">Data Usage:</strong> Your data is used to match you with tasks, process payments, and communicate important updates.</p>
+                    <p><strong className="text-foreground">Data Sharing:</strong> We share limited information (first name, reviews) with other users. Payment data is handled securely by Stripe. We never sell your personal information.</p>
+                    <p><strong className="text-foreground">Data Retention:</strong> Your data is retained while your account is active. You can request deletion by contacting support.</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary" /> Payment & Refund Policy
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Escrow System:</strong> All payments are held in escrow until both parties confirm the job is complete.</p>
+                    <p><strong className="text-foreground">Platform Fee:</strong> Helpr charges a platform fee on each transaction. The fee percentage is visible before payment.</p>
+                    <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released.</p>
+                    <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions before approving completion. Helpers are notified and given a chance to address concerns.</p>
+                    <p><strong className="text-foreground">Disputes:</strong> If you have a payment dispute, contact support. We review cases on a case-by-case basis.</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" /> Community Guidelines
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Respect:</strong> Treat all users with respect and professionalism.</p>
+                    <p><strong className="text-foreground">Honesty:</strong> Provide accurate information in your profile and job descriptions.</p>
+                    <p><strong className="text-foreground">Safety:</strong> Never share personal information like home addresses or financial details through messages.</p>
+                    <p><strong className="text-foreground">Reporting:</strong> Report any suspicious or inappropriate behavior using the report feature.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

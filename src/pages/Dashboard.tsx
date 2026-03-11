@@ -158,6 +158,12 @@ const Dashboard = () => {
               desc="Find available jobs in your area."
               onClick={() => navigate("/browse-jobs")}
             />
+            <DashCard
+              icon={<DollarSign className="w-5 h-5 text-primary" />}
+              title="My earnings"
+              desc="View your completed jobs, payouts, and tips."
+              onClick={() => navigate("/earnings")}
+            />
 
             {isAdmin && (
               <DashCard

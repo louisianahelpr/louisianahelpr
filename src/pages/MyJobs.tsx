@@ -91,7 +91,7 @@ const MyJobs = () => {
       response_deadline: deadline,
     } as any).eq("id", selectedJob.id);
     await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob.id).neq("id", deadlineDialogApp.id);
-    toast.success(`Helper accepted! They have ${deadlineHours}h to confirm.`);
+    toast.success(`Helpr accepted! They have ${deadlineHours}h to confirm.`);
     setDeadlineDialogApp(null);
     loadJobs();
     setSelectedJob(null);

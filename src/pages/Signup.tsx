@@ -101,6 +101,15 @@ const Signup = () => {
     return true;
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSignup = async () => {
     if (!validateStep4()) return;
 
@@ -120,60 +129,46 @@ const Signup = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // 2. Upload avatar
-      let avatarUrl: string | null = null;
-      const avatarExt = avatarFile!.name.split(".").pop();
-      const avatarPath = `${userId}/avatar.${avatarExt}`;
-      const { error: avatarErr } = await supabase.storage
-        .from("job-photos")
-        .upload(avatarPath, avatarFile!, { upsert: true });
-      if (avatarErr) throw new Error("Failed to upload profile picture");
-      const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(avatarPath);
-      avatarUrl = urlData.publicUrl;
+      // 2. Prepare file data for server-side upload
+      const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
+      const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
-      // 3. Upload ID document
-      const idExt = idFile!.name.split(".").pop();
-      const idBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(idFile!);
-      });
+      const idBase64 = idFile ? await fileToBase64(idFile) : null;
+      const idExt = idFile ? idFile.name.split(".").pop() : null;
 
-      const { data: uploadRes, error: uploadErr } = await supabase.functions.invoke("upload-id-document", {
-        body: { userId, fileBase64: idBase64, fileName: `id-document.${idExt}`, contentType: idFile!.type },
-      });
-
-      if (uploadErr || uploadRes?.error) throw new Error("Failed to upload ID document");
-
-      // 4. Upload portfolio files
-      const portfolioUrls: string[] = [];
+      const portfolioData = [];
       for (const file of portfolioFiles) {
-        const ext = file.name.split(".").pop();
-        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: pErr } = await supabase.storage.from("user-documents").upload(path, file);
-        if (!pErr) {
-          const { data: pUrl } = supabase.storage.from("user-documents").getPublicUrl(path);
-          portfolioUrls.push(pUrl.publicUrl);
-        }
+        portfolioData.push({
+          base64: await fileToBase64(file),
+          ext: file.name.split(".").pop(),
+          contentType: file.type,
+        });
       }
 
-      // 5. Update profile
-      await supabase
-        .from("profiles")
-        .update({
+      // 3. Call edge function to handle uploads & profile update (uses service role)
+      const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
+        body: {
+          userId,
+          avatarBase64,
+          avatarExt,
+          avatarContentType: avatarFile?.type,
+          idBase64,
+          idExt,
+          idContentType: idFile?.type,
+          portfolioFiles: portfolioData,
           phone,
           bio,
           location,
           skills: skills || null,
-          avatar_url: avatarUrl,
-          id_document_url: `${userId}/id-document.${idExt}`,
-          approval_status: "pending",
-          portfolio_urls: portfolioUrls.length > 0 ? portfolioUrls : [],
-        })
-        .eq("user_id", userId);
+        },
+      });
 
-      // 6. Process referral code if provided
+      if (fnError || result?.error) {
+        console.error("Signup completion error:", fnError || result?.error);
+        // Profile was created but files may have failed - still redirect to verify email
+      }
+
+      // 4. Process referral code if provided
       if (referralCode.trim()) {
         try {
           await supabase.rpc("process_referral", {

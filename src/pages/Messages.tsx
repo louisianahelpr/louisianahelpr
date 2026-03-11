@@ -2,11 +2,14 @@ import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Flag, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
+import { QuickReplies } from "@/components/QuickReplies";
+import { RichMessageInput } from "@/components/RichMessageInput";
+import { useChatPresence, OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
+import { ConversationSkeleton } from "@/components/SkeletonLoaders";
 
 type Message = {
   id: string;
@@ -34,11 +37,17 @@ const Messages = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Chat presence
+  const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({
+    channelName: activeConvo ? `chat-${activeConvo.jobId}-${[userId, activeConvo.otherUserId].sort().join("-")}` : "none",
+    userId: userId || "",
+    otherUserId: activeConvo?.otherUserId || "",
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -131,6 +140,10 @@ const Messages = () => {
           loadConversations(userId);
         }
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const updated = payload.new as Message;
+        setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -138,7 +151,6 @@ const Messages = () => {
 
   const logViolation = async (violationDescription: string) => {
     if (!userId) return;
-    // Check if user already has a warning for off-platform
     const { data: existing } = await supabase
       .from("user_violations" as any)
       .select("id")
@@ -148,79 +160,61 @@ const Messages = () => {
     const priorCount = (existing as any[] | null)?.length || 0;
 
     if (priorCount >= 1) {
-      // 2nd offense: permanent ban
       await (supabase.from("user_bans" as any) as any).insert({
-        user_id: userId,
-        ban_type: "permanent",
-        reason: "Repeated off-platform activity: " + violationDescription,
-        banned_by: userId, // system-issued
+        user_id: userId, ban_type: "permanent",
+        reason: "Repeated off-platform activity: " + violationDescription, banned_by: userId,
       });
       await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
       await (supabase.from("user_violations" as any) as any).insert({
-        user_id: userId,
-        violation_type: "off_platform",
-        description: violationDescription,
-        action_taken: "permanent_ban",
+        user_id: userId, violation_type: "off_platform",
+        description: violationDescription, action_taken: "permanent_ban",
       });
-      // Notify admins
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
           await supabase.from("notifications").insert({
-            user_id: admin.user_id,
-            title: "⛔ User permanently banned",
+            user_id: admin.user_id, title: "⛔ User permanently banned",
             message: `A user was auto-banned for repeated off-platform activity: ${violationDescription}`,
-            type: "warning",
-            link: "/admin",
+            type: "warning", link: "/admin",
           });
         }
       }
       toast.error("Your account has been banned for violating platform rules.");
     } else {
-      // 1st offense: warning
       await (supabase.from("user_violations" as any) as any).insert({
-        user_id: userId,
-        violation_type: "off_platform",
-        description: violationDescription,
-        action_taken: "warning",
+        user_id: userId, violation_type: "off_platform",
+        description: violationDescription, action_taken: "warning",
       });
       await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
-      // Notify admins
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
           await supabase.from("notifications").insert({
-            user_id: admin.user_id,
-            title: "⚠️ Off-platform attempt detected",
+            user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
             message: `A user attempted off-platform activity: ${violationDescription}`,
-            type: "warning",
-            link: "/admin",
+            type: "warning", link: "/admin",
           });
         }
       }
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !activeConvo || !userId) return;
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || !activeConvo || !userId) return;
 
     // Scan for off-platform activity
-    const violations = scanMessage(newMessage);
+    const violations = scanMessage(content);
     if (violations.length > 0) {
       const violationDesc = violations.map((v) => v.label).join(", ");
-
       if (!warningShown) {
-        // Show warning first
         setWarningShown(true);
         toast.error(
           "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
           { duration: 8000 }
         );
-        // Log the violation
         await logViolation(violationDesc);
-        return; // Block the message
+        return;
       } else {
-        // Already warned, log and ban
         await logViolation(violationDesc);
         return;
       }
@@ -230,10 +224,45 @@ const Messages = () => {
       job_id: activeConvo.jobId,
       sender_id: userId,
       receiver_id: activeConvo.otherUserId,
-      content: newMessage.trim(),
+      content: content.trim(),
     });
     if (error) toast.error("Failed to send message");
-    setNewMessage("");
+  };
+
+  const renderMessageContent = (content: string) => {
+    // Photo message
+    if (content.startsWith("📷 ")) {
+      const parts = content.slice(2).trim().split("\n");
+      const url = parts[0].trim();
+      const caption = parts.slice(1).join("\n").trim();
+      return (
+        <div className="space-y-1">
+          <img
+            src={url}
+            alt="Shared photo"
+            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => window.open(url, "_blank")}
+            loading="lazy"
+          />
+          {caption && <p>{caption}</p>}
+        </div>
+      );
+    }
+    // Location message
+    if (content.startsWith("📍 Location:")) {
+      const url = content.replace("📍 Location: ", "");
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 underline hover:no-underline"
+        >
+          📍 View location on map
+        </a>
+      );
+    }
+    return <p>{content}</p>;
   };
 
   return (
@@ -252,7 +281,10 @@ const Messages = () => {
           <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
           {activeConvo && (
             <div className="flex-1 text-right">
-              <p className="text-sm font-medium text-foreground">{activeConvo.otherUserName}</p>
+              <div className="flex items-center justify-end gap-2">
+                <OnlineIndicator isOnline={isOtherOnline} />
+                <p className="text-sm font-medium text-foreground">{activeConvo.otherUserName}</p>
+              </div>
               <p className="text-xs text-muted-foreground">{activeConvo.jobTitle}</p>
             </div>
           )}
@@ -265,7 +297,11 @@ const Messages = () => {
             <div className="space-y-4">
               <h1 className="text-3xl font-display font-bold text-foreground">Messages</h1>
               {loading ? (
-                <p className="text-muted-foreground">Loading…</p>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <ConversationSkeleton key={i} />
+                  ))}
+                </div>
               ) : conversations.length === 0 ? (
                 <div className="text-center py-16">
                   <p className="text-muted-foreground">No messages yet. Apply to a task to start chatting!</p>
@@ -320,10 +356,13 @@ const Messages = () => {
                           : "bg-secondary text-secondary-foreground rounded-bl-md"
                       }`}
                     >
-                      <p>{m.content}</p>
-                      <p className={`text-xs mt-1 ${m.sender_id === userId ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </p>
+                      {renderMessageContent(m.content)}
+                      <div className={`flex items-center gap-1 mt-1 ${m.sender_id === userId ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                        <span className="text-xs">
+                          {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <ReadReceipt read={m.read} sentByMe={m.sender_id === userId} />
+                      </div>
                       {m.sender_id !== userId && (
                         <button
                           onClick={() => setReportTarget({ type: "message", id: m.id })}
@@ -335,19 +374,21 @@ const Messages = () => {
                     </div>
                   </div>
                 ))}
+                {isOtherTyping && <TypingIndicator />}
                 <div ref={bottomRef} />
               </div>
-              <div className="flex gap-2 pt-3 border-t border-border">
-                <Input
-                  placeholder="Type a message…"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                  className="flex-1"
+
+              {/* Quick replies */}
+              <div className="pt-2">
+                <QuickReplies onSelect={sendMessage} />
+              </div>
+
+              {/* Rich message input */}
+              <div className="pt-2 border-t border-border">
+                <RichMessageInput
+                  onSend={sendMessage}
+                  onTyping={broadcastTyping}
                 />
-                <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()}>
-                  <Send className="w-4 h-4" />
-                </Button>
               </div>
             </div>
           )}

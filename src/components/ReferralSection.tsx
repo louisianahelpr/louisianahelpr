@@ -163,8 +163,8 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <div className="space-y-2">
           {[
             "Share your unique referral code with friends",
-            "They enter it during signup and get $5 credit",
-            "You earn $5 credit when they create their account",
+            "They enter it during signup to link the referral",
+            "You both earn $5 when they post or complete their first job",
             "Credits can be applied to your next job payment",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">

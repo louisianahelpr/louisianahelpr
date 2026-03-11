@@ -111,7 +111,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Gift className="w-6 h-6 text-primary" /> Referral Program
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Invite friends and you both earn $5 credit!
+          Invite friends — you both earn $5 when they post or complete their first job!
         </p>
       </div>
 

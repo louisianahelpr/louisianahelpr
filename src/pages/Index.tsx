@@ -13,6 +13,29 @@ const Index = () => {
   usePageTitle("Helpr — Louisiana's Helping Hand for Everyday Tasks");
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "Helpr",
+            description: "Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more.",
+            url: "https://louisianahelpr.lovable.app",
+            applicationCategory: "Marketplace",
+            operatingSystem: "Web",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+            },
+            areaServed: {
+              "@type": "State",
+              name: "Louisiana",
+            },
+          }),
+        }}
+      />
       <Navbar />
       <HeroSection />
       <SocialProofSection />

@@ -607,7 +607,7 @@ const Activity = () => {
                   {filteredPostedJobs.map((job) => {
                     const catStyle = categoryColors[job.category] || categoryColors.other;
                     return (
-                    <div key={job.id} className="group rounded-2xl border border-primary/30 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/50 transition-all">
+                    <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
 
                       {/* Top bar: title + budget */}
                       <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
@@ -679,7 +679,7 @@ const Activity = () => {
                         <div className="space-y-2">
                           {job.status === "open" && (
                             <>
-                              <Button size="sm" variant="outline" className="w-full" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" variant="outline" className="w-full border-2 border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <div className="flex items-center gap-2">
                                 <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                                 <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
@@ -689,7 +689,7 @@ const Activity = () => {
                           )}
                           {job.status === "accepted" && (
                             <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" className="flex-1" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" variant="outline" className="flex-1 border-2 border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
                             </div>
                           )}

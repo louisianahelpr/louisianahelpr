@@ -119,12 +119,6 @@ const Admin = () => {
 
   const quickActions: { id: View; label: string; description: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[] = [
     {
-      id: "people", label: "People", description: "Users, approvals & moderation",
-      icon: <Users className="w-5 h-5" />,
-      badge: stats.pendingApprovals > 0 ? stats.pendingApprovals : undefined,
-      badgeColor: "bg-destructive/10 text-destructive",
-    },
-    {
       id: "jobs", label: "Jobs", description: "All tasks & listings",
       icon: <Briefcase className="w-5 h-5" />,
     },

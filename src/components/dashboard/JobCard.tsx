@@ -67,10 +67,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       {/* Clickable header */}
       <button
         className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left cursor-pointer"
-        onClick={() => {
-          setShowDetails(false);
-          onToggleExpand?.(job.id);
-        }}
+        onClick={() => onToggleExpand?.(job.id)}
       >
         <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}

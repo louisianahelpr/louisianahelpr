@@ -7,7 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PRO_PRODUCT_ID = "prod_U8BlHeIMjMcSgA";
+const PRODUCT_TO_TIER: Record<string, string> = {
+  "prod_U8D5po9hjUJCGc": "basic",
+  "prod_U8BlHeIMjMcSgA": "pro",
+  "prod_U8D6oVie3pcjAC": "elite",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -35,7 +39,7 @@ serve(async (req) => {
 
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({ subscribed: false, tier: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -48,21 +52,22 @@ serve(async (req) => {
       limit: 10,
     });
 
-    const proSub = subscriptions.data.find(sub =>
-      sub.items.data.some(item => item.price.product === PRO_PRODUCT_ID)
-    );
-
-    if (proSub) {
-      return new Response(JSON.stringify({
-        subscribed: true,
-        subscription_end: new Date(proSub.current_period_end * 1000).toISOString(),
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+    for (const sub of subscriptions.data) {
+      const productId = sub.items.data[0]?.price.product as string;
+      const tier = PRODUCT_TO_TIER[productId];
+      if (tier) {
+        return new Response(JSON.stringify({
+          subscribed: true,
+          tier,
+          subscription_end: new Date(sub.current_period_end * 1000).toISOString(),
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
     }
 
-    return new Response(JSON.stringify({ subscribed: false }), {
+    return new Response(JSON.stringify({ subscribed: false, tier: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

@@ -178,18 +178,12 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           )}
 
           {/* Details grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {job.estimated_hours && (
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
-                <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
-              </div>
-            )}
+          {job.estimated_hours && (
             <div className="rounded-lg bg-secondary/30 p-2.5">
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> You Earn</p>
-              <p className="font-semibold text-primary text-sm">${earnings}</p>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+              <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
             </div>
-          </div>
+          )}
 
           {/* Special requirements */}
           {job.special_requirements && (

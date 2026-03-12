@@ -45,14 +45,27 @@ const categoryLabels: Record<string, string> = {
 };
 const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
 
-const statusColors: Record<string, string> = {
+const categoryColors: Record<string, { badge: string; title: string }> = {
+  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700" },
+  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700" },
+  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700" },
+  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700" },
+  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700" },
+  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700" },
+  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700" },
+  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700" },
+  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700" },
+  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700" },
+};
+
+const statusBadge: Record<string, string> = {
   open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  revision_requested: "bg-destructive/10 text-destructive",
-  completed: "bg-secondary text-secondary-foreground",
+  accepted: "bg-amber-500/15 text-amber-600",
+  in_progress: "bg-amber-500/15 text-amber-600",
+  revision_requested: "bg-orange-500/15 text-orange-600",
+  completed: "bg-emerald-500/15 text-emerald-600",
   cancelled: "bg-destructive/10 text-destructive",
-  disputed: "bg-destructive/15 text-destructive",
+  disputed: "bg-red-500/15 text-red-600",
 };
 
 type Tab = "posted" | "applied";
@@ -591,42 +604,40 @@ const Activity = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredPostedJobs.map((job) => (
-                    <div key={job.id} className={`rounded-2xl border-2 overflow-hidden relative shadow-sm transition-all hover:shadow-md ${
-                      job.status === "open" ? "border-primary/40 bg-gradient-to-br from-primary/10 via-primary/5 to-card" :
-                      job.status === "in_progress" || job.status === "accepted" ? "border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-card" :
-                      job.status === "completed" ? "border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-400/5 to-card" :
-                      job.status === "revision_requested" ? "border-orange-500/40 bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-card" :
-                      job.status === "cancelled" ? "border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-card" :
-                      job.status === "disputed" ? "border-red-500/40 bg-gradient-to-br from-red-500/10 via-red-400/5 to-card" :
-                      "border-border bg-card"
-                    }`}>
+                  {filteredPostedJobs.map((job) => {
+                    const catStyle = categoryColors[job.category] || categoryColors.other;
+                    return (
+                    <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
 
-                      {/* Header */}
-                      <div className="p-4 pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-foreground text-base">{job.title}</h3>
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize shrink-0 ${
-                            job.status === "open" ? "bg-primary/15 text-primary" :
-                            job.status === "in_progress" || job.status === "accepted" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
-                            job.status === "completed" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
-                            job.status === "revision_requested" ? "bg-orange-500/15 text-orange-600 dark:text-orange-400" :
-                            job.status === "cancelled" ? "bg-destructive/15 text-destructive" :
-                            "bg-secondary text-secondary-foreground"
-                          }`}>{job.status.replace("_", " ")}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{job.description}</p>
-                        <div className="flex items-center gap-3 mt-2.5 text-sm text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-primary/70" />{job.location}</span>
-                          <span className="flex items-center gap-1 font-bold text-primary"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-primary/70" />{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}{job.start_time ? ` · ${job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary/80 font-medium capitalize">{categoryLabels[job.category] || job.category}</span>
-                          {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">💰 Paid</span>}
+                      {/* Top bar: title + budget */}
+                      <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
+                        <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
+                          {job.title}
+                        </h3>
+                        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
+                          <DollarSign className="w-3.5 h-3.5" />{job.budget}
+                        </span>
+                      </div>
+
+                      {/* Main content */}
+                      <div className="px-4 py-3 space-y-2.5">
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
+
+                        {/* Info grid */}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                          <span className="flex items-center gap-1.5 text-muted-foreground truncate">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{job.location}</span>
+                          </span>
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="w-3 h-3 shrink-0" />
+                            {new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}{job.start_time ? ` · ${job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}
+                          </span>
                         </div>
 
                         {/* Completion confirmation status */}
                         {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
-                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
                             {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>}
                             {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
@@ -636,11 +647,24 @@ const Activity = () => {
 
                         {/* Revision notice */}
                         {job.status === "revision_requested" && (job as any).revision_note && (
-                          <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                          <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
                             <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                             <p className="text-xs text-muted-foreground mt-1">{(job as any).revision_note}</p>
                           </div>
                         )}
+                      </div>
+
+                      {/* Footer: status + category */}
+                      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px]">
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusBadge[job.status] || "bg-secondary text-secondary-foreground"}`}>
+                          {job.status.replace(/_/g, " ")}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {job.payment_status === "released" && <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>}
+                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${catStyle.badge}`}>
+                            {categoryLabels[job.category] || job.category}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Features for active jobs */}
@@ -726,7 +750,8 @@ const Activity = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -795,7 +820,7 @@ const Activity = () => {
                             }`}>{app.status}</span>
                           )}
                           {app.job && app.job.status !== "completed" && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[app.job.status] || ""}`}>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusBadge[app.job.status] || ""}`}>
                               {app.job.status.replace(/_/g, " ")}
                             </span>
                           )}

@@ -75,6 +75,8 @@ const Dashboard = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [expiresWithin, setExpiresWithin] = useState("");
+  const [matchAvailability, setMatchAvailability] = useState(false);
+  const [helperAvailability, setHelperAvailability] = useState<{ day_of_week: number; is_available: boolean; start_time: string; end_time: string }[]>([]);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<EnrichedJob[]>([]);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);

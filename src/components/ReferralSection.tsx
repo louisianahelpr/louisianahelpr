@@ -116,7 +116,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Gift className="w-6 h-6 text-primary" /> Referral Program
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once their first job is completed — whether they posted it or worked it — <strong>you both</strong> earn $5!
+          Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once the person you referred completes their first job — whether they posted it or worked it — <strong>you both</strong> earn $5! The bonus is only awarded after a job is fully completed.
         </p>
       </div>
 
@@ -206,7 +206,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your unique referral code with friends",
             "They enter it during sign-up — the code can only be used at registration",
-            "Once their first job is completed — whether they posted it or worked it — you both earn $5",
+            "Once the person you referred completes their first job — whether they posted it or worked it — you both earn $5",
             "Cash out credits directly to your connected Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">

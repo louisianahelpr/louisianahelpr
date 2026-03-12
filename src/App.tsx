@@ -53,19 +53,19 @@ const App = () => (
           <Route path="/account-denied" element={<AccountDenied />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/post-job" element={<PostJob />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
           <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
           <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/user/:userId" element={<UserProfile />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/activity" element={<Activity />} />
+          <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+          <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/favorites" element={<FavoriteHelpers />} />
+          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+          <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/schedule" element={<Navigate to="/profile" replace />} />

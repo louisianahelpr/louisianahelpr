@@ -61,7 +61,6 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
           <FavoritesPanel />
           <ReferralPanel />
           <ThemeToggle />
-          <ThemeToggle />
           <NotificationPanel />
           <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
             <LogOut className="w-4 h-4" />

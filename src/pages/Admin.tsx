@@ -210,7 +210,7 @@ const Admin = () => {
         {/* Stats overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Users", value: statsLoading ? "…" : stats.totalUsers, icon: Users, onClick: () => setView("people") },
+            { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => setView("people") },
             { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => setView("jobs") },
             { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => setView("analytics") },
             { label: "Platform Fees", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(0)}`, icon: DollarSign, onClick: () => setView("analytics") },

@@ -11,6 +11,7 @@ import {
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
   LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2, Heart, Users, HelpCircle, CalendarHeart, Bell,
+  MessageSquarePlus, Lightbulb, AlertTriangle, Send, CheckCircle2,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import { HelperAvailability } from "@/components/HelperAvailability";

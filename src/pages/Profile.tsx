@@ -307,9 +307,16 @@ const ProfilePage = () => {
             )}
             <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
           </div>
-          {tab === "landing" && (
-            <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
-          )}
+          <div className="flex items-center gap-1">
+            {tab === "landing" && (
+              <Button variant="ghost" size="icon" onClick={() => setTab("referral")} title="Referral Program">
+                <Gift className="w-4 h-4" />
+              </Button>
+            )}
+            {tab === "landing" && (
+              <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
+            )}
+          </div>
         </div>
       </header>
 

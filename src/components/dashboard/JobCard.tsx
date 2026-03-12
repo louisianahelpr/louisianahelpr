@@ -154,14 +154,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
         {/* Action buttons */}
         <div className="px-4 py-3 border-t border-border/40 flex items-center gap-2">
-          <Button
-            size="sm"
-            variant={showDetails ? "default" : "outline"}
-            className={showDetails ? "flex-1" : "flex-1 border-primary text-primary hover:bg-primary/10"}
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? <><ChevronUp className="w-4 h-4 mr-1" /> Less</> : <><Eye className="w-4 h-4 mr-1" /> View</>}
-          </Button>
           {showApply && !isOwnJob && (
             <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onApply(job.id)}>
               <Send className="w-4 h-4 mr-1" /> Apply

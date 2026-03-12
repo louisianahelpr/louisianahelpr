@@ -641,7 +641,7 @@ const PostJob = () => {
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
-                      <span>{location}</span>
+                      <span>{`${streetAddress}, ${city}, ${addrState} ${zipCode}`}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 text-primary shrink-0" />

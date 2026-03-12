@@ -26,7 +26,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",

@@ -116,14 +116,16 @@ const ProfilePage = () => {
   };
 
   const loadStats = async (userId: string) => {
-    const [jobsRes, reviewsRes] = await Promise.all([
+    const [jobsRes, reviewsRes, postedRes] = await Promise.all([
       supabase.from("jobs").select("budget, platform_fee_amount").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
     ]);
     if (jobsRes.data) {
       setCompletedCount(jobsRes.data.length);
       setTotalEarned(jobsRes.data.reduce((s, j) => s + (j.budget - (j.platform_fee_amount || 0)), 0));
     }
+    setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
       setReviewCount(reviewsRes.data.length);

@@ -1005,19 +1005,31 @@ const tierConfig = [
   {
     id: "basic",
     name: "Basic",
-    price: "$9.99/mo",
+    monthly: "$9.99/mo",
+    annual: "$99.99/yr",
+    lifetime: "$199.99",
+    monthlySave: null,
+    annualSave: "Save 17%",
     features: ["Helpr Badge", "Search Priority", "5-min Early Job Access"],
   },
   {
     id: "pro",
     name: "Pro",
-    price: "$14.99/mo",
+    monthly: "$14.99/mo",
+    annual: "$149.99/yr",
+    lifetime: "$299.99",
+    monthlySave: null,
+    annualSave: "Save 17%",
     features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "Weekly Reports", "10-min Early Access"],
   },
   {
     id: "elite",
     name: "Elite",
-    price: "$24.99/mo",
+    monthly: "$24.99/mo",
+    annual: "$249.99/yr",
+    lifetime: "$499.99",
+    monthlySave: null,
+    annualSave: "Save 17%",
     features: ["Everything in Pro", "Landing Page Spotlight", "Auto-Match Jobs", "Priority Dispute Resolution", "20-min Early Access"],
   },
 ];
@@ -1025,6 +1037,7 @@ const tierConfig = [
 const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: User | null }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "lifetime">("monthly");
   const currentTier = profile?.subscription_tier || null;
 
   const handleManageSubscription = async () => {
@@ -1044,7 +1057,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
     setLoadingCheckout(tier);
     try {
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier },
+        body: { tier, interval: billingInterval },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
@@ -1053,6 +1066,18 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
     } finally {
       setLoadingCheckout(null);
     }
+  };
+
+  const getPrice = (tier: typeof tierConfig[0]) => {
+    if (billingInterval === "annual") return tier.annual;
+    if (billingInterval === "lifetime") return tier.lifetime;
+    return tier.monthly;
+  };
+
+  const getSaveBadge = (tier: typeof tierConfig[0]) => {
+    if (billingInterval === "annual") return tier.annualSave;
+    if (billingInterval === "lifetime") return "Best value";
+    return null;
   };
 
   return (
@@ -1084,9 +1109,31 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
         <p className="text-sm text-muted-foreground">You're on the free plan. Upgrade to unlock premium features and get more jobs.</p>
       )}
 
+      {/* Billing Interval Toggle */}
+      <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-muted">
+        {([
+          { key: "monthly", label: "Monthly" },
+          { key: "annual", label: "Annual" },
+          { key: "lifetime", label: "One-Time" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.key}
+            onClick={() => setBillingInterval(opt.key)}
+            className={`flex-1 text-sm font-medium py-2 px-3 rounded-lg transition-all ${
+              billingInterval === opt.key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-3">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id;
+          const saveBadge = getSaveBadge(tier);
           return (
             <div
               key={tier.id}
@@ -1095,7 +1142,14 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-foreground">{tier.name}</h3>
-                  <p className="text-sm font-semibold text-primary">{tier.price}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-primary">{getPrice(tier)}</p>
+                    {saveBadge && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                        {saveBadge}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {isActive && (
                   <span className="flex items-center gap-1 text-xs text-primary font-medium">
@@ -1119,7 +1173,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
                   variant="outline"
                 >
                   {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  {currentTier ? "Change Plan" : "Subscribe"}
+                  {currentTier ? "Change Plan" : billingInterval === "lifetime" ? "Buy Now" : "Subscribe"}
                 </Button>
               )}
             </div>

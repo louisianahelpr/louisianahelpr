@@ -717,9 +717,7 @@ const Activity = () => {
                                 {job.payment_status === "released" && job.helper_id && (
                                   <Button size="sm" variant="outline" onClick={() => {
                                     setEnhancedTipJobId(job.id);
-                                    // Try to find helper name
-                                    const helperProfile = profiles?.find((p: any) => p.user_id === job.helper_id);
-                                    setEnhancedTipHelperName(helperProfile?.full_name || "");
+                                    setEnhancedTipHelperName("");
                                   }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
                                 )}
                                 {job.helper_id && <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}

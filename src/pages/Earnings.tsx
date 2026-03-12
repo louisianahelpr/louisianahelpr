@@ -27,8 +27,7 @@ const Earnings = () => {
         supabase
           .from("tips")
           .select("amount, job_id, created_at")
-          .eq("helper_id", user.id)
-          .eq("payment_status", "pending"),
+          .eq("helper_id", user.id),
       ]);
 
       if (jobsRes.data) setJobs(jobsRes.data);

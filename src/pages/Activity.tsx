@@ -519,7 +519,8 @@ const Activity = () => {
 
   const appliedStatusFilters = [
     { key: "pending", label: "Pending" },
-    { key: "accepted", label: "Accepted" },
+    { key: "in_progress", label: "In Progress" },
+    { key: "completed", label: "Completed" },
     { key: "rejected", label: "Rejected" },
   ];
 

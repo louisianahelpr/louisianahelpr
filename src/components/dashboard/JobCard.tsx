@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, ChevronDown, Eye, Send, ChevronUp,
+  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Eye, Send, ChevronUp,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
@@ -76,12 +76,9 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
         <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}
         </h3>
-        <div className="flex items-center gap-2 shrink-0 ml-3">
-          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
-            <DollarSign className="w-3.5 h-3.5" />{earnings}
-          </span>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-        </div>
+        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
+          <DollarSign className="w-3.5 h-3.5" />{earnings}
+        </span>
       </button>
 
       {/* Always-visible summary */}

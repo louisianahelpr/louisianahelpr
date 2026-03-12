@@ -435,8 +435,8 @@ function SupportInline({ userId }: { userId?: string }) {
   return (
     <div className="min-h-screen bg-background pb-20">
       <DashboardHeader
-        showBack
-        onBack={tab !== "landing" ? () => setTab("landing") : () => navigate("/dashboard")}
+        showBack={tab !== "landing"}
+        onBack={tab !== "landing" ? () => setTab("landing") : undefined}
       />
 
       <main className="container mx-auto px-4 py-4">

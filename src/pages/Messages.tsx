@@ -271,8 +271,8 @@ const Messages = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <DashboardHeader
-        showBack
-        onBack={activeConvo ? () => setActiveConvo(null) : () => navigate("/dashboard")}
+        showBack={!!activeConvo}
+        onBack={activeConvo ? () => setActiveConvo(null) : undefined}
       />
 
       <main className="container mx-auto px-4 py-6">

@@ -79,7 +79,16 @@ const Activity = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [seenPosted, setSeenPosted] = useState(false);
+  const [seenApplied, setSeenApplied] = useState(false);
+  const [lastSeenPostedCount, setLastSeenPostedCount] = useState<number>(() => {
+    const stored = localStorage.getItem("helpr_seen_posted_count");
+    return stored ? parseInt(stored, 10) : 0;
+  });
+  const [lastSeenAppliedCount, setLastSeenAppliedCount] = useState<number>(() => {
+    const stored = localStorage.getItem("helpr_seen_applied_count");
+    return stored ? parseInt(stored, 10) : 0;
+  });
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);

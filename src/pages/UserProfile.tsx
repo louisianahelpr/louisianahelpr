@@ -362,6 +362,9 @@ const UserProfile = () => {
             </div>
           )}
 
+          {/* Availability */}
+          {profile.role === "helper" && <HelperAvailabilityDisplay helperId={userId!} />}
+
           {/* Portfolio */}
           {profile.role === "helper" && <HelperPortfolio helperId={userId!} />}
 

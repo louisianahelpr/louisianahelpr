@@ -1406,6 +1406,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_profiles: { Args: never; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1413,6 +1414,34 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_approved_helpers: {
+        Args: { max_count?: number }
+        Returns: {
+          avatar_url: string
+          bio: string
+          full_name: string
+          location: string
+          skills: string
+          subscription_tier: string
+          user_id: string
+        }[]
+      }
+      get_safe_profiles: {
+        Args: { user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          full_name: string
+          hourly_rate: number
+          location: string
+          portfolio_urls: string[]
+          role: string
+          skills: string
+          subscription_tier: string
+          user_id: string
+        }[]
       }
       has_role: {
         Args: {

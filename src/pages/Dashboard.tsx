@@ -423,8 +423,8 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredJobs.map((job) => (
-                <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} />
+              {filteredJobs.map((job, i) => (
+                <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} />
               ))}
             </div>
           )}

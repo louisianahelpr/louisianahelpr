@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -24,6 +25,7 @@ const Signup = () => {
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   // Step 2 fields
   const [bio, setBio] = useState("");
@@ -97,6 +99,7 @@ const Signup = () => {
     const monthDiff = today.getMonth() - dob.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
     if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
+    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
     return true;
   };
 
@@ -268,7 +271,22 @@ const Signup = () => {
                 </p>
               )}
             </div>
-            <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)}>
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Checkbox
+                id="policies"
+                checked={acceptedPolicies}
+                onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="policies" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                I agree to the{" "}
+                <Link to="/rules" target="_blank" className="text-primary hover:underline font-medium">Platform Rules</Link>,{" "}
+                <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">Terms of Service</Link>, and{" "}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+                I understand the cancellation, no-show, and dispute policies.
+              </label>
+            </div>
+            <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)} disabled={!acceptedPolicies}>
               Continue <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>

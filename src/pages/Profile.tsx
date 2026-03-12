@@ -783,7 +783,42 @@ const ProfilePage = () => {
             <SubscriptionTab profile={profile} user={user} />
           )}
 
-          {/* ACCOUNT SECURITY TAB */}
+          {/* FAVORITES TAB */}
+          {tab === "favorites" && user && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                <Heart className="w-6 h-6 text-primary" /> Favorite Helpers
+              </h1>
+              <p className="text-sm text-muted-foreground">View and manage your saved helpers.</p>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/favorites")}>
+                View All Favorites
+              </Button>
+            </div>
+          )}
+
+          {/* TRUSTED CIRCLES TAB */}
+          {tab === "circles" && user && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                <Users className="w-6 h-6 text-primary" /> Trusted Circles
+              </h1>
+              <TrustedHelperCircle userId={user.id} />
+            </div>
+          )}
+
+          {/* SUPPORT TAB */}
+          {tab === "support" && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
+              </h1>
+              <p className="text-sm text-muted-foreground">Need assistance? Visit our support center.</p>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/support")}>
+                Go to Support Center
+              </Button>
+            </div>
+          )}
+
           {tab === "security" && (
             <div className="space-y-6">
               <h1 className="text-2xl font-display font-bold text-foreground">Account Security</h1>

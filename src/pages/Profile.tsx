@@ -985,7 +985,15 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
           )}
 
           {tab === "notifications" && (
-            <NotificationPreferences />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Notifications</h1>
+              </div>
+              <NotificationPreferences />
+            </div>
           )}
 
           {tab === "security" && (

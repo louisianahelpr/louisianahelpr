@@ -12,8 +12,9 @@ import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
+import AdminNotifications from "@/components/admin/AdminNotifications";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications";
 
 const Admin = () => {
   const { loading } = useAdminAuth();

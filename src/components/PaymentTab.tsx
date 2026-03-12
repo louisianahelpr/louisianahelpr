@@ -34,12 +34,30 @@ type ConnectStatus = {
 };
 
 type SubscriptionTier = "basic" | "pro" | "elite" | null;
+type BillingCycle = "monthly" | "annual" | "one_time";
+
+const PRICING: Record<BillingCycle, Record<string, { label: string; price: string; monthly: string }>> = {
+  monthly: {
+    basic: { label: "Monthly", price: "$9.99/mo", monthly: "$9.99" },
+    pro: { label: "Monthly", price: "$14.99/mo", monthly: "$14.99" },
+    elite: { label: "Monthly", price: "$24.99/mo", monthly: "$24.99" },
+  },
+  annual: {
+    basic: { label: "Annual", price: "$99.90/yr", monthly: "$8.33" },
+    pro: { label: "Annual", price: "$149.90/yr", monthly: "$12.49" },
+    elite: { label: "Annual", price: "$249.90/yr", monthly: "$20.83" },
+  },
+  one_time: {
+    basic: { label: "One month", price: "$9.99", monthly: "$9.99" },
+    pro: { label: "One month", price: "$14.99", monthly: "$14.99" },
+    elite: { label: "One month", price: "$24.99", monthly: "$24.99" },
+  },
+};
 
 const TIERS = [
   {
     key: "basic" as const,
     name: "Basic",
-    price: "$9.99/mo",
     icon: <Star className="w-5 h-5" />,
     color: "border-border",
     activeColor: "border-secondary",
@@ -54,7 +72,6 @@ const TIERS = [
   {
     key: "pro" as const,
     name: "Pro",
-    price: "$14.99/mo",
     icon: <Crown className="w-5 h-5" />,
     color: "border-primary/30",
     activeColor: "border-primary",
@@ -72,7 +89,6 @@ const TIERS = [
   {
     key: "elite" as const,
     name: "Elite",
-    price: "$24.99/mo",
     icon: <Zap className="w-5 h-5" />,
     color: "border-accent/30",
     activeColor: "border-accent",
@@ -103,6 +119,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [billingDay, setBillingDay] = useState<number | null>(null);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
   useEffect(() => {
     checkConnectStatus();
@@ -176,8 +193,8 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const handleCheckout = async (tier: string) => {
     setCheckoutLoading(tier);
     try {
-      const body: any = { tier };
-      if (billingDay) body.billing_day = billingDay;
+      const body: any = { tier, billing_cycle: billingCycle };
+      if (billingCycle !== "one_time" && billingDay) body.billing_day = billingDay;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
@@ -236,8 +253,36 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
             </div>
           ) : (
            <>
-              {/* Billing day selector — shown when no active subscription */}
+              {/* Billing cycle toggle — shown when no active subscription */}
               {!currentTier && (
+                <div className="flex items-center gap-1 rounded-lg bg-secondary/30 p-1">
+                  {([
+                    { value: "one_time" as BillingCycle, label: "One-time" },
+                    { value: "monthly" as BillingCycle, label: "Monthly" },
+                    { value: "annual" as BillingCycle, label: "Annual", badge: "Save 17%" },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setBillingCycle(opt.value)}
+                      className={`flex-1 text-sm font-medium py-2 px-3 rounded-md transition-colors relative ${
+                        billingCycle === opt.value
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                      {opt.badge && (
+                        <span className="absolute -top-2 -right-1 text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                          {opt.badge}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Billing day selector — shown for recurring plans only */}
+              {!currentTier && billingCycle !== "one_time" && (
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
                   <CalendarDays className="w-5 h-5 text-primary shrink-0" />
                   <div className="flex-1">
@@ -285,7 +330,13 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                           </div>
                           <div>
                             <h3 className="font-display font-bold text-foreground">{tier.name}</h3>
-                            <p className="text-sm font-semibold text-primary">{tier.price}</p>
+                            <p className="text-sm font-semibold text-primary">{PRICING[billingCycle][tier.key].price}</p>
+                            {billingCycle === "annual" && (
+                              <p className="text-xs text-muted-foreground">{PRICING[billingCycle][tier.key].monthly}/mo · 2 months free</p>
+                            )}
+                            {billingCycle === "one_time" && (
+                              <p className="text-xs text-muted-foreground">No auto-renewal</p>
+                            )}
                           </div>
                         </div>
                         {!isActive && !currentTier && (

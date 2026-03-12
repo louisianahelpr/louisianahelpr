@@ -3,9 +3,18 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const PRODUCT_TO_TIER: Record<string, string> = {
+  // Monthly recurring
   "prod_U8D5po9hjUJCGc": "basic",
   "prod_U8BlHeIMjMcSgA": "pro",
   "prod_U8D6oVie3pcjAC": "elite",
+  // Annual recurring
+  "prod_U8DiEHun3sWONY": "basic",
+  "prod_U8DiMCIrfVpxn1": "pro",
+  "prod_U8DjLmcSKObhf8": "elite",
+  // One-time month pass
+  "prod_U8DjfNrMFrnq3c": "basic",
+  "prod_U8DkzXC6dpB6VT": "pro",
+  "prod_U8Dk2wt6Jd6fnb": "elite",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -60,18 +69,23 @@ serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode !== "subscription") break;
-
         const customerEmail = session.customer_email || session.customer_details?.email;
         if (!customerEmail) { logStep("No email on checkout session"); break; }
 
-        // Get subscription details to determine tier
-        const subscriptionId = session.subscription as string;
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const productId = subscription.items.data[0]?.price.product as string;
-        const tier = PRODUCT_TO_TIER[productId] || null;
+        let tier: string | null = null;
 
-        logStep("Checkout completed", { email: customerEmail, tier, productId });
+        if (session.mode === "subscription") {
+          // Get subscription details to determine tier
+          const subscriptionId = session.subscription as string;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const productId = subscription.items.data[0]?.price.product as string;
+          tier = PRODUCT_TO_TIER[productId] || null;
+        } else if (session.mode === "payment") {
+          // One-time payment — get tier from session metadata
+          tier = (session.metadata as any)?.tier || null;
+        }
+
+        logStep("Checkout completed", { email: customerEmail, tier, mode: session.mode });
 
         if (tier) {
           const { error } = await supabase

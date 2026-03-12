@@ -27,6 +27,7 @@ import FavoriteHelpers from "./pages/FavoriteHelpers";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProtectedRoute from "./components/ProtectedRoute";
+import InstallPrompt from "./components/InstallPrompt";
 
 const queryClient = new QueryClient({
   defaultOptions: {

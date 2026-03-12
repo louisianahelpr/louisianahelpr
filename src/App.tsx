@@ -1,38 +1,47 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import Index from "./pages/Index";
-import Schedule from "./pages/Schedule";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import SignupPending from "./pages/SignupPending";
-import AccountPending from "./pages/AccountPending";
-import AccountDenied from "./pages/AccountDenied";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import PostJob from "./pages/PostJob";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import UserProfile from "./pages/UserProfile";
-import Admin from "./pages/Admin";
-import Activity from "./pages/Activity";
-import Messages from "./pages/Messages";
-import Support from "./pages/Support";
 import MobileNav from "./components/MobileNav";
-import NotFound from "./pages/NotFound";
-import FavoriteHelpers from "./pages/FavoriteHelpers";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Community from "./pages/Community";
-import PlatformRules from "./pages/PlatformRules";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AdminRoute from "./components/AdminRoute";
-import InstallPrompt from "./components/InstallPrompt";
-import OnboardingTour from "./components/OnboardingTour";
+
+// Eagerly load the landing page for fast first paint
+import Index from "./pages/Index";
+
+// Lazy load all other pages
+const Schedule = lazy(() => import("./pages/Schedule"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const SignupPending = lazy(() => import("./pages/SignupPending"));
+const AccountPending = lazy(() => import("./pages/AccountPending"));
+const AccountDenied = lazy(() => import("./pages/AccountDenied"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const PostJob = lazy(() => import("./pages/PostJob"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Activity = lazy(() => import("./pages/Activity"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Support = lazy(() => import("./pages/Support"));
+const FavoriteHelpers = lazy(() => import("./pages/FavoriteHelpers"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Community = lazy(() => import("./pages/Community"));
+const PlatformRules = lazy(() => import("./pages/PlatformRules"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Lazy load less-critical global components
+const OnboardingTour = lazy(() => import("./components/OnboardingTour"));
+const InstallPrompt = lazy(() => import("./components/InstallPrompt"));
+
+// Lazy load route wrappers
+const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
+const AdminRoute = lazy(() => import("./components/AdminRoute"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +54,12 @@ const queryClient = new QueryClient({
   },
 });
 
+const PageFallback = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -56,40 +71,44 @@ const App = () => (
         </a>
         <BrowserRouter>
           <div id="main-content">
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/signup-pending" element={<SignupPending />} />
-          <Route path="/account-pending" element={<AccountPending />} />
-          <Route path="/account-denied" element={<AccountDenied />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
-          <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
-          <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
-          <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-          <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
-          <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
-          <Route path="/earnings" element={<Navigate to="/profile" replace />} />
-          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
-          <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/rules" element={<PlatformRules />} />
-          <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-          <Route path="/job-history" element={<Navigate to="/profile" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+            <Suspense fallback={<PageFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/signup-pending" element={<SignupPending />} />
+                <Route path="/account-pending" element={<AccountPending />} />
+                <Route path="/account-denied" element={<AccountDenied />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
+                <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+                <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
+                <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+                <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
+                <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+                <Route path="/earnings" element={<Navigate to="/profile" replace />} />
+                <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+                <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
+                <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/community" element={<Community />} />
+                <Route path="/rules" element={<PlatformRules />} />
+                <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+                <Route path="/job-history" element={<Navigate to="/profile" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </div>
           <MobileNav />
-          <OnboardingTour />
-          <InstallPrompt />
+          <Suspense fallback={null}>
+            <OnboardingTour />
+            <InstallPrompt />
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

@@ -412,11 +412,31 @@ const PostJob = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date needed</Label>
-                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} required />
+                    <Select value={dateNeeded} onValueChange={setDateNeeded}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select date" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flexible">📅 Flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {dateNeeded !== "flexible" && (
+                      <Input id="date" type="date" value={dateNeeded === "flexible" ? "" : dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time</Label>
-                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+                    <Select value={startTime} onValueChange={setStartTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flexible">🕐 Flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {startTime !== "flexible" && (
+                      <Input id="time" type="time" value={startTime === "flexible" ? "" : startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    )}
                   </div>
                 </div>
 

@@ -133,11 +133,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             <Calendar className="w-3 h-3 shrink-0" />
             {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
           </a>
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="w-3 h-3 shrink-0" />
-            Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-          </span>
-          {job.expires_at && (
+          {job.start_time && (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="w-3 h-3 shrink-0" />
+              {job.start_time === "flexible"
+                ? "Flexible time"
+                : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+          {job.expires_at ? (
             <span className={`flex items-center gap-1.5 ${
               differenceInHours(new Date(job.expires_at), new Date()) < 24
                 ? "text-destructive font-medium"
@@ -147,6 +151,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               {new Date(job.expires_at) <= new Date()
                 ? "Expired"
                 : `Expires ${formatDistanceToNow(new Date(job.expires_at), { addSuffix: true })}`}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Timer className="w-3 h-3 shrink-0" /> No expiry
             </span>
           )}
         </div>

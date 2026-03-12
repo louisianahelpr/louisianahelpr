@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, ArrowRight, Clock, Timer,
+  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, ChevronDown, Eye, Send,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
@@ -18,6 +17,8 @@ interface JobCardProps {
   onReport: (jobId: string) => void;
   onSelect: (job: EnrichedJob) => void;
   index?: number;
+  isExpanded?: boolean;
+  onToggleExpand?: (jobId: string) => void;
 }
 
 const categoryColors: Record<string, { badge: string; title: string; accent: string }> = {
@@ -33,7 +34,7 @@ const categoryColors: Record<string, { badge: string; title: string; accent: str
   other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", accent: "from-slate-400/10 to-slate-500/5" },
 };
 
-const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0 }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0, isExpanded = false, onToggleExpand }: JobCardProps) => {
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
     reviewCount: job.posterReviewCount || 0,
@@ -42,35 +43,39 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
   const earnings = (job.budget * (1 - effectiveFee / 100)).toFixed(2);
   const catStyle = categoryColors[job.category] || categoryColors.other;
+  const isOwnJob = currentUserId === job.customer_id;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.07, 0.5), ease: [0.25, 0.46, 0.45, 0.94] }}
-      whileHover={{ y: -3 }}
-      className={`group relative rounded-2xl border bg-card cursor-pointer overflow-hidden transition-shadow duration-300 ${
+      className={`group relative rounded-2xl border bg-card overflow-hidden transition-shadow duration-300 ${
         job.isBoosted
           ? "border-primary/30 ring-1 ring-primary/10 shadow-[0_4px_20px_-4px_hsl(158_45%_42%/0.12)]"
           : job.is_urgent
           ? "border-accent/30 shadow-[var(--card-shadow)]"
           : "border-border/60 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20"
       }`}
-      onClick={() => onSelect(job)}
     >
-      {/* Top bar: title + earnings — matches footer style */}
-      <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
+      {/* Clickable header */}
+      <button
+        className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left cursor-pointer"
+        onClick={() => onToggleExpand?.(job.id)}
+      >
         <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}
         </h3>
-        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
-          <DollarSign className="w-3.5 h-3.5" />{earnings}
-        </span>
-      </div>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
+            <DollarSign className="w-3.5 h-3.5" />{earnings}
+          </span>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+        </div>
+      </button>
 
-      {/* Main content */}
+      {/* Always-visible content */}
       <div className="px-4 py-3 space-y-2.5">
-        {/* Tags + Apply */}
         <div>
           <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
             {job.is_urgent && (
@@ -97,7 +102,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors truncate"
           >
             <MapPin className="w-3 h-3 shrink-0" />
@@ -108,14 +112,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               <Calendar className="w-3 h-3 shrink-0" /> Flexible date
             </span>
           ) : (
-            <a
-              href="/schedule"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
-            >
+            <span className="flex items-center gap-1.5 text-muted-foreground">
               <Calendar className="w-3 h-3 shrink-0" />
               {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </a>
+            </span>
           )}
           {job.start_time && (
             <span className="flex items-center gap-1.5 text-muted-foreground">
@@ -144,42 +144,85 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
         </div>
       </div>
 
-      {/* Footer: poster info + category */}
-      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span>
-            by{" "}
-            <a
-              href={`/user/${job.customer_id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="font-semibold text-foreground hover:text-primary transition-colors"
-            >
-              {job.posterName}
-            </a>
+      {/* Expandable section with actions */}
+      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+        {/* Poster info */}
+        <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span>
+              by{" "}
+              <a
+                href={`/user/${job.customer_id}`}
+                className="font-semibold text-foreground hover:text-primary transition-colors"
+              >
+                {job.posterName}
+              </a>
+            </span>
+            {(job.posterReviewCount ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
+                <Star className="w-2.5 h-2.5 fill-accent text-accent" />
+                <span className="font-medium text-accent-foreground">{job.posterAvgRating?.toFixed(1)}</span>
+                <span className="text-muted-foreground">({job.posterReviewCount})</span>
+              </span>
+            )}
+            {job.photos && job.photos.length > 0 && (
+              <span className="flex items-center gap-0.5">
+                <ImageIcon className="w-2.5 h-2.5" /> {job.photos.length} photo{job.photos.length > 1 ? "s" : ""}
+              </span>
+            )}
+            {job.is_group_job && (
+              <span className="flex items-center gap-0.5">
+                👥 Group · {job.helpers_needed}
+              </span>
+            )}
+            <HelperBadges badges={posterBadges} />
+          </div>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
+            {categoryLabels[job.category] || job.category}
           </span>
-          {(job.posterReviewCount ?? 0) > 0 && (
-            <span className="flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
-              <Star className="w-2.5 h-2.5 fill-accent text-accent" />
-              <span className="font-medium text-accent-foreground">{job.posterAvgRating?.toFixed(1)}</span>
-              <span className="text-muted-foreground">({job.posterReviewCount})</span>
-            </span>
-          )}
-          {job.photos && job.photos.length > 0 && (
-            <span className="flex items-center gap-0.5">
-              <ImageIcon className="w-2.5 h-2.5" /> {job.photos.length} photo{job.photos.length > 1 ? "s" : ""}
-            </span>
-          )}
-          {job.is_group_job && (
-            <span className="flex items-center gap-0.5">
-              👥 Group · {job.helpers_needed}
-            </span>
-          )}
-          <HelperBadges badges={posterBadges} />
         </div>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
-          {categoryLabels[job.category] || job.category}
-        </span>
+
+        {/* Action buttons */}
+        <div className="px-4 py-3 border-t border-border/40 flex items-center gap-2">
+          <Button size="sm" variant="outline" className="flex-1 border-primary text-primary hover:bg-primary/10" onClick={() => onSelect(job)}>
+            <Eye className="w-4 h-4 mr-1" /> View
+          </Button>
+          {showApply && !isOwnJob && (
+            <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onApply(job.id)}>
+              <Send className="w-4 h-4 mr-1" /> Apply
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => onReport(job.id)}>
+            <Flag className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Collapsed footer: category badge only */}
+      {!isExpanded && (
+        <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span>
+              by{" "}
+              <a
+                href={`/user/${job.customer_id}`}
+                className="font-semibold text-foreground hover:text-primary transition-colors"
+              >
+                {job.posterName}
+              </a>
+            </span>
+            {(job.posterReviewCount ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
+                <Star className="w-2.5 h-2.5 fill-accent text-accent" />
+                <span className="font-medium text-accent-foreground">{job.posterAvgRating?.toFixed(1)}</span>
+              </span>
+            )}
+          </div>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
+            {categoryLabels[job.category] || job.category}
+          </span>
+        </div>
+      )}
     </motion.div>
   );
 };

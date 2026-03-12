@@ -1041,6 +1041,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "lifetime">("monthly");
+  const [billingDay, setBillingDay] = useState<number>(1);
   const currentTier = profile?.subscription_tier || null;
 
   const handleManageSubscription = async () => {

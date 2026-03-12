@@ -214,7 +214,7 @@ const PostJob = () => {
     if (!category) { toast.error("Category is required"); return; }
     if (!streetAddress.trim()) { toast.error("Street address is required"); return; }
     if (!city.trim()) { toast.error("City is required"); return; }
-    if (!state.trim()) { toast.error("State is required"); return; }
+    if (!addrState.trim()) { toast.error("State is required"); return; }
     if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
     if (!dateNeeded) { toast.error("Date needed is required"); return; }
     if (!startTime) { toast.error("Start time is required"); return; }

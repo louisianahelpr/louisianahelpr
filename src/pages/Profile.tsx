@@ -1116,7 +1116,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
                   onClick={() => currentTier ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
                   className="w-full"
-                  variant={tier.id === "pro" ? "default" : "outline"}
+                  variant="outline"
                 >
                   {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                   {currentTier ? "Change Plan" : "Subscribe"}

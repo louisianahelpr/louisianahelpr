@@ -112,6 +112,25 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </span>
           </div>
 
+          {/* Posted & Expires row */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-3 h-3" /> Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+            </span>
+            {job.expires_at && (
+              <span className={`flex items-center gap-1 ${
+                differenceInHours(new Date(job.expires_at), new Date()) < 24
+                  ? "text-destructive font-medium"
+                  : "text-muted-foreground"
+              }`}>
+                <Timer className="w-3 h-3" />
+                {new Date(job.expires_at) <= new Date()
+                  ? "Expired"
+                  : `Expires ${formatDistanceToNow(new Date(job.expires_at), { addSuffix: true })}`}
+              </span>
+            )}
+          </div>
+
           {/* Poster info */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground pt-0.5 flex-wrap">
             <span>

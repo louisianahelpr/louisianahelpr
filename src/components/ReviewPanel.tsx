@@ -83,7 +83,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || rating === 0}>
+          <Button onClick={handleSubmit} disabled={submitting || rating === 0 || !feedback.trim()}>
             {submitting ? "Submitting…" : "Submit review"}
           </Button>
         </DialogFooter>

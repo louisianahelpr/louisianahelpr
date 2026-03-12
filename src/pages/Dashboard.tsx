@@ -511,6 +511,7 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </PullToRefreshWrapper>
   );
 };
 

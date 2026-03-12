@@ -665,69 +665,72 @@ const Activity = () => {
                         </div>
                       )}
 
-                      {/* Features for active jobs */}
-                      {(job.status === "in_progress" || job.status === "accepted") && user && (
-                        <div className="px-4 pb-3 space-y-3">
-                          <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} />
-                          <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
-                          {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
-                          <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
-                          <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
-                          <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                          <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
-                        </div>
-                      )}
+                      {/* Expandable section */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedJobId === job.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                        {/* Features for active jobs */}
+                        {(job.status === "in_progress" || job.status === "accepted") && user && (
+                          <div className="px-4 pb-3 space-y-3">
+                            <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} />
+                            <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
+                            {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
+                            <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
+                            <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
+                            <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
+                            <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
+                          </div>
+                        )}
 
-                      {/* Actions */}
-                      <div className="border-t border-border/40 px-4 py-3">
-                        <div className="space-y-2">
-                          {job.status === "open" && (
-                            <>
-                              <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                        {/* Actions */}
+                        <div className="border-t border-border/40 px-4 py-3">
+                          <div className="space-y-2">
+                            {job.status === "open" && (
+                              <>
+                                <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                                   <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                                   <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                </div>
+                              </>
+                            )}
+                            {job.status === "accepted" && (
                               <div className="flex items-center gap-2">
-                                <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                                 <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                 <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" variant="outline" className="flex-1 border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                                 <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
-                            </>
-                          )}
-                          {job.status === "accepted" && (
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" className="flex-1 border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                               <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                            </div>
-                          )}
-                          {(job.status === "in_progress" || job.status === "revision_requested") && (
-                            <>
-                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
-                              </Button>
-                              {job.status === "in_progress" && (
-                                <>
-                                  <Button size="sm" className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
-                                  <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
-                                  <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
-                                </>
-                              )}
-                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
-                              <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                            </>
-                          )}
-                          {job.status === "cancelled" && (
-                            <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
-                          )}
-                          {job.status === "completed" && (
-                              <div className="flex items-center justify-center gap-2">
-                                {job.payment_status === "released" && job.helper_id && (
-                                  <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
-                                    setEnhancedTipJobId(job.id);
-                                    setEnhancedTipHelperName("");
-                                  }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                            )}
+                            {(job.status === "in_progress" || job.status === "revision_requested") && (
+                              <>
+                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                                </Button>
+                                {job.status === "in_progress" && (
+                                  <>
+                                    <Button size="sm" className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
+                                    <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
+                                    <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
+                                  </>
                                 )}
-                                {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
-                                <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                              </div>
-                          )}
+                                <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
+                                <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                              </>
+                            )}
+                            {job.status === "cancelled" && (
+                              <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
+                            )}
+                            {job.status === "completed" && (
+                                <div className="flex items-center justify-center gap-2">
+                                  {job.payment_status === "released" && job.helper_id && (
+                                    <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
+                                      setEnhancedTipJobId(job.id);
+                                      setEnhancedTipHelperName("");
+                                    }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                                  )}
+                                  {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                                  <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                                </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

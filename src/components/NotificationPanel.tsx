@@ -141,21 +141,19 @@ const NotificationPanel = () => {
         <NotificationTrigger unreadCount={unreadCount} />
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md p-0">
-        <SheetHeader className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="font-display">Notifications</SheetTitle>
-            <div className="flex items-center gap-1">
-              {pushSupported && !pushEnabled && (
-                <Button variant="ghost" size="sm" onClick={enablePush} className="text-xs text-primary">
-                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
-                </Button>
-              )}
-              {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs text-muted-foreground">
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
-                </Button>
-              )}
-            </div>
+        <SheetHeader className="p-4 pb-3 border-b border-border">
+          <SheetTitle className="font-display">Notifications</SheetTitle>
+          <div className="flex items-center gap-2 pt-1">
+            {pushSupported && !pushEnabled && (
+              <Button variant="ghost" size="sm" onClick={enablePush} className="text-xs text-primary h-7 px-2">
+                <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
+              </Button>
+            )}
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs text-muted-foreground h-7 px-2">
+                <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
+              </Button>
+            )}
           </div>
         </SheetHeader>
         <div className="overflow-y-auto max-h-[calc(100vh-5rem)]">

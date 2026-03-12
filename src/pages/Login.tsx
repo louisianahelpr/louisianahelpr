@@ -102,7 +102,7 @@ const Login = () => {
             </Link>
           </div>
           <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? "Logging in..." : "Log in"}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging in…</> : "Log in"}
           </Button>
         </form>
 

@@ -419,7 +419,7 @@ const Signup = () => {
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <Button className="flex-1" size="lg" onClick={handleSignup} disabled={loading}>
-                {loading ? "Creating account…" : "Submit for review"}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</> : "Submit for review"}
               </Button>
             </div>
           </div>

@@ -739,17 +739,13 @@ const Activity = () => {
                         const bothDone = hasTipped && hasReviewed;
                         return !bothDone ? (
                           <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-2">
-                              {job.payment_status === "released" && job.helper_id && (
-                                <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => {
-                                  setEnhancedTipJobId(job.id);
-                                  setEnhancedTipHelperName("");
-                                }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
-                              )}
-                              {job.helper_id && (
-                                <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
-                              )}
-                              <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                            <div className="grid grid-cols-3 gap-2">
+                              <Button size="sm" className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => {
+                                setEnhancedTipJobId(job.id);
+                                setEnhancedTipHelperName("");
+                              }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                              <Button size="sm" className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
+                              <Button size="sm" className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
                             </div>
                           </div>
                         ) : null;

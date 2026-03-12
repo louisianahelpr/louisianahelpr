@@ -119,8 +119,8 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    // Use Supabase project ref as run_id for transactional emails
-    const runId = (Deno.env.get('SUPABASE_URL') || '').replace('https://', '').split('.')[0]
+    // Use Lovable project ID as run_id for transactional emails
+    const runId = '215189c5-272d-4716-babd-430ab4187c14'
 
     // Send email
     try {

@@ -10,7 +10,7 @@ import CommunityLoveSection from "@/components/landing/CommunityLoveSection";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
-const SITE_URL = "https://louisianahelpr.lovable.app";
+const SITE_URL = "https://louisianahelpr.com";
 
 const louisianaCities = [
   "New Orleans", "Baton Rouge", "Shreveport", "Lafayette", "Lake Charles",

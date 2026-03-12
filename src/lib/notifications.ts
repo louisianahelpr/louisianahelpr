@@ -12,6 +12,7 @@ interface NotificationPayload {
  * Creates an in-app notification and fires off an email notification
  * if the user has email enabled for that notification type.
  * This is fire-and-forget for the email — it won't block or fail the in-app notification.
+ * On email failure, an admin notification is created for visibility.
  */
 export async function createNotification(payload: NotificationPayload) {
   const { user_id, title, message, type = "info", link = null } = payload;
@@ -36,11 +37,15 @@ export async function createNotification(payload: NotificationPayload) {
     .invoke("send-notification-email", {
       body: { user_id, title, message, type, link },
     })
-    .then(({ error: fnErr }) => {
-      if (fnErr) console.error("Notification email invoke failed:", fnErr);
+    .then(({ error: fnErr, data }) => {
+      if (fnErr) {
+        console.error("Notification email invoke failed:", fnErr);
+        notifyAdminsOfEmailFailure(user_id, title, fnErr.message);
+      }
     })
     .catch((err) => {
       console.error("Notification email invoke error:", err);
+      notifyAdminsOfEmailFailure(user_id, title, err?.message || "Unknown error");
     });
 
   return { error: null };
@@ -55,4 +60,35 @@ export async function createNotifications(payloads: NotificationPayload[]) {
     payloads.map((p) => createNotification(p))
   );
   return results;
+}
+
+/**
+ * Fire-and-forget: notify admins when an email fails to send.
+ * Uses a simple debounce key to avoid spamming admin notifications.
+ */
+function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, errorMsg: string) {
+  const debounceKey = `email_fail_alert_${targetUserId}`;
+  const lastAlert = sessionStorage.getItem(debounceKey);
+  if (lastAlert && Date.now() - parseInt(lastAlert, 10) < 60_000) return; // 1min debounce
+  sessionStorage.setItem(debounceKey, Date.now().toString());
+
+  // Get admin users and notify them
+  supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .then(({ data: admins }) => {
+      if (!admins?.length) return;
+      const adminNotifications = admins.map((admin) => ({
+        user_id: admin.user_id,
+        title: "⚠️ Email delivery failed",
+        message: `Failed to send "${emailTitle}" email for user ${targetUserId.slice(0, 8)}…: ${errorMsg}`,
+        type: "warning" as const,
+        link: "/admin",
+      }));
+      // Insert directly to avoid recursive createNotification calls
+      supabase.from("notifications").insert(adminNotifications).then(({ error }) => {
+        if (error) console.error("Failed to notify admins of email failure:", error);
+      });
+    });
 }

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Rate limit: 20 requests per minute per IP
+  const { allowed, remaining, retryAfter } = await checkRateLimit(req, {
+    windowMs: 60_000, maxRequests: 20, keyPrefix: "instant-job-match",
+  });
+  if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
 
   try {
     const { jobId } = await req.json();

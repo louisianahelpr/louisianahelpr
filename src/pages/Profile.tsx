@@ -1051,8 +1051,6 @@ function SupportInline({ userId }: { userId?: string }) {
                   </p>
                 </div>
               </div>
-                </p>
-              </div>
 
               {reviewsLoading ? (
                 <p className="text-sm text-muted-foreground">Loading reviews...</p>

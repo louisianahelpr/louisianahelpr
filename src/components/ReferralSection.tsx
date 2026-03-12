@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Gift, Copy, Share2, Users, DollarSign, Check } from "lucide-react";
+import { Gift, Copy, Share2, Users, DollarSign, Check, Banknote, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ReferralCredit {
@@ -18,14 +18,15 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const [referralCount, setReferralCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [cashingOut, setCashingOut] = useState(false);
+  const [hasStripeAccount, setHasStripeAccount] = useState(false);
 
   useEffect(() => {
     loadReferralData();
   }, [userId]);
 
   const generateCode = () => {
-    // Generate a 6-char alphanumeric code
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // excluding confusing chars
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "";
     for (let i = 0; i < 6; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
@@ -34,43 +35,28 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   };
 
   const loadReferralData = async () => {
-    // Get or create referral code
-    const { data: codeData } = await supabase
-      .from("referral_codes")
-      .select("code")
-      .eq("user_id", userId)
-      .maybeSingle();
+    const [codeRes, creditsRes, referralsRes, profileRes] = await Promise.all([
+      supabase.from("referral_codes").select("code").eq("user_id", userId).maybeSingle(),
+      supabase.from("referral_credits").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase.from("referrals").select("*", { count: "exact", head: true }).eq("referrer_id", userId),
+      supabase.from("profiles").select("stripe_account_id").eq("user_id", userId).single(),
+    ]);
 
-    if (codeData) {
-      setReferralCode(codeData.code);
+    if (codeRes.data) {
+      setReferralCode(codeRes.data.code);
     } else {
-      // Create one
       const newCode = generateCode();
       const { data: inserted, error } = await supabase
         .from("referral_codes")
         .insert({ user_id: userId, code: newCode })
         .select("code")
         .single();
-      if (!error && inserted) {
-        setReferralCode(inserted.code);
-      }
+      if (!error && inserted) setReferralCode(inserted.code);
     }
 
-    // Load credits
-    const { data: creditsData } = await supabase
-      .from("referral_credits")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (creditsData) setCredits(creditsData as ReferralCredit[]);
-
-    // Count referrals
-    const { count } = await supabase
-      .from("referrals")
-      .select("*", { count: "exact", head: true })
-      .eq("referrer_id", userId);
-    setReferralCount(count || 0);
-
+    if (creditsRes.data) setCredits(creditsRes.data as ReferralCredit[]);
+    setReferralCount(referralsRes.count || 0);
+    setHasStripeAccount(!!profileRes.data?.stripe_account_id);
     setLoading(false);
   };
 
@@ -94,6 +80,24 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     } else {
       navigator.clipboard.writeText(url);
       toast.success("Referral link copied!");
+    }
+  };
+
+  const handleCashOut = async () => {
+    setCashingOut(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cash-out-credits");
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(`$${data.amount.toFixed(2)} sent to your connected Stripe account!`);
+        await loadReferralData();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Cash-out failed. Please try again.");
+    } finally {
+      setCashingOut(false);
     }
   };
 
@@ -157,6 +161,33 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </div>
       </div>
 
+      {/* Cash Out Button */}
+      {unredeemedCredits > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Cash out your credits</p>
+              <p className="text-xs text-muted-foreground">
+                {hasStripeAccount
+                  ? `$${unredeemedCredits.toFixed(2)} available — transfers to your connected Stripe account`
+                  : "Connect a Stripe account in your Profile to cash out"}
+              </p>
+            </div>
+            <Button
+              onClick={handleCashOut}
+              disabled={cashingOut || !hasStripeAccount}
+              size="sm"
+            >
+              {cashingOut ? (
+                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Processing…</>
+              ) : (
+                <><Banknote className="w-4 h-4 mr-1" /> Cash out ${unredeemedCredits.toFixed(2)}</>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* How it works */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
         <h3 className="text-sm font-semibold text-foreground">How it works</h3>
@@ -165,7 +196,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             "Share your unique referral code with friends",
             "They enter it during signup to link the referral",
             "When they complete their first job — as poster or crew — you both earn $5",
-            "Credits can be applied to your next job payment",
+            "Cash out credits directly to your connected Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 font-bold mt-0.5">
@@ -194,7 +225,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
               <div className="text-right">
                 <p className="text-sm font-bold text-primary">+${Number(c.amount).toFixed(2)}</p>
                 <p className={`text-[10px] ${c.redeemed ? "text-muted-foreground" : "text-primary"}`}>
-                  {c.redeemed ? "Redeemed" : "Available"}
+                  {c.redeemed ? "Cashed out" : "Available"}
                 </p>
               </div>
             </div>

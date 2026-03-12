@@ -126,9 +126,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </span>
           ) : (
             <a
-              href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}/${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}&details=${encodeURIComponent(job.description)}&location=${encodeURIComponent(job.location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/schedule"
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
             >

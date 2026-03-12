@@ -530,7 +530,13 @@ const Activity = () => {
 
   const filteredAppliedApps = !statusFilter
     ? appliedApps
-    : appliedApps.filter((a) => a.status === statusFilter);
+    : appliedApps.filter((a) => {
+        if (statusFilter === "pending") return a.status === "pending";
+        if (statusFilter === "rejected") return a.status === "rejected";
+        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
+        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
+        return true;
+      });
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },

@@ -194,10 +194,15 @@ const PostJob = () => {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (parseFloat(budget) < 5) {
-      toast.error("Minimum budget is $5");
-      return;
-    }
+    if (!title.trim()) { toast.error("Task title is required"); return; }
+    if (!description.trim()) { toast.error("Description is required"); return; }
+    if (!category) { toast.error("Category is required"); return; }
+    if (!location.trim()) { toast.error("Location is required"); return; }
+    if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    if (!startTime) { toast.error("Start time is required"); return; }
+    if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
+    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
+    if (jobDuration === "none") { /* allowed */ }
     setStep("checkout");
   };
 

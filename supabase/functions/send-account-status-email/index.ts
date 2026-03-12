@@ -210,6 +210,7 @@ Deno.serve(async (req) => {
       const { error: enqueueError } = await supabaseAdmin.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: {
+          run_id: runId,
           message_id: messageId,
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,

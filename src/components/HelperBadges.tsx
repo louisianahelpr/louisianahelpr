@@ -15,16 +15,31 @@ export function computeBadges(stats: {
   responseHours?: number;
   memberSinceDays?: number;
   isPro?: boolean;
+  helprTier?: string | null;
 }): HelperBadge[] {
   const badges: HelperBadge[] = [];
 
-  // ⭐ Pro Helpr badge — always first
-  if (stats.isPro) {
+  // Tier badges — always first
+  if (stats.helprTier === "elite") {
+    badges.push({
+      key: "elite_sub",
+      label: "Elite Helpr",
+      icon: <Crown className="w-3 h-3" />,
+      color: "bg-accent/20 text-accent-foreground border border-accent/30",
+    });
+  } else if (stats.helprTier === "pro" || stats.isPro) {
     badges.push({
       key: "pro",
       label: "Pro Helpr",
       icon: <Sparkles className="w-3 h-3" />,
       color: "bg-primary/20 text-primary border border-primary/30",
+    });
+  } else if (stats.helprTier === "basic") {
+    badges.push({
+      key: "basic_sub",
+      label: "Basic Helpr",
+      icon: <Star className="w-3 h-3" />,
+      color: "bg-secondary/80 text-secondary-foreground border border-border",
     });
   }
 

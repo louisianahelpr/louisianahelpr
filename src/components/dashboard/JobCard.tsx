@@ -145,7 +145,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       </div>
 
       {/* Expandable section */}
-      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+      <div onClick={(e) => e.stopPropagation()} className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
         {/* Action buttons */}
         <div className="px-4 py-3 border-t border-border/40 flex items-center gap-2">
           {showApply && !isOwnJob && (

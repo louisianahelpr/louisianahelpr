@@ -603,15 +603,25 @@ const Activity = () => {
                     }`}>
 
                       {/* Header */}
-                      <div className="p-4 pb-3 pr-10">
-                        <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{job.description}</p>
-                        <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
-                          <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}{job.start_time ? ` · ${job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground capitalize">{categoryLabels[job.category] || job.category}</span>
-                          {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
+                      <div className="p-4 pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-bold text-foreground text-base">{job.title}</h3>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize shrink-0 ${
+                            job.status === "open" ? "bg-primary/15 text-primary" :
+                            job.status === "in_progress" || job.status === "accepted" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
+                            job.status === "completed" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
+                            job.status === "revision_requested" ? "bg-orange-500/15 text-orange-600 dark:text-orange-400" :
+                            job.status === "cancelled" ? "bg-destructive/15 text-destructive" :
+                            "bg-secondary text-secondary-foreground"
+                          }`}>{job.status.replace("_", " ")}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{job.description}</p>
+                        <div className="flex items-center gap-3 mt-2.5 text-sm text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-primary/70" />{job.location}</span>
+                          <span className="flex items-center gap-1 font-bold text-primary"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-primary/70" />{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}{job.start_time ? ` · ${job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary/80 font-medium capitalize">{categoryLabels[job.category] || job.category}</span>
+                          {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">💰 Paid</span>}
                         </div>
 
                         {/* Completion confirmation status */}

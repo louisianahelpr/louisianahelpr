@@ -84,6 +84,8 @@ const Activity = () => {
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<(Application & { profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null; reviewCount?: number; avgRating?: number })[]>([]);
+  const [inlineApplicants, setInlineApplicants] = useState<Record<string, typeof applications>>({});
+  const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [tipJobId, setTipJobId] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");

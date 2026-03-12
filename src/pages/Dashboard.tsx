@@ -327,7 +327,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <DashboardHeader isAdmin={isAdmin} />
+      <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 
       <main className="container mx-auto px-4 py-5">

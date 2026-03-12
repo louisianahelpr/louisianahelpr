@@ -176,6 +176,7 @@ const UserProfile = () => {
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
 
   useEffect(() => {
     if (!userId) return;

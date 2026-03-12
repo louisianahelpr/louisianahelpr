@@ -276,7 +276,7 @@ const ProfilePage = () => {
 
   const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
-    { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
+    
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     
     

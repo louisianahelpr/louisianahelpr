@@ -412,31 +412,33 @@ const PostJob = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date needed</Label>
-                    <Select value={dateNeeded} onValueChange={setDateNeeded}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select date" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="flexible">📅 Flexible</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {dateNeeded !== "flexible" && (
-                      <Input id="date" type="date" value={dateNeeded === "flexible" ? "" : dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} />
-                    )}
+                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} required />
+                    <button
+                      type="button"
+                      onClick={() => setDateNeeded("flexible")}
+                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                        dateNeeded === "flexible"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      📅 Flexible date
+                    </button>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time</Label>
-                    <Select value={startTime} onValueChange={setStartTime}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="flexible">🕐 Flexible</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {startTime !== "flexible" && (
-                      <Input id="time" type="time" value={startTime === "flexible" ? "" : startTime} onChange={(e) => setStartTime(e.target.value)} />
-                    )}
+                    <Input id="time" type="time" value={startTime === "flexible" ? "" : startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <button
+                      type="button"
+                      onClick={() => setStartTime(startTime === "flexible" ? "" : "flexible")}
+                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                        startTime === "flexible"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      🕐 Flexible time
+                    </button>
                   </div>
                 </div>
 

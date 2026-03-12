@@ -150,7 +150,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

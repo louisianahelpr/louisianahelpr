@@ -690,7 +690,7 @@ const Activity = () => {
                           {job.status === "accepted" && (
                             <div className="flex items-center gap-2">
                               <Button size="sm" variant="outline" className="flex-1 border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                               <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                               <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                             </div>
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (

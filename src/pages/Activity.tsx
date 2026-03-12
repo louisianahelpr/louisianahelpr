@@ -713,15 +713,15 @@ const Activity = () => {
                             <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                           )}
                           {job.status === "completed" && (
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex items-center justify-center gap-2">
                                 {job.payment_status === "released" && job.helper_id && (
-                                  <Button size="sm" variant="outline" onClick={() => {
+                                  <Button size="sm" className="flex-1 border border-primary text-primary hover:bg-primary/10 bg-transparent" onClick={() => {
                                     setEnhancedTipJobId(job.id);
                                     setEnhancedTipHelperName("");
                                   }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
                                 )}
-                                {job.helper_id && <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
-                                <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                                {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                                <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
                               </div>
                           )}
                         </div>

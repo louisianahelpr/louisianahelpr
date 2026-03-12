@@ -673,11 +673,6 @@ const Activity = () => {
                           {job.title}
                         </h3>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
-                          {(applicantCounts[job.id] || 0) > 0 && (
-                            <span className="flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                              <Users className="w-3 h-3" /> {applicantCounts[job.id]}
-                            </span>
-                          )}
                           <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
                             <DollarSign className="w-3.5 h-3.5" />{job.budget}
                           </span>

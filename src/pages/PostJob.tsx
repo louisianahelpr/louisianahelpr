@@ -91,7 +91,17 @@ const PostJob = () => {
           setTitle(data.title);
           setDescription(data.description);
           setCategory(data.category);
-          setLocation(data.location);
+          // Parse location back into fields if possible
+          const locParts = (data.location || "").split(", ");
+          if (locParts.length >= 3) {
+            setStreetAddress(locParts[0]);
+            setCity(locParts[1]);
+            const stateZip = locParts[2].split(" ");
+            setAddrState(stateZip[0] || "");
+            setZipCode(stateZip.slice(1).join(" ") || "");
+          } else {
+            setStreetAddress(data.location);
+          }
           setBudget(data.budget.toString());
           setEstimatedHours(data.estimated_hours?.toString() || "");
           setSpecialRequirements(data.special_requirements || "");

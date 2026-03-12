@@ -776,7 +776,12 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* EARNINGS TAB */}
           {tab === "earnings" && (
             <div className="space-y-6">
-              <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
+              </div>
               {earningsLoading ? (
                 <p className="text-muted-foreground">Loading…</p>
               ) : (

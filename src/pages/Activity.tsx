@@ -631,7 +631,6 @@ const Activity = () => {
               <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(""); }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
-                <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
               </button>
             ))}
           </div>

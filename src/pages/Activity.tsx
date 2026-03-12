@@ -563,7 +563,7 @@ const Activity = () => {
             ))}
           </div>
 
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex flex-wrap gap-1.5">
             {activeStatusFilters.map((f) => (
               <button
                 key={f.key}

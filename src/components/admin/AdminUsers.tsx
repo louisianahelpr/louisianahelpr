@@ -55,11 +55,23 @@ const AdminUsers = () => {
 
   const openProfile = async (profile: Profile) => {
     setViewProfile(profile);
+    setIdDocSignedUrl(null);
+
     const [reviewsRes, violationsRes, bansRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
     ]);
+
+    // Generate signed URL for private ID document
+    if (profile.id_document_url) {
+      const { data: signedData } = await supabase.storage
+        .from("id-documents")
+        .createSignedUrl(profile.id_document_url, 3600); // 1 hour
+      if (signedData?.signedUrl) {
+        setIdDocSignedUrl(signedData.signedUrl);
+      }
+    }
 
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];

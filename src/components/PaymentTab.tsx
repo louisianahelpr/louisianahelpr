@@ -101,6 +101,8 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [subLoading, setSubLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [billingDay, setBillingDay] = useState<number | null>(null);
 
   useEffect(() => {
     checkConnectStatus();

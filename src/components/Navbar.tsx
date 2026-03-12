@@ -26,6 +26,7 @@ const Navbar = () => {
           <a href="#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
           </a>
+          <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in
           </Button>

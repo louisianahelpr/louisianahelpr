@@ -502,7 +502,7 @@ const Dashboard = () => {
                     {hasFilters ? "Filtered Results" : "Browse Tasks"}
                   </h2>
                   <span className="text-[10px] text-muted-foreground">
-                    {filteredJobs.length} available to help with
+                    {filteredJobs.length} available
                   </span>
                 </div>
               </div>

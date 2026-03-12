@@ -1000,34 +1000,96 @@ const Activity = () => {
                 </div>
               ) : (
                 filteredAppliedApps.map((app) => (
-                  <div key={app.id} className="rounded-xl border border-border bg-card overflow-hidden cursor-pointer" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
-                    {/* Header */}
-                    <div className="w-full px-4 py-3 flex items-center justify-between text-left">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-semibold text-foreground">{app.job?.title || "Task"}</h3>
-                          {!(app.status === "accepted" && app.job?.status === "completed") && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
-                              app.status === "accepted" ? "bg-primary/10 text-primary"
-                              : app.status === "rejected" ? "bg-destructive/10 text-destructive"
-                              : "bg-secondary text-secondary-foreground"
-                            }`}>{app.status}</span>
-                          )}
-                          {app.job && app.job.status !== "completed" && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusBadge[app.job.status] || ""}`}>
-                              {app.job.status.replace(/_/g, " ")}
-                            </span>
-                          )}
-                        </div>
-                        {app.job && (
-                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {app.job.location}</span>
-                            <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${app.job.budget}</span>
-                          </div>
+                  <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden cursor-pointer shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+                    {/* Top bar: title + budget + chevron */}
+                    <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className={`font-bold text-[15px] leading-snug min-w-0 truncate ${(categoryColors[app.job?.category || "other"] || categoryColors.other).title}`}>
+                          {app.job?.title || "Task"}
+                        </h3>
+                        {!(app.status === "accepted" && app.job?.status === "completed") && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                            app.status === "accepted" ? "bg-primary/10 text-primary"
+                            : app.status === "rejected" ? "bg-destructive/10 text-destructive"
+                            : "bg-secondary text-secondary-foreground"
+                          }`}>{app.status}</span>
+                        )}
+                        {app.job && app.job.status !== "completed" && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${statusBadge[app.job.status] || ""}`}>
+                            {app.job.status.replace(/_/g, " ")}
+                          </span>
                         )}
                       </div>
-                      <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        {app.job && (
+                          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
+                            <DollarSign className="w-3.5 h-3.5" />{app.job.budget}
+                          </span>
+                        )}
+                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
+                      </div>
                     </div>
+
+                    {/* Always-visible summary: date, time, city/state */}
+                    {app.job && (
+                      <div className="px-4 py-3 space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+                          {/* Date */}
+                          {app.job.special_requirements?.includes("[Flexible date]") ? (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              {new Date(app.job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                          {/* Time */}
+                          {app.job.start_time && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 shrink-0" /> {app.job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${app.job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          )}
+                          {/* City, State */}
+                          {(() => {
+                            const locationParts = app.job!.location.split(",").map(s => s.trim());
+                            let cityState = app.job!.location;
+                            if (locationParts.length >= 2) {
+                              const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
+                              const city = locationParts[locationParts.length - 2];
+                              cityState = `${city}, ${state}`;
+                            }
+                            return (
+                              <a
+                                onClick={(e) => e.stopPropagation()}
+                                href={app.job!.latitude && app.job!.longitude
+                                  ? `https://www.google.com/maps?q=${app.job!.latitude},${app.job!.longitude}`
+                                  : `https://www.google.com/maps/search/${encodeURIComponent(app.job!.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-primary transition-colors"
+                              >
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="truncate max-w-[140px]">{cityState}</span>
+                              </a>
+                            );
+                          })()}
+                          {/* Expiry */}
+                          {app.job.expires_at && (() => {
+                            const expiryText = new Date(app.job!.expires_at!) <= new Date()
+                              ? "Expired"
+                              : formatDistanceToNow(new Date(app.job!.expires_at!), { addSuffix: false }) + " left";
+                            const isExpiringSoon = differenceInHours(new Date(app.job!.expires_at!), new Date()) < 24;
+                            return (
+                              <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+                                <Timer className="w-3 h-3 shrink-0" /> {expiryText}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Expandable content */}
                     <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>

@@ -8,11 +8,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// Only select the columns we actually need for the dashboard
-const JOB_SELECT = `id, title, description, category, budget, location, date_needed,
-  start_time, estimated_hours, customer_id, helper_id, status, is_urgent, urgent_fee,
-  is_group_job, helpers_needed, boosted_at, boost_expires_at, created_at,
-  special_requirements, photos, is_recurring, recurrence_interval` as const;
 
 export function useDashboardData() {
   const navigate = useNavigate();

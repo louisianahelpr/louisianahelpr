@@ -60,6 +60,7 @@ const HelperSpotlightSection = () => {
       });
 
       // Sort by rating * reviewCount (reputation score) and take top 3
+      // TODO: Prioritize Elite subscribers when subscription_tier is stored in profiles
       const top = enriched
         .filter(h => h.reviewCount > 0)
         .sort((a, b) => (b.avgRating * b.reviewCount) - (a.avgRating * a.reviewCount))

@@ -97,6 +97,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
           <a
+            onClick={(e) => e.stopPropagation()}
             href={job.latitude && job.longitude
               ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
               : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}

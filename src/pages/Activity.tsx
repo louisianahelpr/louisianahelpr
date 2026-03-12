@@ -593,63 +593,62 @@ const Activity = () => {
                 <div className="space-y-3">
                   {filteredPostedJobs.map((job) => (
                     <div key={job.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                      <div className="p-4">
+                      {/* Header */}
+                      <div className="p-4 pb-3">
                         <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
                           <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
                           {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
                         </div>
-                          {/* Show who has confirmed completion */}
-                          {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
-                            <div className="mt-1 flex items-center gap-2 flex-wrap">
-                              {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
-              {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>}
-                               {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
-                               {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helpr</span>}
-                            </div>
-                          )}
-                          {/* New features for posted jobs */}
-                          {(job.status === "in_progress" || job.status === "accepted") && user && (
-                            <div className="mt-3 space-y-3">
-                              <JobConfirmation
-                                jobId={job.id}
-                                isOwner={true}
-                                isHelper={false}
-                                posterConfirmedAt={(job as any).poster_confirmed_at}
-                                helperConfirmedAt={(job as any).helper_confirmed_at}
-                                dateNeeded={job.date_needed}
-                              />
-                              <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
-                              {(job as any).is_group_job && (
-                                <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />
-                              )}
-                              <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
-                              <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
-                              <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                              <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
-                            </div>
-                          )}
-                          {job.status === "revision_requested" && (job as any).revision_note && (
-                            <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
-                              <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
-                              <p className="text-xs text-muted-foreground mt-1">{(job as any).revision_note}</p>
-                            </div>
-                          )}
+
+                        {/* Completion confirmation status */}
+                        {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
+                            {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>}
+                            {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                            {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helpr</span>}
+                          </div>
+                        )}
+
+                        {/* Revision notice */}
+                        {job.status === "revision_requested" && (job as any).revision_note && (
+                          <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                            <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                            <p className="text-xs text-muted-foreground mt-1">{(job as any).revision_note}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Features for active jobs */}
+                      {(job.status === "in_progress" || job.status === "accepted") && user && (
+                        <div className="px-4 pb-3 space-y-3">
+                          <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} />
+                          <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
+                          {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
+                          <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
+                          <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
+                          <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
+                          <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
                         </div>
-                        <div className="flex gap-1.5 flex-wrap justify-end">
+                      )}
+
+                      {/* Actions */}
+                      <div className="border-t border-border px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           {job.status === "open" && (
                             <>
-                              <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                              <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                              <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
                           {job.status === "accepted" && (
                             <>
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (
@@ -657,64 +656,44 @@ const Activity = () => {
                               <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
-                                {job.status === "in_progress" && (
-                                  <>
-                                    <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}>
-                                      <AlertTriangle className="w-4 h-4 mr-1" /> Revision
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                                      onClick={() => setDisputeJob(job)}>
-                                      Dispute
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                                      onClick={() => setNoShowJobId(job.id)}>
-                                      No-Show
-                                    </Button>
-                                  </>
-                                )}
+                              {job.status === "in_progress" && (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
+                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDisputeJob(job)}>Dispute</Button>
+                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
+                                </>
+                              )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
-                          {job.status === "cancelled" && <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>}
-                          {job.status === "completed" && job.payment_status !== "released" && job.helper_id && (
-                            <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
+                          {job.status === "cancelled" && (
+                            <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
+                          )}
+                          {job.status === "completed" && (
+                            <>
+                              {job.helper_id && <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                              <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                              {job.payment_status === "released" && (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 5)} disabled={tipping}><Gift className="w-3.5 h-3.5 mr-1" /> $5</Button>
+                                  <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 10)} disabled={tipping}><Gift className="w-3.5 h-3.5 mr-1" /> $10</Button>
+                                  <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 20)} disabled={tipping}><Gift className="w-3.5 h-3.5 mr-1" /> $20</Button>
+                                  {tipJobId === job.id ? (
+                                    <div className="flex items-center gap-2">
+                                      <Input type="number" min="1" placeholder="Custom $" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[90px]" />
+                                      <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
+                                      <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>✕</Button>
+                                    </div>
+                                  ) : (
+                                    <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>Custom</Button>
+                                  )}
+                                </>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
-                      {/* Completed: tip & review */}
-                      {job.status === "completed" && job.payment_status === "released" && (
-                        <div className="border-t border-border pt-3 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 5)} disabled={tipping}>
-                              <Gift className="w-3.5 h-3.5 mr-1" /> $5
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 10)} disabled={tipping}>
-                              <Gift className="w-3.5 h-3.5 mr-1" /> $10
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 20)} disabled={tipping}>
-                              <Gift className="w-3.5 h-3.5 mr-1" /> $20
-                            </Button>
-                            {tipJobId === job.id ? (
-                              <div className="flex items-center gap-2">
-                                <Input type="number" min="1" placeholder="Custom $" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[90px]" />
-                                <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
-                                <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>✕</Button>
-                              </div>
-                            ) : (
-                              <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>Custom</Button>
-                            )}
-                            {job.helper_id && (
-                              <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)} className="ml-auto">
-                                <Star className="w-3.5 h-3.5 mr-1" /> Review
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Rebook
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

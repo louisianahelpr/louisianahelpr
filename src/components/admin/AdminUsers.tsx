@@ -26,6 +26,7 @@ const AdminUsers = () => {
   const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string }[]>([]);
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
   const [profileBans, setProfileBans] = useState<any[]>([]);
+  const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);

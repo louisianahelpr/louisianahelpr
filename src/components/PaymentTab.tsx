@@ -193,8 +193,8 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const handleCheckout = async (tier: string) => {
     setCheckoutLoading(tier);
     try {
-      const body: any = { tier };
-      if (billingDay) body.billing_day = billingDay;
+      const body: any = { tier, billing_cycle: billingCycle };
+      if (billingCycle !== "one_time" && billingDay) body.billing_day = billingDay;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }

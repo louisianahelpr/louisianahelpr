@@ -774,7 +774,7 @@ const Activity = () => {
                   <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
                 </div>
               ) : (
-                appliedApps.map((app) => (
+                filteredAppliedApps.map((app) => (
                   <div key={app.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">

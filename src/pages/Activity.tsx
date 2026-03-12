@@ -511,7 +511,6 @@ const Activity = () => {
   }
 
   const postedStatusFilters = [
-    { key: "all", label: "All" },
     { key: "open", label: "Open" },
     { key: "accepted", label: "Accepted" },
     { key: "in_progress", label: "In Progress" },

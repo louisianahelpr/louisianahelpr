@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Mail, Phone } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Mail, Phone, ClipboardList, Hammer } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
@@ -103,6 +103,66 @@ const ReviewsSection = ({ reviews, stats }: {
   );
 };
 
+const statusColors: Record<string, string> = {
+  completed: "bg-emerald-100 text-emerald-700",
+  open: "bg-sky-100 text-sky-700",
+  in_progress: "bg-amber-100 text-amber-700",
+  cancelled: "bg-red-100 text-red-600",
+  accepted: "bg-violet-100 text-violet-700",
+  disputed: "bg-red-100 text-red-600",
+  revision_requested: "bg-orange-100 text-orange-700",
+};
+
+const JobHistorySection = ({ jobs, title, icon }: {
+  jobs: { id: string; title: string; status: string; category: string; budget: number; created_at: string }[];
+  title: string;
+  icon: React.ReactNode;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const completedCount = jobs.filter(j => j.status === "completed").length;
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full rounded-2xl border border-border bg-card p-4 text-left hover:border-primary/20 hover:shadow-sm transition-all"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h2 className="text-base font-display font-bold text-foreground">{title}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{jobs.length} total · {completedCount} completed</span>
+            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          {jobs.map((job) => (
+            <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-bold text-primary">${job.budget}</span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>
+                  {job.status.replace("_", " ")}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
@@ -111,6 +171,8 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
   const [stats, setStats] = useState({ completedJobs: 0, avgRating: 0, reviewCount: 0 });
+  const [postedJobs, setPostedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
+  const [workedJobs, setWorkedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -127,17 +189,21 @@ const UserProfile = () => {
     const { data: { session } } = await supabase.auth.getSession();
     setCurrentUserId(session?.user?.id || null);
 
-    const [profileRes, reviewsRes, completedRes, favRes] = await Promise.all([
+    const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
       supabase.from("jobs").select("id").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
       session?.user
         ? supabase.from("favorite_helpers").select("id").eq("customer_id", session.user.id).eq("helper_id", userId)
         : Promise.resolve({ data: [] }),
+      supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
     setIsFavorited((favRes.data?.length || 0) > 0);
+    if (postedRes.data) setPostedJobs(postedRes.data);
+    if (workedRes.data) setWorkedJobs(workedRes.data);
 
     const ratings = reviewsRes.data?.map(r => r.rating) || [];
     setStats({
@@ -358,6 +424,12 @@ const UserProfile = () => {
               helperName={profile.full_name || "Helpr"}
             />
           )}
+
+          {/* Jobs Posted */}
+          {postedJobs.length > 0 && <JobHistorySection jobs={postedJobs} title="Jobs Posted" icon={<ClipboardList className="w-4 h-4 text-primary" />} />}
+
+          {/* Jobs Worked */}
+          {workedJobs.length > 0 && <JobHistorySection jobs={workedJobs} title="Jobs Completed" icon={<Hammer className="w-4 h-4 text-primary" />} />}
 
           {/* Reviews - collapsed summary, click to expand */}
           <ReviewsSection reviews={reviews} stats={stats} />

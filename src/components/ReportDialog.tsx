@@ -27,6 +27,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
   const handleSubmit = async () => {
     if (!reason) { toast.error("Please select a reason"); return; }
+    if (!description || description.trim().length < 10) { toast.error("Please provide details (at least 10 characters)"); return; }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
@@ -74,15 +75,19 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             </div>
           </div>
           <Textarea
-            placeholder="Additional details (optional)…"
+            placeholder="Please describe the issue (required, at least 10 characters)…"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
+            required
           />
+          {description.length > 0 && description.trim().length < 10 && (
+            <p className="text-xs text-destructive">At least 10 characters required</p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !reason}>
+          <Button onClick={handleSubmit} disabled={submitting || !reason || description.trim().length < 10}>
             {submitting ? "Submitting…" : "Submit report"}
           </Button>
         </DialogFooter>

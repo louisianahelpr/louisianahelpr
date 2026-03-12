@@ -75,6 +75,8 @@ const Dashboard = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [expiresWithin, setExpiresWithin] = useState("");
+  const [matchAvailability, setMatchAvailability] = useState(false);
+  const [helperAvailability, setHelperAvailability] = useState<{ day_of_week: number; is_available: boolean; start_time: string; end_time: string }[]>([]);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<EnrichedJob[]>([]);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
@@ -105,12 +107,17 @@ const Dashboard = () => {
   }, []);
 
   const loadData = async (userId: string) => {
-    const [profileRes, rolesRes, openJobsRes, feeRes] = await Promise.all([
+    const [profileRes, rolesRes, openJobsRes, feeRes, availRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("jobs").select("*").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("platform_settings").select("platform_fee_percent").limit(1).single(),
+      supabase.from("helper_availability" as any).select("day_of_week, is_available, start_time, end_time").eq("helper_id", userId).is("specific_date", null).order("day_of_week"),
     ]);
+
+    if (availRes.data && (availRes.data as any[]).length > 0) {
+      setHelperAvailability(availRes.data as any[]);
+    }
 
     if (feeRes.data) setPlatformFee(feeRes.data.platform_fee_percent);
     if (profileRes.data) {
@@ -195,7 +202,7 @@ const Dashboard = () => {
     }
   }, [user, allJobs, navigate]);
 
-  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length;
+  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
   const effectiveFee = platformFee;
 
@@ -220,6 +227,16 @@ const Dashboard = () => {
         const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : helprTier === "basic" ? 5 : 0;
         const delayMs = (20 - earlyMinutes) * 60 * 1000;
         if (jobAge < delayMs) return false;
+      }
+      // Availability filter
+      if (matchAvailability && helperAvailability.length > 0) {
+        const jobDate = new Date(job.date_needed + "T12:00:00");
+        const jobDow = jobDate.getDay();
+        const slot = helperAvailability.find(s => s.day_of_week === jobDow);
+        if (!slot || !slot.is_available) return false;
+        if (job.start_time && job.start_time !== "flexible" && slot.start_time && slot.end_time) {
+          if (job.start_time < slot.start_time || job.start_time > slot.end_time) return false;
+        }
       }
       return true;
     })
@@ -553,13 +570,15 @@ const Dashboard = () => {
                     sortBy={sortBy} setSortBy={setSortBy}
                     filtersOpen={true} setFiltersOpen={setFiltersOpen}
                     expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
+                    matchAvailability={matchAvailability} setMatchAvailability={setMatchAvailability}
+                    hasAvailability={helperAvailability.length > 0}
                   />
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Active filter chips */}
-            {!filtersOpen && (selectedCategory || locationFilter || maxBudget || expiresWithin) && (
+            {!filtersOpen && (selectedCategory || locationFilter || maxBudget || expiresWithin || matchAvailability) && (
               <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
                 {selectedCategory && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
@@ -583,6 +602,12 @@ const Dashboard = () => {
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
                     {expiresWithin}
                     <button onClick={() => setExpiresWithin("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {matchAvailability && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                    <Clock className="w-3 h-3" /> My hours
+                    <button onClick={() => setMatchAvailability(false)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
               </div>

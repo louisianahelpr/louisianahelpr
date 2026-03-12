@@ -1,7 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
-  X, MapPin, DollarSign, Timer,
+  X, MapPin, DollarSign, Timer, Clock,
 } from "lucide-react";
 
 const categoryLabels: Record<string, string> = {
@@ -33,6 +34,9 @@ interface JobFiltersProps {
   setFiltersOpen: (v: boolean) => void;
   expiresWithin: string;
   setExpiresWithin: (v: string) => void;
+  matchAvailability: boolean;
+  setMatchAvailability: (v: boolean) => void;
+  hasAvailability: boolean;
 }
 
 const JobFilters = ({
@@ -40,8 +44,9 @@ const JobFilters = ({
   maxBudget, setMaxBudget, locationFilter, setLocationFilter,
   sortBy, setSortBy, filtersOpen, setFiltersOpen,
   expiresWithin, setExpiresWithin,
+  matchAvailability, setMatchAvailability, hasAvailability,
 }: JobFiltersProps) => {
-  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length;
+  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
@@ -50,6 +55,7 @@ const JobFilters = ({
     setMaxBudget("");
     setLocationFilter("");
     setExpiresWithin("");
+    setMatchAvailability(false);
   };
 
   return (
@@ -118,6 +124,20 @@ const JobFilters = ({
             ))}
           </div>
         </div>
+
+        {/* Match availability */}
+        {hasAvailability && (
+          <div className="flex items-center justify-between rounded-xl bg-muted/30 border border-border/50 p-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <div>
+                <p className="text-xs font-medium text-foreground">Match my availability</p>
+                <p className="text-[10px] text-muted-foreground">Only show jobs on days & times I'm free</p>
+              </div>
+            </div>
+            <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} />
+          </div>
+        )}
 
         {/* Sort */}
         <div>

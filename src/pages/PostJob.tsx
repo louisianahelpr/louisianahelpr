@@ -293,7 +293,7 @@ const PostJob = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <DashboardHeader showBack onBack={() => step === "checkout" ? setStep("form") : navigate("/dashboard")} />
+      <DashboardHeader />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-lg mx-auto space-y-8">
@@ -302,8 +302,13 @@ const PostJob = () => {
           {step === "form" && (
             <>
               <div>
-                <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
-                <p className="text-muted-foreground mt-1">Describe what you need help with</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="rounded-xl h-9 w-9 shrink-0">
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
+                </div>
+                <p className="text-muted-foreground mt-1 ml-11">Describe what you need help with</p>
               </div>
 
               {/* AI Job Builder */}

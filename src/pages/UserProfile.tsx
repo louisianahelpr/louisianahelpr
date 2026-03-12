@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Mail, Phone, ClipboardList, Hammer } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
@@ -215,16 +215,11 @@ const UserProfile = () => {
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">{profile.full_name || "User"}</h1>
               <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>
+                {profile.role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>}
                 {profile.location && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
                 )}
               </div>
-              {(profile as any).email && (
-                <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-center gap-1">
-                  <Mail className="w-3 h-3" />{(profile as any).email}
-                </p>
-              )}
               {profile.phone && (
                 <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
                   <Phone className="w-3 h-3" />{profile.phone}

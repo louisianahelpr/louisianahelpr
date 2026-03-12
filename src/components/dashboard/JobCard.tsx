@@ -225,7 +225,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
               <Flag className="w-4 h-4" />
             </Button>
-            {showApply && !isOwnJob && (
+            {!isOwnJob && (
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
                 <Send className="w-4 h-4 mr-1" /> Apply
               </Button>

@@ -61,10 +61,10 @@ const JobFilters = ({
         <SlidersHorizontal className="w-3.5 h-3.5" /><span>Filters</span>
         {activeFilterCount > 0 && <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">{activeFilterCount}</span>}
         <span className="flex-1" />
-        {filtersOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {filtersOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
       {filtersOpen && (
-        <div className="space-y-4 pt-2 border-t border-border">
+        <div className="space-y-3 pt-2 border-t border-border">
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Category</p>
             <div className="flex flex-wrap gap-1.5">

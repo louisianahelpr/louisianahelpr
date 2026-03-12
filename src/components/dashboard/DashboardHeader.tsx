@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield, Plus } from "lucide-react";
+import { LogOut, Shield } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -50,13 +50,6 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
               <Shield className="w-4 h-4 text-destructive" />
             </Button>
           )}
-          <Button
-            onClick={() => navigate("/post-job")}
-            size="sm"
-            className="hidden sm:flex gap-1.5 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md btn-press rounded-xl h-9"
-          >
-            <Plus className="w-4 h-4" /> Post task
-          </Button>
           <FavoritesPanel />
           <ThemeToggle />
           <NotificationPanel />

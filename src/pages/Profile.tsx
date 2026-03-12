@@ -809,6 +809,11 @@ const ProfilePage = () => {
             </div>
           )}
 
+          {/* RETAINERS TAB */}
+          {tab === "retainers" && user && profile && (
+            <MyRetainers userId={user.id} role={profile.role} />
+          )}
+
           {/* SUPPORT TAB */}
           {tab === "support" && (
             <div className="space-y-4">

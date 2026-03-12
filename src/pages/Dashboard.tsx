@@ -294,50 +294,76 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <DashboardHeader isAdmin={isAdmin} />
 
-      <main className="container mx-auto px-4 py-4">
-        <div className="max-w-3xl mx-auto space-y-4">
-          <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
+      <main className="container mx-auto px-4 py-5">
+        <div className="max-w-3xl mx-auto space-y-5">
+
+          {/* Welcome section */}
+          <div className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-display font-bold text-foreground">
+                  Hi, {firstName} 👋
+                </h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {filteredJobs.length > 0
+                    ? `${filteredJobs.length} task${filteredJobs.length !== 1 ? "s" : ""} available near you`
+                    : "No tasks right now — check back soon!"}
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate("/post-job")}
+                size="sm"
+                className="sm:hidden bg-gradient-to-r from-primary to-primary/80 shadow-md gap-1"
+              >
+                <Briefcase className="w-4 h-4" /> Post
+              </Button>
+            </div>
+          </div>
 
           {/* Invite Friends Banner */}
           {user && <InviteBanner userId={user.id} />}
 
           {/* Jobs Near You */}
           {nearbyJobs.length > 0 && !hasFilters && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">Jobs Near You</h2>
-                <span className="text-xs text-muted-foreground">in {profile?.location}</span>
+            <section className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400/20 to-sky-500/10 flex items-center justify-center">
+                  <MapPin className="w-3.5 h-3.5 text-sky-600" />
+                </div>
+                <h2 className="text-sm font-display font-bold text-foreground">Jobs Near You</h2>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{profile?.location}</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {nearbyJobs.slice(0, 3).map((job) => (
                   <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} />
                 ))}
               </div>
               {nearbyJobs.length > 3 && (
-                <button onClick={() => setLocationFilter(profile?.location || "")} className="text-xs text-primary font-medium hover:underline">
+                <button onClick={() => setLocationFilter(profile?.location || "")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
                   View all {nearbyJobs.length} nearby jobs →
                 </button>
               )}
-              <div className="h-px bg-border" />
-            </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            </section>
           )}
 
           {/* Recommended for You */}
           {recommendedJobs.length > 0 && !hasFilters && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">Recommended for You</h2>
-                <span className="text-xs text-muted-foreground">based on your skills</span>
+            <section className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center">
+                  <Star className="w-3.5 h-3.5 text-accent fill-accent" />
+                </div>
+                <h2 className="text-sm font-display font-bold text-foreground">Recommended for You</h2>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">based on skills</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {recommendedJobs.slice(0, 3).map((job) => (
                   <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} />
                 ))}
               </div>
-              <div className="h-px bg-border" />
-            </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            </section>
           )}
 
           {/* Filters */}
@@ -350,12 +376,31 @@ const Dashboard = () => {
             filtersOpen={filtersOpen} setFiltersOpen={setFiltersOpen}
           />
 
+          {/* All Jobs header */}
+          {filteredJobs.length > 0 && (
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <Briefcase className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <h2 className="text-sm font-display font-bold text-foreground">
+                {hasFilters ? "Filtered Results" : "All Tasks"}
+              </h2>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{filteredJobs.length}</span>
+            </div>
+          )}
+
           {/* Job list */}
           {filteredJobs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">{hasFilters ? "No tasks match your filters." : "No open tasks right now."}</p>
+            <div className="text-center py-16 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto">
+                <Briefcase className="w-7 h-7 text-primary/50" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-foreground">{hasFilters ? "No matching tasks" : "No open tasks right now"}</p>
+                <p className="text-sm text-muted-foreground mt-1">{hasFilters ? "Try adjusting your filters" : "Check back soon — new tasks are posted daily!"}</p>
+              </div>
               {hasFilters && (
-                <Button variant="outline" className="mt-4" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); }}>
+                <Button variant="outline" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); }}>
                   Clear filters
                 </Button>
               )}

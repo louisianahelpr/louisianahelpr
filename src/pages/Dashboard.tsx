@@ -215,8 +215,8 @@ const Dashboard = () => {
   const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
-  // Pro helpers get lower platform fee
-  const effectiveFee = isProHelpr ? 10 : platformFee;
+  // Use standard platform fee for all tiers
+  const effectiveFee = platformFee;
 
   const filteredJobs = allJobs
     .filter((job) => {

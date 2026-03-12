@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
+import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SignupPending from "./pages/SignupPending";

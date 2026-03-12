@@ -447,6 +447,7 @@ const Dashboard = () => {
             locationFilter={locationFilter} setLocationFilter={setLocationFilter}
             sortBy={sortBy} setSortBy={setSortBy}
             filtersOpen={filtersOpen} setFiltersOpen={setFiltersOpen}
+            expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
           />
 
           {/* All Jobs header */}

@@ -24,13 +24,8 @@ const HelperSpotlightSection = () => {
 
   useEffect(() => {
     const load = async () => {
-      // Get approved helpers
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url, bio, location, skills, subscription_tier")
-        .eq("role", "helper")
-        .eq("approval_status", "approved")
-        .limit(20);
+      // Get approved helpers via secure RPC
+      const { data: profiles } = await supabase.rpc("get_approved_helpers", { max_count: 20 });
 
       if (!profiles || profiles.length === 0) { setLoaded(true); return; }
 

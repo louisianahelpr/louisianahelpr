@@ -296,7 +296,7 @@ const Activity = () => {
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name, skills, hourly_rate").in("user_id", helperIds),
+        supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds),
       ]);
       const reviewMap = new Map<string, number[]>();

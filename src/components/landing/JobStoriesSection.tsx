@@ -52,7 +52,7 @@ const JobStoriesSection = () => {
       const jobIds = withPhotos.map(j => j.id);
 
       const [profilesRes, reviewsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name").in("user_id", helperIds),
+        supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("job_id, rating, feedback").in("job_id", jobIds),
       ]);
 

@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Gift, Copy, Check, X } from "lucide-react";
+import { Gift, Copy, Check, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import SocialShare from "@/components/SocialShare";
 
 const InviteBanner = ({ userId }: { userId: string }) => {
+  const navigate = useNavigate();
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if dismissed this session
     if (sessionStorage.getItem("invite-banner-dismissed")) {
       setDismissed(true);
       return;
@@ -27,7 +27,6 @@ const InviteBanner = ({ userId }: { userId: string }) => {
       if (data) {
         setReferralCode(data.code);
       } else {
-        // Generate and create code
         const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         let code = "";
         for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
@@ -42,7 +41,8 @@ const InviteBanner = ({ userId }: { userId: string }) => {
     load();
   }, [userId]);
 
-  const copyCode = () => {
+  const copyCode = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!referralCode) return;
     navigator.clipboard.writeText(referralCode);
     setCopied(true);
@@ -50,7 +50,8 @@ const InviteBanner = ({ userId }: { userId: string }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const dismiss = () => {
+  const dismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setDismissed(true);
     sessionStorage.setItem("invite-banner-dismissed", "true");
   };
@@ -58,23 +59,29 @@ const InviteBanner = ({ userId }: { userId: string }) => {
   if (dismissed || !referralCode) return null;
 
   return (
-    <div className="relative rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 p-4">
+    <div
+      onClick={() => navigate("/profile", { state: { tab: "referrals" } })}
+      className="relative rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 p-4 cursor-pointer hover:border-primary/30 hover:shadow-md transition-all group"
+    >
       <button
         onClick={dismiss}
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors z-10"
         aria-label="Dismiss"
       >
         <X className="w-4 h-4" />
       </button>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
           <Gift className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Invite friends, earn $5 each</p>
-          <p className="text-xs text-muted-foreground">Share your code — you both earn $5 after their first job</p>
+          <div className="flex items-center gap-1">
+            <p className="text-sm font-semibold text-foreground">Invite friends, earn $5 each</p>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <p className="text-xs text-muted-foreground">Tap to learn more about the referral program</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={copyCode}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-mono text-sm font-bold tracking-widest hover:bg-primary/20 transition-colors"

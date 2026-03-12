@@ -331,7 +331,12 @@ const Dashboard = () => {
 
           {/* Jobs Near You */}
           {nearbyJobs.length > 0 && !hasFilters && (
-            <section className="space-y-3">
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+              className="space-y-3"
+            >
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400/20 to-sky-500/10 flex items-center justify-center">
                   <MapPin className="w-3.5 h-3.5 text-sky-600" />
@@ -340,8 +345,8 @@ const Dashboard = () => {
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{profile?.location}</span>
               </div>
               <div className="space-y-3">
-                {nearbyJobs.slice(0, 3).map((job) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} />
+                {nearbyJobs.slice(0, 3).map((job, i) => (
+                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} />
                 ))}
               </div>
               {nearbyJobs.length > 3 && (
@@ -350,7 +355,7 @@ const Dashboard = () => {
                 </button>
               )}
               <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            </section>
+            </motion.section>
           )}
 
           {/* Recommended for You */}

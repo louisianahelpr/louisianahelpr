@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,7 +73,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
         if (actionTaken === "warning") {
           await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
-          await supabase.from("notifications").insert({
+          await createNotification({
             user_id: userId,
             title: `⚠️ Cancellation Warning (${warningNum}/2)`,
             message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a helper. A 3rd cancellation will result in a permanent ban.`,
@@ -93,7 +94,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
         if (adminRoles) {
           for (const admin of adminRoles) {
-            await supabase.from("notifications").insert({
+            await createNotification({
               user_id: admin.user_id, title: "⚠️ Cancellation with helper",
               message: `User cancelled "${jobTitle}" after selecting a helper (${warningNum} total). Action: ${actionTaken}.`,
               type: "warning", link: "/admin",

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -241,7 +242,7 @@ const Activity = () => {
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1; // 1st or 2nd
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: user.id,
           title: `⚠️ Decline Warning (${warningNum}/2)`,
           message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. One more decline will result in a permanent ban.`,
@@ -265,7 +266,7 @@ const Activity = () => {
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
         if (adminRoles) {
           for (const admin of adminRoles) {
-            await supabase.from("notifications").insert({
+            await createNotification({
               user_id: admin.user_id,
               title: "⚠️ Helpr declined job offer",
               message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`,
@@ -349,7 +350,7 @@ const Activity = () => {
     } as any).eq("id", selectedJob.id);
 
     // Notify helper about the deadline
-    await supabase.from("notifications").insert({
+    await createNotification({
       user_id: deadlineDialogApp.helper_id,
       title: "📋 New job offer!",
       message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`,
@@ -536,7 +537,7 @@ const Activity = () => {
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", job.helper_id);
       }
 
-      await supabase.from("notifications").insert({
+      await createNotification({
         user_id: job.helper_id,
         title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning",
         message: priorCount >= 1
@@ -548,11 +549,11 @@ const Activity = () => {
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
-          await supabase.from("notifications").insert({
-            user_id: admin.user_id, title: "🚫 No-show reported",
-            message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
-            type: "warning", link: "/admin",
-          });
+            await createNotification({
+              user_id: admin.user_id, title: "🚫 No-show reported",
+              message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
+              type: "warning", link: "/admin",
+            });
         }
       }
 

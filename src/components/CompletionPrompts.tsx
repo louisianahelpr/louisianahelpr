@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,7 +62,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
           if (adminRoles) {
             for (const admin of adminRoles) {
-              await supabase.from("notifications").insert({
+              await createNotification({
                 user_id: admin.user_id, title: "⚠️ Low rating alert",
                 message: `A user has received ${lowRatings} low ratings and has been auto-flagged.`,
                 type: "warning", link: "/admin",

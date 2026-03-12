@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createNotification } from "@/lib/notifications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,7 +77,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
-          await supabase.from("notifications").insert({
+          await createNotification({
             user_id: admin.user_id,
             title: "🚨 Job disputed",
             message: `"${jobTitle}" has been disputed. Reason: ${DISPUTE_REASONS.find((r) => r.value === reason)?.label}. Payment is on hold pending review.`,

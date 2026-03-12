@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -83,7 +84,7 @@ const AdminUsers = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`${profile.full_name || "User"} approved!`);
-      await supabase.from("notifications").insert({
+      await createNotification({
         user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",
         type: "success", link: "/dashboard",
@@ -133,7 +134,7 @@ const AdminUsers = () => {
       toast.error(error.message);
     } else {
       toast.success(`${denyProfile.full_name || "User"} denied.`);
-      await supabase.from("notifications").insert({
+      await createNotification({
         user_id: denyProfile.user_id, title: "Account not approved",
         message: denyReason.trim()
           ? `Your account was not approved. Reason: ${denyReason.trim()}`
@@ -195,7 +196,7 @@ const AdminUsers = () => {
           reported_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", banProfile.user_id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: banProfile.user_id, title: "⚠️ Warning from Admin",
           message: banReason.trim() || "You have received a warning for violating platform rules. Another violation may result in a ban.",
           type: "warning", link: "/profile",
@@ -219,7 +220,7 @@ const AdminUsers = () => {
           reported_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", banProfile.user_id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: banProfile.user_id, title: "🚫 Temporary Ban",
           message: `Your account has been temporarily banned for ${banDuration} days. Reason: ${banReason.trim() || "Platform rule violation."}`,
           type: "warning", link: "/profile",
@@ -240,7 +241,7 @@ const AdminUsers = () => {
           reported_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", banProfile.user_id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: banProfile.user_id, title: "⛔ Account Permanently Banned",
           message: `Your account has been permanently banned. Reason: ${banReason.trim() || "Severe platform rule violation."}`,
           type: "warning", link: "/profile",

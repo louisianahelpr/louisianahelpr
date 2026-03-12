@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -186,7 +187,7 @@ const Messages = () => {
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
-          await supabase.from("notifications").insert({
+          await createNotification({
             user_id: admin.user_id, title: "⛔ User permanently banned",
             message: `A user was auto-banned for repeated off-platform activity: ${violationDescription}`,
             type: "warning", link: "/admin",
@@ -203,7 +204,7 @@ const Messages = () => {
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
-          await supabase.from("notifications").insert({
+          await createNotification({
             user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
             message: `A user attempted off-platform activity: ${violationDescription}`,
             type: "warning", link: "/admin",

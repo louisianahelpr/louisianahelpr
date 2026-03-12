@@ -46,10 +46,7 @@ const UserProfile = () => {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .single();
+          .rpc("get_safe_profiles", { user_ids: [userId] });
 
         if (error) {
           console.error("Error fetching profile:", error);

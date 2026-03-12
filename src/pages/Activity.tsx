@@ -79,7 +79,16 @@ const Activity = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [seenPosted, setSeenPosted] = useState(false);
+  const [seenApplied, setSeenApplied] = useState(false);
+  const [lastSeenPostedCount, setLastSeenPostedCount] = useState<number>(() => {
+    const stored = localStorage.getItem("helpr_seen_posted_count");
+    return stored ? parseInt(stored, 10) : 0;
+  });
+  const [lastSeenAppliedCount, setLastSeenAppliedCount] = useState<number>(() => {
+    const stored = localStorage.getItem("helpr_seen_applied_count");
+    return stored ? parseInt(stored, 10) : 0;
+  });
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
@@ -563,35 +572,23 @@ const Activity = () => {
     }
   };
 
-  const postedStatusFilters = useMemo(() => [
-    { key: "", label: "All", color: "bg-foreground/10 text-foreground border-foreground/20" },
-    { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
-    { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ], []);
 
-  const appliedStatusFilters = useMemo(() => [
-    { key: "", label: "All", color: "bg-foreground/10 text-foreground border-foreground/20" },
-    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
-    { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ], []);
+  const unreadPostedCount = Math.max(0, postedJobs.length - lastSeenPostedCount);
+  const unreadAppliedCount = Math.max(0, appliedApps.length - lastSeenAppliedCount);
 
-  const filteredPostedJobs = useMemo(() => !statusFilter
-    ? postedJobs
-    : postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
-
-  const filteredAppliedApps = useMemo(() => !statusFilter
-    ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending") return a.status === "pending";
-        if (statusFilter === "rejected") return a.status === "rejected";
-        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
-        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-        return true;
-      }), [appliedApps, statusFilter]);
+  // Mark as seen when viewing a tab
+  useEffect(() => {
+    if (tab === "posted" && postedJobs.length > 0 && !seenPosted) {
+      setSeenPosted(true);
+      setLastSeenPostedCount(postedJobs.length);
+      localStorage.setItem("helpr_seen_posted_count", String(postedJobs.length));
+    }
+    if (tab === "applied" && appliedApps.length > 0 && !seenApplied) {
+      setSeenApplied(true);
+      setLastSeenAppliedCount(appliedApps.length);
+      localStorage.setItem("helpr_seen_applied_count", String(appliedApps.length));
+    }
+  }, [tab, postedJobs.length, appliedApps.length, seenPosted, seenApplied]);
 
   if (loading) {
     return (
@@ -609,11 +606,9 @@ const Activity = () => {
   }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "posted", label: "Posted", count: postedJobs.length },
-    { key: "applied", label: "Applied", count: appliedApps.length },
+    { key: "posted", label: "Posted", count: tab === "posted" ? 0 : unreadPostedCount },
+    { key: "applied", label: "Applied", count: tab === "applied" ? 0 : unreadAppliedCount },
   ];
-
-  const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -625,26 +620,12 @@ const Activity = () => {
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(""); }}
+              <button key={t.key} onClick={() => { setTab(t.key); if (t.key === "posted") { setSeenPosted(false); } else { setSeenApplied(false); } }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
-                <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-1.5">
-            {activeStatusFilters.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  statusFilter === f.key
-                    ? f.color
-                    : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-              >
-                {f.label}
+                {t.count > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">{t.count}</span>
+                )}
               </button>
             ))}
           </div>
@@ -652,7 +633,7 @@ const Activity = () => {
           {/* POSTED TAB */}
           {tab === "posted" && (
             <div className="space-y-4">
-              {filteredPostedJobs.length === 0 ? (
+              {postedJobs.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">
                     {postedJobs.length === 0 ? "You haven't posted any tasks yet." : "No tasks match this filter."}
@@ -661,7 +642,7 @@ const Activity = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredPostedJobs.map((job) => {
+                  {postedJobs.map((job) => {
                     const catStyle = categoryColors[job.category] || categoryColors.other;
                     return (
                     <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all cursor-pointer" onClick={() => handleExpandJob(job.id, job)}>
@@ -989,7 +970,7 @@ const Activity = () => {
           {/* APPLIED TAB */}
           {tab === "applied" && (
             <div className="space-y-3">
-              {filteredAppliedApps.length === 0 ? (
+              {appliedApps.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">
                     {appliedApps.length === 0 ? "You haven't applied to any tasks yet." : "No applications match this filter."}
@@ -997,7 +978,7 @@ const Activity = () => {
                   <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
                 </div>
               ) : (
-                filteredAppliedApps.map((app) => (
+                appliedApps.map((app) => (
                   <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden cursor-pointer shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
                     {/* Top bar: title + budget + chevron */}
                     <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">

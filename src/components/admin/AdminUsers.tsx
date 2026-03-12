@@ -134,7 +134,7 @@ const AdminUsers = () => {
       toast.error(error.message);
     } else {
       toast.success(`${denyProfile.full_name || "User"} denied.`);
-      await supabase.from("notifications").insert({
+      await createNotification({
         user_id: denyProfile.user_id, title: "Account not approved",
         message: denyReason.trim()
           ? `Your account was not approved. Reason: ${denyReason.trim()}`

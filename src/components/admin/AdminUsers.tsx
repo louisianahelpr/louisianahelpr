@@ -487,19 +487,25 @@ const AdminUsers = () => {
                     <FileText className="w-3.5 h-3.5" /> ID Document
                   </p>
                   <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
-                    {/\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
-                      <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer">
-                        <img src={viewProfile.id_document_url} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
-                      </a>
-                    ) : (
-                      <div className="p-4 flex items-center gap-3">
-                        <FileText className="w-8 h-8 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{viewProfile.id_document_url.split("/").pop()}</p>
-                          <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
-                            Open document ↗
-                          </a>
+                    {idDocSignedUrl ? (
+                      /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
+                        <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
+                        </a>
+                      ) : (
+                        <div className="p-4 flex items-center gap-3">
+                          <FileText className="w-8 h-8 text-primary" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{viewProfile.id_document_url.split("/").pop()}</p>
+                            <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                              Open document ↗
+                            </a>
+                          </div>
                         </div>
+                      )
+                    ) : (
+                      <div className="p-4 text-center">
+                        <p className="text-sm text-muted-foreground">Loading document…</p>
                       </div>
                     )}
                   </div>

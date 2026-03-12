@@ -46,11 +46,13 @@ type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<Tab>("landing");
+  const initialTab = (searchParams.get("tab") as Tab) || "landing";
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);

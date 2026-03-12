@@ -46,8 +46,7 @@ const SocialProofSection = () => {
 
   const items = [
     { icon: CheckCircle, value: stats.completedJobs, label: "Jobs completed", suffix: "+" },
-    { icon: Users, value: stats.totalHelpers, label: "Verified helprs", suffix: "+" },
-    { icon: Briefcase, value: stats.totalCustomers, label: "Happy customers", suffix: "+" },
+    { icon: Users, value: stats.totalUsers, label: "Users", suffix: "+" },
     { icon: TrendingUp, value: parseFloat(stats.avgRating.toFixed(1)) || 4.9, label: "Average rating", suffix: "★" },
   ];
 

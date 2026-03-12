@@ -1184,8 +1184,8 @@ function SupportInline({ userId }: { userId?: string }) {
                   </h2>
                   <p className="text-sm text-muted-foreground">If other users report your account for misconduct:</p>
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <p>• <strong className="text-accent">3 reports:</strong> 7-day account suspension while admins review.</p>
-                    <p>• <strong className="text-destructive">4+ violations:</strong> Permanent ban from the platform.</p>
+                    <p>• <strong className="text-accent">2 reports:</strong> Account suspension while admins review.</p>
+                    <p>• <strong className="text-destructive">3rd report:</strong> Permanent ban from the platform.</p>
                   </div>
                   <p className="text-xs text-muted-foreground italic">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
                 </div>

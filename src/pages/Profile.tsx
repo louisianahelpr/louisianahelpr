@@ -583,6 +583,34 @@ function SupportInline({ userId }: { userId?: string }) {
               </div>
 
               <form onSubmit={handleSave} className="space-y-4">
+                {/* Avatar Upload */}
+                <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center gap-3">
+                  <div className="relative group">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-primary/20" />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold border-2 border-primary/20">
+                        {initials}
+                      </div>
+                    )}
+                    <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      {avatarUploading ? (
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-white" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                        disabled={avatarUploading}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Tap to change profile picture</p>
+                </div>
+
                 {/* Personal Info Card */}
                 <div className="rounded-xl border border-border bg-card p-5 space-y-4">
                   <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">

@@ -71,11 +71,15 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             ))}
           </div>
           <Textarea
-            placeholder="Share your experience (optional)…"
+            placeholder="Share your experience…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
+            required
           />
+          {feedback.trim().length === 0 && rating > 0 && (
+            <p className="text-xs text-destructive">A comment is required</p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

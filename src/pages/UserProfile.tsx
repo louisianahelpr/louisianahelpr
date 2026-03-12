@@ -461,8 +461,6 @@ const UserProfile = () => {
           {/* Jobs Worked */}
           {workedJobs.length > 0 && <JobHistorySection jobs={workedJobs} title="Jobs Completed" icon={<Hammer className="w-4 h-4 text-primary" />} />}
 
-          {/* Reviews - collapsed summary, click to expand */}
-          <ReviewsSection reviews={reviews} stats={stats} />
 
           {/* Member since */}
           <p className="text-xs text-muted-foreground text-center">

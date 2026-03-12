@@ -33,6 +33,7 @@ type Conversation = {
 };
 
 const Messages = () => {
+  usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);

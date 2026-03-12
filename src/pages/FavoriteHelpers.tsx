@@ -18,6 +18,7 @@ interface FavoriteHelper {
 }
 
 const FavoriteHelpers = () => {
+  usePageTitle("Favorite Helpers — Helpr");
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<FavoriteHelper[]>([]);
   const [loading, setLoading] = useState(true);

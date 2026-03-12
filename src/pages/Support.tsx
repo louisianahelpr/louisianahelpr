@@ -22,6 +22,7 @@ const categories: { key: Category; label: string; icon: React.ReactNode; descrip
 ];
 
 const SupportPage = () => {
+  usePageTitle("Support — Helpr");
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [category, setCategory] = useState<Category | null>(null);

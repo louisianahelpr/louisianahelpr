@@ -56,6 +56,7 @@ const statusColors: Record<string, string> = {
 type Tab = "posted" | "applied";
 
 const Activity = () => {
+  usePageTitle("My Activity — Helpr");
   const navigate = useNavigate();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);

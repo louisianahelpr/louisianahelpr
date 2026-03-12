@@ -241,7 +241,7 @@ const AdminUsers = () => {
           reported_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", banProfile.user_id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: banProfile.user_id, title: "⛔ Account Permanently Banned",
           message: `Your account has been permanently banned. Reason: ${banReason.trim() || "Severe platform rule violation."}`,
           type: "warning", link: "/profile",

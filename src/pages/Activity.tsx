@@ -829,7 +829,7 @@ const Activity = () => {
                     </button>
 
                     {/* Expandable content */}
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                    <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">
                         {app.job && (
                           <div className="pt-3 text-xs text-muted-foreground">

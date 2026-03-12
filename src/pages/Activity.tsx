@@ -569,6 +569,7 @@ const Activity = () => {
   };
 
   const postedStatusFilters = useMemo(() => [
+    { key: "", label: "All", color: "bg-foreground/10 text-foreground border-foreground/20" },
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
@@ -576,6 +577,7 @@ const Activity = () => {
   ], []);
 
   const appliedStatusFilters = useMemo(() => [
+    { key: "", label: "All", color: "bg-foreground/10 text-foreground border-foreground/20" },
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },

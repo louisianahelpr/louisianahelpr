@@ -766,9 +766,11 @@ const Activity = () => {
           {/* APPLIED TAB */}
           {tab === "applied" && (
             <div className="space-y-3">
-              {appliedApps.length === 0 ? (
+              {filteredAppliedApps.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">You haven't applied to any tasks yet.</p>
+                  <p className="text-muted-foreground mb-4">
+                    {appliedApps.length === 0 ? "You haven't applied to any tasks yet." : "No applications match this filter."}
+                  </p>
                   <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
                 </div>
               ) : (

@@ -111,14 +111,9 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-          <Gift className="w-6 h-6 text-primary" /> Referral Program
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <p className="text-sm text-muted-foreground">
           Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once the person you referred completes their first job — whether they posted it or worked it — <strong>you both</strong> earn $5! The bonus is only awarded after a job is fully completed.
         </p>
-      </div>
 
       {/* Referral Code Card */}
       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">

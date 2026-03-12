@@ -123,16 +123,22 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{job.location}</span>
           </a>
-          <a
-            href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}/${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}&details=${encodeURIComponent(job.description)}&location=${encodeURIComponent(job.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
-          >
-            <Calendar className="w-3 h-3 shrink-0" />
-            {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-          </a>
+          {job.special_requirements?.includes("[Flexible date]") ? (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+            </span>
+          ) : (
+            <a
+              href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}/${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}&details=${encodeURIComponent(job.description)}&location=${encodeURIComponent(job.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Calendar className="w-3 h-3 shrink-0" />
+              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </a>
+          )}
           {job.start_time && (
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="w-3 h-3 shrink-0" />

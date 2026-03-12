@@ -151,18 +151,18 @@ const JobFilters = ({
         </div>
 
         {/* Match availability */}
-        {hasAvailability && (
-          <div className="flex items-center justify-between rounded-xl bg-muted/30 border border-border/50 p-3">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs font-medium text-foreground">Match my availability</p>
-                <p className="text-[10px] text-muted-foreground">Only show jobs on days & times I'm free</p>
-              </div>
+        <div className={`flex items-center justify-between rounded-xl bg-muted/30 border border-border/50 p-3 ${!hasAvailability ? 'opacity-50' : ''}`}>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <div>
+              <p className="text-xs font-medium text-foreground">Match my availability</p>
+              <p className="text-[10px] text-muted-foreground">
+                {hasAvailability ? "Only show jobs on days & times I'm free" : "Set your hours in Schedule to enable"}
+              </p>
             </div>
-            <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} />
           </div>
-        )}
+          <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} disabled={!hasAvailability} />
+        </div>
 
         {/* Clear all */}
         {hasFilters && (

@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Search, X, MapPin, DollarSign, SlidersHorizontal, ChevronDown, ChevronUp,
+  Search, X, MapPin, DollarSign, SlidersHorizontal, ChevronDown, ChevronUp, Timer,
 } from "lucide-react";
 
 const categoryLabels: Record<string, string> = {
@@ -25,14 +25,17 @@ interface JobFiltersProps {
   setSortBy: (v: string) => void;
   filtersOpen: boolean;
   setFiltersOpen: (v: boolean) => void;
+  expiresWithin: string;
+  setExpiresWithin: (v: string) => void;
 }
 
 const JobFilters = ({
   searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
   maxBudget, setMaxBudget, locationFilter, setLocationFilter,
   sortBy, setSortBy, filtersOpen, setFiltersOpen,
+  expiresWithin, setExpiresWithin,
 }: JobFiltersProps) => {
-  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
+  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
@@ -40,6 +43,7 @@ const JobFilters = ({
     setSelectedCategory(null);
     setMaxBudget("");
     setLocationFilter("");
+    setExpiresWithin("");
   };
 
   return (
@@ -89,6 +93,22 @@ const JobFilters = ({
             </div>
           </div>
           <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Expires within</p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { value: "", label: "Any time" },
+                { value: "24h", label: "24 hours" },
+                { value: "3d", label: "3 days" },
+                { value: "7d", label: "7 days" },
+              ].map((opt) => (
+                <button key={opt.value} onClick={() => setExpiresWithin(expiresWithin === opt.value ? "" : opt.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${expiresWithin === opt.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                  <Timer className="w-3 h-3 inline mr-1" />{opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Sort by</p>
             <div className="flex flex-wrap gap-1.5">
               {[
@@ -112,6 +132,7 @@ const JobFilters = ({
           {selectedCategory && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">{categoryLabels[selectedCategory]}<button onClick={() => setSelectedCategory(null)}><X className="w-3 h-3" /></button></span>}
           {locationFilter && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">{locationFilter}<button onClick={() => setLocationFilter("")}><X className="w-3 h-3" /></button></span>}
           {maxBudget && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">≤ ${maxBudget}<button onClick={() => setMaxBudget("")}><X className="w-3 h-3" /></button></span>}
+          {expiresWithin && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">Expires: {expiresWithin}<button onClick={() => setExpiresWithin("")}><X className="w-3 h-3" /></button></span>}
         </div>
       )}
     </div>

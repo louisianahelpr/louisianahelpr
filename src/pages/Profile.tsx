@@ -199,16 +199,15 @@ const ProfilePage = () => {
     setScheduleLoading(false);
   };
 
-  const loadHistory = async () => {
-    if (!user) return;
-    setHistoryLoading(true);
-    const [posted, worked] = await Promise.all([
-      supabase.from("jobs").select("*").eq("customer_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*").eq("helper_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
+  const loadInlineJobs = async () => {
+    if (!user || inlineJobsLoaded) return;
+    const [posted, completed] = await Promise.all([
+      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("jobs").select("*").or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
     ]);
-    if (posted.data) setHistPostedJobs(posted.data);
-    if (worked.data) setHistWorkedJobs(worked.data);
-    setHistoryLoading(false);
+    if (posted.data) setInlinePostedJobs(posted.data);
+    if (completed.data) setInlineCompletedJobs(completed.data);
+    setInlineJobsLoaded(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {

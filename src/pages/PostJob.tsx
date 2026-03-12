@@ -417,7 +417,7 @@ const PostJob = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time</Label>
-                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
                   </div>
                 </div>
 

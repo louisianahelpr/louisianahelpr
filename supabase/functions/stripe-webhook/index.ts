@@ -3,9 +3,18 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const PRODUCT_TO_TIER: Record<string, string> = {
+  // Monthly recurring
   "prod_U8D5po9hjUJCGc": "basic",
   "prod_U8BlHeIMjMcSgA": "pro",
   "prod_U8D6oVie3pcjAC": "elite",
+  // Annual recurring
+  "prod_U8DiEHun3sWONY": "basic",
+  "prod_U8DiMCIrfVpxn1": "pro",
+  "prod_U8DjLmcSKObhf8": "elite",
+  // One-time month pass
+  "prod_U8DjfNrMFrnq3c": "basic",
+  "prod_U8DkzXC6dpB6VT": "pro",
+  "prod_U8Dk2wt6Jd6fnb": "elite",
 };
 
 const logStep = (step: string, details?: any) => {

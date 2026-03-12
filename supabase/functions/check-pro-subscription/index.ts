@@ -8,9 +8,14 @@ const corsHeaders = {
 };
 
 const PRODUCT_TO_TIER: Record<string, string> = {
+  // Monthly recurring
   "prod_U8D5po9hjUJCGc": "basic",
   "prod_U8BlHeIMjMcSgA": "pro",
   "prod_U8D6oVie3pcjAC": "elite",
+  // Annual recurring
+  "prod_U8DiEHun3sWONY": "basic",
+  "prod_U8DiMCIrfVpxn1": "pro",
+  "prod_U8DjLmcSKObhf8": "elite",
 };
 
 serve(async (req) => {

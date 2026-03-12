@@ -54,7 +54,16 @@ const Messages = () => {
     otherUserId: activeConvo?.otherUserId || "",
   });
 
+  // Seed from cache for instant render
   useEffect(() => {
+    if (cachedUser && !userId) {
+      setUserId(cachedUser.id);
+      loadConversations(cachedUser.id);
+    }
+  }, [cachedUser]);
+
+  useEffect(() => {
+    if (userId) return; // already seeded from cache
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

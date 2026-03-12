@@ -107,12 +107,17 @@ const Dashboard = () => {
   }, []);
 
   const loadData = async (userId: string) => {
-    const [profileRes, rolesRes, openJobsRes, feeRes] = await Promise.all([
+    const [profileRes, rolesRes, openJobsRes, feeRes, availRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("jobs").select("*").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("platform_settings").select("platform_fee_percent").limit(1).single(),
+      supabase.from("helper_availability" as any).select("day_of_week, is_available, start_time, end_time").eq("helper_id", userId).is("specific_date", null).order("day_of_week"),
     ]);
+
+    if (availRes.data && (availRes.data as any[]).length > 0) {
+      setHelperAvailability(availRes.data as any[]);
+    }
 
     if (feeRes.data) setPlatformFee(feeRes.data.platform_fee_percent);
     if (profileRes.data) {

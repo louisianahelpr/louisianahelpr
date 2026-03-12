@@ -69,18 +69,23 @@ serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode !== "subscription") break;
-
         const customerEmail = session.customer_email || session.customer_details?.email;
         if (!customerEmail) { logStep("No email on checkout session"); break; }
 
-        // Get subscription details to determine tier
-        const subscriptionId = session.subscription as string;
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const productId = subscription.items.data[0]?.price.product as string;
-        const tier = PRODUCT_TO_TIER[productId] || null;
+        let tier: string | null = null;
 
-        logStep("Checkout completed", { email: customerEmail, tier, productId });
+        if (session.mode === "subscription") {
+          // Get subscription details to determine tier
+          const subscriptionId = session.subscription as string;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const productId = subscription.items.data[0]?.price.product as string;
+          tier = PRODUCT_TO_TIER[productId] || null;
+        } else if (session.mode === "payment") {
+          // One-time payment — get tier from session metadata
+          tier = (session.metadata as any)?.tier || null;
+        }
+
+        logStep("Checkout completed", { email: customerEmail, tier, mode: session.mode });
 
         if (tier) {
           const { error } = await supabase

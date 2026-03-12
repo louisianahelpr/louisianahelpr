@@ -27,7 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "support" | "retainers" | "notifications";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "support" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -281,7 +281,7 @@ const ProfilePage = () => {
     
     { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
     
-    { key: "retainers", label: "Retainer Agreements", icon: <CalendarHeart className="w-5 h-5" />, desc: "Recurring bookings" },
+    
     { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
     { key: "payment", label: "Payment", icon: <CreditCard className="w-5 h-5" />, desc: "Payment methods & summary" },
@@ -788,10 +788,6 @@ const ProfilePage = () => {
           )}
 
 
-          {/* RETAINERS TAB */}
-          {tab === "retainers" && user && profile && (
-            <MyRetainers userId={user.id} role={profile.role} />
-          )}
 
           {/* SUPPORT TAB */}
           {tab === "support" && (

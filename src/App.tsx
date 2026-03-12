@@ -76,12 +76,14 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/schedule" element={<Navigate to="/profile" replace />} />
           <Route path="/job-history" element={<Navigate to="/profile" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <MobileNav />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          </div>
+          <MobileNav />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

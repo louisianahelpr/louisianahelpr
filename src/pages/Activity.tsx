@@ -584,10 +584,12 @@ const Activity = () => {
           {/* POSTED TAB */}
           {tab === "posted" && (
             <div className="space-y-4">
-              {postedJobs.length === 0 ? (
+              {filteredPostedJobs.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">You haven't posted any tasks yet.</p>
-                  <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+                  <p className="text-muted-foreground mb-4">
+                    {postedJobs.length === 0 ? "You haven't posted any tasks yet." : "No tasks match this filter."}
+                  </p>
+                  {postedJobs.length === 0 && <Button onClick={() => navigate("/post-job")}>Post your first task</Button>}
                 </div>
               ) : (
                 <div className="space-y-3">

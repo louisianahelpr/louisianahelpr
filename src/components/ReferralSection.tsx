@@ -140,7 +140,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <div className="flex justify-center">
             <SocialShare
               url={`${window.location.origin}/signup?ref=${referralCode}`}
-              text={`Join me on Helpr! Use my referral code ${referralCode} and we both earn $5 after your first job.`}
+              text={`Join me on Helpr! Use my referral code ${referralCode} — once your first job is completed, we both earn $5.`}
               compact
             />
           </div>

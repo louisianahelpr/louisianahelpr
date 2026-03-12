@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, Users, Briefcase, TrendingUp } from "lucide-react";
 
 const SocialProofSection = () => {
-  const [stats, setStats] = useState({ completedJobs: 0, totalHelpers: 0, totalCustomers: 0, avgRating: 0 });
+  const [stats, setStats] = useState({ completedJobs: 0, totalUsers: 0, avgRating: 0 });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

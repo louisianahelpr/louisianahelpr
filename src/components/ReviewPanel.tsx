@@ -22,6 +22,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   const handleSubmit = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
+    if (!feedback.trim()) { toast.error("Please share a comment about your experience"); return; }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
@@ -31,7 +32,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       reviewer_id: user.id,
       reviewee_id: revieweeId,
       rating,
-      feedback: feedback || null,
+      feedback: feedback.trim(),
     });
 
     if (error) {
@@ -70,15 +71,19 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             ))}
           </div>
           <Textarea
-            placeholder="Share your experience (optional)…"
+            placeholder="Share your experience…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
+            required
           />
+          {feedback.trim().length === 0 && rating > 0 && (
+            <p className="text-xs text-destructive">A comment is required</p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || rating === 0}>
+          <Button onClick={handleSubmit} disabled={submitting || rating === 0 || !feedback.trim()}>
             {submitting ? "Submitting…" : "Submit review"}
           </Button>
         </DialogFooter>

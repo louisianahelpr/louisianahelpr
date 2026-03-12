@@ -1000,4 +1000,134 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
   </div>
 );
 
+
+const tierConfig = [
+  {
+    id: "basic",
+    name: "Basic",
+    price: "$9.99/mo",
+    features: ["Helpr Badge", "Search Priority", "5-min Early Job Access"],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "$14.99/mo",
+    features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "Weekly Reports", "10-min Early Access"],
+  },
+  {
+    id: "elite",
+    name: "Elite",
+    price: "$24.99/mo",
+    features: ["Everything in Pro", "Landing Page Spotlight", "Auto-Match Jobs", "Priority Dispute Resolution", "20-min Early Access"],
+  },
+];
+
+const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: User | null }) => {
+  const [loadingPortal, setLoadingPortal] = useState(false);
+  const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
+  const currentTier = profile?.subscription_tier || null;
+
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to open subscription portal");
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  const handleSubscribe = async (tier: string) => {
+    setLoadingCheckout(tier);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
+        body: { tier },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+    } finally {
+      setLoadingCheckout(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+
+      {currentTier && (
+        <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" />
+              <span className="font-bold text-foreground capitalize">{currentTier} Plan</span>
+            </div>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">Active</span>
+          </div>
+          <Button
+            onClick={handleManageSubscription}
+            disabled={loadingPortal}
+            variant="outline"
+            className="w-full"
+          >
+            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Manage Subscription
+          </Button>
+        </div>
+      )}
+
+      {!currentTier && (
+        <p className="text-sm text-muted-foreground">You're on the free plan. Upgrade to unlock premium features and get more jobs.</p>
+      )}
+
+      <div className="space-y-3">
+        {tierConfig.map((tier) => {
+          const isActive = currentTier?.toLowerCase() === tier.id;
+          return (
+            <div
+              key={tier.id}
+              className={`rounded-2xl border p-5 space-y-3 ${isActive ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-foreground">{tier.name}</h3>
+                  <p className="text-sm font-semibold text-primary">{tier.price}</p>
+                </div>
+                {isActive && (
+                  <span className="flex items-center gap-1 text-xs text-primary font-medium">
+                    <CheckCircle className="w-4 h-4" /> Current
+                  </span>
+                )}
+              </div>
+              <ul className="space-y-1.5">
+                {tier.features.map((f) => (
+                  <li key={f} className="text-xs text-muted-foreground flex items-start gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              {!isActive && (
+                <Button
+                  onClick={() => currentTier ? handleManageSubscription() : handleSubscribe(tier.id)}
+                  disabled={loadingCheckout === tier.id || loadingPortal}
+                  className="w-full"
+                  variant={tier.id === "pro" ? "default" : "outline"}
+                >
+                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  {currentTier ? "Change Plan" : "Subscribe"}
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default ProfilePage;

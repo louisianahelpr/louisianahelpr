@@ -129,13 +129,15 @@ const UserProfile = () => {
     const { data: { session } } = await supabase.auth.getSession();
     setCurrentUserId(session?.user?.id || null);
 
-    const [profileRes, reviewsRes, completedRes, favRes] = await Promise.all([
+    const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
       supabase.from("jobs").select("id").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
       session?.user
         ? supabase.from("favorite_helpers").select("id").eq("customer_id", session.user.id).eq("helper_id", userId)
         : Promise.resolve({ data: [] }),
+      supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);

@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield, Plus } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
-import ReferralPanel from "@/components/ReferralPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";

@@ -21,8 +21,9 @@ const Navbar = () => {
           </a>
           <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Features
-          </a>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
+          <Link to="/community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Community
+          </Link>
             Log in
           </Button>
           <Button size="sm" onClick={() => navigate("/signup")}>

@@ -233,15 +233,15 @@ const Signup = () => {
         {step === 1 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full name</Label>
+              <Label htmlFor="name">Full name <span className="text-destructive">*</span></Label>
               <Input id="name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
               <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
               <Input id="password" type="password" placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
             <div className="space-y-2">
@@ -310,7 +310,7 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">About you</Label>
+              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
                 placeholder="Tell us about yourself, your experience, and what you're looking for…"
@@ -321,7 +321,7 @@ const Signup = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">Location <span className="text-destructive">*</span></Label>
               <Input id="location" placeholder="City, State" value={location} onChange={(e) => setLocation(e.target.value)} required />
             </div>
             <div className="space-y-2">
@@ -411,7 +411,7 @@ const Signup = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <Upload className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Verify your identity</h3>
+                <h3 className="font-semibold text-foreground">Verify your identity <span className="text-destructive">*</span></h3>
                 <p className="text-sm text-muted-foreground">
                   Upload a government-issued ID (driver's license, passport, or state ID). This keeps our community safe by verifying that everyone is a real person.
                 </p>

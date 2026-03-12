@@ -203,18 +203,27 @@ const Dashboard = () => {
     setLoading(false);
   };
 
-  const handleApply = useCallback(async (jobId: string) => {
+  const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
+  const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
+
+  const handleApplyRequest = useCallback((jobId: string) => {
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
-    const { error } = await supabase.from("applications").insert({ job_id: jobId, helper_id: user.id, message: "I'd like to help with this task!" });
+    setConfirmApplyJobId(jobId);
+  }, [user, allJobs, navigate]);
+
+  const handleApplyConfirm = useCallback(async () => {
+    if (!user || !confirmApplyJobId) return;
+    const { error } = await supabase.from("applications").insert({ job_id: confirmApplyJobId, helper_id: user.id, message: "I'd like to help with this task!" });
     if (error) {
       if (error.code === "23505") toast.error("You've already applied.");
       else toast.error(error.message);
     } else {
       toast.success("Application sent!");
     }
-  }, [user, allJobs, navigate]);
+    setConfirmApplyJobId(null);
+  }, [user, confirmApplyJobId]);
 
   const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;

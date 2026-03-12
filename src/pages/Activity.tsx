@@ -679,11 +679,11 @@ const Activity = () => {
                         <div className="space-y-2">
                           {job.status === "open" && (
                             <>
-                              <Button size="sm" variant="outline" className="w-full" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <div className="flex items-center gap-2">
-                                <Button size="sm" variant="outline" className="flex-1" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                                <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                                 <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                                <Button size="sm" className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
                               </div>
                             </>
                           )}

@@ -640,7 +640,7 @@ const Activity = () => {
             {activeStatusFilters.map((f) => (
               <button
                 key={f.key}
-                onClick={() => setStatusFilter(f.key)}
+                onClick={() => setStatusFilter(statusFilter === f.key ? "" : f.key)}
                 className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                   statusFilter === f.key
                     ? f.color

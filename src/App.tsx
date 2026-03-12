@@ -65,7 +65,7 @@ const App = () => (
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
           <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
           <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
           <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
@@ -75,7 +75,7 @@ const App = () => (
           <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
           <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

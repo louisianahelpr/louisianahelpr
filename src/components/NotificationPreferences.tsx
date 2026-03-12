@@ -104,10 +104,7 @@ const NotificationPreferences = () => {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-display font-bold text-foreground">Notifications</h2>
-          <p className="text-xs text-muted-foreground">Choose which notifications you receive</p>
-        </div>
+        <div />
         {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
       </div>
 

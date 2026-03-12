@@ -159,7 +159,17 @@ const Activity = () => {
       supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
     ]);
 
-    if (postedRes.data) setPostedJobs(postedRes.data);
+    if (postedRes.data) {
+      setPostedJobs(postedRes.data);
+      // Fetch applicant counts for posted jobs
+      const jobIds = postedRes.data.map(j => j.id);
+      if (jobIds.length > 0) {
+        const { data: allApps } = await supabase.from("applications").select("job_id").in("job_id", jobIds);
+        const counts: Record<string, number> = {};
+        allApps?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
+        setApplicantCounts(counts);
+      }
+    }
 
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];

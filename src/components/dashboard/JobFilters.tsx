@@ -93,6 +93,22 @@ const JobFilters = ({
             </div>
           </div>
           <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Expires within</p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { value: "", label: "Any time" },
+                { value: "24h", label: "24 hours" },
+                { value: "3d", label: "3 days" },
+                { value: "7d", label: "7 days" },
+              ].map((opt) => (
+                <button key={opt.value} onClick={() => setExpiresWithin(expiresWithin === opt.value ? "" : opt.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${expiresWithin === opt.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                  <Timer className="w-3 h-3 inline mr-1" />{opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Sort by</p>
             <div className="flex flex-wrap gap-1.5">
               {[

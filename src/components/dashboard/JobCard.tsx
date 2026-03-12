@@ -123,21 +123,31 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{job.location}</span>
           </a>
-          <a
-            href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}/${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}&details=${encodeURIComponent(job.description)}&location=${encodeURIComponent(job.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
-          >
-            <Calendar className="w-3 h-3 shrink-0" />
-            {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-          </a>
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="w-3 h-3 shrink-0" />
-            Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-          </span>
-          {job.expires_at && (
+          {job.special_requirements?.includes("[Flexible date]") ? (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+            </span>
+          ) : (
+            <a
+              href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}/${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}&details=${encodeURIComponent(job.description)}&location=${encodeURIComponent(job.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Calendar className="w-3 h-3 shrink-0" />
+              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </a>
+          )}
+          {job.start_time && (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="w-3 h-3 shrink-0" />
+              {job.start_time === "flexible"
+                ? "Flexible time"
+                : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+          {job.expires_at ? (
             <span className={`flex items-center gap-1.5 ${
               differenceInHours(new Date(job.expires_at), new Date()) < 24
                 ? "text-destructive font-medium"
@@ -147,6 +157,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               {new Date(job.expires_at) <= new Date()
                 ? "Expired"
                 : `Expires ${formatDistanceToNow(new Date(job.expires_at), { addSuffix: true })}`}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Timer className="w-3 h-3 shrink-0" /> No expiry
             </span>
           )}
         </div>

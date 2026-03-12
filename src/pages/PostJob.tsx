@@ -202,7 +202,6 @@ const PostJob = () => {
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
-    if (!specialRequirements.trim()) { toast.error("Special requirements is required"); return; }
     setStep("checkout");
   };
 
@@ -232,11 +231,14 @@ const PostJob = () => {
       description: description.trim(),
       category: category as any,
       location: location.trim(),
-      date_needed: dateNeeded,
-      start_time: startTime || null,
+      date_needed: dateNeeded === "flexible" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : dateNeeded,
+      start_time: startTime === "flexible" ? "flexible" : (startTime || null),
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       budget: parseFloat(budget),
-      special_requirements: specialRequirements.trim() || null,
+      special_requirements: [
+        specialRequirements.trim(),
+        dateNeeded === "flexible" ? "[Flexible date]" : "",
+      ].filter(Boolean).join(" | ") || null,
       is_recurring: isRecurring,
       recurrence_interval: isRecurring ? recurrenceInterval : null,
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
@@ -414,10 +416,32 @@ const PostJob = () => {
                   <div className="space-y-2">
                     <Label htmlFor="date">Date needed</Label>
                     <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} required />
+                    <button
+                      type="button"
+                      onClick={() => setDateNeeded("flexible")}
+                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                        dateNeeded === "flexible"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      📅 Flexible date
+                    </button>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time</Label>
-                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+                    <Input id="time" type="time" value={startTime === "flexible" ? "" : startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <button
+                      type="button"
+                      onClick={() => setStartTime(startTime === "flexible" ? "" : "flexible")}
+                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                        startTime === "flexible"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      🕐 Flexible time
+                    </button>
                   </div>
                 </div>
 
@@ -439,7 +463,7 @@ const PostJob = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="requirements">Special requirements</Label>
-                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} required />
+                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
                 </div>
 
                 {/* Recurring Job */}

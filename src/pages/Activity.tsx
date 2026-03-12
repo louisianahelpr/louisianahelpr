@@ -64,6 +64,7 @@ const Activity = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
@@ -509,10 +510,42 @@ const Activity = () => {
     );
   }
 
+  const postedStatusFilters = [
+    { key: "all", label: "All" },
+    { key: "open", label: "Open" },
+    { key: "accepted", label: "Accepted" },
+    { key: "in_progress", label: "In Progress" },
+    { key: "completed", label: "Completed" },
+    { key: "cancelled", label: "Cancelled" },
+    { key: "disputed", label: "Disputed" },
+  ];
+
+  const appliedStatusFilters = [
+    { key: "all", label: "All" },
+    { key: "pending", label: "Pending" },
+    { key: "accepted", label: "Accepted" },
+    { key: "rejected", label: "Rejected" },
+  ];
+
+  const filteredPostedJobs = statusFilter === "all"
+    ? postedJobs
+    : postedJobs.filter((j) => j.status === statusFilter);
+
+  const filteredAppliedApps = statusFilter === "all"
+    ? appliedApps
+    : appliedApps.filter((a) => {
+        if (statusFilter === "pending" || statusFilter === "accepted" || statusFilter === "rejected") {
+          return a.status === statusFilter;
+        }
+        return true;
+      });
+
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },
     { key: "applied", label: "Applied", count: appliedApps.length },
   ];
+
+  const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -524,7 +557,7 @@ const Activity = () => {
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)}
+              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter("all"); }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
                 <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
@@ -532,17 +565,35 @@ const Activity = () => {
             ))}
           </div>
 
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+            {activeStatusFilters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  statusFilter === f.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           {/* POSTED TAB */}
           {tab === "posted" && (
             <div className="space-y-4">
-              {postedJobs.length === 0 ? (
+              {filteredPostedJobs.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">You haven't posted any tasks yet.</p>
-                  <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+                  <p className="text-muted-foreground mb-4">
+                    {postedJobs.length === 0 ? "You haven't posted any tasks yet." : "No tasks match this filter."}
+                  </p>
+                  {postedJobs.length === 0 && <Button onClick={() => navigate("/post-job")}>Post your first task</Button>}
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {postedJobs.map((job) => (
+                  {filteredPostedJobs.map((job) => (
                     <div key={job.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -715,13 +766,15 @@ const Activity = () => {
           {/* APPLIED TAB */}
           {tab === "applied" && (
             <div className="space-y-3">
-              {appliedApps.length === 0 ? (
+              {filteredAppliedApps.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">You haven't applied to any tasks yet.</p>
+                  <p className="text-muted-foreground mb-4">
+                    {appliedApps.length === 0 ? "You haven't applied to any tasks yet." : "No applications match this filter."}
+                  </p>
                   <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
                 </div>
               ) : (
-                appliedApps.map((app) => (
+                filteredAppliedApps.map((app) => (
                   <div key={app.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">

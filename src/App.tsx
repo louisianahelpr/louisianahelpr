@@ -81,6 +81,7 @@ const App = () => (
           </Routes>
           </div>
           <MobileNav />
+          <InstallPrompt />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

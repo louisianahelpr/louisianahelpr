@@ -1403,48 +1403,7 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string | null
-          full_name: string | null
-          hourly_rate: number | null
-          location: string | null
-          portfolio_urls: string[] | null
-          role: string | null
-          skills: string | null
-          subscription_tier: string | null
-          user_id: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          hourly_rate?: number | null
-          location?: string | null
-          portfolio_urls?: string[] | null
-          role?: string | null
-          skills?: string | null
-          subscription_tier?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          hourly_rate?: number | null
-          location?: string | null
-          portfolio_urls?: string[] | null
-          role?: string | null
-          skills?: string | null
-          subscription_tier?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       delete_email: {

@@ -1134,7 +1134,24 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
         ))}
       </div>
 
-      <div className="space-y-3">
+      {billingInterval === "monthly" && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+          <label className="text-sm font-medium text-foreground">Billing day of the month</label>
+          <select
+            value={billingDay}
+            onChange={(e) => setBillingDay(Number(e.target.value))}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+          >
+            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+              <option key={day} value={day}>
+                {day === 1 ? "1st" : day === 2 ? "2nd" : day === 3 ? "3rd" : `${day}th`}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">You'll be charged on this day each month</p>
+        </div>
+      )}
+
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id;
           const saveBadge = getSaveBadge(tier);

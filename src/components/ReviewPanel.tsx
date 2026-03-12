@@ -32,7 +32,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       reviewer_id: user.id,
       reviewee_id: revieweeId,
       rating,
-      feedback: feedback || null,
+      feedback: feedback.trim(),
     });
 
     if (error) {

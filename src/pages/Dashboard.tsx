@@ -570,6 +570,8 @@ const Dashboard = () => {
                     sortBy={sortBy} setSortBy={setSortBy}
                     filtersOpen={true} setFiltersOpen={setFiltersOpen}
                     expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
+                    matchAvailability={matchAvailability} setMatchAvailability={setMatchAvailability}
+                    hasAvailability={helperAvailability.length > 0}
                   />
                 </motion.div>
               )}

@@ -20,7 +20,7 @@ const appreciations = [
 ];
 
 const CommunityLoveSection = () => (
-  <section className="py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
+  <section id="community" className="py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
     <div className="container mx-auto max-w-4xl">
       <motion.div
         initial={{ opacity: 0, y: 20 }}

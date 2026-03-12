@@ -310,7 +310,7 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">About you</Label>
+              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
                 placeholder="Tell us about yourself, your experience, and what you're looking for…"

@@ -149,7 +149,7 @@ const PostJob = () => {
     setAiLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-job-builder", {
-        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location } },
+        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location: `${city}, ${addrState}` } },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

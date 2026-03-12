@@ -92,7 +92,7 @@ const faqSchema = {
       name: "How much does it cost to use Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Signing up and browsing Helpr is free. You only pay when you hire a helper, and pricing is set per job.",
+        text: "Signing up and browsing Helpr is free. You only pay when you hire a helpr, and pricing is set per job.",
       },
     },
   ],

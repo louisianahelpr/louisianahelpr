@@ -1144,7 +1144,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-foreground">{tier.name}</h3>
+                  <h3 className="font-bold text-foreground">{tier.badge} {tier.name}</h3>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-primary">{getPrice(tier)}</p>
                     {saveBadge && (

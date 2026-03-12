@@ -13,6 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import JobCard from "@/components/dashboard/JobCard";

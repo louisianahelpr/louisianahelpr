@@ -580,27 +580,22 @@ const Activity = () => {
     { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
-  const appliedStatusFilters = useMemo(() => [
-    { key: "", label: "All", color: "bg-foreground/10 text-foreground border-foreground/20" },
-    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
-    { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ], []);
+  const unreadPostedCount = Math.max(0, postedJobs.length - lastSeenPostedCount);
+  const unreadAppliedCount = Math.max(0, appliedApps.length - lastSeenAppliedCount);
 
-  const filteredPostedJobs = useMemo(() => !statusFilter
-    ? postedJobs
-    : postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
-
-  const filteredAppliedApps = useMemo(() => !statusFilter
-    ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending") return a.status === "pending";
-        if (statusFilter === "rejected") return a.status === "rejected";
-        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
-        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-        return true;
-      }), [appliedApps, statusFilter]);
+  // Mark as seen when viewing a tab
+  useEffect(() => {
+    if (tab === "posted" && postedJobs.length > 0 && !seenPosted) {
+      setSeenPosted(true);
+      setLastSeenPostedCount(postedJobs.length);
+      localStorage.setItem("helpr_seen_posted_count", String(postedJobs.length));
+    }
+    if (tab === "applied" && appliedApps.length > 0 && !seenApplied) {
+      setSeenApplied(true);
+      setLastSeenAppliedCount(appliedApps.length);
+      localStorage.setItem("helpr_seen_applied_count", String(appliedApps.length));
+    }
+  }, [tab, postedJobs.length, appliedApps.length, seenPosted, seenApplied]);
 
   if (loading) {
     return (
@@ -618,11 +613,9 @@ const Activity = () => {
   }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "posted", label: "Posted", count: postedJobs.length },
-    { key: "applied", label: "Applied", count: appliedApps.length },
+    { key: "posted", label: "Posted", count: tab === "posted" ? 0 : unreadPostedCount },
+    { key: "applied", label: "Applied", count: tab === "applied" ? 0 : unreadAppliedCount },
   ];
-
-  const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
 
   return (
     <div className="min-h-screen bg-background pb-20">

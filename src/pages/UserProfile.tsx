@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
+import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
@@ -360,6 +361,9 @@ const UserProfile = () => {
               </div>
             </div>
           )}
+
+          {/* Availability */}
+          {profile.role === "helper" && <HelperAvailabilityDisplay helperId={userId!} />}
 
           {/* Portfolio */}
           {profile.role === "helper" && <HelperPortfolio helperId={userId!} />}

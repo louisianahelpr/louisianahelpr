@@ -27,7 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers" | "notifications";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -288,9 +288,8 @@ const ProfilePage = () => {
 
   const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
-    { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Set your working hours" },
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
-    { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "View upcoming jobs" },
+    { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
     { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
     { key: "circles", label: "Trusted Circles", icon: <Users className="w-5 h-5" />, desc: "Manage helper groups" },
@@ -631,10 +630,15 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* SCHEDULE TAB */}
+          {/* SCHEDULE TAB (includes availability) */}
           {tab === "schedule" && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
+                <p className="text-muted-foreground text-sm mt-1">Your calendar, upcoming jobs & working hours</p>
+              </div>
+
+              {/* Calendar */}
               {scheduleLoading ? (
                 <p className="text-muted-foreground">Loading…</p>
               ) : (
@@ -708,6 +712,13 @@ const ProfilePage = () => {
                   )}
                 </>
               )}
+
+              {/* Availability section */}
+              <div className="border-t border-border pt-6">
+                <h2 className="text-lg font-display font-bold text-foreground mb-1">Working Hours</h2>
+                <p className="text-muted-foreground text-xs mb-4">Set your weekly availability so customers know when you're free</p>
+                {user && <HelperAvailability userId={user.id} />}
+              </div>
             </div>
           )}
 
@@ -942,18 +953,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* AVAILABILITY TAB */}
-          {tab === "availability" && (
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Availability</h1>
-                <p className="text-muted-foreground text-sm mt-1">Set your working hours so customers can book you</p>
-              </div>
-              {user && (
-                <HelperAvailability userId={user.id} />
-              )}
-            </div>
-          )}
 
           {/* REFERRAL TAB */}
           {tab === "referral" && user && (

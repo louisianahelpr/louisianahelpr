@@ -828,6 +828,10 @@ const ProfilePage = () => {
             </div>
           )}
 
+          {tab === "notifications" && (
+            <NotificationPreferences />
+          )}
+
           {tab === "security" && (
             <div className="space-y-6">
               <h1 className="text-2xl font-display font-bold text-foreground">Account Security</h1>

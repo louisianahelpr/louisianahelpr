@@ -351,7 +351,7 @@ const supportCategories: { key: SupportCategory; label: string; icon: React.Reac
   { key: "help", label: "Get Help", icon: <HelpCircle className="w-5 h-5" />, description: "Ask a question or request assistance" },
 ];
 
-function SupportInline({ userId }: { userId?: string }) {
+function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void }) {
   const [category, setCategory] = useState<SupportCategory | null>(null);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");

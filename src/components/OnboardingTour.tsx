@@ -128,7 +128,7 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   };
 
   const handleDismiss = () => {
-    updateState({ dismissedAt: new Date().toISOString() });
+    updateState({ completed: true, dismissedAt: new Date().toISOString() });
     setVisible(false);
   };
 

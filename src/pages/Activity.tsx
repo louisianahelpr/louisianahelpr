@@ -654,18 +654,12 @@ const Activity = () => {
                         )}
                       </div>
 
-                      {/* Footer: status + category */}
-                      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px]">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusBadge[job.status] || "bg-secondary text-secondary-foreground"}`}>
-                          {job.status.replace(/_/g, " ")}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {job.payment_status === "released" && <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>}
-                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${catStyle.badge}`}>
-                            {categoryLabels[job.category] || job.category}
-                          </span>
+                      {/* Footer: paid status only */}
+                      {job.payment_status === "released" && (
+                        <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 text-[11px]">
+                          <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>
                         </div>
-                      </div>
+                      )}
 
                       {/* Features for active jobs */}
                       {(job.status === "in_progress" || job.status === "accepted") && user && (

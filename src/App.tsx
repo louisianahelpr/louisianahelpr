@@ -36,7 +36,6 @@ const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Lazy load less-critical global components
-const OnboardingTour = lazy(() => import("./components/OnboardingTour"));
 const InstallPrompt = lazy(() => import("./components/InstallPrompt"));
 
 // Lazy load route wrappers
@@ -106,7 +105,6 @@ const App = () => (
           </div>
           <MobileNav />
           <Suspense fallback={null}>
-            <OnboardingTour />
             <InstallPrompt />
           </Suspense>
         </BrowserRouter>

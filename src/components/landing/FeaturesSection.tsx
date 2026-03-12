@@ -6,7 +6,7 @@ const features = [
   { icon: Star, title: "Reviews & ratings", desc: "Leave honest feedback after every job to help the community." },
   { icon: CalendarDays, title: "Easy scheduling", desc: "Pick the date and time that works. Helpers confirm availability." },
   { icon: Bell, title: "Real-time updates", desc: "Get notified when someone applies, when work starts, and when it's done." },
-  { icon: MapPin, title: "Louisiana local", desc: "Find helpers in your parish and neighborhood. Support your local Louisiana community." },
+  { icon: MapPin, title: "Louisiana local", desc: "Find helprs in your parish and neighborhood. Support your local Louisiana community." },
 ];
 
 const FeaturesSection = () => {

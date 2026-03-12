@@ -36,11 +36,11 @@ const TermsOfService = () => {
               <p><strong className="text-foreground">Eligibility:</strong> You must be at least 18 years old to use Helpr. Age verification is mandatory during signup. By creating an account, you represent that you meet this requirement.</p>
               <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account credentials and all activity that occurs under your account.</p>
               <p><strong className="text-foreground">Account Approval:</strong> All new accounts are subject to review. Your account will remain in a pending state until approved by our team. Denied accounts will receive an explanation and may reapply.</p>
-              <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helper, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
+              <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helpr, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
               <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, discrimination, off-platform payment solicitation, or any conduct that violates the rights of others.</p>
               <p><strong className="text-foreground">Account Termination:</strong> Helpr reserves the right to suspend or terminate accounts that violate these terms, at our sole discretion.</p>
               <p><strong className="text-foreground">Intellectual Property:</strong> All content, branding, and technology on the Helpr platform are owned by Helpr. You may not copy, modify, or distribute any part of the Service without permission.</p>
-              <p><strong className="text-foreground">Limitation of Liability:</strong> Helpr acts as a marketplace connecting customers and helpers. We are not responsible for the quality, safety, or legality of tasks performed through the platform.</p>
+              <p><strong className="text-foreground">Limitation of Liability:</strong> Helpr acts as a marketplace connecting customers and helprs. We are not responsible for the quality, safety, or legality of tasks performed through the platform.</p>
             </div>
           </section>
 
@@ -52,11 +52,11 @@ const TermsOfService = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 text-sm text-muted-foreground">
               <div>
                 <p className="font-semibold text-foreground mb-1">Escrow System</p>
-                <p>All payments use a Stripe escrow system with manual capture. Funds are authorized at booking and only captured once both parties confirm job completion. A Stripe transfer is then initiated to the helper's connected account.</p>
+                <p>All payments use a Stripe escrow system with manual capture. Funds are authorized at booking and only captured once both parties confirm job completion. A Stripe transfer is then initiated to the helpr's connected account.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Platform Fee</p>
-                <p>Helpr charges a <strong className="text-foreground">15% platform fee</strong> on all transactions across all subscription tiers. This fee is deducted from the helper's earnings before payout.</p>
+                <p>Helpr charges a <strong className="text-foreground">15% platform fee</strong> on all transactions across all subscription tiers. This fee is deducted from the helpr's earnings before payout.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Payout Schedule</p>
@@ -64,7 +64,7 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Auto-Release</p>
-                <p>If one party confirms completion but the other does not respond, payment is automatically released to the helper after <strong className="text-foreground">72 hours</strong>.</p>
+                <p>If one party confirms completion but the other does not respond, payment is automatically released to the helpr after <strong className="text-foreground">72 hours</strong>.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Stripe Connect Requirement</p>
@@ -116,7 +116,7 @@ const TermsOfService = () => {
               <Crown className="w-5 h-5 text-primary" /> Subscription Tiers
             </h2>
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 text-sm text-muted-foreground">
-              <p>Helpr offers a 3-tier subscription system for helpers:</p>
+              <p>Helpr offers a 3-tier subscription system for helprs:</p>
               <div className="rounded-lg bg-muted/40 border border-border/50 overflow-hidden">
                 <div className="grid grid-cols-3 text-xs font-semibold text-foreground bg-muted/60 px-4 py-2.5 border-b border-border/50">
                   <span>Tier</span>
@@ -155,12 +155,12 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">New Account Restrictions</p>
-                <p>New helper accounts are restricted to:</p>
+                <p>New helpr accounts are restricted to:</p>
                 <ul className="list-disc list-inside space-y-1 mt-1 ml-2">
                   <li>Maximum of <strong className="text-foreground">3 active jobs</strong> at a time</li>
                   <li>Maximum of <strong className="text-foreground">$100 in total earnings</strong></li>
                 </ul>
-                <p className="mt-1">These restrictions are lifted once the helper achieves <strong className="text-foreground">3 verified completions with a 4+ star rating</strong>.</p>
+                <p className="mt-1">These restrictions are lifted once the helpr achieves <strong className="text-foreground">3 verified completions with a 4+ star rating</strong>.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Completion Requirements</p>
@@ -193,7 +193,7 @@ const TermsOfService = () => {
                 <ul className="list-disc list-inside space-y-1 mt-1 ml-2">
                   <li>Job completions under 15 minutes</li>
                   <li>Missing GPS check-ins</li>
-                  <li>Repeated disputes on a single helper account</li>
+                  <li>Repeated disputes on a single helpr account</li>
                 </ul>
                 <p className="mt-1">Flagged activities are reviewed by our admin team.</p>
               </div>

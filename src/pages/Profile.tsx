@@ -1191,7 +1191,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 <div className="space-y-2">
                   <LegalCard icon={<FileText className="w-4 h-4 text-primary" />} title="Terms of Service">
                     <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account and all activity under it.</p>
-                    <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helper, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
+                    <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helpr, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
                     <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, or any conduct that violates the rights of others.</p>
                     <p><strong className="text-foreground">Account Termination:</strong> Helpr reserves the right to suspend or terminate accounts that violate these terms.</p>
                   </LegalCard>
@@ -1222,10 +1222,10 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                     <p><strong className="text-foreground">Disputes:</strong> If you have a payment dispute, contact support.</p>
                   </LegalCard>
                   <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Platform Fees">
-                    <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helper's payout.</p>
+                    <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helpr's payout.</p>
                     <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
                     <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
-                    <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helper — no platform fee on tips.</p>
+                    <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helpr — no platform fee on tips.</p>
                   </LegalCard>
                   <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Job Budget Limits">
                     <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
@@ -1251,13 +1251,13 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                     <p><strong className="text-foreground">Very Late Cancellation (&lt;2h):</strong> 50% cancellation fee applied.</p>
                   </LegalCard>
                   <LegalCard icon={<AlertTriangle className="w-4 h-4 text-destructive" />} title="Cancellation Strikes (Posters)" variant="warning">
-                    <p className="mb-1">Cancelling a job <strong className="text-foreground">after a helper has been selected</strong> triggers escalating penalties:</p>
+                    <p className="mb-1">Cancelling a job <strong className="text-foreground">after a helpr has been selected</strong> triggers escalating penalties:</p>
                     <p>• <strong className="text-accent">1st cancellation:</strong> Written warning (Strike 1/2)</p>
                     <p>• <strong className="text-accent">2nd cancellation:</strong> Final warning (Strike 2/2)</p>
                     <p>• <strong className="text-destructive">3rd cancellation:</strong> Permanent account ban</p>
-                    <p className="italic text-xs mt-1">Cancelling jobs with no helper assigned does not count toward strikes.</p>
+                    <p className="italic text-xs mt-1">Cancelling jobs with no helpr assigned does not count toward strikes.</p>
                   </LegalCard>
-                  <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="Job Denial Strikes (Helpers)" variant="warning">
+                  <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="Job Denial Strikes (Helprs)" variant="warning">
                     <p className="mb-1">Declining a job <strong className="text-foreground">after being selected</strong> triggers escalating penalties:</p>
                     <p>• <strong className="text-accent">1st decline:</strong> Written warning (Strike 1/2)</p>
                     <p>• <strong className="text-accent">2nd decline:</strong> Final warning (Strike 2/2)</p>
@@ -1272,7 +1272,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Safety & Enforcement</h2>
                 <div className="space-y-2">
                   <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="No-Show Policy" variant="warning">
-                    <p>If a helper accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
+                    <p>If a helpr accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
                   </LegalCard>
                   <LegalCard icon={<Shield className="w-4 h-4 text-destructive" />} title="Immediate Ban Offenses" variant="warning">
                     <p className="mb-1">These skip all warnings and result in an immediate permanent ban:</p>
@@ -1303,8 +1303,8 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Job Rules</h2>
                 <div className="space-y-2">
                   <LegalCard icon={<Clock className="w-4 h-4 text-primary" />} title="Job Editing Restrictions">
-                    <p><strong className="text-foreground">Before helper selected:</strong> You can freely edit job details.</p>
-                    <p><strong className="text-foreground">After helper selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
+                    <p><strong className="text-foreground">Before helpr selected:</strong> You can freely edit job details.</p>
+                    <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
                   </LegalCard>
                   <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
                     <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
@@ -1312,7 +1312,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                     <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
                   </LegalCard>
                   <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
-                    <p><strong className="text-foreground">Job Limit:</strong> New helpers are limited to 3 active jobs at a time until they build a track record.</p>
+                    <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>
                     <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
                     <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster).</p>
                   </LegalCard>

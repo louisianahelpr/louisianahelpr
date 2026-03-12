@@ -136,8 +136,8 @@ Deno.serve(async (req) => {
               },
               {
                 user_id: job.customer_id,
-                title: 'Your helper is on the way 🚗',
-                message: `"${job.title}" starts at ${job.start_time}. Your helper has been notified.`,
+                title: 'Your helpr is on the way 🚗',
+                message: `"${job.title}" starts at ${job.start_time}. Your helpr has been notified.`,
                 type: 'reminder',
                 link: '/dashboard',
               },
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
                 {
                   user_id: job.customer_id,
                   title: 'Possible no-show ⚠️',
-                  message: `Your helper hasn't checked in for "${job.title}" (was due at ${job.start_time}). You can cancel and re-post if needed.`,
+                  message: `Your helpr hasn't checked in for "${job.title}" (was due at ${job.start_time}). You can cancel and re-post if needed.`,
                   type: 'warning',
                   link: '/dashboard',
                 },

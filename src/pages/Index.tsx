@@ -92,7 +92,7 @@ const faqSchema = {
       name: "How much does it cost to use Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Signing up and browsing Helpr is free. You only pay when you hire a helper, and pricing is set per job.",
+        text: "Signing up and browsing Helpr is free. You only pay when you hire a helpr, and pricing is set per job.",
       },
     },
   ],
@@ -102,9 +102,9 @@ const Index = () => {
   usePageMeta({
     title: "Helpr — Louisiana's #1 Local Help Marketplace | Cleaning, Moving, Errands & More",
     description:
-      "Find trusted helpers in New Orleans, Baton Rouge, Shreveport & across Louisiana for cleaning, yard work, moving, errands, and handyman tasks. Post a job in minutes.",
+      "Find trusted helprs in New Orleans, Baton Rouge, Shreveport & across Louisiana for cleaning, yard work, moving, errands, and handyman tasks. Post a job in minutes.",
     keywords:
-      "Louisiana helpers, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, task marketplace, trusted neighbors, home services Louisiana",
+      "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, task marketplace, trusted neighbors, home services Louisiana",
     canonical: SITE_URL,
     ogTitle: "Helpr — Louisiana's Trusted Marketplace for Everyday Tasks",
     ogDescription:

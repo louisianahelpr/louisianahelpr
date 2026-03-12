@@ -33,7 +33,7 @@ const PlatformRules = () => {
           </div>
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <p className="text-sm text-muted-foreground">
-              We understand plans change. However, last-minute cancellations impact helpers who've set aside time for your job. 
+              We understand plans change. However, last-minute cancellations impact helprs who've set aside time for your job. 
               Fees are calculated as a percentage of the job budget.
             </p>
             <div className="space-y-3">
@@ -48,7 +48,7 @@ const PlatformRules = () => {
                 <AlertTriangle className="w-5 h-5 text-accent mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Less than 24 hours before job</p>
-                  <p className="text-xs text-muted-foreground">25% cancellation fee applied. The helper has already committed their time.</p>
+                  <p className="text-xs text-muted-foreground">25% cancellation fee applied. The helpr has already committed their time.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
@@ -60,7 +60,7 @@ const PlatformRules = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground italic">
-              Cancellation fees compensate helpers for lost time and opportunity. Repeated late cancellations may result in account restrictions.
+              Cancellation fees compensate helprs for lost time and opportunity. Repeated late cancellations may result in account restrictions.
             </p>
           </div>
         </section>
@@ -81,7 +81,7 @@ const PlatformRules = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Mutual confirmation = instant release</p>
-                  <p className="text-xs text-muted-foreground">When both the poster and helper confirm the job is complete, payment is released immediately.</p>
+                  <p className="text-xs text-muted-foreground">When both the poster and helpr confirm the job is complete, payment is released immediately.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -103,7 +103,7 @@ const PlatformRules = () => {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Auto-release after 72 hours</p>
                   <p className="text-xs text-muted-foreground">
-                    If neither confirmation nor revision is received within 72 hours, payment is automatically released to the helper.
+                    If neither confirmation nor revision is received within 72 hours, payment is automatically released to the helpr.
                   </p>
                 </div>
               </div>
@@ -121,8 +121,8 @@ const PlatformRules = () => {
           </div>
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Cancelling a job <strong className="text-foreground">after a helper has already been selected</strong> is taken seriously. 
-              Helpers commit their time and may turn down other opportunities. The following escalation applies:
+              Cancelling a job <strong className="text-foreground">after a helpr has already been selected</strong> is taken seriously. 
+              Helprs commit their time and may turn down other opportunities. The following escalation applies:
             </p>
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/10">
@@ -136,7 +136,7 @@ const PlatformRules = () => {
                 <span className="text-sm font-bold text-accent mt-0.5 shrink-0">2nd</span>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Final warning (Strike 2/2)</p>
-                  <p className="text-xs text-muted-foreground">This is your last chance. Another cancellation after selecting a helper will result in a permanent ban.</p>
+                  <p className="text-xs text-muted-foreground">This is your last chance. Another cancellation after selecting a helpr will result in a permanent ban.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
@@ -148,7 +148,7 @@ const PlatformRules = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground italic">
-              Note: Cancelling a job that has <strong>no helper assigned yet</strong> does not count toward strikes. 
+              Note: Cancelling a job that has <strong>no helpr assigned yet</strong> does not count toward strikes. 
               Cancellation fees still apply based on timing regardless of strikes.
             </p>
           </div>
@@ -160,7 +160,7 @@ const PlatformRules = () => {
             <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
               <XCircle className="w-5 h-5 text-accent" />
             </div>
-            <h2 className="text-xl font-display font-bold text-foreground">Job Denial Strike System (Helpers)</h2>
+            <h2 className="text-xl font-display font-bold text-foreground">Job Denial Strike System (Helprs)</h2>
           </div>
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -207,7 +207,7 @@ const PlatformRules = () => {
           <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 space-y-3">
             <p className="text-sm font-semibold text-foreground">Zero tolerance — immediate permanent ban</p>
             <p className="text-sm text-muted-foreground">
-              If a helper accepts a job and fails to show up without prior cancellation, their account will be 
+              If a helpr accepts a job and fails to show up without prior cancellation, their account will be 
               <strong className="text-destructive"> permanently banned</strong> from Helpr. No warnings. No exceptions.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -235,7 +235,7 @@ const PlatformRules = () => {
               <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Harassment or threats</strong> — abusive language, intimidation, or safety threats toward any user</span></li>
               <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Off-platform payments</strong> — attempting to arrange payment outside of Helpr</span></li>
               <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Identity fraud</strong> — using someone else's identity or fake ID documents</span></li>
-              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Dispute system abuse</strong> — filing false disputes to avoid paying helpers</span></li>
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Dispute system abuse</strong> — filing false disputes to avoid paying helprs</span></li>
             </ul>
           </div>
         </section>
@@ -252,16 +252,16 @@ const PlatformRules = () => {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
               <CheckCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-foreground">Before a helper is selected</p>
+                <p className="text-sm font-semibold text-foreground">Before a helpr is selected</p>
                 <p className="text-xs text-muted-foreground">You can freely edit your job title, description, budget, date, and other details.</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
               <XCircle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-foreground">After a helper is selected</p>
+                <p className="text-sm font-semibold text-foreground">After a helpr is selected</p>
                 <p className="text-xs text-muted-foreground">
-                  Jobs cannot be edited once a helper has been accepted. This protects helpers from unexpected scope or budget changes. 
+                  Jobs cannot be edited once a helpr has been accepted. This protects helprs from unexpected scope or budget changes. 
                   If adjustments are needed, use the addon request feature or cancel and repost.
                 </p>
               </div>

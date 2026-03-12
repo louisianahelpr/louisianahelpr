@@ -47,7 +47,7 @@ const MyJobs = () => {
 
   useEffect(() => {
     if (searchParams.get("tip") === "success") {
-      toast.success("Tip sent successfully! Your helper will appreciate it.");
+      toast.success("Tip sent successfully! Your helpr will appreciate it.");
     }
     loadJobs();
   }, []);

@@ -109,7 +109,7 @@ export function MyRetainers({ userId, role }: { userId: string; role: string }) 
         <p className="text-sm text-muted-foreground mt-1">
           {role === "helper"
             ? "Recurring bookings from your customers"
-            : "Your recurring bookings with helpers"}
+            : "Your recurring bookings with helprs"}
         </p>
       </div>
 
@@ -119,7 +119,7 @@ export function MyRetainers({ userId, role }: { userId: string; role: string }) 
           <p className="text-sm text-muted-foreground">
             {role === "helper"
               ? "No retainer agreements yet. Customers can set up recurring bookings from your profile."
-              : "No retainer agreements yet. Visit a helper's profile to set up recurring bookings."}
+              : "No retainer agreements yet. Visit a helpr's profile to set up recurring bookings."}
           </p>
           {role !== "helper" && (
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>

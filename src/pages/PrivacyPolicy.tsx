@@ -35,7 +35,7 @@ const PrivacyPolicy = () => {
             </h2>
             <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
               <p><strong className="text-foreground">Account Information:</strong> Name, email address, phone number, date of birth, and profile photo when you create an account.</p>
-              <p><strong className="text-foreground">Identity Verification:</strong> Government-issued ID documents for helpers to ensure platform safety. These are stored securely and accessed only during verification.</p>
+              <p><strong className="text-foreground">Identity Verification:</strong> Government-issued ID documents for helprs to ensure platform safety. These are stored securely and accessed only during verification.</p>
               <p><strong className="text-foreground">Location Data:</strong> Address and GPS coordinates when you post or check in to jobs, used for matching and proximity verification.</p>
               <p><strong className="text-foreground">Payment Information:</strong> Payment details are processed securely by Stripe. Helpr does not store your full credit card number.</p>
               <p><strong className="text-foreground">Usage Data:</strong> Device information, IP address, browser type, and interaction data to improve platform performance.</p>
@@ -48,7 +48,7 @@ const PrivacyPolicy = () => {
               <Eye className="w-5 h-5 text-primary" /> How We Use Your Information
             </h2>
             <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
-              <p><strong className="text-foreground">Service Delivery:</strong> To match you with tasks, process payments, and facilitate communication between customers and helpers.</p>
+              <p><strong className="text-foreground">Service Delivery:</strong> To match you with tasks, process payments, and facilitate communication between customers and helprs.</p>
               <p><strong className="text-foreground">Safety & Trust:</strong> To verify identities, prevent fraud, enforce community guidelines, and resolve disputes.</p>
               <p><strong className="text-foreground">Notifications:</strong> To send job updates, payment confirmations, and important account alerts via push notifications and email.</p>
               <p><strong className="text-foreground">Platform Improvement:</strong> To analyze usage patterns, fix bugs, and develop new features that serve our Louisiana community.</p>

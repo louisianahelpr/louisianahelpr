@@ -14,7 +14,7 @@ const values = [
   {
     icon: <Shield className="w-6 h-6" />,
     title: "Trust & Safety First",
-    desc: "We verify every helper and protect every transaction so you can focus on what matters — getting things done and helping others.",
+    desc: "We verify every helpr and protect every transaction so you can focus on what matters — getting things done and helping others.",
   },
   {
     icon: <Star className="w-6 h-6" />,
@@ -77,7 +77,7 @@ const Community = () => {
               Built by People.<br />Powered by Heart.
             </h1>
             <p className="text-lg text-muted-foreground mt-4 max-w-xl mx-auto">
-              Helpr exists because of people like you. This page is our way of saying thank you — to every helper, every customer, and every person who believes in the power of community.
+              Helpr exists because of people like you. This page is our way of saying thank you — to every helpr, every customer, and every person who believes in the power of community.
             </p>
           </motion.div>
         </div>

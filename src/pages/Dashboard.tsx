@@ -312,6 +312,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-5">
         <div className="max-w-3xl mx-auto space-y-5">
 
+          <BroadcastBanner />
           {/* Welcome section */}
           {showGreeting && (
           <motion.div

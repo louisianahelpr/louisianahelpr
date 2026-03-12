@@ -62,7 +62,7 @@ const ForgotPassword = () => {
               />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Sending…" : "Send reset link"}
+              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send reset link"}
             </Button>
           </form>
         )}

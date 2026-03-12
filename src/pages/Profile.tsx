@@ -558,6 +558,10 @@ function SupportInline({ userId }: { userId?: string }) {
                       <Label htmlFor="phone" className="text-xs">Phone</Label>
                       <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dob" className="text-xs">Date of birth</Label>
+                      <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="location" className="text-xs">Location (city or ZIP)</Label>

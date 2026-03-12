@@ -834,20 +834,6 @@ const Activity = () => {
                         )}
                       </div>
                     </div>
-                    {/* Helper tip/review section on completed jobs */}
-                    {app.status === "accepted" && app.job?.status === "completed" && app.job?.payment_status === "released" && (
-                      <div className="border-t border-border pt-3 flex flex-wrap items-center gap-2">
-                        {helperTipJobId === app.job_id ? (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Input type="number" min="1" placeholder="$" value={helperTipAmount} onChange={(e) => setHelperTipAmount(e.target.value)} className="max-w-[80px]" />
-                            <Button size="sm" onClick={() => sendHelperTip(app.job_id)} disabled={helperTipping}>{helperTipping ? "…" : "Send"}</Button>
-                            <Button size="sm" variant="ghost" onClick={() => { setHelperTipJobId(null); setHelperTipAmount(""); }}>Cancel</Button>
-                          </div>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => { setHelperTipJobId(app.job_id); setHelperTipAmount(""); }}><Gift className="w-4 h-4 mr-1" /> Tip Poster</Button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))
               )}

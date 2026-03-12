@@ -72,6 +72,7 @@ const ProfilePage = () => {
   const [bio, setBio] = useState("");
   const [skills, setSkills] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
 
   // Earnings state
   const [earningsJobs, setEarningsJobs] = useState<Job[]>([]);
@@ -118,6 +119,7 @@ const ProfilePage = () => {
       setBio(data.bio || "");
       setSkills(data.skills || "");
       setHourlyRate(data.hourly_rate?.toString() || "");
+      setDateOfBirth(data.date_of_birth || "");
     }
     setLoading(false);
   };
@@ -222,6 +224,7 @@ const ProfilePage = () => {
       full_name: fullName.trim(), phone: phone.trim(), location: location.trim(),
       bio: bio.trim(), skills: skills.trim(),
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
+      date_of_birth: dateOfBirth || null,
     }).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -554,6 +557,10 @@ function SupportInline({ userId }: { userId?: string }) {
                     <div className="space-y-1.5">
                       <Label htmlFor="phone" className="text-xs">Phone</Label>
                       <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dob" className="text-xs">Date of birth</Label>
+                      <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
                     </div>
                   </div>
                   <div className="space-y-1.5">

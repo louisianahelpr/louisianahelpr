@@ -429,7 +429,7 @@ const PostJob = () => {
                   <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
                   <div className="grid grid-cols-3 gap-3">
                     <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
-                    <Input id="state" value={state} onChange={(e) => setState(e.target.value)} placeholder="State" required maxLength={50} />
+                    <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} />
                     <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
                   </div>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">

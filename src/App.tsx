@@ -106,7 +106,6 @@ const App = () => (
           </div>
           <MobileNav />
           <Suspense fallback={null}>
-            <OnboardingTour />
             <InstallPrompt />
           </Suspense>
         </BrowserRouter>

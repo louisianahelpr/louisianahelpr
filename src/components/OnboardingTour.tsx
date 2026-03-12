@@ -89,8 +89,8 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const progress = ((state.currentStep + 1) / steps.length) * 100;
 
   useEffect(() => {
-    // Don't show on landing page
-    if (location.pathname === "/") return;
+    // Only show on the dashboard (first page after login for approved users)
+    if (location.pathname !== "/dashboard") return;
     const s = getState();
     // Never show again if completed (finished, skipped, or dismissed)
     if (s.completed) return;

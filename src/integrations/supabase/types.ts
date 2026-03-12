@@ -762,6 +762,51 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          job_applications: boolean
+          job_updates: boolean
+          messages: boolean
+          payments: boolean
+          promotions: boolean
+          push_enabled: boolean
+          reviews: boolean
+          system_alerts: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_applications?: boolean
+          job_updates?: boolean
+          messages?: boolean
+          payments?: boolean
+          promotions?: boolean
+          push_enabled?: boolean
+          reviews?: boolean
+          system_alerts?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_applications?: boolean
+          job_updates?: boolean
+          messages?: boolean
+          payments?: boolean
+          promotions?: boolean
+          push_enabled?: boolean
+          reviews?: boolean
+          system_alerts?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

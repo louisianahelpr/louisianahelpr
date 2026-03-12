@@ -164,13 +164,26 @@ const Activity = () => {
 
     if (postedRes.data) {
       setPostedJobs(postedRes.data);
-      // Fetch applicant counts for posted jobs
       const jobIds = postedRes.data.map(j => j.id);
       if (jobIds.length > 0) {
         const { data: allApps } = await supabase.from("applications").select("job_id").in("job_id", jobIds);
         const counts: Record<string, number> = {};
         allApps?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
         setApplicantCounts(counts);
+
+        // Fetch tip & review status for completed jobs
+        const completedIds = postedRes.data.filter(j => j.status === "completed").map(j => j.id);
+        if (completedIds.length > 0) {
+          const [tipsRes, reviewsRes] = await Promise.all([
+            supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId),
+            supabase.from("reviews").select("job_id").in("job_id", completedIds).eq("reviewer_id", userId),
+          ]);
+          const meta: Record<string, { tipped: boolean; reviewed: boolean }> = {};
+          completedIds.forEach(id => { meta[id] = { tipped: false, reviewed: false }; });
+          tipsRes.data?.forEach(t => { if (meta[t.job_id]) meta[t.job_id].tipped = true; });
+          reviewsRes.data?.forEach(r => { if (meta[r.job_id]) meta[r.job_id].reviewed = true; });
+          setCompletedJobMeta(meta);
+        }
       }
     }
 

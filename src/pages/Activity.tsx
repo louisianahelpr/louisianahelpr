@@ -341,7 +341,12 @@ const Activity = () => {
     setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);
-    if (user) loadData(user.id);
+    // Refresh inline applicants for this job
+    setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
+    if (user) {
+      loadData(user.id);
+      loadInlineApplicants(selectedJob.id);
+    }
   };
 
   const cancelJob = async (jobId: string) => {

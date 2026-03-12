@@ -318,12 +318,15 @@ const Dashboard = () => {
           {/* Welcome section */}
           {showGreeting && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10 relative"
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="rounded-2xl bg-gradient-to-br from-primary/10 via-accent/6 to-primary/4 p-5 border border-primary/12 relative overflow-hidden"
           >
+            {/* Decorative background circles */}
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-primary/[0.04] blur-xl" />
+            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-accent/[0.06] blur-xl" />
             <button
               onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
               className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
@@ -401,11 +404,13 @@ const Dashboard = () => {
               className="space-y-3"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400/20 to-sky-500/10 flex items-center justify-center">
-                  <MapPin className="w-3.5 h-3.5 text-sky-600" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400/20 to-sky-500/10 flex items-center justify-center shadow-sm">
+                  <MapPin className="w-4 h-4 text-sky-600" />
                 </div>
-                <h2 className="text-sm font-display font-bold text-foreground">Jobs Near You</h2>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{profile?.location}</span>
+                <div>
+                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Jobs Near You</h2>
+                  <span className="text-[10px] text-muted-foreground">{profile?.location}</span>
+                </div>
               </div>
               <div className="space-y-3">
                 {nearbyJobs.slice(0, 3).map((job, i) => (
@@ -430,11 +435,13 @@ const Dashboard = () => {
               className="space-y-3"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center">
-                  <Star className="w-3.5 h-3.5 text-accent fill-accent" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center shadow-sm">
+                  <Star className="w-4 h-4 text-accent fill-accent" />
                 </div>
-                <h2 className="text-sm font-display font-bold text-foreground">Recommended for You</h2>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">based on skills</span>
+                <div>
+                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Recommended for You</h2>
+                  <span className="text-[10px] text-muted-foreground">based on your skills</span>
+                </div>
               </div>
               <div className="space-y-3">
                 {recommendedJobs.slice(0, 3).map((job, i) => (
@@ -457,14 +464,18 @@ const Dashboard = () => {
           />
 
           {/* All Tasks header */}
-          <div className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-display font-bold text-foreground">
-              {hasFilters ? "Filtered Results" : "All Tasks"}
-            </h2>
-            <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {filteredJobs.length} active
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
+              <Briefcase className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-display font-bold text-foreground leading-tight">
+                {hasFilters ? "Filtered Results" : "All Tasks"}
+              </h2>
+              <span className="text-[10px] text-muted-foreground">
+                {filteredJobs.length} active
+              </span>
+            </div>
           </div>
 
           {/* Job list */}

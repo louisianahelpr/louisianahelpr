@@ -654,18 +654,12 @@ const Activity = () => {
                         )}
                       </div>
 
-                      {/* Footer: status + category */}
-                      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px]">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusBadge[job.status] || "bg-secondary text-secondary-foreground"}`}>
-                          {job.status.replace(/_/g, " ")}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {job.payment_status === "released" && <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>}
-                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${catStyle.badge}`}>
-                            {categoryLabels[job.category] || job.category}
-                          </span>
+                      {/* Footer: paid status only */}
+                      {job.payment_status === "released" && (
+                        <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 text-[11px]">
+                          <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>
                         </div>
-                      </div>
+                      )}
 
                       {/* Features for active jobs */}
                       {(job.status === "in_progress" || job.status === "accepted") && user && (
@@ -685,34 +679,34 @@ const Activity = () => {
                         <div className="space-y-2">
                           {job.status === "open" && (
                             <>
-                              <Button size="sm" variant="outline" className="w-full" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <div className="flex items-center gap-2">
-                                <Button size="sm" variant="outline" className="flex-1" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                                <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                                 <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                                <Button size="sm" className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
                               </div>
                             </>
                           )}
                           {job.status === "accepted" && (
-                            <>
-                              <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
-                            </>
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="outline" className="flex-1" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                            </div>
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (
                             <>
-                              <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
                               </Button>
                               {job.status === "in_progress" && (
                                 <>
-                                  <Button size="sm" variant="outline" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
-                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDisputeJob(job)}>Dispute</Button>
-                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
+                                  <Button size="sm" className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
+                                  <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
+                                  <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
                                 </>
                               )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
+                              <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
                             </>
                           )}
                           {job.status === "cancelled" && (

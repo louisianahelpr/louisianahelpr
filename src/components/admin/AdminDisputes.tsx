@@ -90,7 +90,7 @@ const AdminDisputes = () => {
 
   return (
     <div className="space-y-4">
-      </h2>
+      
       {disputes.map((job) => (
         <div key={job.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">

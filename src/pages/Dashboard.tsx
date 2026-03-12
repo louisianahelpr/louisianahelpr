@@ -221,6 +221,8 @@ const Dashboard = () => {
 
   const filteredJobs = allJobs
     .filter((job) => {
+      // Hide jobs posted by the current user
+      if (user?.id && job.customer_id === user.id) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;

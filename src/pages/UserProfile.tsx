@@ -269,35 +269,8 @@ const UserProfile = () => {
             />
           )}
 
-          {/* Reviews */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-display font-semibold text-foreground">Reviews ({stats.reviewCount})</h2>
-            {reviews.length === 0 ? (
-              <div className="rounded-xl border border-border bg-card p-6 text-center">
-                <p className="text-sm text-muted-foreground">No reviews yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {reviews.map((r, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
-                          ))}
-                        </div>
-                        <span className="text-xs text-muted-foreground">by {r.reviewerName}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">For: {r.jobTitle}</p>
-                    {r.feedback && <p className="text-sm text-foreground">{r.feedback}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Reviews - collapsed summary, click to expand */}
+          <ReviewsSection reviews={reviews} stats={stats} />
 
           {/* Member since */}
           <p className="text-xs text-muted-foreground text-center">

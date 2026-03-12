@@ -1152,6 +1152,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
         </div>
       )}
 
+      <div className="space-y-3">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id;
           const saveBadge = getSaveBadge(tier);

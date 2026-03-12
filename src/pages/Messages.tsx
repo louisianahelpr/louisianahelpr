@@ -96,7 +96,7 @@ const Messages = () => {
     const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))];
 
     const [profilesRes, jobsRes] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name").in("user_id", otherIds),
+      supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
       supabase.from("jobs").select("id, title").in("id", jobIds),
     ]);
 

@@ -71,9 +71,9 @@ export function useDashboardData() {
         posterChunks.push(posterIds.slice(i, i + chunkSize));
       }
 
-      // Fetch enrichment data — use select for only needed columns
+      // Fetch enrichment data via secure RPC for other users' profiles
       const [profilesRes, reviewsRes, completedJobsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name").in("user_id", posterIds),
+        supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", posterIds),
         supabase.from("jobs").select("customer_id").in("customer_id", posterIds).eq("status", "completed"),
       ]);

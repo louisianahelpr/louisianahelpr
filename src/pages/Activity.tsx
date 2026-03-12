@@ -196,8 +196,8 @@ const Activity = () => {
       const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];
       let posterNameMap = new Map<string, string>();
       if (posterIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", posterIds);
-        posterNameMap = new Map(profiles?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
+        const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
+        posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
       }
       setAppliedApps(appsRes.data.map((a) => {
         const job = jobMap.get(a.job_id) || null;
@@ -296,7 +296,7 @@ const Activity = () => {
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name, skills, hourly_rate").in("user_id", helperIds),
+        supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds),
       ]);
       const reviewMap = new Map<string, number[]>();

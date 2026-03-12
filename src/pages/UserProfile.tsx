@@ -46,18 +46,15 @@ const UserProfile = () => {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .single();
+          .rpc("get_safe_profiles", { user_ids: [userId] });
 
         if (error) {
           console.error("Error fetching profile:", error);
           toast.error("Failed to load profile.");
         }
 
-        if (data) {
-          setProfile(data as Profile);
+        if (data && data.length > 0) {
+          setProfile(data[0] as any);
         } else {
           setProfile(null);
           toast.error("Profile not found.");
@@ -89,7 +86,7 @@ const UserProfile = () => {
     setCurrentUserId(session?.user?.id || null);
 
     const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", userId).single(),
+      supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
       supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
       supabase.from("jobs").select("id").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
       session?.user
@@ -99,7 +96,7 @@ const UserProfile = () => {
       supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
     ]);
 
-    if (profileRes.data) setProfile(profileRes.data);
+    if (profileRes.data && profileRes.data.length > 0) setProfile(profileRes.data[0] as any);
     setIsFavorited((favRes.data?.length || 0) > 0);
     if (postedRes.data) setPostedJobs(postedRes.data);
     if (workedRes.data) setWorkedJobs(workedRes.data);
@@ -139,7 +136,7 @@ const UserProfile = () => {
       const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
       const jobIds = [...new Set(reviewsRes.data.map(r => r.job_id))];
       const [profilesRes, jobsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds),
+        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
         supabase.from("jobs").select("id, title").in("id", jobIds),
       ]);
       const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, p.full_name || "User"]) || []);

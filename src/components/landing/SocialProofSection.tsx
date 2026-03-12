@@ -10,14 +10,14 @@ const SocialProofSection = () => {
     const loadStats = async () => {
       const [jobsRes, usersRes, reviewsRes] = await Promise.all([
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.rpc("count_profiles"),
         supabase.from("reviews").select("rating"),
       ]);
 
       const ratings = reviewsRes.data?.map(r => r.rating) || [];
       setStats({
         completedJobs: jobsRes.count || 0,
-        totalUsers: usersRes.count || 0,
+        totalUsers: (usersRes.data as number) || 0,
         avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
       });
       setLoaded(true);

@@ -70,8 +70,8 @@ const MyJobs = () => {
     const { data: apps } = await supabase.from("applications").select("*").eq("job_id", job.id);
     if (apps && apps.length > 0) {
       const helperIds = apps.map(a => a.helper_id);
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, skills, hourly_rate").in("user_id", helperIds);
-      setApplications(apps.map(app => ({ ...app, profiles: profiles?.find(p => p.user_id === app.helper_id) || null })));
+      const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: helperIds });
+      setApplications(apps.map(app => ({ ...app, profiles: profiles?.find((p: any) => p.user_id === app.helper_id) || null })));
     } else {
       setApplications([]);
     }

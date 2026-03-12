@@ -10,12 +10,13 @@ import {
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
-  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2,
+  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2, Heart, Users, HelpCircle,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
 import { PaymentTab } from "@/components/PaymentTab";
+import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -24,7 +25,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -289,11 +290,14 @@ const ProfilePage = () => {
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "View upcoming jobs" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
+    { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
+    { key: "circles", label: "Trusted Circles", icon: <Users className="w-5 h-5" />, desc: "Manage helper groups" },
     { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
     { key: "payment", label: "Payment", icon: <CreditCard className="w-5 h-5" />, desc: "Payment methods & summary" },
     { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
     { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
+    { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
   ];
 
   return (
@@ -780,7 +784,42 @@ const ProfilePage = () => {
             <SubscriptionTab profile={profile} user={user} />
           )}
 
-          {/* ACCOUNT SECURITY TAB */}
+          {/* FAVORITES TAB */}
+          {tab === "favorites" && user && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                <Heart className="w-6 h-6 text-primary" /> Favorite Helpers
+              </h1>
+              <p className="text-sm text-muted-foreground">View and manage your saved helpers.</p>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/favorites")}>
+                View All Favorites
+              </Button>
+            </div>
+          )}
+
+          {/* TRUSTED CIRCLES TAB */}
+          {tab === "circles" && user && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                <Users className="w-6 h-6 text-primary" /> Trusted Circles
+              </h1>
+              <TrustedHelperCircle userId={user.id} />
+            </div>
+          )}
+
+          {/* SUPPORT TAB */}
+          {tab === "support" && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
+              </h1>
+              <p className="text-sm text-muted-foreground">Need assistance? Visit our support center.</p>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/support")}>
+                Go to Support Center
+              </Button>
+            </div>
+          )}
+
           {tab === "security" && (
             <div className="space-y-6">
               <h1 className="text-2xl font-display font-bold text-foreground">Account Security</h1>

@@ -71,37 +71,21 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       {/* Main content */}
       <div className="px-4 py-3 space-y-2.5">
         {/* Tags + Apply */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-              {job.is_urgent && (
-                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
-                  <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-                </span>
-              )}
-              {job.isBoosted && (
-                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-                  <Rocket className="w-2.5 h-2.5" /> Boosted
-                </span>
-              )}
-            </div>
-            {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
+        <div>
+          <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+            {job.is_urgent && (
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
+                <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
+              </span>
+            )}
+            {job.isBoosted && (
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                <Rocket className="w-2.5 h-2.5" /> Boosted
+              </span>
             )}
           </div>
-          {showApply && currentUserId !== job.customer_id && (
-            <div className="flex flex-col gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Button
-                size="sm"
-                onClick={() => onApply(job.id)}
-                className="btn-press bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-sm gap-1 h-8 text-xs rounded-xl"
-              >
-                Apply <ArrowRight className="w-3 h-3" />
-              </Button>
-              <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-7 rounded-xl" onClick={() => onReport(job.id)}>
-                <Flag className="w-3 h-3" />
-              </Button>
-            </div>
+          {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
           )}
         </div>
 

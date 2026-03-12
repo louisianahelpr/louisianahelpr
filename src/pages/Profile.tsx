@@ -1146,7 +1146,7 @@ function SupportInline({ userId }: { userId?: string }) {
                   </h2>
                   <div className="text-sm text-muted-foreground space-y-2">
                     <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
-                    <p><strong className="text-foreground">Maximum:</strong> $5,000 per job. For larger projects, split into milestones or contact support.</p>
+                    <p><strong className="text-foreground">Maximum:</strong> $5,000 per job.</p>
                   </div>
                 </div>
 

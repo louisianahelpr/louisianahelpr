@@ -224,6 +224,7 @@ const ProfilePage = () => {
       full_name: fullName.trim(), phone: phone.trim(), location: location.trim(),
       bio: bio.trim(), skills: skills.trim(),
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
+      date_of_birth: dateOfBirth || null,
     }).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);

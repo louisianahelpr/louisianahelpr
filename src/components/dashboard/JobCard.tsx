@@ -221,15 +221,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           )}
 
           {/* Apply + Flag */}
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
+              <Flag className="w-4 h-4" />
+            </Button>
             {showApply && !isOwnJob && (
-              <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onApply(job.id)}>
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
                 <Send className="w-4 h-4 mr-1" /> Apply
               </Button>
             )}
-            <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => onReport(job.id)}>
-              <Flag className="w-4 h-4" />
-            </Button>
           </div>
 
           {/* Poster info */}

@@ -125,6 +125,20 @@ const JobFilters = ({
           </div>
         </div>
 
+        {/* Match availability */}
+        {hasAvailability && (
+          <div className="flex items-center justify-between rounded-xl bg-muted/30 border border-border/50 p-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <div>
+                <p className="text-xs font-medium text-foreground">Match my availability</p>
+                <p className="text-[10px] text-muted-foreground">Only show jobs on days & times I'm free</p>
+              </div>
+            </div>
+            <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} />
+          </div>
+        )}
+
         {/* Sort */}
         <div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>

@@ -117,7 +117,7 @@ const PostJob = () => {
     // Load draft if no rebook
     if (hasDraft && !draftLoaded) {
       setTitle(draft.title); setDescription(draft.description);
-      setCategory(draft.category); setLocation(draft.location);
+      setCategory(draft.category); setStreetAddress(draft.location);
       setDateNeeded(draft.dateNeeded); setStartTime(draft.startTime);
       setEstimatedHours(draft.estimatedHours); setBudget(draft.budget);
       setSpecialRequirements(draft.specialRequirements);

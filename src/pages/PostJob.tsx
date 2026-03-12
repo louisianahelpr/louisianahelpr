@@ -130,10 +130,11 @@ const PostJob = () => {
 
   // Auto-save draft on field changes (debounced)
   const autoSave = useCallback(() => {
-    if (title || description || location || budget) {
+    const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
+    if (title || description || streetAddress || budget) {
       saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate });
     }
-  }, [title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);

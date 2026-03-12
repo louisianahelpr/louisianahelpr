@@ -65,15 +65,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       onClick={() => onToggleExpand?.(job.id)}
     >
       {/* Header */}
-      <div className={`w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between gap-3 ${isExpanded ? "" : ""}`}>
-        <div className={`flex items-center gap-2 min-w-0 ${isExpanded ? "flex-wrap" : ""}`}>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
-            {categoryLabels[job.category] || job.category}
-          </span>
-          <h3 className={`font-bold text-[15px] leading-snug min-w-0 ${catStyle.title} ${isExpanded ? "" : "truncate"}`}>
-            {job.title}
-          </h3>
-        </div>
+      <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between gap-3">
+        <h3 className={`font-bold text-[15px] leading-snug min-w-0 ${catStyle.title} ${isExpanded ? "" : "truncate"}`}>
+          {job.title}
+        </h3>
         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0">
           <DollarSign className="w-3.5 h-3.5" />{earnings}
         </span>

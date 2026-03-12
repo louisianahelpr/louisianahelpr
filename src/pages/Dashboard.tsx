@@ -450,18 +450,6 @@ const Dashboard = () => {
             expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
           />
 
-          {/* All Jobs header */}
-          {filteredJobs.length > 0 && (
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                <Briefcase className="w-3.5 h-3.5 text-primary" />
-              </div>
-              <h2 className="text-sm font-display font-bold text-foreground">
-                {hasFilters ? "Filtered Results" : "All Tasks"}
-              </h2>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{filteredJobs.length}</span>
-            </div>
-          )}
 
           {/* Job list */}
           {filteredJobs.length === 0 ? (

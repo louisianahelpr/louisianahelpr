@@ -344,25 +344,25 @@ const ProfilePage = () => {
               </div>
 
               {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-                  <p className="text-xs text-muted-foreground">Jobs Done</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-2xl font-bold text-foreground">${totalEarned.toFixed(0)}</p>
-                  <p className="text-xs text-muted-foreground">Earned</p>
-                </div>
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setTab("reviews")}
-                  className="rounded-xl border border-border bg-card p-3 text-center hover:bg-secondary/50 transition-colors"
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <Star className="w-4 h-4 text-primary fill-primary" />
-                    <p className="text-2xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
+                    <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                    <p className="text-xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <p className="text-xl font-bold text-foreground">{postedCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Posted</p>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <p className="text-xl font-bold text-foreground">{completedCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Completed</p>
+                </div>
               </div>
 
               {/* Vertical menu */}

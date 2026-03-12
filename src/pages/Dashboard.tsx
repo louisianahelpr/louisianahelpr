@@ -58,6 +58,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
+  const { user: cachedUser, profile: cachedProfile, isAdmin: cachedIsAdmin } = useCurrentUser();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);

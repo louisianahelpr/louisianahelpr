@@ -675,7 +675,7 @@ const Activity = () => {
                       )}
 
                       {/* Actions */}
-                      <div className="border-t border-border px-4 py-3">
+                      <div className="border-t border-border/40 px-4 py-3">
                         <div className="space-y-2">
                           {job.status === "open" && (
                             <>

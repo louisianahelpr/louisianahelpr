@@ -17,7 +17,7 @@ import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
-import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
+
 import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -27,7 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers" | "notifications";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "support" | "retainers" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -292,7 +292,7 @@ const ProfilePage = () => {
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
     { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
-    { key: "circles", label: "Trusted Circles", icon: <Users className="w-5 h-5" />, desc: "Manage helper groups" },
+    
     { key: "retainers", label: "Retainer Agreements", icon: <CalendarHeart className="w-5 h-5" />, desc: "Recurring bookings" },
     { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
@@ -812,15 +812,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* TRUSTED CIRCLES TAB */}
-          {tab === "circles" && user && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-                <Users className="w-6 h-6 text-primary" /> Trusted Circles
-              </h1>
-              <TrustedHelperCircle userId={user.id} />
-            </div>
-          )}
 
           {/* RETAINERS TAB */}
           {tab === "retainers" && user && profile && (

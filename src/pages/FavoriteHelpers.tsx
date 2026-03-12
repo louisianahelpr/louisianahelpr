@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Heart, MapPin, Star, Briefcase, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
+
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -176,12 +176,6 @@ const FavoriteHelpers = () => {
             </div>
           )}
 
-          {/* Trusted Helper Circles */}
-          {currentUserId && (
-            <div className="pt-4 border-t border-border">
-              <TrustedHelperCircle userId={currentUserId} />
-            </div>
-          )}
         </div>
       </main>
     </div>

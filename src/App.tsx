@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
+import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SignupPending from "./pages/SignupPending";
@@ -78,7 +79,7 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/community" element={<Community />} />
-          <Route path="/schedule" element={<Navigate to="/profile" replace />} />
+          <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
           <Route path="/job-history" element={<Navigate to="/profile" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

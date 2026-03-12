@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt"],
+      includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
@@ -34,7 +34,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Helpr — Louisiana's Helping Hand",
+        id: "/?source=helpr-pwa",
+        name: "Helpr",
         short_name: "Helpr",
         description: "Connect with trusted neighbors for everyday tasks",
         theme_color: "#16a34a",
@@ -42,11 +43,11 @@ export default defineConfig(({ mode }) => ({
         display: "standalone",
         orientation: "portrait",
         scope: "/",
-        start_url: "/",
+        start_url: "/?source=pwa",
         icons: [
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/pwa-192x192-v2.png", sizes: "192x192", type: "image/png" },
+          { src: "/pwa-512x512-v2.png", sizes: "512x512", type: "image/png" },
+          { src: "/pwa-512x512-v2.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
     }),

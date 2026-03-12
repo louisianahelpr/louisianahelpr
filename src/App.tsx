@@ -71,7 +71,7 @@ const App = () => (
           <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
           <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
           <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
           <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />

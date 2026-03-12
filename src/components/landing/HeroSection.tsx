@@ -4,6 +4,7 @@ import { useState } from "react";
 import heroWebp from "@/assets/hero-illustration.webp";
 import heroJpg from "@/assets/hero-illustration.jpg";
 import heroV3 from "@/assets/hero-illustration-v3.jpg";
+import heroV4 from "@/assets/hero-illustration-v4.jpg";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -15,17 +16,21 @@ const HeroSection = () => {
         {comparing ? (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-2xl font-display font-bold text-foreground text-center">Compare Hero Images</h2>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <div className="space-y-3">
-                <p className="text-sm font-medium text-muted-foreground text-center">Current Image</p>
-                <img src={heroJpg} alt="Current hero" className="w-full rounded-2xl shadow-lg border-2 border-transparent" />
+                <p className="text-sm font-medium text-muted-foreground text-center">Current</p>
+                <img src={heroJpg} alt="Current hero" className="w-full rounded-2xl shadow-lg" />
               </div>
               <div className="space-y-3">
-                <p className="text-sm font-medium text-muted-foreground text-center">New Image (v3)</p>
-                <img src={heroV3} alt="New hero v3" className="w-full rounded-2xl shadow-lg border-2 border-transparent" />
+                <p className="text-sm font-medium text-muted-foreground text-center">v3 — Simple yard</p>
+                <img src={heroV3} alt="Hero v3" className="w-full rounded-2xl shadow-lg" />
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground text-center">v4 — Festival scene</p>
+                <img src={heroV4} alt="Hero v4 festival" className="w-full rounded-2xl shadow-lg" />
               </div>
             </div>
-            <p className="text-center text-sm text-muted-foreground">Tell me which one you prefer and I'll set it as the hero image.</p>
+            <p className="text-center text-sm text-muted-foreground">Tell me which one you prefer!</p>
           </div>
         ) : (
           <div className="grid lg:grid-cols-2 gap-12 items-center">

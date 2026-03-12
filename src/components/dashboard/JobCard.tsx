@@ -20,17 +20,17 @@ interface JobCardProps {
   index?: number;
 }
 
-const categoryColors: Record<string, string> = {
-  cleaning: "bg-sky-100 text-sky-700 border-sky-200",
-  yard_work: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  moving: "bg-violet-100 text-violet-700 border-violet-200",
-  errands: "bg-amber-100 text-amber-700 border-amber-200",
-  handyman: "bg-orange-100 text-orange-700 border-orange-200",
-  painting: "bg-pink-100 text-pink-700 border-pink-200",
-  delivery: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  pet_care: "bg-rose-100 text-rose-700 border-rose-200",
-  assembly: "bg-teal-100 text-teal-700 border-teal-200",
-  other: "bg-slate-100 text-slate-700 border-slate-200",
+const categoryColors: Record<string, { badge: string; title: string }> = {
+  cleaning: { badge: "bg-sky-100 text-sky-700 border-sky-200", title: "text-sky-700" },
+  yard_work: { badge: "bg-emerald-100 text-emerald-700 border-emerald-200", title: "text-emerald-700" },
+  moving: { badge: "bg-violet-100 text-violet-700 border-violet-200", title: "text-violet-700" },
+  errands: { badge: "bg-amber-100 text-amber-700 border-amber-200", title: "text-amber-700" },
+  handyman: { badge: "bg-orange-100 text-orange-700 border-orange-200", title: "text-orange-700" },
+  painting: { badge: "bg-pink-100 text-pink-700 border-pink-200", title: "text-pink-700" },
+  delivery: { badge: "bg-indigo-100 text-indigo-700 border-indigo-200", title: "text-indigo-700" },
+  pet_care: { badge: "bg-rose-100 text-rose-700 border-rose-200", title: "text-rose-700" },
+  assembly: { badge: "bg-teal-100 text-teal-700 border-teal-200", title: "text-teal-700" },
+  other: { badge: "bg-slate-100 text-slate-700 border-slate-200", title: "text-slate-700" },
 };
 
 const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0 }: JobCardProps) => {
@@ -41,7 +41,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   });
 
   const earnings = (job.budget * (1 - effectiveFee / 100)).toFixed(2);
-  const catColor = categoryColors[job.category] || categoryColors.other;
+  const catStyle = categoryColors[job.category] || categoryColors.other;
 
   return (
     <motion.div
@@ -61,7 +61,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       <div className={`flex items-center justify-between px-4 py-2 border-b border-border/50 ${
         job.isBoosted ? "bg-primary/5" : job.is_urgent ? "bg-accent/5" : "bg-muted/30"
       }`}>
-        <h3 className="font-bold text-primary text-[15px] leading-snug truncate min-w-0">
+        <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}
         </h3>
         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-2">
@@ -193,7 +193,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           )}
           <HelperBadges badges={posterBadges} />
         </div>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catColor}`}>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
           {categoryLabels[job.category] || job.category}
         </span>
       </div>

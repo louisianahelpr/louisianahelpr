@@ -524,7 +524,7 @@ async function transferToHelper(
     .single();
 
   if (!helperProfile?.stripe_account_id) {
-    throw new Error("Helper must set up their payout account before payment can be released. Please ask the helper to connect their payout account in their profile settings.");
+    throw new Error("Helpr must set up their payout account before payment can be released. Please ask the helpr to connect their payout account in their profile settings.");
   }
 
   try {

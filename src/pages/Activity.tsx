@@ -107,6 +107,7 @@ const Activity = () => {
   // Dispute
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [completedJobMeta, setCompletedJobMeta] = useState<Record<string, { tipped: boolean; reviewed: boolean }>>({});
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);

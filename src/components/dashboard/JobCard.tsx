@@ -54,7 +54,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.07, 0.5), ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={`group relative rounded-2xl border bg-card overflow-hidden transition-shadow duration-300 ${
+      className={`group relative rounded-2xl border bg-card overflow-hidden transition-shadow duration-300 cursor-pointer ${
         job.isBoosted
           ? "border-primary/30 ring-1 ring-primary/10 shadow-[0_4px_20px_-4px_hsl(158_45%_42%/0.12)]"
           : job.is_urgent
@@ -63,19 +63,17 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           ? "border-primary/30 shadow-[var(--card-hover-shadow)]"
           : "border-border/60 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20"
       }`}
+      onClick={() => onToggleExpand?.(job.id)}
     >
-      {/* Clickable header */}
-      <button
-        className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left cursor-pointer"
-        onClick={() => onToggleExpand?.(job.id)}
-      >
+      {/* Header */}
+      <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
         <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}
         </h3>
         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
           <DollarSign className="w-3.5 h-3.5" />{earnings}
         </span>
-      </button>
+      </div>
 
       {/* Always-visible summary */}
       <div className="px-4 py-3 space-y-2.5">

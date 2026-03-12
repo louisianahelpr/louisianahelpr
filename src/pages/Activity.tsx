@@ -627,26 +627,12 @@ const Activity = () => {
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(""); }}
+              <button key={t.key} onClick={() => { setTab(t.key); if (t.key === "posted") { setSeenPosted(false); } else { setSeenApplied(false); } }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
-                <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-1.5">
-            {activeStatusFilters.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  statusFilter === f.key
-                    ? f.color
-                    : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-              >
-                {f.label}
+                {t.count > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">{t.count}</span>
+                )}
               </button>
             ))}
           </div>

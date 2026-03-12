@@ -351,16 +351,66 @@ const ProfilePage = () => {
                   </div>
                   <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <button
+                  onClick={() => { if (postedCount > 0) { loadInlineJobs(); setShowPostedJobs(!showPostedJobs); setShowCompletedJobs(false); } }}
+                  className={`rounded-xl border bg-card p-3 text-center transition-all ${postedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                >
                   <p className="text-xl font-bold text-foreground">{postedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Posted</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                </button>
+                <button
+                  onClick={() => { if (completedCount > 0) { loadInlineJobs(); setShowCompletedJobs(!showCompletedJobs); setShowPostedJobs(false); } }}
+                  className={`rounded-xl border bg-card p-3 text-center transition-all ${completedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showCompletedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                >
                   <p className="text-xl font-bold text-foreground">{completedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Completed</p>
-                </div>
+                </button>
               </div>
 
+              {/* Inline Posted Jobs */}
+              {showPostedJobs && inlinePostedJobs.length > 0 && (
+                <div className="space-y-2 animate-fade-in">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Posted Jobs</p>
+                  {inlinePostedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-primary">${job.budget}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Inline Completed Jobs */}
+              {showCompletedJobs && inlineCompletedJobs.length > 0 && (
+                <div className="space-y-2 animate-fade-in">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Completed Jobs</p>
+                  {inlineCompletedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-primary">${job.budget}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 px-2"
+                          onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" /> Rebook
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* Vertical menu */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
                 {menuItems.map((item) => (

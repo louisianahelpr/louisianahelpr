@@ -271,7 +271,12 @@ const Activity = () => {
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
-    const { data: apps } = await supabase.from("applications").select("*").eq("job_id", job.id);
+    const enriched = await fetchApplicants(job.id);
+    setApplications(enriched);
+  };
+
+  const fetchApplicants = async (jobId: string) => {
+    const { data: apps } = await supabase.from("applications").select("*").eq("job_id", jobId);
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes] = await Promise.all([
@@ -283,13 +288,28 @@ const Activity = () => {
         if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
         reviewMap.get(r.reviewee_id)!.push(r.rating);
       });
-      setApplications(apps.map((app) => {
+      return apps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
         const ratings = reviewMap.get(app.helper_id) || [];
         return { ...app, profiles: prof, reviewCount: ratings.length, avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };
-      }));
-    } else {
-      setApplications([]);
+      });
+    }
+    return [];
+  };
+
+  const loadInlineApplicants = async (jobId: string) => {
+    if (inlineApplicants[jobId]) return; // already loaded
+    setLoadingApplicants(prev => ({ ...prev, [jobId]: true }));
+    const enriched = await fetchApplicants(jobId);
+    setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
+    setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
+  };
+
+  const handleExpandJob = (jobId: string, job: Job) => {
+    const newId = expandedJobId === jobId ? null : jobId;
+    setExpandedJobId(newId);
+    if (newId && (job.status === "open" || job.status === "accepted")) {
+      loadInlineApplicants(jobId);
     }
   };
 

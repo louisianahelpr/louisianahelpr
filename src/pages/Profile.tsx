@@ -81,12 +81,12 @@ const ProfilePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // History state
-  const [histPostedJobs, setHistPostedJobs] = useState<Job[]>([]);
-  const [histWorkedJobs, setHistWorkedJobs] = useState<Job[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [histTab, setHistTab] = useState<HistoryTab>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // Inline job lists on landing
+  const [showPostedJobs, setShowPostedJobs] = useState(false);
+  const [showCompletedJobs, setShowCompletedJobs] = useState(false);
+  const [inlinePostedJobs, setInlinePostedJobs] = useState<Job[]>([]);
+  const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
+  const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

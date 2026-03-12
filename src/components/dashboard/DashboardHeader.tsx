@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield, Plus } from "lucide-react";
+import { LogOut, Shield } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
 import ThemeToggle from "@/components/ThemeToggle";

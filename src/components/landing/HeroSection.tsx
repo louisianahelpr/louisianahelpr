@@ -23,7 +23,7 @@ const HeroSection = () => {
               Post your first task
             </Button>
             <Button variant="hero-outline" size="xl" onClick={() => navigate("/login")}>
-              Find help today
+              Offer help today
             </Button>
           </div>
         </div>

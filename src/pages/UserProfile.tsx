@@ -142,6 +142,8 @@ const UserProfile = () => {
 
     if (profileRes.data) setProfile(profileRes.data);
     setIsFavorited((favRes.data?.length || 0) > 0);
+    if (postedRes.data) setPostedJobs(postedRes.data);
+    if (workedRes.data) setWorkedJobs(workedRes.data);
 
     const ratings = reviewsRes.data?.map(r => r.rating) || [];
     setStats({

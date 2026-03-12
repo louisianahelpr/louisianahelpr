@@ -96,10 +96,7 @@ const AdminBroadcasts = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-          <Megaphone className="w-5 h-5" /> Broadcast Messages
-        </h2>
+      <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1">
           <Plus className="w-3.5 h-3.5" /> New Broadcast
         </Button>

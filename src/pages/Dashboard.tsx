@@ -486,10 +486,10 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-display font-bold text-foreground leading-tight">
-                    {hasFilters ? "Filtered Results" : "All Tasks"}
+                    {hasFilters ? "Filtered Results" : "Browse Tasks"}
                   </h2>
                   <span className="text-[10px] text-muted-foreground">
-                    {filteredJobs.length} active
+                    {filteredJobs.length} available to help with
                   </span>
                 </div>
               </div>

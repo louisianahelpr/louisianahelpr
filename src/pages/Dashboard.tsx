@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Clock, XCircle, MapPin, Star } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";

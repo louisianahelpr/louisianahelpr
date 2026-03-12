@@ -26,6 +26,7 @@ const AdminUsers = () => {
   const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string }[]>([]);
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
   const [profileBans, setProfileBans] = useState<any[]>([]);
+  const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
@@ -54,11 +55,23 @@ const AdminUsers = () => {
 
   const openProfile = async (profile: Profile) => {
     setViewProfile(profile);
+    setIdDocSignedUrl(null);
+
     const [reviewsRes, violationsRes, bansRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
     ]);
+
+    // Generate signed URL for private ID document
+    if (profile.id_document_url) {
+      const { data: signedData } = await supabase.storage
+        .from("id-documents")
+        .createSignedUrl(profile.id_document_url, 3600); // 1 hour
+      if (signedData?.signedUrl) {
+        setIdDocSignedUrl(signedData.signedUrl);
+      }
+    }
 
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
@@ -474,19 +487,25 @@ const AdminUsers = () => {
                     <FileText className="w-3.5 h-3.5" /> ID Document
                   </p>
                   <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
-                    {/\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
-                      <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer">
-                        <img src={viewProfile.id_document_url} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
-                      </a>
-                    ) : (
-                      <div className="p-4 flex items-center gap-3">
-                        <FileText className="w-8 h-8 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{viewProfile.id_document_url.split("/").pop()}</p>
-                          <a href={viewProfile.id_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
-                            Open document ↗
-                          </a>
+                    {idDocSignedUrl ? (
+                      /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
+                        <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
+                        </a>
+                      ) : (
+                        <div className="p-4 flex items-center gap-3">
+                          <FileText className="w-8 h-8 text-primary" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{viewProfile.id_document_url.split("/").pop()}</p>
+                            <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                              Open document ↗
+                            </a>
+                          </div>
                         </div>
+                      )
+                    ) : (
+                      <div className="p-4 text-center">
+                        <p className="text-sm text-muted-foreground">Loading document…</p>
                       </div>
                     )}
                   </div>

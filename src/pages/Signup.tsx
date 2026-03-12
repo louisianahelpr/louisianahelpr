@@ -411,7 +411,7 @@ const Signup = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <Upload className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Verify your identity</h3>
+                <h3 className="font-semibold text-foreground">Verify your identity <span className="text-destructive">*</span></h3>
                 <p className="text-sm text-muted-foreground">
                   Upload a government-issued ID (driver's license, passport, or state ID). This keeps our community safe by verifying that everyone is a real person.
                 </p>

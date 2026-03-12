@@ -51,7 +51,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);
       if (error) throw error;
 
-      // Track cancellation with helper assigned — 2 warnings then permanent ban on 3rd
+      // Track cancellation with helpr assigned — 2 warnings then permanent ban on 3rd
       if (hasHelper) {
         const { data: existing } = await (supabase.from("user_violations" as any) as any)
           .select("id").eq("user_id", userId).eq("violation_type", "cancel_with_helper");
@@ -64,7 +64,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         await (supabase.from("user_violations" as any) as any).insert({
           user_id: userId,
           violation_type: "cancel_with_helper",
-          description: `Cancelled job with helper assigned: "${jobTitle}"${isLateCancellation ? " (late)" : ""}`,
+          description: `Cancelled job with helpr assigned: "${jobTitle}"${isLateCancellation ? " (late)" : ""}`,
           job_id: jobId,
           action_taken: actionTaken,
         });
@@ -84,7 +84,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         } else if (actionTaken === "permanent_ban") {
           await (supabase.from("user_bans" as any) as any).insert({
             user_id: userId, ban_type: "permanent",
-            reason: "Cancelled 3 jobs after selecting a helper", banned_by: userId,
+            reason: "Cancelled 3 jobs after selecting a helpr", banned_by: userId,
           });
           await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
           toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helpr.");

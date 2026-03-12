@@ -25,6 +25,7 @@ const Signup = () => {
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   // Step 2 fields
   const [bio, setBio] = useState("");

@@ -733,7 +733,7 @@ const Activity = () => {
 
                       {/* Completed job actions — always visible (tip & review required before expand) */}
                       {job.status === "completed" && (
-                        <div className="px-4 py-2 border-t border-border/40">
+                        <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
                           {(() => {
                             const meta = completedJobMeta[job.id];
                             const hasTipped = meta?.tipped;

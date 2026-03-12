@@ -953,18 +953,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* AVAILABILITY TAB */}
-          {tab === "availability" && (
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Availability</h1>
-                <p className="text-muted-foreground text-sm mt-1">Set your working hours so customers can book you</p>
-              </div>
-              {user && (
-                <HelperAvailability userId={user.id} />
-              )}
-            </div>
-          )}
 
           {/* REFERRAL TAB */}
           {tab === "referral" && user && (

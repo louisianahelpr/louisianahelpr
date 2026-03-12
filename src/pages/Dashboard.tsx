@@ -450,6 +450,16 @@ const Dashboard = () => {
             expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
           />
 
+          {/* All Tasks header */}
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-display font-bold text-foreground">
+              {hasFilters ? "Filtered Results" : "All Tasks"}
+            </h2>
+            <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {filteredJobs.length} active
+            </span>
+          </div>
 
           {/* Job list */}
           {filteredJobs.length === 0 ? (

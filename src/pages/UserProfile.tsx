@@ -214,6 +214,27 @@ const UserProfile = () => {
             )}
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">{profile.full_name || "User"}</h1>
+              {/* Response Metrics inline */}
+              {responseMetrics.totalApplications > 0 && (
+                <div className="flex items-center justify-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  {responseMetrics.avgResponseHours !== null && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {responseMetrics.avgResponseHours < 1
+                        ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
+                        : responseMetrics.avgResponseHours < 24
+                        ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
+                        : `${Math.round(responseMetrics.avgResponseHours / 24)}d`} avg response
+                    </span>
+                  )}
+                  {responseMetrics.acceptanceRate !== null && (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      {responseMetrics.acceptanceRate.toFixed(0)}% acceptance
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
                 {profile.role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>}
                 {profile.location && (
@@ -237,52 +258,41 @@ const UserProfile = () => {
             </div>
           </div>
 
-          {/* Stats Row 1 */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Stats - all 4 in one row */}
+          <div className="grid grid-cols-4 gap-2">
             <div className="rounded-xl border border-border bg-card p-3 text-center">
               <div className="flex items-center justify-center gap-1">
-                <Briefcase className="w-4 h-4 text-primary" />
-                <p className="text-2xl font-bold text-foreground">{stats.completedJobs}</p>
+                <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Jobs Done</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3 text-center">
-              <div className="flex items-center justify-center gap-1">
-                <Star className="w-4 h-4 text-primary fill-primary" />
-                <p className="text-2xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Rating</p>
+              <p className="text-[10px] text-muted-foreground">Rating</p>
             </div>
             <button
               onClick={() => stats.reviewCount > 0 && setShowReviews(!showReviews)}
               className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
             >
-              <p className="text-2xl font-bold text-foreground">{stats.reviewCount}</p>
-              <p className="text-xs text-muted-foreground">Reviews</p>
+              <p className="text-xl font-bold text-foreground">{stats.reviewCount}</p>
+              <p className="text-[10px] text-muted-foreground">Reviews</p>
             </button>
-          </div>
-
-          {/* Stats Row 2 */}
-          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => postedJobs.length > 0 && setShowPostedJobs(!showPostedJobs)}
               className={`rounded-xl border bg-card p-3 text-center transition-all ${postedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
             >
               <div className="flex items-center justify-center gap-1">
-                <ClipboardList className="w-4 h-4 text-primary" />
-                <p className="text-2xl font-bold text-foreground">{postedJobs.length}</p>
+                <ClipboardList className="w-3.5 h-3.5 text-primary" />
+                <p className="text-xl font-bold text-foreground">{postedJobs.length}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Jobs Posted</p>
+              <p className="text-[10px] text-muted-foreground">Posted</p>
             </button>
             <button
               onClick={() => workedJobs.length > 0 && setShowWorkedJobs(!showWorkedJobs)}
               className={`rounded-xl border bg-card p-3 text-center transition-all ${workedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
             >
               <div className="flex items-center justify-center gap-1">
-                <Hammer className="w-4 h-4 text-primary" />
-                <p className="text-2xl font-bold text-foreground">{workedJobs.length}</p>
+                <Hammer className="w-3.5 h-3.5 text-primary" />
+                <p className="text-xl font-bold text-foreground">{workedJobs.length}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Jobs Completed</p>
+              <p className="text-[10px] text-muted-foreground">Completed</p>
             </button>
           </div>
 
@@ -342,40 +352,6 @@ const UserProfile = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Response Metrics */}
-          {responseMetrics.totalApplications > 0 && (
-            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-              <h2 className="text-sm font-display font-semibold text-foreground flex items-center gap-2">
-                <Zap className="w-4 h-4 text-primary" /> Response Metrics
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {responseMetrics.avgResponseHours !== null && (
-                  <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                    <p className="text-lg font-bold text-foreground">
-                      {responseMetrics.avgResponseHours < 1
-                        ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
-                        : responseMetrics.avgResponseHours < 24
-                          ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
-                          : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                      <Clock className="w-3 h-3" /> Avg Response
-                    </p>
-                  </div>
-                )}
-                {responseMetrics.acceptanceRate !== null && (
-                  <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                    <p className="text-lg font-bold text-foreground">{responseMetrics.acceptanceRate.toFixed(0)}%</p>
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                      <CheckCircle className="w-3 h-3" /> Acceptance Rate
-                    </p>
-                  </div>
-                )}
-              </div>
-              <p className="text-[10px] text-muted-foreground text-center">Based on {responseMetrics.totalApplications} application{responseMetrics.totalApplications !== 1 ? "s" : ""}</p>
             </div>
           )}
 

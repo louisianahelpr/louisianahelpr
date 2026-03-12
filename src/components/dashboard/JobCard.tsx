@@ -153,7 +153,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       </div>
 
       {/* Expandable section */}
-      <div onClick={(e) => e.stopPropagation()} className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
         <div className="px-4 pb-4 space-y-3 border-t border-border/40">
           {/* Description */}
           {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (

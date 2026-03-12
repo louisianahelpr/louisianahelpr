@@ -96,7 +96,7 @@ const UserProfile = () => {
       supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
     ]);
 
-    if (profileRes.data) setProfile(profileRes.data);
+    if (profileRes.data && profileRes.data.length > 0) setProfile(profileRes.data[0] as any);
     setIsFavorited((favRes.data?.length || 0) > 0);
     if (postedRes.data) setPostedJobs(postedRes.data);
     if (workedRes.data) setWorkedJobs(workedRes.data);

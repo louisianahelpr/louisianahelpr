@@ -171,7 +171,7 @@ const ProfilePage = () => {
     if (!user) return;
     if (tab === "earnings") loadEarnings();
     if (tab === "schedule") loadSchedule();
-    if (tab === "history") loadHistory();
+    if (tab === "reviews") loadReviews();
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
 

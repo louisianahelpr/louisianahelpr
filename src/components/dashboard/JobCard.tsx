@@ -43,7 +43,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   const catColor = categoryColors[job.category] || categoryColors.other;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.5), ease: "easeOut" }}
       className={`group relative rounded-2xl border bg-card p-4 transition-all duration-200 cursor-pointer hover:shadow-[var(--card-hover-shadow)] hover:-translate-y-0.5 ${
         job.isBoosted
           ? "border-primary/30 bg-gradient-to-br from-primary/5 to-transparent ring-1 ring-primary/10"

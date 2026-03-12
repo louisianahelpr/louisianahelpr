@@ -464,14 +464,18 @@ const Dashboard = () => {
           />
 
           {/* All Tasks header */}
-          <div className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-display font-bold text-foreground">
-              {hasFilters ? "Filtered Results" : "All Tasks"}
-            </h2>
-            <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {filteredJobs.length} active
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
+              <Briefcase className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-display font-bold text-foreground leading-tight">
+                {hasFilters ? "Filtered Results" : "All Tasks"}
+              </h2>
+              <span className="text-[10px] text-muted-foreground">
+                {filteredJobs.length} active
+              </span>
+            </div>
           </div>
 
           {/* Job list */}

@@ -321,7 +321,7 @@ const Dashboard = () => {
             className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10 relative"
           >
             <button
-              onClick={() => setShowGreeting(false)}
+              onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
               className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Dismiss greeting"
             >

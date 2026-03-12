@@ -49,6 +49,7 @@ const ProfilePage = () => {
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
+  const [postedCount, setPostedCount] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
@@ -115,14 +116,16 @@ const ProfilePage = () => {
   };
 
   const loadStats = async (userId: string) => {
-    const [jobsRes, reviewsRes] = await Promise.all([
+    const [jobsRes, reviewsRes, postedRes] = await Promise.all([
       supabase.from("jobs").select("budget, platform_fee_amount").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
     ]);
     if (jobsRes.data) {
       setCompletedCount(jobsRes.data.length);
       setTotalEarned(jobsRes.data.reduce((s, j) => s + (j.budget - (j.platform_fee_amount || 0)), 0));
     }
+    setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
       setReviewCount(reviewsRes.data.length);
@@ -341,25 +344,25 @@ const ProfilePage = () => {
               </div>
 
               {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-                  <p className="text-xs text-muted-foreground">Jobs Done</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-2xl font-bold text-foreground">${totalEarned.toFixed(0)}</p>
-                  <p className="text-xs text-muted-foreground">Earned</p>
-                </div>
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setTab("reviews")}
-                  className="rounded-xl border border-border bg-card p-3 text-center hover:bg-secondary/50 transition-colors"
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <Star className="w-4 h-4 text-primary fill-primary" />
-                    <p className="text-2xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
+                    <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                    <p className="text-xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <p className="text-xl font-bold text-foreground">{postedCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Posted</p>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                  <p className="text-xl font-bold text-foreground">{completedCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Completed</p>
+                </div>
               </div>
 
               {/* Vertical menu */}

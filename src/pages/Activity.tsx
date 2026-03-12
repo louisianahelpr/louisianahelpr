@@ -242,7 +242,7 @@ const Activity = () => {
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1; // 1st or 2nd
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: user.id,
           title: `⚠️ Decline Warning (${warningNum}/2)`,
           message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. One more decline will result in a permanent ban.`,

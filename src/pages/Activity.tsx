@@ -729,6 +729,35 @@ const Activity = () => {
                         </div>
                       )}
 
+                      {/* Completed job actions — always visible (tip & review required before expand) */}
+                      {job.status === "completed" && (
+                        <div className="px-4 py-2 border-t border-border/40">
+                          {(() => {
+                            const meta = completedJobMeta[job.id];
+                            const hasTipped = meta?.tipped;
+                            const hasReviewed = meta?.reviewed;
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-center gap-2">
+                                  {job.payment_status === "released" && job.helper_id && !hasTipped && (
+                                    <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
+                                      setEnhancedTipJobId(job.id);
+                                      setEnhancedTipHelperName("");
+                                    }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                                  )}
+                                  {job.helper_id && !hasReviewed && (
+                                    <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
+                                  )}
+                                  <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                                </div>
+                                {hasTipped && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Tipped</span>}
+                                {hasReviewed && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Reviewed</span>}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
                       {/* Footer: paid status only */}
                       {job.payment_status === "released" && (
                         <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 text-[11px]">

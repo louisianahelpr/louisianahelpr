@@ -119,6 +119,7 @@ const ProfilePage = () => {
       setBio(data.bio || "");
       setSkills(data.skills || "");
       setHourlyRate(data.hourly_rate?.toString() || "");
+      setDateOfBirth(data.date_of_birth || "");
     }
     setLoading(false);
   };

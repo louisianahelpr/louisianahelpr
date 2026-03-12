@@ -960,7 +960,7 @@ function SupportInline({ userId }: { userId?: string }) {
 
           {/* SUBSCRIPTION TAB */}
           {tab === "subscription" && (
-            <SubscriptionTab profile={profile} user={user} />
+            <SubscriptionTab profile={profile} user={user} onBack={() => setTab("landing")} />
           )}
 
 

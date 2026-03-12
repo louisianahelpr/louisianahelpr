@@ -41,7 +41,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   });
 
   const earnings = (job.budget * (1 - effectiveFee / 100)).toFixed(2);
-  const catColor = categoryColors[job.category] || categoryColors.other;
+  const catStyle = categoryColors[job.category] || categoryColors.other;
 
   return (
     <motion.div

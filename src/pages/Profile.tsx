@@ -1005,6 +1005,7 @@ const tierConfig = [
   {
     id: "basic",
     name: "Basic",
+    badge: "⭐",
     monthly: "$9.99/mo",
     annual: "$99.99/yr",
     lifetime: "$199.99",
@@ -1015,6 +1016,7 @@ const tierConfig = [
   {
     id: "pro",
     name: "Pro",
+    badge: "🔥",
     monthly: "$14.99/mo",
     annual: "$149.99/yr",
     lifetime: "$299.99",
@@ -1025,6 +1027,7 @@ const tierConfig = [
   {
     id: "elite",
     name: "Elite",
+    badge: "💎",
     monthly: "$24.99/mo",
     annual: "$249.99/yr",
     lifetime: "$499.99",
@@ -1141,7 +1144,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-foreground">{tier.name}</h3>
+                  <h3 className="font-bold text-foreground">{tier.badge} {tier.name}</h3>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-primary">{getPrice(tier)}</p>
                     {saveBadge && (

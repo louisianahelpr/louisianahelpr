@@ -76,18 +76,18 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           await createNotification({
             user_id: userId,
             title: `⚠️ Cancellation Warning (${warningNum}/2)`,
-            message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a helper. A 3rd cancellation will result in a permanent ban.`,
+            message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a helpr. A 3rd cancellation will result in a permanent ban.`,
             type: "warning",
             link: "/profile",
           });
-          toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a helper is tracked. A 3rd time = permanent ban.`);
+          toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a helpr is tracked. A 3rd time = permanent ban.`);
         } else if (actionTaken === "permanent_ban") {
           await (supabase.from("user_bans" as any) as any).insert({
             user_id: userId, ban_type: "permanent",
             reason: "Cancelled 3 jobs after selecting a helper", banned_by: userId,
           });
           await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
-          toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helper.");
+          toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helpr.");
         }
 
         // Notify admins
@@ -95,8 +95,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         if (adminRoles) {
           for (const admin of adminRoles) {
             await createNotification({
-              user_id: admin.user_id, title: "⚠️ Cancellation with helper",
-              message: `User cancelled "${jobTitle}" after selecting a helper (${warningNum} total). Action: ${actionTaken}.`,
+              user_id: admin.user_id, title: "⚠️ Cancellation with helpr",
+              message: `User cancelled "${jobTitle}" after selecting a helpr (${warningNum} total). Action: ${actionTaken}.`,
               type: "warning", link: "/admin",
             });
           }
@@ -147,7 +147,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 <DollarSign className={`w-4 h-4 mt-0.5 shrink-0 ${isLateCancellation && !isVeryLateCancellation ? "text-accent" : "text-muted-foreground"}`} />
                 <div>
                   <p className="text-xs font-medium text-foreground">2–24 hours before — <span className="text-accent">25% fee</span></p>
-                  <p className="text-[11px] text-muted-foreground">25% of the job budget goes to the helper as compensation.</p>
+                  <p className="text-[11px] text-muted-foreground">25% of the job budget goes to the helpr as compensation.</p>
                 </div>
                 {isLateCancellation && !isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">YOU</span>}
               </div>
@@ -156,7 +156,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isVeryLateCancellation ? "text-destructive" : "text-muted-foreground"}`} />
                 <div>
                   <p className="text-xs font-medium text-foreground">Less than 2 hours — <span className="text-destructive">50% fee</span></p>
-                  <p className="text-[11px] text-muted-foreground">50% of the job budget. The helper has already prepared for this job.</p>
+                  <p className="text-[11px] text-muted-foreground">50% of the job budget. The helpr has already prepared for this job.</p>
                 </div>
                 {isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
               </div>
@@ -176,7 +176,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             )}
             {!hasHelper && (
               <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
-                <p className="text-sm font-semibold text-primary">No fee — no helper has been assigned yet ✓</p>
+                <p className="text-sm font-semibold text-primary">No fee — no helpr has been assigned yet ✓</p>
               </div>
             )}
           </div>

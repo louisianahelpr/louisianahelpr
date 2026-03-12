@@ -80,6 +80,7 @@ interface OnboardingTourProps {
 
 const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<OnboardingState>(getState);
   const [visible, setVisible] = useState(false);
 
@@ -88,6 +89,8 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const progress = ((state.currentStep + 1) / steps.length) * 100;
 
   useEffect(() => {
+    // Don't show on landing page
+    if (location.pathname === "/") return;
     const s = getState();
     // Never show again if completed (finished, skipped, or dismissed)
     if (s.completed) return;
@@ -97,7 +100,7 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
       const timer = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [location.pathname]);
 
   const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState(prev => {

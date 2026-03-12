@@ -30,7 +30,7 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
 
-    const { tier } = await req.json();
+    const { tier, billing_day } = await req.json();
     const priceId = TIER_PRICES[tier];
     if (!priceId) throw new Error("Invalid tier. Use: basic, pro, or elite");
 

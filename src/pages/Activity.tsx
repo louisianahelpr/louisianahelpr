@@ -525,18 +525,13 @@ const Activity = () => {
     { key: "rejected", label: "Rejected" },
   ];
 
-  const filteredPostedJobs = statusFilter === "all"
+  const filteredPostedJobs = !statusFilter
     ? postedJobs
     : postedJobs.filter((j) => j.status === statusFilter);
 
-  const filteredAppliedApps = statusFilter === "all"
+  const filteredAppliedApps = !statusFilter
     ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending" || statusFilter === "accepted" || statusFilter === "rejected") {
-          return a.status === statusFilter;
-        }
-        return true;
-      });
+    : appliedApps.filter((a) => a.status === statusFilter);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },

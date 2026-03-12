@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Search, X, MapPin, DollarSign, SlidersHorizontal, ChevronDown, ChevronUp,
+  Search, X, MapPin, DollarSign, SlidersHorizontal, ChevronDown, ChevronUp, Timer,
 } from "lucide-react";
 
 const categoryLabels: Record<string, string> = {
@@ -25,6 +25,8 @@ interface JobFiltersProps {
   setSortBy: (v: string) => void;
   filtersOpen: boolean;
   setFiltersOpen: (v: boolean) => void;
+  expiresWithin: string;
+  setExpiresWithin: (v: string) => void;
 }
 
 const JobFilters = ({

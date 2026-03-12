@@ -200,6 +200,13 @@ const Dashboard = () => {
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+      if (expiresWithin && job.expires_at) {
+        const hoursLeft = (new Date(job.expires_at).getTime() - Date.now()) / (1000 * 60 * 60);
+        if (expiresWithin === "24h" && hoursLeft > 24) return false;
+        if (expiresWithin === "3d" && hoursLeft > 72) return false;
+        if (expiresWithin === "7d" && hoursLeft > 168) return false;
+      }
+      if (expiresWithin && !job.expires_at) return false;
       if (profile?.role === "helper") {
         const jobAge = Date.now() - new Date(job.created_at).getTime();
         const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : helprTier === "basic" ? 5 : 0;

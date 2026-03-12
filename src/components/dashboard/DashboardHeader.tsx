@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, Shield, Plus } from "lucide-react";
@@ -8,6 +7,7 @@ import ReferralPanel from "@/components/ReferralPanel";
 import SupportPanel from "@/components/SupportPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface DashboardHeaderProps {
   showBack?: boolean;
@@ -17,22 +17,7 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      setIsAdmin(!!data);
-    };
-    check();
-  }, []);
+  const { isAdmin } = useCurrentUser();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

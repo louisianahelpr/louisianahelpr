@@ -77,8 +77,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             rows={3}
             required
           />
-          {feedback.trim().length === 0 && rating > 0 && (
-            <p className="text-xs text-destructive">A comment is required</p>
+          {rating > 0 && feedback.trim().length > 0 && feedback.trim().length < 10 && (
+            <p className="text-xs text-destructive">{10 - feedback.trim().length} more characters needed</p>
+          )}
+          {rating > 0 && feedback.trim().length === 0 && (
+            <p className="text-xs text-destructive">A comment is required (min 10 characters)</p>
           )}
         </div>
         <DialogFooter>

@@ -175,10 +175,15 @@ Deno.serve(async (req) => {
       }).eq('user_id', userId)
     }
 
-    // Send email using sendLovableEmail (transactional, no run_id needed)
+    // Extract run_id from deployment ID (format: projectRef_uuid_version)
+    const deploymentId = Deno.env.get('DENO_DEPLOYMENT_ID') || ''
+    const runId = deploymentId.split('_').slice(1, -1).join('_') || crypto.randomUUID()
+
+    // Send email using sendLovableEmail
     try {
       await sendLovableEmail(
         {
+          run_id: runId,
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
           sender_domain: SENDER_DOMAIN,

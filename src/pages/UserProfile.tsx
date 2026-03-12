@@ -278,9 +278,6 @@ const UserProfile = () => {
             >
               <p className="text-2xl font-bold text-foreground">{stats.reviewCount}</p>
               <p className="text-xs text-muted-foreground">Reviews</p>
-              {stats.reviewCount > 0 && (
-                <p className="text-[10px] text-primary font-medium mt-1">{showReviews ? "Hide" : "Tap to view"}</p>
-              )}
             </button>
           </div>
 

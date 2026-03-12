@@ -202,7 +202,7 @@ const Dashboard = () => {
     }
   }, [user, allJobs, navigate]);
 
-  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length;
+  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
   const effectiveFee = platformFee;
 

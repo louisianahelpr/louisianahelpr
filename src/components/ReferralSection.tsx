@@ -135,6 +135,16 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <Share2 className="w-4 h-4 mr-1" /> Share link
           </Button>
         </div>
+        <div className="pt-2 border-t border-primary/10">
+          <p className="text-xs text-muted-foreground mb-2 text-center">Or share on social media</p>
+          <div className="flex justify-center">
+            <SocialShare
+              url={`${window.location.origin}/signup?ref=${referralCode}`}
+              text={`Join me on Helpr! Use my referral code ${referralCode} and we both earn $5 after your first job.`}
+              compact
+            />
+          </div>
+        </div>
       </div>
 
       {/* Stats */}

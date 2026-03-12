@@ -194,10 +194,15 @@ const PostJob = () => {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (parseFloat(budget) < 5) {
-      toast.error("Minimum budget is $5");
-      return;
-    }
+    if (!title.trim()) { toast.error("Task title is required"); return; }
+    if (!description.trim()) { toast.error("Description is required"); return; }
+    if (!category) { toast.error("Category is required"); return; }
+    if (!location.trim()) { toast.error("Location is required"); return; }
+    if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    if (!startTime) { toast.error("Start time is required"); return; }
+    if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
+    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
+    if (!specialRequirements.trim()) { toast.error("Special requirements is required"); return; }
     setStep("checkout");
   };
 
@@ -412,14 +417,14 @@ const PostJob = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time</Label>
-                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="hours">Estimated hours</Label>
-                    <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" />
+                    <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget ($)</Label>
@@ -433,8 +438,8 @@ const PostJob = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="requirements">Special requirements (optional)</Label>
-                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
+                  <Label htmlFor="requirements">Special requirements</Label>
+                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} required />
                 </div>
 
                 {/* Recurring Job */}

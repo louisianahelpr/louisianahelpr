@@ -17,6 +17,7 @@ import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
 import { PaymentTab } from "@/components/PaymentTab";
 import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
+import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";

@@ -22,9 +22,9 @@ const Navbar = () => {
           <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Features
           </a>
-          <Link to="/community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <a href="#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
-          </Link>
+          </a>
           <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in
           </Button>

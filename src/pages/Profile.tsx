@@ -378,7 +378,7 @@ const ProfilePage = () => {
                 >
                   <div className="flex items-center justify-center gap-1">
                     <DollarSign className="w-3.5 h-3.5 text-primary" />
-                    <p className="text-lg font-bold text-foreground">{totalEarnings > 0 ? `${totalEarnings.toFixed(0)}` : "—"}</p>
+                    <p className="text-lg font-bold text-foreground">{totalEarned > 0 ? `${totalEarned.toFixed(0)}` : "—"}</p>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Earnings</p>
                 </button>

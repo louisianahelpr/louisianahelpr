@@ -27,7 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "support" | "notifications";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -279,7 +279,7 @@ const ProfilePage = () => {
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     
-    { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
+    
     
     
     
@@ -767,18 +767,6 @@ const ProfilePage = () => {
             <SubscriptionTab profile={profile} user={user} />
           )}
 
-          {/* FAVORITES TAB */}
-          {tab === "favorites" && user && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-                <Heart className="w-6 h-6 text-primary" /> Favorite Helpers
-              </h1>
-              <p className="text-sm text-muted-foreground">View and manage your saved helpers.</p>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/favorites")}>
-                View All Favorites
-              </Button>
-            </div>
-          )}
 
 
 

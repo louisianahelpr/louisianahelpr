@@ -34,12 +34,30 @@ type ConnectStatus = {
 };
 
 type SubscriptionTier = "basic" | "pro" | "elite" | null;
+type BillingCycle = "monthly" | "annual" | "one_time";
+
+const PRICING: Record<BillingCycle, Record<string, { label: string; price: string; monthly: string }>> = {
+  monthly: {
+    basic: { label: "Monthly", price: "$9.99/mo", monthly: "$9.99" },
+    pro: { label: "Monthly", price: "$14.99/mo", monthly: "$14.99" },
+    elite: { label: "Monthly", price: "$24.99/mo", monthly: "$24.99" },
+  },
+  annual: {
+    basic: { label: "Annual", price: "$99.90/yr", monthly: "$8.33" },
+    pro: { label: "Annual", price: "$149.90/yr", monthly: "$12.49" },
+    elite: { label: "Annual", price: "$249.90/yr", monthly: "$20.83" },
+  },
+  one_time: {
+    basic: { label: "One month", price: "$9.99", monthly: "$9.99" },
+    pro: { label: "One month", price: "$14.99", monthly: "$14.99" },
+    elite: { label: "One month", price: "$24.99", monthly: "$24.99" },
+  },
+};
 
 const TIERS = [
   {
     key: "basic" as const,
     name: "Basic",
-    price: "$9.99/mo",
     icon: <Star className="w-5 h-5" />,
     color: "border-border",
     activeColor: "border-secondary",
@@ -54,7 +72,6 @@ const TIERS = [
   {
     key: "pro" as const,
     name: "Pro",
-    price: "$14.99/mo",
     icon: <Crown className="w-5 h-5" />,
     color: "border-primary/30",
     activeColor: "border-primary",
@@ -72,7 +89,6 @@ const TIERS = [
   {
     key: "elite" as const,
     name: "Elite",
-    price: "$24.99/mo",
     icon: <Zap className="w-5 h-5" />,
     color: "border-accent/30",
     activeColor: "border-accent",
@@ -103,6 +119,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [billingDay, setBillingDay] = useState<number | null>(null);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
   useEffect(() => {
     checkConnectStatus();

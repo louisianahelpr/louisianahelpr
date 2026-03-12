@@ -827,6 +827,13 @@ export type Database = {
       notification_preferences: {
         Row: {
           created_at: string
+          email_job_applications: boolean
+          email_job_updates: boolean
+          email_messages: boolean
+          email_payments: boolean
+          email_promotions: boolean
+          email_reviews: boolean
+          email_system_alerts: boolean
           id: string
           job_applications: boolean
           job_updates: boolean
@@ -841,6 +848,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_job_applications?: boolean
+          email_job_updates?: boolean
+          email_messages?: boolean
+          email_payments?: boolean
+          email_promotions?: boolean
+          email_reviews?: boolean
+          email_system_alerts?: boolean
           id?: string
           job_applications?: boolean
           job_updates?: boolean
@@ -855,6 +869,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_job_applications?: boolean
+          email_job_updates?: boolean
+          email_messages?: boolean
+          email_payments?: boolean
+          email_promotions?: boolean
+          email_reviews?: boolean
+          email_system_alerts?: boolean
           id?: string
           job_applications?: boolean
           job_updates?: boolean

@@ -331,7 +331,7 @@ const Signup = () => {
                 <FileText className="w-10 h-10 text-primary mx-auto" />
                 <h3 className="font-semibold text-foreground">Portfolio & Documents</h3>
                 <p className="text-sm text-muted-foreground">
-                  Upload previous work photos, certifications, resume, or any documents that showcase your experience.
+                  Want to help others with tasks? Upload work photos, certifications, or a resume to stand out. <span className="font-medium text-foreground">Only posting tasks? Hit skip.</span>
                 </p>
               </div>
 

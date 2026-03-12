@@ -119,11 +119,14 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
+    // Use Lovable project ID as run_id for transactional emails
+    const runId = '215189c5-272d-4716-babd-430ab4187c14'
+
     // Send email
     try {
       await sendLovableEmail(
         {
-          run_id: crypto.randomUUID(),
+          run_id: runId,
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
           sender_domain: SENDER_DOMAIN,
@@ -133,7 +136,7 @@ Deno.serve(async (req) => {
           purpose: 'transactional',
           label: `notification_${type}`,
         },
-        { apiKey: apiKey || '', apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
+        { apiKey: apiKey || '', sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
       )
 
       await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
@@ -146,7 +149,7 @@ Deno.serve(async (req) => {
       await supabase.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: {
-          run_id: crypto.randomUUID(),
+          run_id: runId,
           message_id: messageId,
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,

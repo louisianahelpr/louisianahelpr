@@ -175,11 +175,14 @@ Deno.serve(async (req) => {
       }).eq('user_id', userId)
     }
 
-    // Send email using sendLovableEmail (transactional, no run_id needed)
+    // Use Lovable project ID as run_id for transactional emails
+    const runId = '215189c5-272d-4716-babd-430ab4187c14'
+
+    // Send email using sendLovableEmail
     try {
       await sendLovableEmail(
         {
-          run_id: crypto.randomUUID(),
+          run_id: runId,
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
           sender_domain: SENDER_DOMAIN,
@@ -189,7 +192,7 @@ Deno.serve(async (req) => {
           purpose: 'transactional',
           label: `account_${status}`,
         },
-        { apiKey: apiKey || '', apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
+        { apiKey: apiKey || '', sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
       )
 
       // Mark as sent
@@ -206,7 +209,7 @@ Deno.serve(async (req) => {
       const { error: enqueueError } = await supabaseAdmin.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: {
-          run_id: crypto.randomUUID(),
+          run_id: runId,
           message_id: messageId,
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,

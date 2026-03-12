@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
-  Rocket, Clock,
+  Rocket, Clock, ChevronDown,
 } from "lucide-react";
 import { JobBoostDialog } from "@/components/JobBoostDialog";
 import { TipDialog } from "@/components/TipDialog";
@@ -103,6 +103,7 @@ const Activity = () => {
   const [requestingRevision, setRequestingRevision] = useState(false);
   // Dispute
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
@@ -609,15 +610,18 @@ const Activity = () => {
                     return (
                     <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
 
-                      {/* Top bar: title + budget */}
-                      <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
+                      {/* Clickable top bar: title + budget + chevron */}
+                      <button className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left" onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}>
                         <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
                           {job.title}
                         </h3>
-                        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
-                          <DollarSign className="w-3.5 h-3.5" />{job.budget}
-                        </span>
-                      </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
+                            <DollarSign className="w-3.5 h-3.5" />{job.budget}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                        </div>
+                      </button>
 
                       {/* Main content */}
                       <div className="px-4 py-3 space-y-2.5">
@@ -661,69 +665,72 @@ const Activity = () => {
                         </div>
                       )}
 
-                      {/* Features for active jobs */}
-                      {(job.status === "in_progress" || job.status === "accepted") && user && (
-                        <div className="px-4 pb-3 space-y-3">
-                          <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} />
-                          <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
-                          {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
-                          <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
-                          <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
-                          <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                          <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
-                        </div>
-                      )}
+                      {/* Expandable section */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedJobId === job.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                        {/* Features for active jobs */}
+                        {(job.status === "in_progress" || job.status === "accepted") && user && (
+                          <div className="px-4 pb-3 space-y-3">
+                            <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} />
+                            <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
+                            {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
+                            <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
+                            <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
+                            <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
+                            <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
+                          </div>
+                        )}
 
-                      {/* Actions */}
-                      <div className="border-t border-border/40 px-4 py-3">
-                        <div className="space-y-2">
-                          {job.status === "open" && (
-                            <>
-                              <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                        {/* Actions */}
+                        <div className="border-t border-border/40 px-4 py-3">
+                          <div className="space-y-2">
+                            {job.status === "open" && (
+                              <>
+                                <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                                   <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                                   <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                </div>
+                              </>
+                            )}
+                            {job.status === "accepted" && (
                               <div className="flex items-center gap-2">
-                                <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                                 <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                 <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" variant="outline" className="flex-1 border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                                 <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
-                            </>
-                          )}
-                          {job.status === "accepted" && (
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" className="flex-1 border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                               <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                            </div>
-                          )}
-                          {(job.status === "in_progress" || job.status === "revision_requested") && (
-                            <>
-                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
-                              </Button>
-                              {job.status === "in_progress" && (
-                                <>
-                                  <Button size="sm" className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
-                                  <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
-                                  <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
-                                </>
-                              )}
-                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
-                              <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                            </>
-                          )}
-                          {job.status === "cancelled" && (
-                            <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
-                          )}
-                          {job.status === "completed" && (
-                              <div className="flex items-center justify-center gap-2">
-                                {job.payment_status === "released" && job.helper_id && (
-                                  <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
-                                    setEnhancedTipJobId(job.id);
-                                    setEnhancedTipHelperName("");
-                                  }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                            )}
+                            {(job.status === "in_progress" || job.status === "revision_requested") && (
+                              <>
+                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                                </Button>
+                                {job.status === "in_progress" && (
+                                  <>
+                                    <Button size="sm" className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
+                                    <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
+                                    <Button size="sm" className="bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
+                                  </>
                                 )}
-                                {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
-                                <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                              </div>
-                          )}
+                                <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
+                                <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                              </>
+                            )}
+                            {job.status === "cancelled" && (
+                              <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
+                            )}
+                            {job.status === "completed" && (
+                                <div className="flex items-center justify-center gap-2">
+                                  {job.payment_status === "released" && job.helper_id && (
+                                    <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
+                                      setEnhancedTipJobId(job.id);
+                                      setEnhancedTipHelperName("");
+                                    }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                                  )}
+                                  {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                                  <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                                </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -792,9 +799,10 @@ const Activity = () => {
                 </div>
               ) : (
                 filteredAppliedApps.map((app) => (
-                  <div key={app.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
+                  <div key={app.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                    {/* Clickable header */}
+                    <button className="w-full px-4 py-3 flex items-center justify-between text-left" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h3 className="font-semibold text-foreground">{app.job?.title || "Task"}</h3>
                           {!(app.status === "accepted" && app.job?.status === "completed") && (
@@ -814,14 +822,25 @@ const Activity = () => {
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {app.job.location}</span>
                             <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${app.job.budget}</span>
+                          </div>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {/* Expandable content */}
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                      <div className="px-4 pb-4 space-y-3 border-t border-border/40">
+                        {app.job && (
+                          <div className="pt-3 text-xs text-muted-foreground">
                             <span>Posted by <a href={`/user/${app.job?.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
                           </div>
                         )}
-                        {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
+                        {app.message && <p className="text-sm text-muted-foreground">{app.message}</p>}
 
                         {/* Completion status for helper */}
                         {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && ((app.job as any)?.poster_completed_at || (app.job as any)?.helper_completed_at) && (
-                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
                             {(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Poster confirmed</span>}
                             {!(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
@@ -829,9 +848,9 @@ const Activity = () => {
                           </div>
                         )}
 
-                        {/* New features for helper */}
+                        {/* Features for helper */}
                         {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "accepted") && user && (
-                          <div className="mt-3 space-y-3">
+                          <div className="space-y-3">
                             <JobConfirmation
                               jobId={app.job_id}
                               isOwner={false}
@@ -850,55 +869,55 @@ const Activity = () => {
 
                         {/* Revision requested notice for helper */}
                         {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (
-                          <div className="mt-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                          <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
                             <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                             <p className="text-xs text-muted-foreground mt-1">{(app.job as any).revision_note}</p>
                           </div>
                         )}
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {app.status === "accepted" && app.job?.status === "accepted" && (
-                          <div className="flex flex-col gap-1.5">
-                            {(app.job as any)?.response_deadline && (
-                              <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
-                                <Clock className="w-3 h-3 inline mr-1" />
-                                Respond by {new Date((app.job as any).response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            )}
-                            <Button size="sm" onClick={() => handleHelperResponse(app, true)}>
-                              <ThumbsUp className="w-4 h-4 mr-1" /> Accept
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
-                              <ThumbsDown className="w-4 h-4 mr-1" /> Decline
-                            </Button>
-                          </div>
-                        )}
-                        {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
-                          <>
-                            <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
-                            <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
-                            <Button size="sm" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
-                              <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
-                            </Button>
-                            {app.job?.status === "revision_requested" && (
-                              <Button size="sm" variant="outline" onClick={() => resolveRevision(app.job_id)}>
-                                <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-1.5 pt-2">
+                          {app.status === "accepted" && app.job?.status === "accepted" && (
+                            <div className="flex flex-col gap-1.5">
+                              {(app.job as any)?.response_deadline && (
+                                <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
+                                  <Clock className="w-3 h-3 inline mr-1" />
+                                  Respond by {new Date((app.job as any).response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
+                              <Button size="sm" onClick={() => handleHelperResponse(app, true)}>
+                                <ThumbsUp className="w-4 h-4 mr-1" /> Accept
                               </Button>
-                            )}
-                            <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
-                              <MessageSquare className="w-4 h-4 mr-1" /> Message
-                            </Button>
-                          </>
-                        )}
-                        {app.status === "accepted" && app.job?.status === "completed" && (
-                          <>
+                              <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
+                                <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                              </Button>
+                            </div>
+                          )}
+                          {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
+                            <>
+                              <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
+                              <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
+                              <Button size="sm" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                              </Button>
+                              {app.job?.status === "revision_requested" && (
+                                <Button size="sm" variant="outline" onClick={() => resolveRevision(app.job_id)}>
+                                  <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                                <MessageSquare className="w-4 h-4 mr-1" /> Message
+                              </Button>
+                            </>
+                          )}
+                          {app.status === "accepted" && app.job?.status === "completed" && (
                             <Button size="sm" variant="outline" onClick={() => {
                               setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
                             }}>
                               <Star className="w-4 h-4 mr-1" /> Review
                             </Button>
-                          </>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

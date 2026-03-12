@@ -512,11 +512,9 @@ const Activity = () => {
 
   const postedStatusFilters = [
     { key: "open", label: "Open" },
-    { key: "accepted", label: "Accepted" },
     { key: "in_progress", label: "In Progress" },
     { key: "completed", label: "Completed" },
     { key: "cancelled", label: "Cancelled" },
-    { key: "disputed", label: "Disputed" },
   ];
 
   const appliedStatusFilters = [

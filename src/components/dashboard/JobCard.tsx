@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,7 @@ interface JobCardProps {
   onApply: (jobId: string) => void;
   onReport: (jobId: string) => void;
   onSelect: (job: EnrichedJob) => void;
+  index?: number;
 }
 
 const categoryColors: Record<string, string> = {
@@ -30,7 +32,7 @@ const categoryColors: Record<string, string> = {
   other: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
-const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0 }: JobCardProps) => {
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
     reviewCount: job.posterReviewCount || 0,
@@ -41,7 +43,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   const catColor = categoryColors[job.category] || categoryColors.other;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.5), ease: "easeOut" }}
       className={`group relative rounded-2xl border bg-card p-4 transition-all duration-200 cursor-pointer hover:shadow-[var(--card-hover-shadow)] hover:-translate-y-0.5 ${
         job.isBoosted
           ? "border-primary/30 bg-gradient-to-br from-primary/5 to-transparent ring-1 ring-primary/10"
@@ -145,7 +150,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

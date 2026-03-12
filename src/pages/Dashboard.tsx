@@ -228,6 +228,16 @@ const Dashboard = () => {
         const delayMs = (20 - earlyMinutes) * 60 * 1000;
         if (jobAge < delayMs) return false;
       }
+      // Availability filter
+      if (matchAvailability && helperAvailability.length > 0) {
+        const jobDate = new Date(job.date_needed + "T12:00:00");
+        const jobDow = jobDate.getDay();
+        const slot = helperAvailability.find(s => s.day_of_week === jobDow);
+        if (!slot || !slot.is_available) return false;
+        if (job.start_time && job.start_time !== "flexible" && slot.start_time && slot.end_time) {
+          if (job.start_time < slot.start_time || job.start_time > slot.end_time) return false;
+        }
+      }
       return true;
     })
     .sort((a, b) => {

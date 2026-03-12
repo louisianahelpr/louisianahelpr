@@ -662,6 +662,16 @@ const Dashboard = () => {
       <OnboardingTour />
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApply} />
       <PushNotificationPrompt />
+
+      {/* Floating Post a Job button */}
+      <motion.button
+        whileTap={{ scale: 0.92 }}
+        whileHover={{ scale: 1.05 }}
+        onClick={() => navigate("/post-job")}
+        className="fixed bottom-24 right-5 z-50 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center border border-primary-foreground/15"
+      >
+        <Plus className="w-7 h-7" strokeWidth={2.5} />
+      </motion.button>
     </div>
   );
 };

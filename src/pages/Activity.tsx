@@ -350,7 +350,7 @@ const Activity = () => {
     } as any).eq("id", selectedJob.id);
 
     // Notify helper about the deadline
-    await supabase.from("notifications").insert({
+    await createNotification({
       user_id: deadlineDialogApp.helper_id,
       title: "📋 New job offer!",
       message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`,

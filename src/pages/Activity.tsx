@@ -549,11 +549,11 @@ const Activity = () => {
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
-          await supabase.from("notifications").insert({
-            user_id: admin.user_id, title: "🚫 No-show reported",
-            message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
-            type: "warning", link: "/admin",
-          });
+            await createNotification({
+              user_id: admin.user_id, title: "🚫 No-show reported",
+              message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`,
+              type: "warning", link: "/admin",
+            });
         }
       }
 

@@ -710,69 +710,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* HISTORY TAB */}
-          {tab === "history" && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground">Job History</h1>
-              {historyLoading ? (
-                <p className="text-muted-foreground">Loading…</p>
-              ) : (
-                <>
-                  <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-                    {(["all", "posted", "worked"] as HistoryTab[]).map((t) => (
-                      <button key={t} onClick={() => setHistTab(t)}
-                        className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${
-                          histTab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                        }`}>
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                  {historyJobs.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No jobs found.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">{historyJobs.length} job{historyJobs.length !== 1 ? "s" : ""}</p>
-                      {historyJobs.map((job) => (
-                        <div key={`${job.id}-${job._source}`} className="rounded-xl border border-border bg-card p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">{job._source === "posted" ? "Posted" : "Worked"}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-                                <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
-                              {job._source === "posted" && job.status === "completed" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs h-7 px-2"
-                                  onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                                >
-                                  <RotateCcw className="w-3 h-3 mr-1" /> Rebook
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
           {/* PAYMENT TAB */}
           {tab === "payment" && (
             <PaymentTab

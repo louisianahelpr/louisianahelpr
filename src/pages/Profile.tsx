@@ -1005,6 +1005,7 @@ const tierConfig = [
   {
     id: "basic",
     name: "Basic",
+    badge: "⭐",
     monthly: "$9.99/mo",
     annual: "$99.99/yr",
     lifetime: "$199.99",
@@ -1015,6 +1016,7 @@ const tierConfig = [
   {
     id: "pro",
     name: "Pro",
+    badge: "🔥",
     monthly: "$14.99/mo",
     annual: "$149.99/yr",
     lifetime: "$299.99",
@@ -1025,6 +1027,7 @@ const tierConfig = [
   {
     id: "elite",
     name: "Elite",
+    badge: "💎",
     monthly: "$24.99/mo",
     annual: "$249.99/yr",
     lifetime: "$499.99",

@@ -435,11 +435,13 @@ const Dashboard = () => {
               className="space-y-3"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center">
-                  <Star className="w-3.5 h-3.5 text-accent fill-accent" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center shadow-sm">
+                  <Star className="w-4 h-4 text-accent fill-accent" />
                 </div>
-                <h2 className="text-sm font-display font-bold text-foreground">Recommended for You</h2>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">based on skills</span>
+                <div>
+                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Recommended for You</h2>
+                  <span className="text-[10px] text-muted-foreground">based on your skills</span>
+                </div>
               </div>
               <div className="space-y-3">
                 {recommendedJobs.slice(0, 3).map((job, i) => (

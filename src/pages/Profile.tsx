@@ -1156,7 +1156,7 @@ function SupportInline({ userId }: { userId?: string }) {
                     <DollarSign className="w-4 h-4 text-primary" /> Platform Fees
                   </h2>
                   <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Service Fee:</strong> 15% platform fee on each transaction, deducted from the helper's payout.</p>
+                    <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helper's payout. The exact fee is visible before payment.</p>
                     <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent. Urgent jobs get priority placement in the feed.</p>
                     <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
                     <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helper — no platform fee on tips.</p>

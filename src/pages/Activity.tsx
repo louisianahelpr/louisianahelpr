@@ -1094,9 +1094,75 @@ const Activity = () => {
                     {/* Expandable content */}
                     <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">
+                        {/* Job details — matches dashboard expanded section */}
+                        {app.job && app.job.description.trim().toLowerCase() !== (app.job.title || "").trim().toLowerCase() && (
+                          <div className="pt-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+                            <p className="text-sm text-foreground leading-relaxed">{app.job.description}</p>
+                          </div>
+                        )}
+
+                        {/* Photos */}
+                        {app.job && (app.job.photos || []).length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {(app.job.photos || []).map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                  <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Estimated hours */}
+                        {app.job?.estimated_hours && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5">
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                            <p className="font-semibold text-foreground text-sm">{app.job.estimated_hours}h</p>
+                          </div>
+                        )}
+
+                        {/* Special requirements */}
+                        {app.job?.special_requirements && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5">
+                            <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
+                            <p className="text-sm text-foreground">{app.job.special_requirements}</p>
+                          </div>
+                        )}
+
+                        {/* Recurring info */}
+                        {app.job?.is_recurring && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+                            <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Recurring Task</p>
+                              <p className="text-sm font-medium text-foreground">
+                                {app.job.recurrence_interval ? `Every ${app.job.recurrence_interval}` : "Yes"}
+                                {app.job.recurrence_end_date && ` until ${new Date(app.job.recurrence_end_date).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Group job info */}
+                        {app.job?.is_group_job && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+                            <Users className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Group Task</p>
+                              <p className="text-sm font-medium text-foreground">
+                                {app.job.helpers_needed ? `${app.job.helpers_needed} helpers needed` : "Multiple helpers needed"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Poster info */}
                         {app.job && (
-                          <div className="pt-3 text-xs text-muted-foreground">
-                            <span>Posted by <a href={`/user/${app.job?.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
+                          <div className="pt-2 text-xs text-muted-foreground">
+                            <span>Posted by <a href={`/user/${app.job.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
                           </div>
                         )}
                         {app.message && <p className="text-sm text-muted-foreground">{app.message}</p>}

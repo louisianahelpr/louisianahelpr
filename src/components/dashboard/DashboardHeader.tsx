@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield, Plus } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
-import ReferralPanel from "@/components/ReferralPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -59,7 +58,6 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
             <Plus className="w-4 h-4" /> Post task
           </Button>
           <FavoritesPanel />
-          <ReferralPanel />
           <ThemeToggle />
           <NotificationPanel />
           <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">

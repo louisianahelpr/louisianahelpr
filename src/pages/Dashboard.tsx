@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -91,7 +93,11 @@ const Dashboard = () => {
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
 
-  const { user, profile, isAdmin, loading, helprTier, allJobs, platformFee, helperAvailability, recommendedJobs } = useDashboardData();
+  const { user, profile, isAdmin, loading, helprTier, allJobs, platformFee, helperAvailability, recommendedJobs, refresh } = useDashboardData();
+
+  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+    onRefresh: refresh,
+  });
 
   useRealtimePush(user?.id ?? null);
 
@@ -199,6 +205,7 @@ const Dashboard = () => {
   const dayIndex = Math.floor(Date.now() / 86400000) % GREETING_MESSAGES.length;
 
   return (
+    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div className="min-h-screen bg-background pb-20">
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
@@ -504,6 +511,7 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </PullToRefreshWrapper>
   );
 };
 

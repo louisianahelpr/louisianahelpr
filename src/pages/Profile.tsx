@@ -812,15 +812,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* TRUSTED CIRCLES TAB */}
-          {tab === "circles" && user && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-                <Users className="w-6 h-6 text-primary" /> Trusted Circles
-              </h1>
-              <TrustedHelperCircle userId={user.id} />
-            </div>
-          )}
 
           {/* RETAINERS TAB */}
           {tab === "retainers" && user && profile && (

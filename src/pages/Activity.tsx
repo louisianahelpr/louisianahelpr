@@ -592,17 +592,13 @@ const Activity = () => {
               ) : (
                 <div className="space-y-3">
                   {filteredPostedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card overflow-hidden relative">
-                      {/* Cancel X for open jobs — top right */}
-                      {job.status === "open" && (
-                        <button
-                          onClick={() => setCancelDialogJob(job)}
-                          className="absolute top-3 right-3 p-1 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors z-10"
-                          aria-label="Cancel job"
-                        >
-                          <XCircle className="w-4.5 h-4.5" />
-                        </button>
-                      )}
+                    <div key={job.id} className={`rounded-xl border overflow-hidden relative ${
+                      job.status === "open" ? "border-primary/30 bg-gradient-to-br from-primary/5 to-card" :
+                      job.status === "in_progress" || job.status === "accepted" ? "border-accent/30 bg-gradient-to-br from-accent/10 to-card" :
+                      job.status === "completed" ? "border-green-500/30 bg-gradient-to-br from-green-500/5 to-card" :
+                      job.status === "cancelled" ? "border-destructive/20 bg-gradient-to-br from-destructive/5 to-card" :
+                      "border-border bg-card"
+                    }`}>
 
                       {/* Header */}
                       <div className="p-4 pb-3 pr-10">
@@ -656,6 +652,7 @@ const Activity = () => {
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                               <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                              <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
                             </>
                           )}
                           {job.status === "accepted" && (

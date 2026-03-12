@@ -683,25 +683,68 @@ const Activity = () => {
                         </div>
                       </div>
 
-                      {/* Main content */}
-                      <div className="px-4 py-3 space-y-2.5">
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
-
-                        {/* Info grid */}
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                      {/* Main content — matches dashboard JobCard summary */}
+                      <div className="px-4 py-3 space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+                          {/* Date */}
+                          {job.special_requirements?.includes("[Flexible date]") ? (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                          {/* Time */}
+                          {job.start_time && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 shrink-0" /> {job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          )}
+                          {/* City, State */}
+                          {(() => {
+                            const locationParts = job.location.split(",").map(s => s.trim());
+                            let cityState = job.location;
+                            if (locationParts.length >= 2) {
+                              const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
+                              const city = locationParts[locationParts.length - 2];
+                              cityState = `${city}, ${state}`;
+                            }
+                            return (
+                              <a
+                                onClick={(e) => e.stopPropagation()}
+                                href={job.latitude && job.longitude
+                                  ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
+                                  : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-primary transition-colors"
+                              >
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="truncate max-w-[140px]">{cityState}</span>
+                              </a>
+                            );
+                          })()}
+                          {/* Expiry */}
+                          {job.expires_at && (() => {
+                            const expiryText = new Date(job.expires_at) <= new Date()
+                              ? "Expired"
+                              : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left";
+                            const isExpiringSoon = differenceInHours(new Date(job.expires_at), new Date()) < 24;
+                            return (
+                              <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+                                <Timer className="w-3 h-3 shrink-0" /> {expiryText}
+                              </span>
+                            );
+                          })()}
+                          {/* Applicant count */}
                           {(applicantCounts[job.id] || 0) > 0 && (job.status === "open" || job.status === "accepted") && (
-                            <span className="flex items-center gap-1.5 text-primary font-medium">
+                            <span className="flex items-center gap-1 text-primary font-medium">
                               <Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}
                             </span>
                           )}
-                          <span className="flex items-center gap-1.5 text-muted-foreground truncate">
-                            <MapPin className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{job.location}</span>
-                          </span>
-                          <span className="flex items-center gap-1.5 text-muted-foreground">
-                            <Clock className="w-3 h-3 shrink-0" />
-                            {new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}{job.start_time ? ` · ${job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}
-                          </span>
                         </div>
 
                         {/* Completion confirmation status */}

@@ -10,6 +10,7 @@ type CancellationDialogProps = {
   jobId: string;
   jobTitle: string;
   jobDate: string;
+  jobBudget: number;
   userId: string;
   hasHelper: boolean;
   open: boolean;
@@ -17,7 +18,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -25,13 +26,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
+  const isVeryLateCancellation = hoursUntilJob < 2 && hoursUntilJob > 0;
 
   // Tiered cancellation fee: free 24h+, 25% <24h, 50% <2h
-  const getBudget = () => 0; // Budget passed via prop below
-  const isVeryLateCancellation = hoursUntilJob < 2 && hoursUntilJob > 0;
   const cancellationFeePercent = hasHelper
     ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
     : 0;
+  const cancellationFee = Math.round((jobBudget * cancellationFeePercent) / 100);
 
   const handleCancel = async () => {
     setCancelling(true);

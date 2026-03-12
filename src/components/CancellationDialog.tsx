@@ -50,25 +50,43 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);
       if (error) throw error;
 
-      // Log late cancellation as violation
-      if (isLateCancellation) {
-        // Check prior late cancellations
+      // Track cancellation with helper assigned — 2 warnings then permanent ban on 3rd
+      if (hasHelper) {
         const { data: existing } = await (supabase.from("user_violations" as any) as any)
-          .select("id").eq("user_id", userId).eq("violation_type", "late_cancellation");
+          .select("id").eq("user_id", userId).eq("violation_type", "cancel_with_helper");
         const priorCount = (existing as any[] | null)?.length || 0;
 
+        let actionTaken = "none";
+        if (priorCount >= 2) actionTaken = "permanent_ban";
+        else actionTaken = "warning";
+
         await (supabase.from("user_violations" as any) as any).insert({
-          user_id: userId, violation_type: "late_cancellation",
-          description: `Late cancellation (within 24h) for job: ${jobTitle}`,
-          job_id: jobId, action_taken: priorCount >= 1 ? "permanent_ban" : "warning",
+          user_id: userId,
+          violation_type: "cancel_with_helper",
+          description: `Cancelled job with helper assigned: "${jobTitle}"${isLateCancellation ? " (late)" : ""}`,
+          job_id: jobId,
+          action_taken: actionTaken,
         });
 
-        if (priorCount >= 1) {
+        const warningNum = priorCount + 1;
+
+        if (actionTaken === "warning") {
+          await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
+          await supabase.from("notifications").insert({
+            user_id: userId,
+            title: `⚠️ Cancellation Warning (${warningNum}/2)`,
+            message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a helper. A 3rd cancellation will result in a permanent ban.`,
+            type: "warning",
+            link: "/profile",
+          });
+          toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a helper is tracked. A 3rd time = permanent ban.`);
+        } else if (actionTaken === "permanent_ban") {
           await (supabase.from("user_bans" as any) as any).insert({
             user_id: userId, ban_type: "permanent",
-            reason: "Repeated late cancellations", banned_by: userId,
+            reason: "Cancelled 3 jobs after selecting a helper", banned_by: userId,
           });
           await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
+          toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helper.");
         }
 
         // Notify admins
@@ -76,14 +94,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         if (adminRoles) {
           for (const admin of adminRoles) {
             await supabase.from("notifications").insert({
-              user_id: admin.user_id, title: "⚠️ Late cancellation",
-              message: `User cancelled "${jobTitle}" within 24 hours of the job date.${priorCount >= 1 ? " Auto-banned." : " Warning issued."}`,
+              user_id: admin.user_id, title: "⚠️ Cancellation with helper",
+              message: `User cancelled "${jobTitle}" after selecting a helper (${warningNum} total). Action: ${actionTaken}.`,
               type: "warning", link: "/admin",
             });
           }
         }
-
-        toast.warning("Job cancelled. Note: Cancelling within 24 hours of the job date has been recorded.");
       } else {
         toast.success("Job cancelled successfully.");
       }

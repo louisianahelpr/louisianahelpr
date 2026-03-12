@@ -27,6 +27,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
   const handleSubmit = async () => {
     if (!reason) { toast.error("Please select a reason"); return; }
+    if (!description || description.trim().length < 10) { toast.error("Please provide details (at least 10 characters)"); return; }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }

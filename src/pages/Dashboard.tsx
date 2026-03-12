@@ -458,7 +458,7 @@ const Dashboard = () => {
               </div>
               <div className="space-y-3">
                 {nearbyJobs.slice(0, 3).map((job, i) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                 ))}
               </div>
               {nearbyJobs.length > 3 && (
@@ -489,7 +489,7 @@ const Dashboard = () => {
               </div>
               <div className="space-y-3">
                 {recommendedJobs.slice(0, 3).map((job, i) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                 ))}
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -658,7 +658,7 @@ const Dashboard = () => {
               <div className="divide-y divide-border/30">
                 {filteredJobs.map((job, i) => (
                   <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
-                    <JobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                    <JobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                   </div>
                 ))}
               </div>
@@ -667,12 +667,12 @@ const Dashboard = () => {
         </div>
       </main>
 
-      <JobDetailDialog job={detailJob} effectiveFee={effectiveFee} onClose={() => setDetailJob(null)} onApply={handleApply} onReport={setReportJobId} />
+      <JobDetailDialog job={detailJob} effectiveFee={effectiveFee} onClose={() => setDetailJob(null)} onApply={handleApplyRequest} onReport={setReportJobId} />
 
       {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
 
       <OnboardingTour />
-      <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApply} />
+      <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
       <PushNotificationPrompt />
     </div>
   );

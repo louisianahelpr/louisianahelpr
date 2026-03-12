@@ -640,7 +640,7 @@ const Activity = () => {
           {/* POSTED TAB */}
           {tab === "posted" && (
             <div className="space-y-4">
-              {filteredPostedJobs.length === 0 ? (
+              {postedJobs.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">
                     {postedJobs.length === 0 ? "You haven't posted any tasks yet." : "No tasks match this filter."}
@@ -649,7 +649,7 @@ const Activity = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredPostedJobs.map((job) => {
+                  {postedJobs.map((job) => {
                     const catStyle = categoryColors[job.category] || categoryColors.other;
                     return (
                     <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all cursor-pointer" onClick={() => handleExpandJob(job.id, job)}>
@@ -977,7 +977,7 @@ const Activity = () => {
           {/* APPLIED TAB */}
           {tab === "applied" && (
             <div className="space-y-3">
-              {filteredAppliedApps.length === 0 ? (
+              {appliedApps.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">
                     {appliedApps.length === 0 ? "You haven't applied to any tasks yet." : "No applications match this filter."}
@@ -985,7 +985,7 @@ const Activity = () => {
                   <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
                 </div>
               ) : (
-                filteredAppliedApps.map((app) => (
+                appliedApps.map((app) => (
                   <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden cursor-pointer shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
                     {/* Top bar: title + budget + chevron */}
                     <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">

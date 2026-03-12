@@ -683,7 +683,7 @@ const Activity = () => {
                               <div className="flex items-center gap-2">
                                 <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                                  <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                 <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                                 <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             </>
                           )}

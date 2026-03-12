@@ -1105,7 +1105,12 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* LEGAL TAB */}
           {tab === "legal" && (
             <div className="space-y-6">
-              <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
+              </div>
 
               <div className="space-y-3">
                 <div className="rounded-xl border border-border bg-card p-4 space-y-3">

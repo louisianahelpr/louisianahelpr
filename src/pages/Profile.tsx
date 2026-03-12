@@ -1163,7 +1163,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-2xl font-display font-bold text-foreground">Referrals</h1>
+                <h1 className="text-2xl font-display font-bold text-foreground">Referral Program</h1>
               </div>
               <ReferralSection userId={user.id} />
             </div>

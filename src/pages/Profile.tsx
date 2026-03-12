@@ -1040,10 +1040,17 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* REVIEWS TAB */}
           {tab === "reviews" && (
             <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                  {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
+                  <p className="text-muted-foreground text-sm">
+                    {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
+                  </p>
+                </div>
+              </div>
                 </p>
               </div>
 

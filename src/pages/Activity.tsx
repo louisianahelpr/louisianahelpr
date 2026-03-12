@@ -582,19 +582,17 @@ const Activity = () => {
     { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
-  const filteredPostedJobs = useMemo(() => !statusFilter
-    ? postedJobs
-    : postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
+  const filteredPostedJobs = useMemo(() =>
+    postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
 
-  const filteredAppliedApps = useMemo(() => !statusFilter
-    ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending") return a.status === "pending";
-        if (statusFilter === "rejected") return a.status === "rejected";
-        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
-        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-        return true;
-      }), [appliedApps, statusFilter]);
+  const filteredAppliedApps = useMemo(() =>
+    appliedApps.filter((a) => {
+      if (statusFilter === "pending") return a.status === "pending";
+      if (statusFilter === "rejected") return a.status === "rejected";
+      if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
+      if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
+      return false;
+    }), [appliedApps, statusFilter]);
 
   if (loading) {
     return (

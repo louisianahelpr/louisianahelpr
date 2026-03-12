@@ -202,7 +202,6 @@ const PostJob = () => {
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
-    if (!specialRequirements.trim()) { toast.error("Special requirements is required"); return; }
     setStep("checkout");
   };
 

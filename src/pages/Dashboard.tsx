@@ -71,6 +71,7 @@ const Dashboard = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [expiresWithin, setExpiresWithin] = useState("");
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<EnrichedJob[]>([]);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);

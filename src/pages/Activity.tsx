@@ -60,6 +60,7 @@ type Tab = "posted" | "applied";
 const Activity = () => {
   usePageTitle("My Activity — Helpr");
   const navigate = useNavigate();
+  const { user: cachedUser } = useCurrentUser();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");

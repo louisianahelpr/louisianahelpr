@@ -100,7 +100,10 @@ const Dashboard = () => {
       // Check Pro subscription
       try {
         const { data } = await supabase.functions.invoke("check-pro-subscription");
-        if (data?.subscribed) setIsProHelpr(true);
+        if (data?.subscribed) {
+          setIsProHelpr(true);
+          setHelprTier(data.tier);
+        }
       } catch {}
     };
     init();

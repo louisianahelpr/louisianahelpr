@@ -109,7 +109,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </span>
           ) : (
             <a
-              href="/activity"
+              href="/schedule"
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
             >

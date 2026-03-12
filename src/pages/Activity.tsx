@@ -673,11 +673,6 @@ const Activity = () => {
                           {job.title}
                         </h3>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
-                          {(applicantCounts[job.id] || 0) > 0 && (
-                            <span className="flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                              <Users className="w-3 h-3" /> {applicantCounts[job.id]}
-                            </span>
-                          )}
                           <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
                             <DollarSign className="w-3.5 h-3.5" />{job.budget}
                           </span>
@@ -693,6 +688,11 @@ const Activity = () => {
 
                         {/* Info grid */}
                         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                          {(applicantCounts[job.id] || 0) > 0 && (job.status === "open" || job.status === "accepted") && (
+                            <span className="flex items-center gap-1.5 text-primary font-medium">
+                              <Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}
+                            </span>
+                          )}
                           <span className="flex items-center gap-1.5 text-muted-foreground truncate">
                             <MapPin className="w-3 h-3 shrink-0" />
                             <span className="truncate">{job.location}</span>

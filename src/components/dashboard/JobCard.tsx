@@ -36,7 +36,7 @@ const categoryColors: Record<string, { badge: string; title: string; accent: str
 };
 
 const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0, isExpanded = false, onToggleExpand }: JobCardProps) => {
-  const [showDetails, setShowDetails] = useState(false);
+  
 
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,

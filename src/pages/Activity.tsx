@@ -732,40 +732,28 @@ const Activity = () => {
                       )}
 
                       {/* Completed job actions — always visible */}
-                      {job.status === "completed" && (
-                        <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const meta = completedJobMeta[job.id];
-                            const hasTipped = meta?.tipped;
-                            const hasReviewed = meta?.reviewed;
-                            const bothDone = hasTipped && hasReviewed;
-                            return (
-                              <div className="flex items-center justify-center gap-2">
-                                {!bothDone ? (
-                                  <>
-                                    {job.payment_status === "released" && job.helper_id && (
-                                      <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
-                                        setEnhancedTipJobId(job.id);
-                                        setEnhancedTipHelperName("");
-                                      }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
-                                    )}
-                                    {job.helper_id && (
-                                      <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
-                                    )}
-                                    <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ Tipped</span>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ Reviewed</span>
-                                    <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
+                      {job.status === "completed" && (() => {
+                        const meta = completedJobMeta[job.id];
+                        const hasTipped = meta?.tipped;
+                        const hasReviewed = meta?.reviewed;
+                        const bothDone = hasTipped && hasReviewed;
+                        return !bothDone ? (
+                          <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              {job.payment_status === "released" && job.helper_id && (
+                                <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
+                                  setEnhancedTipJobId(job.id);
+                                  setEnhancedTipHelperName("");
+                                }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                              )}
+                              {job.helper_id && (
+                                <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
+                              )}
+                              <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
 
                       {/* Footer: paid status only — hide on completed */}
                       {job.payment_status === "released" && job.status !== "completed" && (

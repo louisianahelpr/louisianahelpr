@@ -84,6 +84,8 @@ const Activity = () => {
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<(Application & { profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null; reviewCount?: number; avgRating?: number })[]>([]);
+  const [inlineApplicants, setInlineApplicants] = useState<Record<string, typeof applications>>({});
+  const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [tipJobId, setTipJobId] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");
@@ -269,7 +271,12 @@ const Activity = () => {
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
-    const { data: apps } = await supabase.from("applications").select("*").eq("job_id", job.id);
+    const enriched = await fetchApplicants(job.id);
+    setApplications(enriched);
+  };
+
+  const fetchApplicants = async (jobId: string) => {
+    const { data: apps } = await supabase.from("applications").select("*").eq("job_id", jobId);
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes] = await Promise.all([
@@ -281,13 +288,28 @@ const Activity = () => {
         if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
         reviewMap.get(r.reviewee_id)!.push(r.rating);
       });
-      setApplications(apps.map((app) => {
+      return apps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
         const ratings = reviewMap.get(app.helper_id) || [];
         return { ...app, profiles: prof, reviewCount: ratings.length, avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };
-      }));
-    } else {
-      setApplications([]);
+      });
+    }
+    return [];
+  };
+
+  const loadInlineApplicants = async (jobId: string) => {
+    if (inlineApplicants[jobId]) return; // already loaded
+    setLoadingApplicants(prev => ({ ...prev, [jobId]: true }));
+    const enriched = await fetchApplicants(jobId);
+    setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
+    setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
+  };
+
+  const handleExpandJob = (jobId: string, job: Job) => {
+    const newId = expandedJobId === jobId ? null : jobId;
+    setExpandedJobId(newId);
+    if (newId && (job.status === "open" || job.status === "accepted")) {
+      loadInlineApplicants(jobId);
     }
   };
 
@@ -319,7 +341,12 @@ const Activity = () => {
     setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);
-    if (user) loadData(user.id);
+    // Refresh inline applicants for this job
+    setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
+    if (user) {
+      loadData(user.id);
+      loadInlineApplicants(selectedJob.id);
+    }
   };
 
   const cancelJob = async (jobId: string) => {
@@ -622,7 +649,7 @@ const Activity = () => {
                     <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
 
                       {/* Clickable top bar: title + budget + chevron */}
-                      <button className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left" onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}>
+                      <button className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left" onClick={() => handleExpandJob(job.id, job)}>
                         <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
                           {job.title}
                         </h3>
@@ -682,7 +709,43 @@ const Activity = () => {
                       )}
 
                       {/* Expandable section */}
-                      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === job.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+                      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === job.id ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+                        {/* Inline Applicants */}
+                        {(job.status === "open" || job.status === "accepted") && (
+                          <div className="px-4 py-3 border-t border-border/40">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1"><Users className="w-3 h-3" /> Applicants ({(inlineApplicants[job.id] || []).length})</p>
+                            {loadingApplicants[job.id] ? (
+                              <p className="text-xs text-muted-foreground">Loading…</p>
+                            ) : (inlineApplicants[job.id] || []).length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No applications yet.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {(inlineApplicants[job.id] || []).map((app) => (
+                                  <div key={app.id} className="p-3 rounded-xl border border-border bg-secondary/20 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="min-w-0">
+                                        <a href={`/user/${app.helper_id}`} className="font-medium text-sm text-primary hover:underline">{(app.profiles?.full_name || "Helpr").split(" ")[0]}</a>
+                                        {app.profiles?.skills && <p className="text-[11px] text-muted-foreground truncate">{app.profiles.skills}</p>}
+                                        {app.proposed_rate && <p className="text-[11px] text-muted-foreground">${app.proposed_rate}/hr</p>}
+                                        {app.message && <p className="text-xs text-muted-foreground mt-0.5">{app.message}</p>}
+                                        {(app.reviewCount ?? 0) > 0 && (
+                                          <div className="flex items-center gap-1 mt-0.5">
+                                            <Star className="w-3 h-3 fill-accent text-accent" />
+                                            <span className="text-[11px] text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount})</span>
+                                          </div>
+                                        )}
+                                        {app.reviewCount === 0 && <p className="text-[11px] text-muted-foreground mt-0.5">No reviews yet</p>}
+                                      </div>
+                                      {app.status === "pending" && <Button size="sm" onClick={() => { setSelectedJob(job); setApplications(inlineApplicants[job.id] || []); acceptApplication(app); }}>Select</Button>}
+                                      {app.status === "accepted" && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
+                                      {app.status === "rejected" && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {/* Features for active jobs */}
                         {(job.status === "in_progress" || job.status === "accepted") && user && (
                           <div className="px-4 pb-3 space-y-3">
@@ -700,19 +763,15 @@ const Activity = () => {
                         <div className="border-t border-border/40 px-4 py-3">
                           <div className="space-y-2">
                             {job.status === "open" && (
-                              <>
-                                <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                                <div className="flex items-center gap-2">
-                                  <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                                   <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                   <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                                </div>
-                              </>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                                <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                                <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                              </div>
                             )}
                             {job.status === "accepted" && (
                               <div className="flex items-center gap-2">
-                                <Button size="sm" variant="outline" className="flex-1 border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                                 <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             )}
                             {(job.status === "in_progress" || job.status === "revision_requested") && (
@@ -755,51 +814,6 @@ const Activity = () => {
                 </div>
               )}
 
-              {/* Applicants full-screen view */}
-              {selectedJob && (
-                <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-right duration-200">
-                  <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedJob(null)}><ArrowLeft className="w-4 h-4" /></Button>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="font-display font-semibold text-foreground truncate">Applicants</h2>
-                      <p className="text-xs text-muted-foreground truncate">{selectedJob.title}</p>
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto px-4 py-4">
-                    {applications.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">No applications yet.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-w-lg mx-auto">
-                        {applications.map((app) => (
-                          <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helpr").split(" ")[0]}</a>
-                                {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
-                                {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
-                                {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
-                                {app.reviewCount !== undefined && app.reviewCount > 0 && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Star className="w-3 h-3 fill-accent text-accent" />
-                                    <span className="text-xs text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
-                                  </div>
-                                )}
-                                {app.reviewCount === 0 && <p className="text-xs text-muted-foreground mt-1">No reviews yet</p>}
-                              </div>
-                              {app.status === "pending" && <Button size="sm" onClick={() => acceptApplication(app)}>Select</Button>}
-                              {app.status === "accepted" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
-                              {app.status === "rejected" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

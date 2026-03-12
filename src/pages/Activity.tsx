@@ -646,13 +646,15 @@ const Activity = () => {
 
                       {/* Actions */}
                       <div className="border-t border-border px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="space-y-2">
                           {job.status === "open" && (
                             <>
-                              <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                              <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                              <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                              <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                              <Button size="sm" variant="outline" className="w-full" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" className="flex-1" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                                <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                                <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                              </div>
                             </>
                           )}
                           {job.status === "accepted" && (

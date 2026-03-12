@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Signup = () => {
   const navigate = useNavigate();

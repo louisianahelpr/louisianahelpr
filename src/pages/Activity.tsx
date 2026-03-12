@@ -511,10 +511,10 @@ const Activity = () => {
   }
 
   const postedStatusFilters = [
-    { key: "open", label: "Open" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+    { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
+    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ];
 
   const appliedStatusFilters = [

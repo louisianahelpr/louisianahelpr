@@ -78,7 +78,7 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/community" element={<Community />} />
-          <Route path="/schedule" element={<Navigate to="/profile" replace />} />
+          <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
           <Route path="/job-history" element={<Navigate to="/profile" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

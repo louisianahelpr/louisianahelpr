@@ -40,7 +40,7 @@ const FavoritesPanel = () => {
 
     const helperIds = favs.map(f => f.helper_id);
     const [profilesRes, reviewsRes, completedRes] = await Promise.all([
-      supabase.from("profiles").select("*").in("user_id", helperIds),
+      supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
       supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds),
       supabase.from("jobs").select("helper_id").in("helper_id", helperIds).eq("status", "completed"),
     ]);

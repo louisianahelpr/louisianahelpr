@@ -34,6 +34,7 @@ const TIERS = [
     badgeColor: "bg-secondary text-secondary-foreground",
     features: [
       "Basic Helpr profile badge",
+      "Early access to new jobs (5 min head start)",
       "Priority in search results",
       "Basic analytics (profile views, success rate)",
     ],

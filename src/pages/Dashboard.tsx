@@ -227,11 +227,11 @@ const Dashboard = () => {
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
-      // Early access: Elite gets 20 min, Pro gets 10 min
+      // Early access: Elite 20 min, Pro 10 min, Basic 5 min
       if (profile?.role === "helper") {
         const jobAge = Date.now() - new Date(job.created_at).getTime();
-        const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : 0;
-        const delayMs = (20 - earlyMinutes) * 60 * 1000; // Non-subscribers wait 20 min
+        const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : helprTier === "basic" ? 5 : 0;
+        const delayMs = (20 - earlyMinutes) * 60 * 1000;
         if (jobAge < delayMs) return false;
       }
       return true;

@@ -26,9 +26,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
 
-  // Cancellation fee logic
-  const cancellationFee = hasHelper
-    ? (hoursUntilJob < 4 ? 15 : isLateCancellation ? 5 : 0)
+  // Tiered cancellation fee: free 24h+, 25% <24h, 50% <2h
+  const getBudget = () => 0; // Budget passed via prop below
+  const isVeryLateCancellation = hoursUntilJob < 2 && hoursUntilJob > 0;
+  const cancellationFeePercent = hasHelper
+    ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
     : 0;
 
   const handleCancel = async () => {

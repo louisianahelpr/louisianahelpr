@@ -447,7 +447,7 @@ const PostJob = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget ($)</Label>
-                    <Input id="budget" type="number" step="1" min="5" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
+                    <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
                     {category && categoryPricing[category] && (
                       <p className="text-xs text-muted-foreground">
                         💡 Suggested: <span className="font-medium text-primary">${categoryPricing[category].min}–${categoryPricing[category].max}</span> for {categoryPricing[category].label} jobs

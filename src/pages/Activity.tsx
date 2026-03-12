@@ -974,6 +974,7 @@ const Activity = () => {
           jobId={cancelDialogJob.id}
           jobTitle={cancelDialogJob.title}
           jobDate={cancelDialogJob.date_needed}
+          jobBudget={cancelDialogJob.budget}
           userId={user.id}
           hasHelper={!!cancelDialogJob.helper_id}
           open={!!cancelDialogJob}

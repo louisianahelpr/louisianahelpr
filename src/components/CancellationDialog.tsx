@@ -10,6 +10,7 @@ type CancellationDialogProps = {
   jobId: string;
   jobTitle: string;
   jobDate: string;
+  jobBudget: number;
   userId: string;
   hasHelper: boolean;
   open: boolean;
@@ -17,7 +18,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -25,11 +26,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
+  const isVeryLateCancellation = hoursUntilJob < 2 && hoursUntilJob > 0;
 
-  // Cancellation fee logic
-  const cancellationFee = hasHelper
-    ? (hoursUntilJob < 4 ? 15 : isLateCancellation ? 5 : 0)
+  // Tiered cancellation fee: free 24h+, 25% <24h, 50% <2h
+  const cancellationFeePercent = hasHelper
+    ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
     : 0;
+  const cancellationFee = Math.round((jobBudget * cancellationFeePercent) / 100);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -114,11 +117,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, userId, hasHelper
           )}
           {cancellationFee > 0 && (
             <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
-              <p className="text-sm text-foreground font-medium">💰 Cancellation Fee: ${cancellationFee}</p>
+              <p className="text-sm text-foreground font-medium">💰 Cancellation Fee: ${cancellationFee} ({cancellationFeePercent}% of budget)</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {hoursUntilJob < 4
-                  ? "A helpr has been assigned and the job starts very soon. A $15 fee applies to compensate the helpr."
-                  : "A helpr has been assigned. A $5 cancellation fee applies, with a portion going to the helpr as compensation."}
+                {isVeryLateCancellation
+                  ? "The job starts in less than 2 hours. A 50% fee applies to compensate the helper."
+                  : "The job is less than 24 hours away. A 25% fee applies to compensate the helper."}
               </p>
             </div>
           )}

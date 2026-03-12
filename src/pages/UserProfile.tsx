@@ -258,21 +258,17 @@ const UserProfile = () => {
             </div>
           </div>
 
-          {/* Stats - all 4 in one row */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="rounded-xl border border-border bg-card p-3 text-center">
-              <div className="flex items-center justify-center gap-1">
-                <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Rating</p>
-            </div>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => stats.reviewCount > 0 && setShowReviews(!showReviews)}
               className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
             >
-              <p className="text-xl font-bold text-foreground">{stats.reviewCount}</p>
-              <p className="text-[10px] text-muted-foreground">Reviews</p>
+              <div className="flex items-center justify-center gap-1">
+                <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
             </button>
             <button
               onClick={() => postedJobs.length > 0 && setShowPostedJobs(!showPostedJobs)}

@@ -79,7 +79,7 @@ const Activity = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
-  const [statusFilter, setStatusFilter] = useState<string>("open");
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);

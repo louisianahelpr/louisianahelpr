@@ -674,6 +674,23 @@ const Dashboard = () => {
       <OnboardingTour />
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
       <PushNotificationPrompt />
+
+      <AlertDialog open={!!confirmApplyJobId} onOpenChange={(open) => { if (!open) setConfirmApplyJobId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Application</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmApplyJob
+                ? <>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span> for <span className="font-semibold text-primary">${confirmApplyJob.budget}</span>?</>
+                : "Are you sure you want to apply for this task?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApplyConfirm}>Yes, Apply</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

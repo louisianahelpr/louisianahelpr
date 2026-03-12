@@ -247,38 +247,99 @@ const UserProfile = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => stats.reviewCount > 0 && setShowReviews(!showReviews)}
-              className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-            >
-              <div className="flex items-center justify-center gap-1">
-                <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
+          {(() => {
+            const activeSection = showReviews ? "reviews" : showPostedJobs ? "posted" : showWorkedJobs ? "worked" : null;
+            const hasSelection = activeSection !== null && !isOwnProfile;
+
+            const reviewBtn = (
+              <button
+                key="reviews"
+                onClick={() => {
+                  if (stats.reviewCount > 0) {
+                    setShowReviews(!showReviews);
+                    setShowPostedJobs(false);
+                    setShowWorkedJobs(false);
+                  }
+                }}
+                className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                  <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
+              </button>
+            );
+
+            const postedBtn = (
+              <button
+                key="posted"
+                onClick={() => {
+                  if (postedJobs.length > 0) {
+                    setShowPostedJobs(!showPostedJobs);
+                    setShowReviews(false);
+                    setShowWorkedJobs(false);
+                  }
+                }}
+                className={`rounded-xl border bg-card p-3 text-center transition-all ${postedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <ClipboardList className="w-3.5 h-3.5 text-primary" />
+                  <p className="text-xl font-bold text-foreground">{postedJobs.length}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Posted</p>
+              </button>
+            );
+
+            const workedBtn = (
+              <button
+                key="worked"
+                onClick={() => {
+                  if (workedJobs.length > 0) {
+                    setShowWorkedJobs(!showWorkedJobs);
+                    setShowReviews(false);
+                    setShowPostedJobs(false);
+                  }
+                }}
+                className={`rounded-xl border bg-card p-3 text-center transition-all ${workedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <Hammer className="w-3.5 h-3.5 text-primary" />
+                  <p className="text-xl font-bold text-foreground">{workedJobs.length}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Completed</p>
+              </button>
+            );
+
+            if (isOwnProfile) {
+              return (
+                <div className="grid grid-cols-3 gap-2">
+                  {reviewBtn}
+                  {postedBtn}
+                  {workedBtn}
+                </div>
+              );
+            }
+
+            // For other users: show only the selected button, or all if none selected
+            if (hasSelection) {
+              return (
+                <div className="grid grid-cols-1 gap-2">
+                  {activeSection === "reviews" && reviewBtn}
+                  {activeSection === "posted" && postedBtn}
+                  {activeSection === "worked" && workedBtn}
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-3 gap-2">
+                {reviewBtn}
+                {postedBtn}
+                {workedBtn}
               </div>
-              <p className="text-[10px] text-muted-foreground">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
-            </button>
-            <button
-              onClick={() => postedJobs.length > 0 && setShowPostedJobs(!showPostedJobs)}
-              className={`rounded-xl border bg-card p-3 text-center transition-all ${postedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-            >
-              <div className="flex items-center justify-center gap-1">
-                <ClipboardList className="w-3.5 h-3.5 text-primary" />
-                <p className="text-xl font-bold text-foreground">{postedJobs.length}</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Posted</p>
-            </button>
-            <button
-              onClick={() => workedJobs.length > 0 && setShowWorkedJobs(!showWorkedJobs)}
-              className={`rounded-xl border bg-card p-3 text-center transition-all ${workedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-            >
-              <div className="flex items-center justify-center gap-1">
-                <Hammer className="w-3.5 h-3.5 text-primary" />
-                <p className="text-xl font-bold text-foreground">{workedJobs.length}</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Completed</p>
-            </button>
-          </div>
+            );
+          })()}
 
           {/* Reviews expanded inline */}
           {showReviews && reviews.length > 0 && (

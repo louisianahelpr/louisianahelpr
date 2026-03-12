@@ -811,6 +811,13 @@ const Activity = () => {
                             {job.status === "cancelled" && (
                               <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                             )}
+                            {job.status === "completed" && (
+                              <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium"><Gift className="w-3.5 h-3.5" /> Tipped</span>
+                                <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-accent/15 text-accent-foreground font-medium"><Star className="w-3.5 h-3.5" /> Reviewed</span>
+                                <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

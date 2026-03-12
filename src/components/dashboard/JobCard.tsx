@@ -61,7 +61,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       <div className={`flex items-center justify-between px-4 py-2 border-b border-border/50 ${
         job.isBoosted ? "bg-primary/5" : job.is_urgent ? "bg-accent/5" : "bg-muted/30"
       }`}>
-        <h3 className="font-bold text-primary text-[15px] leading-snug truncate min-w-0">
+        <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}
         </h3>
         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-2">

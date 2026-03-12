@@ -782,15 +782,7 @@ const ProfilePage = () => {
 
           {/* SUPPORT TAB */}
           {tab === "support" && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-                <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
-              </h1>
-              <p className="text-sm text-muted-foreground">Need assistance? Visit our support center.</p>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/support")}>
-                Go to Support Center
-              </Button>
-            </div>
+            <SupportInline userId={user?.id} />
           )}
 
           {tab === "notifications" && (

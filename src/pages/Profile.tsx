@@ -1139,6 +1139,85 @@ function SupportInline({ userId }: { userId?: string }) {
                   <p className="text-xs text-muted-foreground italic">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
                 </div>
 
+                {/* Job Budget Limits */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary" /> Job Budget Limits
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
+                    <p><strong className="text-foreground">Maximum:</strong> $5,000 per job. For larger projects, split into milestones or contact support.</p>
+                  </div>
+                </div>
+
+                {/* Platform Fees */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary" /> Platform Fees
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Service Fee:</strong> 15% platform fee on each transaction, deducted from the helper's payout.</p>
+                    <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent. Urgent jobs get priority placement in the feed.</p>
+                    <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
+                    <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helper — no platform fee on tips.</p>
+                  </div>
+                </div>
+
+                {/* Subscription Tiers */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-primary" /> Subscription Tiers
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Basic ⭐ ($5/mo):</strong> Standard access with basic features.</p>
+                    <p><strong className="text-foreground">Pro 🔥 ($10/mo):</strong> Priority job access and enhanced visibility.</p>
+                    <p><strong className="text-foreground">Elite 💎 ($15/mo):</strong> Top-tier access with maximum visibility and early job access.</p>
+                    <p><strong className="text-foreground">Annual Plans:</strong> Available at ~10x monthly rate (save ~17%).</p>
+                    <p><strong className="text-foreground">Billing:</strong> One-time, monthly (choose billing day 1st–28th), or annual.</p>
+                  </div>
+                </div>
+
+                {/* Report-Based Bans */}
+                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-destructive" /> User Report Policy
+                  </h2>
+                  <p className="text-sm text-muted-foreground">If other users report your account for misconduct:</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• <strong className="text-accent">3 reports:</strong> 7-day account suspension while admins review.</p>
+                    <p>• <strong className="text-destructive">4+ violations:</strong> Permanent ban from the platform.</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
+                </div>
+
+                {/* New Helper Restrictions */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" /> New Helper Restrictions
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Job Limit:</strong> New helpers are limited to 3 active jobs at a time until they build a track record.</p>
+                    <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
+                    <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster). Failure to respond counts against your account.</p>
+                  </div>
+                </div>
+
+                {/* Safety & Verification */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" /> Safety & Verification
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Age Verification:</strong> All users must be 18+ to use Helpr. Date of birth is verified during signup.</p>
+                    <p><strong className="text-foreground">ID Verification:</strong> Helpers must upload a valid government-issued ID for account approval.</p>
+                    <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location to start work.</p>
+                    <p><strong className="text-foreground">Minimum Duration:</strong> Jobs cannot be marked complete until at least 30 minutes have passed.</p>
+                    <p><strong className="text-foreground">Photo Proof:</strong> Before and after photos are required for job completion verification.</p>
+                    <p><strong className="text-foreground">Chat Safety:</strong> Messages are scanned for off-platform payment attempts, which trigger automated warnings.</p>
+                  </div>
+                </div>
+
+                {/* Community Guidelines */}
                 <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                   <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
                     <Shield className="w-4 h-4 text-primary" /> Community Guidelines
@@ -1149,6 +1228,15 @@ function SupportInline({ userId }: { userId?: string }) {
                     <p><strong className="text-foreground">Safety:</strong> Never share personal information like home addresses or financial details through messages.</p>
                     <p><strong className="text-foreground">Reporting:</strong> Report any suspicious or inappropriate behavior using the report feature.</p>
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    For the full detailed version of all policies, visit the <Link to="/rules" className="text-primary hover:underline font-medium">Platform Rules & Policies</Link> page.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Also see <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> · <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+                  </p>
                 </div>
               </div>
             </div>

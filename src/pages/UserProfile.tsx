@@ -87,6 +87,8 @@ const UserProfile = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [showPostedJobs, setShowPostedJobs] = useState(false);
+  const [showWorkedJobs, setShowWorkedJobs] = useState(false);
 
   useEffect(() => {
     if (!userId) return;

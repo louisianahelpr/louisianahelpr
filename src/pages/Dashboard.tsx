@@ -303,7 +303,7 @@ const Dashboard = () => {
   if (!isAdmin && approvalStatus !== "approved") {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardHeader isAdmin={false} />
+        <DashboardHeader />
         <main className="container mx-auto px-4 py-12">
           <div className="max-w-lg mx-auto text-center space-y-6">
             {approvalStatus === "pending" ? (

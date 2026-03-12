@@ -298,6 +298,9 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-4">
           <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
 
+          {/* Invite Friends Banner */}
+          {user && <InviteBanner userId={user.id} />}
+
           {/* Jobs Near You */}
           {nearbyJobs.length > 0 && !hasFilters && (
             <div className="space-y-3">

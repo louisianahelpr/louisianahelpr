@@ -87,7 +87,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !reason}>
+          <Button onClick={handleSubmit} disabled={submitting || !reason || description.trim().length < 10}>
             {submitting ? "Submitting…" : "Submit report"}
           </Button>
         </DialogFooter>

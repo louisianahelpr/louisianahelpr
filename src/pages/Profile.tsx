@@ -922,6 +922,89 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
           )}
 
 
+          {/* POSTED JOBS TAB */}
+          {tab === "posted_jobs" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Posted Jobs</h1>
+              </div>
+              {inlinePostedJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-4">No posted jobs yet.</p>
+                  <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {inlinePostedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">{job.title}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                            <span className="capitalize">{job.category.replace("_", " ")}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className="text-sm font-bold text-primary">${job.budget}</span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* COMPLETED JOBS TAB */}
+          {tab === "completed_jobs" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Completed Jobs</h1>
+              </div>
+              {inlineCompletedJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No completed jobs yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {inlineCompletedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">{job.title}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                            <span className="capitalize">{job.category.replace("_", " ")}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="text-sm font-bold text-primary">${job.budget}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 px-2"
+                            onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" /> Rebook
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
 
           {/* SUPPORT TAB */}

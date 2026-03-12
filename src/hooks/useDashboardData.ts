@@ -38,7 +38,7 @@ export function useDashboardData() {
     const [profileRes, rolesRes, openJobsRes, feeRes, availRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("jobs").select(JOB_SELECT).eq("status", "open").order("boosted_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).range(0, 199),
+      supabase.from("jobs").select("*").eq("status", "open").order("boosted_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).range(0, 199),
       supabase.from("platform_settings").select("platform_fee_percent").limit(1).single(),
       supabase.from("helper_availability").select("day_of_week, is_available, start_time, end_time").eq("helper_id", userId).is("specific_date", null).order("day_of_week"),
     ]);

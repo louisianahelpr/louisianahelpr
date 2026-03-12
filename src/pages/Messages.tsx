@@ -12,6 +12,7 @@ import { RichMessageInput } from "@/components/RichMessageInput";
 import { useChatPresence, OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 import { ConversationSkeleton } from "@/components/SkeletonLoaders";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Message = {
   id: string;
@@ -36,6 +37,7 @@ type Conversation = {
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
+  const { user: cachedUser } = useCurrentUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
@@ -52,7 +54,16 @@ const Messages = () => {
     otherUserId: activeConvo?.otherUserId || "",
   });
 
+  // Seed from cache for instant render
   useEffect(() => {
+    if (cachedUser && !userId) {
+      setUserId(cachedUser.id);
+      loadConversations(cachedUser.id);
+    }
+  }, [cachedUser]);
+
+  useEffect(() => {
+    if (userId) return; // already seeded from cache
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

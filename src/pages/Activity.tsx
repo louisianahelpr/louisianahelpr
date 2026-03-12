@@ -32,6 +32,7 @@ import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import { DisputeDialog } from "@/components/DisputeDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -59,6 +60,7 @@ type Tab = "posted" | "applied";
 const Activity = () => {
   usePageTitle("My Activity — Helpr");
   const navigate = useNavigate();
+  const { user: cachedUser } = useCurrentUser();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
@@ -110,8 +112,17 @@ const Activity = () => {
   const [helperTipping, setHelperTipping] = useState(false);
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
 
+  // Seed from cache for instant render
+  useEffect(() => {
+    if (cachedUser && !user) {
+      setUser(cachedUser);
+      loadData(cachedUser.id);
+    }
+  }, [cachedUser]);
+
   useEffect(() => {
     const init = async () => {
+      if (user) return; // already seeded from cache
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
       setUser(session.user);

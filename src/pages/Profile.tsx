@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -48,6 +49,7 @@ const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user: cachedUser, profile: cachedProfile } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,25 @@ const ProfilePage = () => {
   const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
   const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
 
+  // Seed from cache for instant render
+  useEffect(() => {
+    if (cachedUser && !user) {
+      setUser(cachedUser);
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+        setFullName(cachedProfile.full_name || "");
+        setPhone(cachedProfile.phone || "");
+        setLocation(cachedProfile.location || "");
+        setBio(cachedProfile.bio || "");
+        setSkills(cachedProfile.skills || "");
+        setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
+        setDateOfBirth(cachedProfile.date_of_birth || "");
+        setLoading(false);
+      }
+      loadStats(cachedUser.id);
+    }
+  }, [cachedUser, cachedProfile]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session?.user) return;
@@ -102,12 +123,14 @@ const ProfilePage = () => {
       loadProfile(session.user.id);
       loadStats(session.user.id);
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) return;
-      setUser(session.user);
-      loadProfile(session.user.id);
-      loadStats(session.user.id);
-    });
+    if (!cachedUser) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session?.user) return;
+        setUser(session.user);
+        loadProfile(session.user.id);
+        loadStats(session.user.id);
+      });
+    }
     return () => subscription.unsubscribe();
   }, []);
 

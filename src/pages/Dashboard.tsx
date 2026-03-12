@@ -13,6 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import JobCard from "@/components/dashboard/JobCard";
@@ -57,6 +58,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
+  const { user: cachedUser, profile: cachedProfile, isAdmin: cachedIsAdmin } = useCurrentUser();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -85,6 +87,16 @@ const Dashboard = () => {
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;
     return true;
   });
+  // Seed from cached data for instant render
+  useEffect(() => {
+    if (cachedUser && !user) {
+      setUser(cachedUser);
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+        setIsAdmin(cachedIsAdmin);
+      }
+    }
+  }, [cachedUser, cachedProfile, cachedIsAdmin]);
 
   useEffect(() => {
     const init = async () => {

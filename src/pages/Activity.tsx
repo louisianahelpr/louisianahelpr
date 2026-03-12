@@ -556,7 +556,7 @@ const Activity = () => {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap justify-center gap-1.5">
             {activeStatusFilters.map((f) => (
               <button
                 key={f.key}

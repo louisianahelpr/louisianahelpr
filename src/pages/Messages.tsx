@@ -54,7 +54,7 @@ const Messages = () => {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) return;
       setUserId(user.id);
       await loadConversations(user.id);
     };

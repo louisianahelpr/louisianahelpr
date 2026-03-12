@@ -86,19 +86,19 @@ const ProfilePage = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) { navigate("/login"); return; }
+      if (!session?.user) return;
       setUser(session.user);
       loadProfile(session.user.id);
       loadStats(session.user.id);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) { navigate("/login"); return; }
+      if (!session?.user) return;
       setUser(session.user);
       loadProfile(session.user.id);
       loadStats(session.user.id);
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const loadProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();

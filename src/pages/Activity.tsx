@@ -112,18 +112,18 @@ const Activity = () => {
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { navigate("/login"); return; }
+      if (!session?.user) return;
       setUser(session.user);
       await loadData(session.user.id);
     };
     init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) { navigate("/login"); return; }
+      if (!session?.user) return;
       setUser(session.user);
       loadData(session.user.id);
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const loadData = async (userId: string) => {
     const [postedRes, appsRes] = await Promise.all([

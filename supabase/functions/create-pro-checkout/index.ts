@@ -52,11 +52,18 @@ serve(async (req) => {
       }
     }
 
+    // Build subscription data with optional billing anchor day
+    const subscriptionData: Record<string, any> = {};
+    if (billing_day && billing_day >= 1 && billing_day <= 28) {
+      subscriptionData.billing_cycle_anchor_config = { day_of_month: billing_day };
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
+      subscription_data: Object.keys(subscriptionData).length > 0 ? subscriptionData : undefined,
       success_url: `${req.headers.get("origin")}/profile?pro=success`,
       cancel_url: `${req.headers.get("origin")}/profile?pro=cancel`,
     });

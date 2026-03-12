@@ -176,7 +176,9 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const handleCheckout = async (tier: string) => {
     setCheckoutLoading(tier);
     try {
-      const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body: { tier } });
+      const body: any = { tier };
+      if (billingDay) body.billing_day = billingDay;
+      const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       if (data?.url) window.open(data.url, "_blank");
@@ -184,6 +186,21 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
       toast.error(err.message || "Failed to start checkout");
     } finally {
       setCheckoutLoading(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-pro-subscription");
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success(`Subscription will cancel at the end of your billing period.`);
+      checkSubscription();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel subscription");
+    } finally {
+      setCancelLoading(false);
     }
   };
 

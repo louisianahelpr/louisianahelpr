@@ -1373,7 +1373,7 @@ const LegalCard = ({ icon, title, children, variant }: { icon: React.ReactNode; 
   );
 };
 
-
+const tierConfig = [
   {
     id: "basic",
     name: "Basic",

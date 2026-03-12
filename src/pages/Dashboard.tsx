@@ -300,12 +300,21 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           {/* Welcome section */}
+          {showGreeting && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10"
+            className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10 relative"
           >
+            <button
+              onClick={() => setShowGreeting(false)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Dismiss greeting"
+            >
+              <X className="w-4 h-4" />
+            </button>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-display font-bold text-foreground">

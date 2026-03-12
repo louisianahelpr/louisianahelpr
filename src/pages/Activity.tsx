@@ -596,11 +596,11 @@ const Activity = () => {
     { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ];
 
-  const filteredPostedJobs = !statusFilter
+  const filteredPostedJobs = useMemo(() => !statusFilter
     ? postedJobs
-    : postedJobs.filter((j) => j.status === statusFilter);
+    : postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
 
-  const filteredAppliedApps = !statusFilter
+  const filteredAppliedApps = useMemo(() => !statusFilter
     ? appliedApps
     : appliedApps.filter((a) => {
         if (statusFilter === "pending") return a.status === "pending";
@@ -608,7 +608,7 @@ const Activity = () => {
         if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
         if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
         return true;
-      });
+      }), [appliedApps, statusFilter]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },

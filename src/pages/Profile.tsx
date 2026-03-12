@@ -1163,7 +1163,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
 
           {/* LEGAL TAB */}
           {tab === "legal" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
@@ -1171,250 +1171,159 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
               </div>
 
-              <div className="space-y-3">
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary" /> <Link to="/terms" className="hover:text-primary">Terms of Service</Link>
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    By using Helpr, you agree to our Terms of Service. These terms govern your use of the platform, including posting tasks, applying for jobs, and processing payments.
-                  </p>
-                  <div className="text-sm text-muted-foreground space-y-2">
+              {/* Quick Links */}
+              <div className="flex flex-wrap gap-2">
+                <Link to="/rules" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
+                  <FileText className="w-3.5 h-3.5" /> Full Platform Rules
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+                <Link to="/terms" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors">
+                  Terms of Service <ExternalLink className="w-3 h-3" />
+                </Link>
+                <Link to="/privacy" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors">
+                  Privacy Policy <ExternalLink className="w-3 h-3" />
+                </Link>
+              </div>
+
+              {/* Platform Rules Section */}
+              <div>
+                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Platform Rules</h2>
+                <div className="space-y-2">
+                  <LegalCard icon={<FileText className="w-4 h-4 text-primary" />} title="Terms of Service">
                     <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account and all activity under it.</p>
                     <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helper, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
                     <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, or any conduct that violates the rights of others.</p>
                     <p><strong className="text-foreground">Account Termination:</strong> Helpr reserves the right to suspend or terminate accounts that violate these terms.</p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" /> Privacy Policy
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Your privacy is important to us. Here's how we handle your data:
-                  </p>
-                  <div className="text-sm text-muted-foreground space-y-2">
+                  </LegalCard>
+                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Privacy Policy">
                     <p><strong className="text-foreground">Data Collection:</strong> We collect information you provide (name, email, location) and usage data to improve the platform.</p>
                     <p><strong className="text-foreground">Data Usage:</strong> Your data is used to match you with tasks, process payments, and communicate important updates.</p>
                     <p><strong className="text-foreground">Data Sharing:</strong> We share limited information (first name, reviews) with other users. Payment data is handled securely by Stripe. We never sell your personal information.</p>
                     <p><strong className="text-foreground">Data Retention:</strong> Your data is retained while your account is active. You can request deletion by contacting support.</p>
-                  </div>
+                  </LegalCard>
+                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Community Guidelines">
+                    <p><strong className="text-foreground">Respect:</strong> Treat all users with respect and professionalism.</p>
+                    <p><strong className="text-foreground">Honesty:</strong> Provide accurate information in your profile and job descriptions.</p>
+                    <p><strong className="text-foreground">Safety:</strong> Never share personal information like home addresses or financial details through messages.</p>
+                    <p><strong className="text-foreground">Reporting:</strong> Report any suspicious or inappropriate behavior using the report feature.</p>
+                  </LegalCard>
                 </div>
+              </div>
 
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" /> Payment & Refund Policy
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
+              {/* Payments & Fees Section */}
+              <div>
+                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payments & Fees</h2>
+                <div className="space-y-2">
+                  <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Payment & Refund Policy">
                     <p><strong className="text-foreground">Escrow System:</strong> All payments are held in escrow until both parties confirm the job is complete.</p>
                     <p><strong className="text-foreground">Platform Fee:</strong> Helpr charges a platform fee on each transaction. The fee percentage is visible before payment.</p>
                     <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released.</p>
-                    <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions before approving completion. Helpers are notified and given a chance to address concerns.</p>
-                    <p><strong className="text-foreground">Disputes:</strong> If you have a payment dispute, contact support. We review cases on a case-by-case basis.</p>
-                  </div>
+                    <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions before approving completion.</p>
+                    <p><strong className="text-foreground">Disputes:</strong> If you have a payment dispute, contact support.</p>
+                  </LegalCard>
+                  <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Platform Fees">
+                    <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helper's payout.</p>
+                    <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
+                    <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
+                    <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helper — no platform fee on tips.</p>
+                  </LegalCard>
+                  <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Job Budget Limits">
+                    <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
+                    <p><strong className="text-foreground">Maximum:</strong> $5,000 per job.</p>
+                  </LegalCard>
+                  <LegalCard icon={<Crown className="w-4 h-4 text-primary" />} title="Subscription Tiers">
+                    <p><strong className="text-foreground">Basic ⭐ ($5/mo):</strong> Standard access with basic features.</p>
+                    <p><strong className="text-foreground">Pro 🔥 ($10/mo):</strong> Priority job access and enhanced visibility.</p>
+                    <p><strong className="text-foreground">Elite 💎 ($15/mo):</strong> Top-tier access with maximum visibility and early job access.</p>
+                    <p><strong className="text-foreground">Annual Plans:</strong> Available at ~10x monthly rate (save ~17%).</p>
+                    <p><strong className="text-foreground">Billing:</strong> One-time, monthly (choose billing day 1st–28th), or annual.</p>
+                  </LegalCard>
                 </div>
+              </div>
 
-                {/* Cancellation Policy */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-destructive" /> Cancellation Policy
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
+              {/* Cancellations & Strikes Section */}
+              <div>
+                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cancellations & Strikes</h2>
+                <div className="space-y-2">
+                  <LegalCard icon={<XCircle className="w-4 h-4 text-destructive" />} title="Cancellation Policy" variant="warning">
                     <p><strong className="text-foreground">Free Cancellation:</strong> Cancel 24+ hours before the job at no charge.</p>
-                    <p><strong className="text-foreground">Late Cancellation (&lt;24h):</strong> 25% cancellation fee applied to compensate the helper.</p>
+                    <p><strong className="text-foreground">Late Cancellation (&lt;24h):</strong> 25% cancellation fee applied.</p>
                     <p><strong className="text-foreground">Very Late Cancellation (&lt;2h):</strong> 50% cancellation fee applied.</p>
-                  </div>
-                </div>
-
-                {/* Cancellation Strike System */}
-                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-destructive" /> Cancellation Strikes (Posters)
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Cancelling a job <strong className="text-foreground">after a helper has been selected</strong> triggers escalating penalties:</p>
-                  <div className="text-sm text-muted-foreground space-y-1">
+                  </LegalCard>
+                  <LegalCard icon={<AlertTriangle className="w-4 h-4 text-destructive" />} title="Cancellation Strikes (Posters)" variant="warning">
+                    <p className="mb-1">Cancelling a job <strong className="text-foreground">after a helper has been selected</strong> triggers escalating penalties:</p>
                     <p>• <strong className="text-accent">1st cancellation:</strong> Written warning (Strike 1/2)</p>
                     <p>• <strong className="text-accent">2nd cancellation:</strong> Final warning (Strike 2/2)</p>
                     <p>• <strong className="text-destructive">3rd cancellation:</strong> Permanent account ban</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic">Cancelling jobs with no helper assigned does not count toward strikes.</p>
-                </div>
-
-                {/* Denial Strike System */}
-                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Ban className="w-4 h-4 text-destructive" /> Job Denial Strikes (Helpers)
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Declining a job <strong className="text-foreground">after being selected</strong> triggers escalating penalties:</p>
-                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p className="italic text-xs mt-1">Cancelling jobs with no helper assigned does not count toward strikes.</p>
+                  </LegalCard>
+                  <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="Job Denial Strikes (Helpers)" variant="warning">
+                    <p className="mb-1">Declining a job <strong className="text-foreground">after being selected</strong> triggers escalating penalties:</p>
                     <p>• <strong className="text-accent">1st decline:</strong> Written warning (Strike 1/2)</p>
                     <p>• <strong className="text-accent">2nd decline:</strong> Final warning (Strike 2/2)</p>
                     <p>• <strong className="text-destructive">3rd decline:</strong> Permanent account ban</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic">Withdrawing your application before being selected does not count.</p>
+                    <p className="italic text-xs mt-1">Withdrawing your application before being selected does not count.</p>
+                  </LegalCard>
                 </div>
+              </div>
 
-                {/* No-Show Policy */}
-                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Ban className="w-4 h-4 text-destructive" /> No-Show Policy
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    If a helper accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.
-                  </p>
-                </div>
-
-                {/* Immediate Ban Offenses */}
-                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-destructive" /> Immediate Ban Offenses
-                  </h2>
-                  <p className="text-sm text-muted-foreground">These skip all warnings and result in an immediate permanent ban:</p>
-                  <div className="text-sm text-muted-foreground space-y-1">
+              {/* Safety & Enforcement Section */}
+              <div>
+                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Safety & Enforcement</h2>
+                <div className="space-y-2">
+                  <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="No-Show Policy" variant="warning">
+                    <p>If a helper accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
+                  </LegalCard>
+                  <LegalCard icon={<Shield className="w-4 h-4 text-destructive" />} title="Immediate Ban Offenses" variant="warning">
+                    <p className="mb-1">These skip all warnings and result in an immediate permanent ban:</p>
                     <p>• <strong className="text-foreground">No-show</strong> — accepting a job and not showing up</p>
                     <p>• <strong className="text-foreground">Fraud</strong> — fake profiles, falsified photos, or payment manipulation</p>
                     <p>• <strong className="text-foreground">Harassment or threats</strong> — abusive language, intimidation, or safety threats</p>
                     <p>• <strong className="text-foreground">Off-platform payments</strong> — arranging payment outside of Helpr</p>
                     <p>• <strong className="text-foreground">Identity fraud</strong> — using someone else's identity or fake ID</p>
                     <p>• <strong className="text-foreground">Dispute abuse</strong> — filing false disputes to avoid paying</p>
-                  </div>
-                </div>
-
-                {/* Job Editing Restrictions */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" /> Job Editing Restrictions
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Before helper selected:</strong> You can freely edit job details.</p>
-                    <p><strong className="text-foreground">After helper selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
-                  </div>
-                </div>
-
-                {/* Dispute Resolution */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Scale className="w-4 h-4 text-primary" /> Dispute Resolution
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
-                    <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
-                    <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution. Abuse of the dispute system may result in account restrictions.</p>
-                  </div>
-                </div>
-
-                {/* Repeat Offender */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-accent" /> Repeat Offender Policy
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
+                  </LegalCard>
+                  <LegalCard icon={<AlertTriangle className="w-4 h-4 text-accent" />} title="Repeat Offender Policy">
                     <p><strong className="text-foreground">1st violation:</strong> Written warning via email and in-app notification.</p>
                     <p><strong className="text-foreground">2nd violation:</strong> 7-day account suspension.</p>
                     <p><strong className="text-foreground">3rd violation:</strong> Permanent ban from the platform.</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
-                </div>
-
-                {/* Job Budget Limits */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" /> Job Budget Limits
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
-                    <p><strong className="text-foreground">Maximum:</strong> $5,000 per job.</p>
-                  </div>
-                </div>
-
-                {/* Platform Fees */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" /> Platform Fees
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helper's payout. The exact fee is visible before payment.</p>
-                    <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent. Urgent jobs get priority placement in the feed.</p>
-                    <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
-                    <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helper — no platform fee on tips.</p>
-                  </div>
-                </div>
-
-                {/* Subscription Tiers */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-primary" /> Subscription Tiers
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Basic ⭐ ($5/mo):</strong> Standard access with basic features.</p>
-                    <p><strong className="text-foreground">Pro 🔥 ($10/mo):</strong> Priority job access and enhanced visibility.</p>
-                    <p><strong className="text-foreground">Elite 💎 ($15/mo):</strong> Top-tier access with maximum visibility and early job access.</p>
-                    <p><strong className="text-foreground">Annual Plans:</strong> Available at ~10x monthly rate (save ~17%).</p>
-                    <p><strong className="text-foreground">Billing:</strong> One-time, monthly (choose billing day 1st–28th), or annual.</p>
-                  </div>
-                </div>
-
-                {/* Report-Based Bans */}
-                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-destructive" /> User Report Policy
-                  </h2>
-                  <p className="text-sm text-muted-foreground">If other users report your account for misconduct:</p>
-                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p className="italic text-xs mt-1">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
+                  </LegalCard>
+                  <LegalCard icon={<AlertTriangle className="w-4 h-4 text-destructive" />} title="User Report Policy" variant="warning">
+                    <p className="mb-1">If other users report your account for misconduct:</p>
                     <p>• <strong className="text-accent">2 reports:</strong> Account suspension while admins review.</p>
                     <p>• <strong className="text-destructive">3rd report:</strong> Permanent ban from the platform.</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
+                    <p className="italic text-xs mt-1">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
+                  </LegalCard>
                 </div>
+              </div>
 
-                {/* New Helper Restrictions */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" /> New Helper Restrictions
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
+              {/* Job Rules Section */}
+              <div>
+                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Job Rules</h2>
+                <div className="space-y-2">
+                  <LegalCard icon={<Clock className="w-4 h-4 text-primary" />} title="Job Editing Restrictions">
+                    <p><strong className="text-foreground">Before helper selected:</strong> You can freely edit job details.</p>
+                    <p><strong className="text-foreground">After helper selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
+                  </LegalCard>
+                  <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
+                    <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
+                    <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
+                    <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
+                  </LegalCard>
+                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
                     <p><strong className="text-foreground">Job Limit:</strong> New helpers are limited to 3 active jobs at a time until they build a track record.</p>
                     <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
-                    <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster). Failure to respond counts against your account.</p>
-                  </div>
-                </div>
-
-                {/* Safety & Verification */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" /> Safety & Verification
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Age Verification:</strong> All users must be 18+ to use Helpr. Date of birth is verified during signup.</p>
-                    <p><strong className="text-foreground">ID Verification:</strong> Helpers must upload a valid government-issued ID for account approval.</p>
-                    <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location to start work.</p>
+                    <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster).</p>
+                  </LegalCard>
+                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Safety & Verification">
+                    <p><strong className="text-foreground">Age Verification:</strong> All users must be 18+ to use Helpr.</p>
+                    <p><strong className="text-foreground">ID Verification:</strong> Helpers must upload a valid government-issued ID.</p>
+                    <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location.</p>
                     <p><strong className="text-foreground">Minimum Duration:</strong> Jobs cannot be marked complete until at least 30 minutes have passed.</p>
-                    <p><strong className="text-foreground">Photo Proof:</strong> Before and after photos are required for job completion verification.</p>
-                    <p><strong className="text-foreground">Chat Safety:</strong> Messages are scanned for off-platform payment attempts, which trigger automated warnings.</p>
-                  </div>
-                </div>
-
-                {/* Community Guidelines */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" /> Community Guidelines
-                  </h2>
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong className="text-foreground">Respect:</strong> Treat all users with respect and professionalism.</p>
-                    <p><strong className="text-foreground">Honesty:</strong> Provide accurate information in your profile and job descriptions.</p>
-                    <p><strong className="text-foreground">Safety:</strong> Never share personal information like home addresses or financial details through messages.</p>
-                    <p><strong className="text-foreground">Reporting:</strong> Report any suspicious or inappropriate behavior using the report feature.</p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border bg-card p-4 text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    For the full detailed version of all policies, visit the <Link to="/rules" className="text-primary hover:underline font-medium">Platform Rules & Policies</Link> page.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Also see <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> · <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
-                  </p>
+                    <p><strong className="text-foreground">Photo Proof:</strong> Before and after photos are required for completion.</p>
+                    <p><strong className="text-foreground">Chat Safety:</strong> Messages are scanned for off-platform payment attempts.</p>
+                  </LegalCard>
                 </div>
               </div>
             </div>

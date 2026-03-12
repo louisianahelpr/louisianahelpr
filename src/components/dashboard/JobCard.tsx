@@ -94,8 +94,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           {/* Title */}
           <h3 className="font-semibold text-foreground text-base group-hover:text-primary transition-colors">{job.title}</h3>
 
-          {/* Description */}
-          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
+          {/* Description (hide if same as title) */}
+          {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
+          )}
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">

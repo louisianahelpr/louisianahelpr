@@ -315,6 +315,9 @@ const Dashboard = () => {
                     ? `${filteredJobs.length} task${filteredJobs.length !== 1 ? "s" : ""} available near you`
                     : "No tasks right now — check back soon!"}
                 </p>
+                <p className="text-xs text-primary/80 mt-1 italic">
+                  Thank you for being part of the Helpr community — we appreciate you! 💚
+                </p>
               </div>
               <Button
                 onClick={() => navigate("/post-job")}

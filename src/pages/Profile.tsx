@@ -392,11 +392,16 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-          <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Message admin, share suggestions, or report issues</p>
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+            <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
+          </h1>
+          <p className="text-sm text-muted-foreground">Message admin, share suggestions, or report issues</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

@@ -227,12 +227,12 @@ const Dashboard = () => {
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
-      // Only Pro/Elite helpers see jobs posted in last 10 minutes
-      const hasEarlyAccess = helprTier === "pro" || helprTier === "elite";
-      if (!hasEarlyAccess && profile?.role === "helper") {
+      // Early access: Elite gets 20 min, Pro gets 10 min
+      if (profile?.role === "helper") {
         const jobAge = Date.now() - new Date(job.created_at).getTime();
-        const tenMinutes = 10 * 60 * 1000;
-        if (jobAge < tenMinutes) return false;
+        const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : 0;
+        const delayMs = (20 - earlyMinutes) * 60 * 1000; // Non-subscribers wait 20 min
+        if (jobAge < delayMs) return false;
       }
       return true;
     })

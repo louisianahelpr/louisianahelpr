@@ -35,7 +35,7 @@ const TIERS = [
     features: [
       "Basic Helpr profile badge",
       "Priority in search results",
-      "Email support",
+      "Basic analytics (profile views, success rate)",
     ],
   },
   {
@@ -50,8 +50,10 @@ const TIERS = [
     features: [
       "Pro Helpr profile badge",
       "Early access to new jobs (10 min head start)",
-      "Priority in search results",
-      "Priority email support",
+      "Boosted profile visibility in search",
+      "Custom portfolio showcase",
+      "Weekly earnings report",
+      "Everything in Basic",
     ],
   },
   {
@@ -64,9 +66,11 @@ const TIERS = [
     badgeColor: "bg-accent/15 text-accent-foreground",
     features: [
       "Elite Helpr profile badge",
-      "Early access to new jobs (10 min head start)",
-      "Featured profile placement",
-      "Priority support & dispute resolution",
+      "Early access to new jobs (20 min head start)",
+      "Featured on Helpr Spotlight (landing page)",
+      "Auto-match for new jobs in your skills",
+      "Priority dispute resolution",
+      "Everything in Pro",
     ],
   },
 ];

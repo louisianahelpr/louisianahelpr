@@ -775,6 +775,11 @@ const ProfilePage = () => {
             />
           )}
 
+          {/* SUBSCRIPTION TAB */}
+          {tab === "subscription" && (
+            <SubscriptionTab profile={profile} user={user} />
+          )}
+
           {/* ACCOUNT SECURITY TAB */}
           {tab === "security" && (
             <div className="space-y-6">

@@ -58,6 +58,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       }`}
       onClick={() => onSelect(job)}
     >
+      {/* Top bar: title + earnings — matches footer style */}
+      <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
+        <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
+          {job.title}
+        </h3>
+        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
+          <DollarSign className="w-3.5 h-3.5" />{earnings}
+        </span>
+      </div>
+
       {/* Main content */}
       <div className="px-4 py-3 space-y-2.5">
         {/* Tags + Apply */}

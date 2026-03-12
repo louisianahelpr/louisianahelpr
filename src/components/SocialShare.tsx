@@ -43,7 +43,7 @@ const SocialShare = ({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       <Button variant="outline" size="sm" asChild>
         <a href={facebookLink} target="_blank" rel="noopener noreferrer">
           <Facebook className="w-4 h-4 mr-1.5" /> Facebook

@@ -1001,14 +1001,6 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                         </div>
                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <span className="text-sm font-bold text-primary">${job.budget}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 px-2"
-                            onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                          >
-                            <RotateCcw className="w-3 h-3 mr-1" /> Rebook
-                          </Button>
                         </div>
                       </div>
                     </div>

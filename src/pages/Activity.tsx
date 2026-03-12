@@ -681,7 +681,9 @@ const Activity = () => {
                           <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
                             <DollarSign className="w-3.5 h-3.5" />{job.budget}
                           </span>
-                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                          {!(job.status === "completed" && (!completedJobMeta[job.id]?.tipped || !completedJobMeta[job.id]?.reviewed)) && (
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                          )}
                         </div>
                       </button>
 

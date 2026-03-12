@@ -511,17 +511,17 @@ const Activity = () => {
   }
 
   const postedStatusFilters = [
-    { key: "open", label: "Open" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+    { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
+    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ];
 
   const appliedStatusFilters = [
-    { key: "pending", label: "Pending" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "completed", label: "Completed" },
-    { key: "rejected", label: "Rejected" },
+    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
+    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ];
 
   const filteredPostedJobs = !statusFilter
@@ -568,10 +568,10 @@ const Activity = () => {
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(statusFilter === f.key ? "" : f.key)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                   statusFilter === f.key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                    ? f.color
+                    : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"
                 }`}
               >
                 {f.label}
@@ -592,13 +592,27 @@ const Activity = () => {
               ) : (
                 <div className="space-y-3">
                   {filteredPostedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                    <div key={job.id} className="rounded-xl border border-border bg-card overflow-hidden relative">
+                      {/* Cancel X for open jobs — top right */}
+                      {job.status === "open" && (
+                        <button
+                          onClick={() => setCancelDialogJob(job)}
+                          className="absolute top-3 right-3 p-1 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors z-10"
+                          aria-label="Cancel job"
+                        >
+                          <XCircle className="w-4.5 h-4.5" />
+                        </button>
+                      )}
+
                       {/* Header */}
-                      <div className="p-4 pb-3">
+                      <div className="p-4 pb-3 pr-10">
                         <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{job.description}</p>
+                        <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
                           <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground capitalize">{categoryLabels[job.category] || job.category}</span>
                           {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
                         </div>
 
@@ -642,7 +656,6 @@ const Activity = () => {
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                               <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>
                           )}
                           {job.status === "accepted" && (
@@ -671,26 +684,33 @@ const Activity = () => {
                             <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                           )}
                           {job.status === "completed" && (
-                            <>
-                              {job.helper_id && <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
-                              <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                            <div className="w-full space-y-3">
+                              {/* Tip options first */}
                               {job.payment_status === "released" && (
-                                <>
-                                  <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 5)} disabled={tipping}><Gift className="w-3.5 h-3.5 mr-1" /> $5</Button>
-                                  <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 10)} disabled={tipping}><Gift className="w-3.5 h-3.5 mr-1" /> $10</Button>
-                                  <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 20)} disabled={tipping}><Gift className="w-3.5 h-3.5 mr-1" /> $20</Button>
-                                  {tipJobId === job.id ? (
-                                    <div className="flex items-center gap-2">
-                                      <Input type="number" min="1" placeholder="Custom $" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[90px]" />
-                                      <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
-                                      <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>✕</Button>
-                                    </div>
-                                  ) : (
-                                    <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>Custom</Button>
-                                  )}
-                                </>
+                                <div className="space-y-2">
+                                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1"><Gift className="w-3.5 h-3.5" /> Send a tip</p>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 5)} disabled={tipping}>$5</Button>
+                                    <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 10)} disabled={tipping}>$10</Button>
+                                    <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 20)} disabled={tipping}>$20</Button>
+                                    {tipJobId === job.id ? (
+                                      <div className="flex items-center gap-2">
+                                        <Input type="number" min="1" placeholder="Custom $" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[90px] h-9" />
+                                        <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
+                                        <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>✕</Button>
+                                      </div>
+                                    ) : (
+                                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>Custom</Button>
+                                    )}
+                                  </div>
+                                </div>
                               )}
-                            </>
+                              {/* Review & Rebook below */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                {job.helper_id && <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                                <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>

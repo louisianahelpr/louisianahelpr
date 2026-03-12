@@ -27,7 +27,7 @@ const HelperSpotlightSection = () => {
       // Get approved helpers
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, avatar_url, bio, location, skills")
+        .select("user_id, full_name, avatar_url, bio, location, skills, subscription_tier")
         .eq("role", "helper")
         .eq("approval_status", "approved")
         .limit(20);

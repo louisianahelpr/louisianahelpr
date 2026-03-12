@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Helpr — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: hsl(150 20% 97%);
+      color: hsl(160 10% 12%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+    .container { max-width: 400px; }
+    .icon {
+      width: 64px; height: 64px; border-radius: 16px;
+      background: linear-gradient(135deg, hsl(158 45% 42%), hsl(158 45% 32%));
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem; font-size: 28px; font-weight: 700; color: #fff;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
+    p { color: hsl(160 6% 50%); line-height: 1.6; margin-bottom: 1.5rem; }
+    button {
+      background: hsl(158 45% 42%); color: #fff; border: none;
+      padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-size: 1rem;
+      font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">H</div>
+    <h1>You're offline</h1>
+    <p>It looks like you've lost your internet connection. Check your connection and try again — your community is waiting!</p>
+    <button onclick="window.location.reload()">Try again</button>
+  </div>
+</body>
+</html>

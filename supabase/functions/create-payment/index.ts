@@ -462,6 +462,11 @@ serve(async (req) => {
 /**
  * Capture the held (manual capture) payment for a job.
  * Returns the payment intent ID.
+ * 
+ * Note: We use "Separate Charges and Transfers" (not destination charges)
+ * because the helper isn't known at checkout time. Transfers are linked
+ * via source_transaction for clean Stripe Dashboard reporting.
+ * The 24-hour payout delay is enforced by scheduling transfers separately.
  */
 async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): Promise<string | null> {
   let paymentIntentId = job.stripe_payment_intent_id;
@@ -489,7 +494,7 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): 
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (pi.status === "requires_capture") {
       await stripe.paymentIntents.capture(paymentIntentId);
-      console.log(`Captured payment ${paymentIntentId} for job ${job.id}`);
+      console.log(`Captured payment ${paymentIntentId} for job ${job.id} — $${(job.budget || 0).toFixed(2)} total, $${(job.platform_fee_amount || 0).toFixed(2)} platform fee`);
     } else {
       console.log(`Payment ${paymentIntentId} status is ${pi.status}, no capture needed`);
     }

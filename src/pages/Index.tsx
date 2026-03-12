@@ -5,6 +5,7 @@ import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import HelperSpotlightSection from "@/components/landing/HelperSpotlightSection";
 import JobStoriesSection from "@/components/landing/JobStoriesSection";
+import PublicJobsPreview from "@/components/landing/PublicJobsPreview";
 import CTASection from "@/components/landing/CTASection";
 import CommunityLoveSection from "@/components/landing/CommunityLoveSection";
 import Footer from "@/components/Footer";
@@ -134,6 +135,7 @@ const Index = () => {
       <FeaturesSection />
       <HelperSpotlightSection />
       <JobStoriesSection />
+      <PublicJobsPreview />
       <CommunityLoveSection />
       <CTASection />
       <Footer />

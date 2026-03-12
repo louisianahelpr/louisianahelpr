@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-illustration.jpg";
+import heroWebp from "@/assets/hero-illustration.webp";
+import heroJpg from "@/assets/hero-illustration.jpg";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -29,11 +30,17 @@ const HeroSection = () => {
         </div>
 
         <div className="animate-fade-in [animation-delay:200ms] opacity-0">
-          <img
-            src={heroImage}
-            alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-            className="w-full rounded-2xl shadow-lg"
-          />
+          <picture>
+            <source srcSet={heroWebp} type="image/webp" />
+            <img
+              src={heroJpg}
+              alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
+              className="w-full rounded-2xl shadow-lg"
+              loading="eager"
+              width={1200}
+              height={1200}
+            />
+          </picture>
         </div>
       </div>
     </section>

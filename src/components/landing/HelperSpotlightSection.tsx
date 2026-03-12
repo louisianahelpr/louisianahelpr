@@ -11,6 +11,7 @@ interface SpotlightHelper {
   bio: string | null;
   location: string | null;
   skills: string | null;
+  subscription_tier: string | null;
   avgRating: number;
   reviewCount: number;
   completedJobs: number;
@@ -26,7 +27,7 @@ const HelperSpotlightSection = () => {
       // Get approved helpers
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, avatar_url, bio, location, skills")
+        .select("user_id, full_name, avatar_url, bio, location, skills, subscription_tier")
         .eq("role", "helper")
         .eq("approval_status", "approved")
         .limit(20);
@@ -53,17 +54,22 @@ const HelperSpotlightSection = () => {
         const ratings = ratingMap.get(p.user_id) || [];
         return {
           ...p,
+          subscription_tier: (p as any).subscription_tier || null,
           avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
           reviewCount: ratings.length,
           completedJobs: jobMap.get(p.user_id) || 0,
         };
       });
 
-      // Sort by rating * reviewCount (reputation score) and take top 3
-      // TODO: Prioritize Elite subscribers when subscription_tier is stored in profiles
+      // Sort: Elite subscribers first, then by reputation score
       const top = enriched
         .filter(h => h.reviewCount > 0)
-        .sort((a, b) => (b.avgRating * b.reviewCount) - (a.avgRating * a.reviewCount))
+        .sort((a, b) => {
+          const tierOrder = (t: string | null) => t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
+          const tierDiff = tierOrder(b.subscription_tier) - tierOrder(a.subscription_tier);
+          if (tierDiff !== 0) return tierDiff;
+          return (b.avgRating * b.reviewCount) - (a.avgRating * a.reviewCount);
+        })
         .slice(0, 3);
 
       setHelpers(top);
@@ -90,7 +96,7 @@ const HelperSpotlightSection = () => {
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {helpers.map((h, i) => {
             const initials = (h.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-            const badges = computeBadges({ avgRating: h.avgRating, reviewCount: h.reviewCount, completedJobs: h.completedJobs });
+            const badges = computeBadges({ avgRating: h.avgRating, reviewCount: h.reviewCount, completedJobs: h.completedJobs, helprTier: h.subscription_tier });
 
             return (
               <div

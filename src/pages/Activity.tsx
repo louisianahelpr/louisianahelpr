@@ -512,11 +512,9 @@ const Activity = () => {
 
   const postedStatusFilters = [
     { key: "open", label: "Open" },
-    { key: "accepted", label: "Accepted" },
     { key: "in_progress", label: "In Progress" },
     { key: "completed", label: "Completed" },
     { key: "cancelled", label: "Cancelled" },
-    { key: "disputed", label: "Disputed" },
   ];
 
   const appliedStatusFilters = [
@@ -558,7 +556,7 @@ const Activity = () => {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap justify-center gap-1.5">
             {activeStatusFilters.map((f) => (
               <button
                 key={f.key}

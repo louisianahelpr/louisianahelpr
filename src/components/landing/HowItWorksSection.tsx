@@ -9,12 +9,12 @@ const steps = [
   {
     icon: Users,
     title: "Get matched",
-    description: "Trusted helprs apply to your task. Review profiles, ratings, and pick the best fit.",
+    description: "Trusted locals apply to your task. Review profiles, ratings, and pick the best fit.",
   },
   {
     icon: CheckCircle,
     title: "Get it done",
-    description: "Your helpr completes the job, you pay securely, and leave a review.",
+    description: "Your chosen helper completes the job, you pay securely, and leave a review.",
   },
 ];
 

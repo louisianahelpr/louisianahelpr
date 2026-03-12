@@ -104,7 +104,7 @@ const Signup = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim()) { toast.error("Please tell us about yourself"); return false; }
     if (!location.trim()) { toast.error("Location is required"); return false; }
-    if (!skills.trim()) { toast.error("Skills are required"); return false; }
+    // Skills are optional — helpers can add later
     return true;
   };
 
@@ -307,8 +307,9 @@ const Signup = () => {
               <Input id="location" placeholder="City, State" value={location} onChange={(e) => setLocation(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="skills">Skills <span className="text-destructive text-xs">*</span></Label>
-              <Input id="skills" placeholder="e.g. cleaning, moving, handyman" value={skills} onChange={(e) => setSkills(e.target.value)} required />
+              <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helpers)</span></Label>
+              <Input id="skills" placeholder="e.g. cleaning, moving, handyman" value={skills} onChange={(e) => setSkills(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
             </div>
 
             <div className="flex gap-3">
@@ -330,7 +331,7 @@ const Signup = () => {
                 <FileText className="w-10 h-10 text-primary mx-auto" />
                 <h3 className="font-semibold text-foreground">Portfolio & Documents</h3>
                 <p className="text-sm text-muted-foreground">
-                  Upload previous work photos, certifications, resume, or any documents that showcase your experience.
+                  Want to help others with tasks? Upload work photos, certifications, or a resume to stand out. <span className="font-medium text-foreground">Only posting tasks? Hit skip.</span>
                 </p>
               </div>
 
@@ -392,10 +393,11 @@ const Signup = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <Upload className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Upload proof of ID</h3>
+                <h3 className="font-semibold text-foreground">Verify your identity</h3>
                 <p className="text-sm text-muted-foreground">
-                  Upload a government-issued ID (driver's license, passport, or state ID). This is required for verification.
+                  Upload a government-issued ID (driver's license, passport, or state ID). This keeps our community safe by verifying that everyone is a real person.
                 </p>
+                <p className="text-xs text-muted-foreground italic">Required for both posting and accepting tasks.</p>
               </div>
 
               <label className="cursor-pointer block">

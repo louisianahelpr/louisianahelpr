@@ -534,12 +534,13 @@ const PostJob = () => {
                   )}
                 </div>
 
-                {/* Job Listing Duration */}
+                {/* Listing Expiration */}
                 <div className="rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
-                    <Label>How long to keep this listing open?</Label>
+                    <Label>Listing expiration</Label>
                   </div>
+                  <p className="text-xs text-muted-foreground">How long should this listing stay visible to applicants?</p>
                   <Select value={jobDuration} onValueChange={setJobDuration}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -550,13 +551,13 @@ const PostJob = () => {
                       <SelectItem value="5">5 days</SelectItem>
                       <SelectItem value="6">6 days</SelectItem>
                       <SelectItem value="7">1 week</SelectItem>
-                      <SelectItem value="none">Until I choose an applicant (no expiry)</SelectItem>
+                      <SelectItem value="none">No expiry — stays open until filled</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {jobDuration === "none"
-                       ? "Your job will stay open until you manually select a helpr or close it."
-                       : `Your job listing will automatically close after ${jobDuration} days if no helpr is selected.`}
+                       ? "Your listing will stay open until you choose an applicant or close it manually."
+                       : `Your listing will automatically close after ${jobDuration === "7" ? "1 week" : `${jobDuration} day${jobDuration === "1" ? "" : "s"}`} if no one is selected.`}
                   </p>
                 </div>
 

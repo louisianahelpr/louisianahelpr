@@ -359,7 +359,7 @@ const Dashboard = () => {
                   Hi, {firstName} 👋
                 </h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Welcome back — let's get things done today!
+                  Browse tasks to help with, or post your own.
                 </p>
                 <p className="text-xs text-primary/80 mt-1 italic">
                   {(() => {
@@ -486,10 +486,10 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-display font-bold text-foreground leading-tight">
-                    {hasFilters ? "Filtered Results" : "All Tasks"}
+                    {hasFilters ? "Filtered Results" : "Browse Tasks"}
                   </h2>
                   <span className="text-[10px] text-muted-foreground">
-                    {filteredJobs.length} active
+                    {filteredJobs.length} available to help with
                   </span>
                 </div>
               </div>

@@ -329,9 +329,7 @@ const Dashboard = () => {
                   Hi, {firstName} 👋
                 </h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {filteredJobs.length > 0
-                    ? `${filteredJobs.length} task${filteredJobs.length !== 1 ? "s" : ""} available near you`
-                    : "No tasks right now — check back soon!"}
+                  Welcome back — let's get things done today!
                 </p>
                 <p className="text-xs text-primary/80 mt-1 italic">
                   {(() => {

@@ -520,11 +520,14 @@ const PostJob = () => {
                   <Select value={jobDuration} onValueChange={setJobDuration}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Until I choose an applicant (no expiry)</SelectItem>
+                      <SelectItem value="1">1 day</SelectItem>
+                      <SelectItem value="2">2 days</SelectItem>
                       <SelectItem value="3">3 days</SelectItem>
-                      <SelectItem value="7">7 days</SelectItem>
-                      <SelectItem value="14">14 days</SelectItem>
-                      <SelectItem value="30">30 days</SelectItem>
+                      <SelectItem value="4">4 days</SelectItem>
+                      <SelectItem value="5">5 days</SelectItem>
+                      <SelectItem value="6">6 days</SelectItem>
+                      <SelectItem value="7">1 week</SelectItem>
+                      <SelectItem value="none">Until I choose an applicant (no expiry)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">

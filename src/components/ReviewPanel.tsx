@@ -22,7 +22,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   const handleSubmit = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
-    if (!feedback.trim()) { toast.error("Please share a comment about your experience"); return; }
+    if (feedback.trim().length < 10) { toast.error("Please write at least 10 characters"); return; }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
@@ -77,13 +77,16 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             rows={3}
             required
           />
-          {feedback.trim().length === 0 && rating > 0 && (
-            <p className="text-xs text-destructive">A comment is required</p>
+          {rating > 0 && feedback.trim().length > 0 && feedback.trim().length < 10 && (
+            <p className="text-xs text-destructive">{10 - feedback.trim().length} more characters needed</p>
+          )}
+          {rating > 0 && feedback.trim().length === 0 && (
+            <p className="text-xs text-destructive">A comment is required (min 10 characters)</p>
           )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || rating === 0 || !feedback.trim()}>
+          <Button onClick={handleSubmit} disabled={submitting || rating === 0 || feedback.trim().length < 10}>
             {submitting ? "Submitting…" : "Submit review"}
           </Button>
         </DialogFooter>

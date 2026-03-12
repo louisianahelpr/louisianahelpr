@@ -15,11 +15,34 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setLoading(false);
       toast.error(error.message);
+      return;
+    }
+
+    // Check approval status before redirecting
+    const userId = data.session?.user?.id;
+    if (userId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("approval_status")
+        .eq("user_id", userId)
+        .single();
+
+      setLoading(false);
+      toast.success("Welcome back!");
+
+      if (profile?.approval_status === "pending") {
+        navigate("/account-pending");
+      } else if (profile?.approval_status === "denied") {
+        navigate("/account-denied");
+      } else {
+        navigate("/dashboard");
+      }
     } else {
+      setLoading(false);
       toast.success("Welcome back!");
       navigate("/dashboard");
     }

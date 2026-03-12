@@ -33,8 +33,8 @@ const SupportPage = () => {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) { navigate("/login"); return; }
-      setUser(session.user);
+      if (session?.user) setUser(session.user);
+    });
     });
   }, [navigate]);
 

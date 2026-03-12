@@ -30,7 +30,7 @@ const FavoriteHelpers = () => {
 
   const loadFavorites = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { navigate("/login"); return; }
+    if (!session?.user) return;
     setCurrentUserId(session.user.id);
 
     const { data: favs } = await supabase

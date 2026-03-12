@@ -1,7 +1,7 @@
 import { Shield, CreditCard, Star, CalendarDays, Bell, MapPin } from "lucide-react";
 
 const features = [
-  { icon: Shield, title: "Verified helpers", desc: "Profiles, reviews, and ratings so you always know who you're hiring." },
+  { icon: Shield, title: "Trusted community", desc: "Every user has a profile with reviews, ratings, and verified identity." },
   { icon: CreditCard, title: "Secure payments", desc: "Pay through the platform. Funds are held until the job is done." },
   { icon: Star, title: "Reviews & ratings", desc: "Leave honest feedback after every job to help the community." },
   { icon: CalendarDays, title: "Easy scheduling", desc: "Pick the date and time that works. Helpers confirm availability." },

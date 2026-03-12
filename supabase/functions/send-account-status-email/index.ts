@@ -175,9 +175,8 @@ Deno.serve(async (req) => {
       }).eq('user_id', userId)
     }
 
-    // Extract run_id from deployment ID (format: projectRef_uuid_version)
-    const deploymentId = Deno.env.get('DENO_DEPLOYMENT_ID') || ''
-    const runId = deploymentId.split('_').slice(1, -1).join('_') || crypto.randomUUID()
+    // Use Supabase project ref as run_id for transactional emails
+    const runId = (Deno.env.get('SUPABASE_URL') || '').replace('https://', '').split('.')[0]
 
     // Send email using sendLovableEmail
     try {

@@ -607,7 +607,7 @@ const Activity = () => {
                   {filteredPostedJobs.map((job) => {
                     const catStyle = categoryColors[job.category] || categoryColors.other;
                     return (
-                    <div key={job.id} className="group rounded-2xl border border-primary/30 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/50 transition-all">
+                    <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
 
                       {/* Top bar: title + budget */}
                       <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">

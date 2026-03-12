@@ -10,11 +10,12 @@ import {
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
-  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2, Heart, Users, HelpCircle, CalendarHeart,
+  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2, Heart, Users, HelpCircle, CalendarHeart, Bell,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
+import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
 import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
 import { MyRetainers } from "@/components/MyRetainers";
@@ -26,7 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "availability" | "reviews" | "referral" | "subscription" | "favorites" | "circles" | "support" | "retainers" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -297,6 +298,7 @@ const ProfilePage = () => {
     { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
     { key: "payment", label: "Payment", icon: <CreditCard className="w-5 h-5" />, desc: "Payment methods & summary" },
+    { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
     { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
     { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
     { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
@@ -825,6 +827,10 @@ const ProfilePage = () => {
                 Go to Support Center
               </Button>
             </div>
+          )}
+
+          {tab === "notifications" && (
+            <NotificationPreferences />
           )}
 
           {tab === "security" && (

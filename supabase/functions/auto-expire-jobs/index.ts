@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       await supabase.from("notifications").insert({
         user_id: job.customer_id,
         title: "Job re-opened",
-        message: `"${job.title}" was automatically re-opened because the helper didn't start within 24 hours.`,
+        message: `"${job.title}" was automatically re-opened because the helpr didn't start within 24 hours.`,
         type: "warning",
         link: "/activity",
       });
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         await supabase.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job expired",
-          message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helpers.`,
+          message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helprs.`,
           type: "warning",
           link: "/activity",
         });

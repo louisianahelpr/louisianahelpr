@@ -72,6 +72,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProHelpr, setIsProHelpr] = useState(false);
+  const [helprTier, setHelprTier] = useState<string | null>(null);
 
   // Enable realtime push notifications
   useRealtimePush(user?.id ?? null);
@@ -99,7 +100,10 @@ const Dashboard = () => {
       // Check Pro subscription
       try {
         const { data } = await supabase.functions.invoke("check-pro-subscription");
-        if (data?.subscribed) setIsProHelpr(true);
+        if (data?.subscribed) {
+          setIsProHelpr(true);
+          setHelprTier(data.tier);
+        }
       } catch {}
     };
     init();
@@ -211,8 +215,8 @@ const Dashboard = () => {
   const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
-  // Pro helpers get lower platform fee
-  const effectiveFee = isProHelpr ? 10 : platformFee;
+  // Use standard platform fee for all tiers
+  const effectiveFee = platformFee;
 
   const filteredJobs = allJobs
     .filter((job) => {
@@ -223,8 +227,9 @@ const Dashboard = () => {
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
-      // Non-Pro helpers can't see jobs posted in last 10 minutes
-      if (!isProHelpr && profile?.role === "helper") {
+      // Only Pro/Elite helpers see jobs posted in last 10 minutes
+      const hasEarlyAccess = helprTier === "pro" || helprTier === "elite";
+      if (!hasEarlyAccess && profile?.role === "helper") {
         const jobAge = Date.now() - new Date(job.created_at).getTime();
         const tenMinutes = 10 * 60 * 1000;
         if (jobAge < tenMinutes) return false;

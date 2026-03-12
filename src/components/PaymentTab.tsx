@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CreditCard, DollarSign, CheckCircle, AlertCircle, ExternalLink, Loader2, BanknoteIcon, Crown, Sparkles } from "lucide-react";
+import { CreditCard, DollarSign, CheckCircle, AlertCircle, ExternalLink, Loader2, BanknoteIcon, Crown, Sparkles, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -21,6 +21,56 @@ type ConnectStatus = {
   charges_enabled?: boolean;
 };
 
+type SubscriptionTier = "basic" | "pro" | "elite" | null;
+
+const TIERS = [
+  {
+    key: "basic" as const,
+    name: "Basic",
+    price: "$9.99/mo",
+    icon: <Star className="w-5 h-5" />,
+    color: "border-border",
+    activeColor: "border-secondary",
+    badgeColor: "bg-secondary text-secondary-foreground",
+    features: [
+      "Basic Helpr profile badge",
+      "Priority in search results",
+      "Email support",
+    ],
+  },
+  {
+    key: "pro" as const,
+    name: "Pro",
+    price: "$14.99/mo",
+    icon: <Crown className="w-5 h-5" />,
+    color: "border-primary/30",
+    activeColor: "border-primary",
+    badgeColor: "bg-primary/10 text-primary",
+    popular: true,
+    features: [
+      "Pro Helpr profile badge",
+      "Early access to new jobs (10 min head start)",
+      "Priority in search results",
+      "Priority email support",
+    ],
+  },
+  {
+    key: "elite" as const,
+    name: "Elite",
+    price: "$24.99/mo",
+    icon: <Zap className="w-5 h-5" />,
+    color: "border-accent/30",
+    activeColor: "border-accent",
+    badgeColor: "bg-accent/15 text-accent-foreground",
+    features: [
+      "Elite Helpr profile badge",
+      "Early access to new jobs (10 min head start)",
+      "Featured profile placement",
+      "Priority support & dispute resolution",
+    ],
+  },
+];
+
 export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProps) {
   const [searchParams] = useSearchParams();
   const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
@@ -28,16 +78,16 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [onboarding, setOnboarding] = useState(false);
   const [openingDashboard, setOpeningDashboard] = useState(false);
 
-  // Pro subscription state
-  const [proSubscribed, setProSubscribed] = useState(false);
-  const [proEnd, setProEnd] = useState<string | null>(null);
-  const [proLoading, setProLoading] = useState(true);
-  const [proCheckoutLoading, setProCheckoutLoading] = useState(false);
+  // Subscription state
+  const [currentTier, setCurrentTier] = useState<SubscriptionTier>(null);
+  const [subEnd, setSubEnd] = useState<string | null>(null);
+  const [subLoading, setSubLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     checkConnectStatus();
-    checkProSubscription();
+    checkSubscription();
     const connectParam = searchParams.get("connect");
     if (connectParam === "success") {
       toast.success("Stripe account setup in progress. Checking status...");
@@ -46,47 +96,42 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
     }
     const proParam = searchParams.get("pro");
     if (proParam === "success") {
-      toast.success("Welcome to Pro Helpr! 🎉 Your benefits are now active.");
-      checkProSubscription();
+      toast.success("Welcome! 🎉 Your subscription is now active.");
+      checkSubscription();
     }
   }, []);
 
   const checkConnectStatus = async () => {
     setLoadingConnect(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
       if (error) throw error;
       setConnectStatus(data);
     } catch (err: any) {
-      console.error("Failed to check connect status:", err);
       setConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
     } finally {
       setLoadingConnect(false);
     }
   };
 
-  const checkProSubscription = async () => {
-    setProLoading(true);
+  const checkSubscription = async () => {
+    setSubLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("check-pro-subscription");
       if (error) throw error;
-      setProSubscribed(data?.subscribed || false);
-      setProEnd(data?.subscription_end || null);
+      setCurrentTier(data?.tier || null);
+      setSubEnd(data?.subscription_end || null);
     } catch (err) {
-      console.error("Failed to check pro subscription:", err);
+      console.error("Failed to check subscription:", err);
     } finally {
-      setProLoading(false);
+      setSubLoading(false);
     }
   };
 
   const startOnboarding = async () => {
     setOnboarding(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
-      });
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "onboard" } });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
     } catch (err: any) {
@@ -99,9 +144,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const openDashboard = async () => {
     setOpeningDashboard(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "dashboard" },
-      });
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "dashboard" } });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
@@ -111,20 +154,17 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
     }
   };
 
-  const handleProCheckout = async () => {
-    setProCheckoutLoading(true);
+  const handleCheckout = async (tier: string) => {
+    setCheckoutLoading(tier);
     try {
-      const { data, error } = await supabase.functions.invoke("create-pro-checkout");
+      const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body: { tier } });
       if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
+      if (data?.error) { toast.error(data.error); return; }
       if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
       toast.error(err.message || "Failed to start checkout");
     } finally {
-      setProCheckoutLoading(false);
+      setCheckoutLoading(null);
     }
   };
 
@@ -147,70 +187,97 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold text-foreground">Payment Settings</h1>
 
-      {/* Pro Helpr Subscription */}
+      {/* Subscription Tiers */}
       {isHelper && (
-        <div className={`rounded-xl border-2 bg-card p-5 space-y-4 ${proSubscribed ? "border-primary" : "border-border"}`}>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-              <Crown className="w-5 h-5 text-primary" /> Pro Helpr
-            </h2>
-            {proSubscribed && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                <CheckCircle className="w-3 h-3" /> Active
-              </span>
-            )}
-          </div>
+        <div className="space-y-4">
+          <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" /> Helpr Subscription Plans
+          </h2>
 
-          {proLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+          {subLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
               <Loader2 className="w-4 h-4 animate-spin" /> Checking subscription…
             </div>
-          ) : proSubscribed ? (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-2">
-                <p className="text-sm font-medium text-foreground">You're a Pro Helpr! 🎉</p>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-primary" /> Early access to new jobs (10 min head start)</li>
-                  <li className="flex items-center gap-2"><DollarSign className="w-3 h-3 text-primary" /> Lower platform fee (10% vs 15%)</li>
-                  <li className="flex items-center gap-2"><Crown className="w-3 h-3 text-primary" /> Pro badge on your profile</li>
-                </ul>
-                {proEnd && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Renews: {new Date(proEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                  </p>
-                )}
-              </div>
-              <Button variant="outline" onClick={handleManageSubscription} disabled={portalLoading} className="w-full">
-                {portalLoading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</>
-                ) : (
-                  <><ExternalLink className="w-4 h-4 mr-2" /> Manage subscription</>
-                )}
-              </Button>
-            </div>
           ) : (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-secondary/30 border border-border p-4 space-y-2">
-                <p className="text-sm font-medium text-foreground">Upgrade to Pro — $14.99/mo</p>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-primary" /> See new jobs 10 minutes before free users</li>
-                  <li className="flex items-center gap-2"><DollarSign className="w-3 h-3 text-primary" /> Lower platform fee: 10% instead of 15%</li>
-                  <li className="flex items-center gap-2"><Crown className="w-3 h-3 text-primary" /> Pro badge on your profile & in search</li>
-                </ul>
+            <>
+              <div className="grid gap-4">
+                {TIERS.map((tier) => {
+                  const isActive = currentTier === tier.key;
+                  return (
+                    <div
+                      key={tier.key}
+                      className={`relative rounded-xl border-2 bg-card p-5 space-y-3 transition-colors ${isActive ? tier.activeColor : tier.color}`}
+                    >
+                      {tier.popular && !currentTier && (
+                        <span className="absolute -top-3 left-4 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                          Most popular
+                        </span>
+                      )}
+                      {isActive && (
+                        <span className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Your plan
+                        </span>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tier.badgeColor}`}>
+                            {tier.icon}
+                          </div>
+                          <div>
+                            <h3 className="font-display font-bold text-foreground">{tier.name}</h3>
+                            <p className="text-sm font-semibold text-primary">{tier.price}</p>
+                          </div>
+                        </div>
+                        {!isActive && !currentTier && (
+                          <Button
+                            size="sm"
+                            variant={tier.popular ? "default" : "outline"}
+                            onClick={() => handleCheckout(tier.key)}
+                            disabled={checkoutLoading === tier.key}
+                          >
+                            {checkoutLoading === tier.key ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              "Subscribe"
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1.5 pl-1">
+                        {tier.features.map((f, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <CheckCircle className="w-3 h-3 text-primary shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
               </div>
-              <Button onClick={handleProCheckout} disabled={proCheckoutLoading} className="w-full">
-                {proCheckoutLoading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading…</>
-                ) : (
-                  <><Crown className="w-4 h-4 mr-2" /> Subscribe to Pro</>
-                )}
-              </Button>
-            </div>
+
+              {currentTier && (
+                <div className="space-y-2">
+                  {subEnd && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Renews {new Date(subEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                    </p>
+                  )}
+                  <Button variant="outline" onClick={handleManageSubscription} disabled={portalLoading} className="w-full">
+                    {portalLoading ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</>
+                    ) : (
+                      <><ExternalLink className="w-4 h-4 mr-2" /> Manage subscription</>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
 
-      {/* Stripe Connect Section — visible to helpers */}
+      {/* Stripe Connect Section */}
       {isHelper && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
@@ -232,17 +299,13 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                   <div>
                     <p className="text-sm font-medium text-foreground">Payout account not connected</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      You won't receive automatic payouts until you connect your bank account. Set up takes about 5 minutes.
+                      You won't receive automatic payouts until you connect your bank account.
                     </p>
                   </div>
                 </div>
               </div>
               <Button onClick={startOnboarding} disabled={onboarding} className="w-full">
-                {onboarding ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up…</>
-                ) : (
-                  <><BanknoteIcon className="w-4 h-4 mr-2" /> Connect payout account</>
-                )}
+                {onboarding ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up…</> : <><BanknoteIcon className="w-4 h-4 mr-2" /> Connect payout account</>}
               </Button>
             </div>
           ) : !connectStatus.details_submitted ? (
@@ -252,18 +315,12 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                   <AlertCircle className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Setup incomplete</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      You started connecting your account but didn't finish. Please complete the setup to receive payouts.
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Please complete the setup to receive payouts.</p>
                   </div>
                 </div>
               </div>
               <Button onClick={startOnboarding} disabled={onboarding} className="w-full">
-                {onboarding ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading…</>
-                ) : (
-                  "Complete setup"
-                )}
+                {onboarding ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading…</> : "Complete setup"}
               </Button>
             </div>
           ) : !connectStatus.payouts_enabled ? (
@@ -272,9 +329,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                 <Loader2 className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5 animate-spin" />
                 <div>
                   <p className="text-sm font-medium text-foreground">Verification in progress</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your account is being verified by Stripe. This usually takes 1–2 business days. You'll be able to receive payouts once verified.
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Usually takes 1–2 business days.</p>
                 </div>
               </div>
             </div>
@@ -285,18 +340,12 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                   <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Payout account active</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your account is verified and ready to receive automatic payouts when jobs are completed.
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Ready to receive automatic payouts.</p>
                   </div>
                 </div>
               </div>
               <Button variant="outline" onClick={openDashboard} disabled={openingDashboard} className="w-full">
-                {openingDashboard ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</>
-                ) : (
-                  <><ExternalLink className="w-4 h-4 mr-2" /> View Stripe dashboard</>
-                )}
+                {openingDashboard ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</> : <><ExternalLink className="w-4 h-4 mr-2" /> View Stripe dashboard</>}
               </Button>
             </div>
           )}
@@ -309,7 +358,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
           <CreditCard className="w-4 h-4 text-primary" /> Payment Methods
         </h2>
         <p className="text-sm text-muted-foreground">
-          Payments are securely processed through Stripe. Your card details are saved with Stripe and never stored on our servers.
+          Payments are securely processed through Stripe. Your card details are never stored on our servers.
         </p>
         <div className="rounded-lg bg-secondary/30 border border-border p-4 text-center">
           <CreditCard className="w-8 h-8 text-muted-foreground mx-auto mb-2" />

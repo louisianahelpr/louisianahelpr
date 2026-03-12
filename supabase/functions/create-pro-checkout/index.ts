@@ -7,6 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const TIER_PRICES: Record<string, string> = {
+  basic: "price_1T9wfJKp2H4b7tEC4w8zbfui",
+  pro: "price_1T9vO7Kp2H4b7tECC6KCaygf",
+  elite: "price_1T9wg7Kp2H4b7tECOdwba00D",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +30,10 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
 
+    const { tier } = await req.json();
+    const priceId = TIER_PRICES[tier];
+    if (!priceId) throw new Error("Invalid tier. Use: basic, pro, or elite");
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -32,15 +42,10 @@ serve(async (req) => {
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-
-      // Check if already subscribed
-      const subs = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-        limit: 1,
-      });
+      // Check for active subscription
+      const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 10 });
       if (subs.data.length > 0) {
-        return new Response(JSON.stringify({ error: "You already have an active Pro subscription" }), {
+        return new Response(JSON.stringify({ error: "You already have an active subscription. Manage it from the portal to switch tiers." }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
         });
@@ -50,12 +55,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: "price_1T9vO7Kp2H4b7tECC6KCaygf",
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/profile?pro=success`,
       cancel_url: `${req.headers.get("origin")}/profile?pro=cancel`,

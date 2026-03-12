@@ -171,9 +171,8 @@ const Activity = () => {
       const priorCount = existing?.length || 0;
 
       let actionTaken = "none";
-      if (priorCount >= 4) actionTaken = "permanent_ban";
-      else if (priorCount >= 3) actionTaken = "temp_ban";
-      else if (priorCount >= 2) actionTaken = "warning";
+      if (priorCount >= 2) actionTaken = "permanent_ban";
+      else if (priorCount >= 1) actionTaken = "warning";
 
       // Log the violation
       await supabase.from("user_violations").insert({

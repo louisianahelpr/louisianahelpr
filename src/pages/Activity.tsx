@@ -799,7 +799,7 @@ const Activity = () => {
                       })()}
 
                       {/* Footer: paid status only — hide on completed */}
-                      {job.payment_status === "released" && job.status !== "completed" && (
+                      {job.payment_status === "released" && job.status !== "completed" && job.status !== "cancelled" && (
                         <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 text-[11px]">
                           <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>
                         </div>

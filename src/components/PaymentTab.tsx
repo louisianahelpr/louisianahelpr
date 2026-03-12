@@ -253,8 +253,36 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
             </div>
           ) : (
            <>
-              {/* Billing day selector — shown when no active subscription */}
+              {/* Billing cycle toggle — shown when no active subscription */}
               {!currentTier && (
+                <div className="flex items-center gap-1 rounded-lg bg-secondary/30 p-1">
+                  {([
+                    { value: "one_time" as BillingCycle, label: "One-time" },
+                    { value: "monthly" as BillingCycle, label: "Monthly" },
+                    { value: "annual" as BillingCycle, label: "Annual", badge: "Save 17%" },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setBillingCycle(opt.value)}
+                      className={`flex-1 text-sm font-medium py-2 px-3 rounded-md transition-colors relative ${
+                        billingCycle === opt.value
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                      {opt.badge && (
+                        <span className="absolute -top-2 -right-1 text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                          {opt.badge}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Billing day selector — shown for recurring plans only */}
+              {!currentTier && billingCycle !== "one_time" && (
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
                   <CalendarDays className="w-5 h-5 text-primary shrink-0" />
                   <div className="flex-1">

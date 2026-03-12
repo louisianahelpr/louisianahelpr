@@ -53,8 +53,8 @@ const UserProfile = () => {
           toast.error("Failed to load profile.");
         }
 
-        if (data) {
-          setProfile(data as Profile);
+        if (data && data.length > 0) {
+          setProfile(data[0] as any);
         } else {
           setProfile(null);
           toast.error("Profile not found.");

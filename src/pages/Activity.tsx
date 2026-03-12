@@ -567,34 +567,19 @@ const Activity = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <DashboardHeader />
-        <main className="container mx-auto px-4 py-4">
-          <div className="max-w-3xl mx-auto space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <ActivityCardSkeleton key={i} />
-            ))}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  const postedStatusFilters = [
+  const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
     { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ];
+  ], []);
 
-  const appliedStatusFilters = [
+  const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
     { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ];
+  ], []);
 
   const filteredPostedJobs = useMemo(() => !statusFilter
     ? postedJobs
@@ -609,6 +594,21 @@ const Activity = () => {
         if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
         return true;
       }), [appliedApps, statusFilter]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <DashboardHeader />
+        <main className="container mx-auto px-4 py-4">
+          <div className="max-w-3xl mx-auto space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <ActivityCardSkeleton key={i} />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },

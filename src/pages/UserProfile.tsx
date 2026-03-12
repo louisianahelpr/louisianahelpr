@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Mail, Phone, ClipboardList, Hammer } from "lucide-react";
@@ -23,56 +22,6 @@ const statusColors: Record<string, string> = {
   revision_requested: "bg-orange-100 text-orange-700",
 };
 
-const JobHistorySection = ({ jobs, title, icon }: {
-  jobs: { id: string; title: string; status: string; category: string; budget: number; created_at: string }[];
-  title: string;
-  icon: React.ReactNode;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const completedCount = jobs.filter(j => j.status === "completed").length;
-
-  return (
-    <div className="space-y-2">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full rounded-2xl border border-border bg-card p-4 text-left hover:border-primary/20 hover:shadow-sm transition-all"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <h2 className="text-base font-display font-bold text-foreground">{title}</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{jobs.length} total · {completedCount} completed</span>
-            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-          </div>
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-          {jobs.map((job) => (
-            <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-sm font-bold text-primary">${job.budget}</span>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>
-                  {job.status.replace("_", " ")}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
@@ -89,6 +38,41 @@ const UserProfile = () => {
   const [showReviews, setShowReviews] = useState(false);
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          toast.error("Failed to load profile.");
+        }
+
+        if (data) {
+          setProfile(data as Profile);
+        } else {
+          setProfile(null);
+          toast.error("Profile not found.");
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        toast.error("An unexpected error occurred.");
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (userId) {
+      loadProfile();
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -258,7 +242,7 @@ const UserProfile = () => {
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Stats Row 1 */}
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border bg-card p-3 text-center">
               <div className="flex items-center justify-center gap-1">
@@ -283,6 +267,30 @@ const UserProfile = () => {
             </button>
           </div>
 
+          {/* Stats Row 2 */}
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => postedJobs.length > 0 && setShowPostedJobs(!showPostedJobs)}
+              className={`rounded-xl border bg-card p-3 text-center transition-all ${postedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <ClipboardList className="w-4 h-4 text-primary" />
+                <p className="text-2xl font-bold text-foreground">{postedJobs.length}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Jobs Posted</p>
+            </button>
+            <button
+              onClick={() => workedJobs.length > 0 && setShowWorkedJobs(!showWorkedJobs)}
+              className={`rounded-xl border bg-card p-3 text-center transition-all ${workedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <Hammer className="w-4 h-4 text-primary" />
+                <p className="text-2xl font-bold text-foreground">{workedJobs.length}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Jobs Completed</p>
+            </button>
+          </div>
+
           {/* Reviews expanded inline */}
           {showReviews && reviews.length > 0 && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -302,6 +310,42 @@ const UserProfile = () => {
                   <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>
+              ))
+            </div>
+          )}
+
+          {/* Posted Jobs expanded inline */}
+          {showPostedJobs && postedJobs.length > 0 && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              {postedJobs.map((job) => (
+                <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-bold text-primary">${job.budget}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Worked Jobs expanded inline */}
+          {showWorkedJobs && workedJobs.length > 0 && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              {workedJobs.map((job) => (
+                <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-bold text-primary">${job.budget}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -319,8 +363,8 @@ const UserProfile = () => {
                       {responseMetrics.avgResponseHours < 1
                         ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
                         : responseMetrics.avgResponseHours < 24
-                        ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
-                        : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
+                          ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
+                          : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
                       <Clock className="w-3 h-3" /> Avg Response
@@ -361,12 +405,6 @@ const UserProfile = () => {
               helperName={profile.full_name || "Helpr"}
             />
           )}
-
-          {/* Jobs Posted */}
-          {postedJobs.length > 0 && <JobHistorySection jobs={postedJobs} title="Jobs Posted" icon={<ClipboardList className="w-4 h-4 text-primary" />} />}
-
-          {/* Jobs Worked */}
-          {workedJobs.length > 0 && <JobHistorySection jobs={workedJobs} title="Jobs Completed" icon={<Hammer className="w-4 h-4 text-primary" />} />}
 
           {/* Member since */}
           <p className="text-xs text-muted-foreground text-center">

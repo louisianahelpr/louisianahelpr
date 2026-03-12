@@ -1117,7 +1117,7 @@ const Activity = () => {
           jobId={enhancedTipJobId}
           helperName={enhancedTipHelperName}
           open={!!enhancedTipJobId}
-          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); }}
+          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); if (user) loadData(user.id); }}
         />
       )}
 

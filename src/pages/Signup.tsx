@@ -325,7 +325,7 @@ const Signup = () => {
               <Input id="location" placeholder="City, State" value={location} onChange={(e) => setLocation(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helpers)</span></Label>
+              <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span></Label>
               <Input id="skills" placeholder="e.g. cleaning, moving, handyman" value={skills} onChange={(e) => setSkills(e.target.value)} />
               <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
             </div>

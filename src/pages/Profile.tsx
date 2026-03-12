@@ -1303,8 +1303,8 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Job Rules</h2>
                 <div className="space-y-2">
                   <LegalCard icon={<Clock className="w-4 h-4 text-primary" />} title="Job Editing Restrictions">
-                    <p><strong className="text-foreground">Before helper selected:</strong> You can freely edit job details.</p>
-                    <p><strong className="text-foreground">After helper selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
+                    <p><strong className="text-foreground">Before helpr selected:</strong> You can freely edit job details.</p>
+                    <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
                   </LegalCard>
                   <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
                     <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
@@ -1312,7 +1312,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                     <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
                   </LegalCard>
                   <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
-                    <p><strong className="text-foreground">Job Limit:</strong> New helpers are limited to 3 active jobs at a time until they build a track record.</p>
+                    <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>
                     <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
                     <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster).</p>
                   </LegalCard>

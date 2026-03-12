@@ -1061,7 +1061,7 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
     setLoadingCheckout(tier);
     try {
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, interval: billingInterval },
+        body: { tier, interval: billingInterval, ...(billingInterval === "monthly" ? { billing_day: billingDay } : {}) },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

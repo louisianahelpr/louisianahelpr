@@ -373,6 +373,7 @@ const Dashboard = () => {
               </Button>
             </div>
           </motion.div>
+          )}
 
           {/* Invite Friends Banner */}
           {user && <InviteBanner userId={user.id} />}

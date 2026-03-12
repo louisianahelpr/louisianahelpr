@@ -282,7 +282,7 @@ const ProfilePage = () => {
     { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
     
     
-    { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
+    
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
     { key: "payment", label: "Payment", icon: <CreditCard className="w-5 h-5" />, desc: "Payment methods & summary" },
     { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
@@ -307,9 +307,16 @@ const ProfilePage = () => {
             )}
             <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
           </div>
-          {tab === "landing" && (
-            <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
-          )}
+          <div className="flex items-center gap-1">
+            {tab === "landing" && (
+              <Button variant="ghost" size="icon" onClick={() => setTab("referral")} title="Referral Program">
+                <Gift className="w-4 h-4" />
+              </Button>
+            )}
+            {tab === "landing" && (
+              <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
+            )}
+          </div>
         </div>
       </header>
 

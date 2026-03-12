@@ -42,7 +42,10 @@ const PostJob = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
-  const [location, setLocation] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [zipCode, setZipCode] = useState("");
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
@@ -88,7 +91,17 @@ const PostJob = () => {
           setTitle(data.title);
           setDescription(data.description);
           setCategory(data.category);
-          setLocation(data.location);
+          // Parse location back into fields if possible
+          const locParts = (data.location || "").split(", ");
+          if (locParts.length >= 3) {
+            setStreetAddress(locParts[0]);
+            setCity(locParts[1]);
+            const stateZip = locParts[2].split(" ");
+            setAddrState(stateZip[0] || "");
+            setZipCode(stateZip.slice(1).join(" ") || "");
+          } else {
+            setStreetAddress(data.location);
+          }
           setBudget(data.budget.toString());
           setEstimatedHours(data.estimated_hours?.toString() || "");
           setSpecialRequirements(data.special_requirements || "");
@@ -104,7 +117,7 @@ const PostJob = () => {
     // Load draft if no rebook
     if (hasDraft && !draftLoaded) {
       setTitle(draft.title); setDescription(draft.description);
-      setCategory(draft.category); setLocation(draft.location);
+      setCategory(draft.category); setStreetAddress(draft.location);
       setDateNeeded(draft.dateNeeded); setStartTime(draft.startTime);
       setEstimatedHours(draft.estimatedHours); setBudget(draft.budget);
       setSpecialRequirements(draft.specialRequirements);
@@ -117,10 +130,11 @@ const PostJob = () => {
 
   // Auto-save draft on field changes (debounced)
   const autoSave = useCallback(() => {
-    if (title || description || location || budget) {
+    const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
+    if (title || description || streetAddress || budget) {
       saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate });
     }
-  }, [title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);
@@ -135,7 +149,7 @@ const PostJob = () => {
     setAiLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-job-builder", {
-        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location } },
+        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location: `${city}, ${addrState}` } },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -198,7 +212,10 @@ const PostJob = () => {
     if (!title.trim()) { toast.error("Task title is required"); return; }
     if (!description.trim()) { toast.error("Description is required"); return; }
     if (!category) { toast.error("Category is required"); return; }
-    if (!location.trim()) { toast.error("Location is required"); return; }
+    if (!streetAddress.trim()) { toast.error("Street address is required"); return; }
+    if (!city.trim()) { toast.error("City is required"); return; }
+    if (!addrState.trim()) { toast.error("State is required"); return; }
+    if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
     if (!dateNeeded) { toast.error("Date needed is required"); return; }
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
@@ -232,7 +249,7 @@ const PostJob = () => {
       title: title.trim(),
       description: description.trim(),
       category: category as any,
-      location: location.trim(),
+      location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`,
       date_needed: dateNeeded === "flexible" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : dateNeeded,
       start_time: startTime === "flexible" ? "flexible" : (startTime || null),
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
@@ -407,9 +424,18 @@ const PostJob = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Address or area" required maxLength={200} />
+                <div className="space-y-3">
+                  <Label>Location</Label>
+                  <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
+                    <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} />
+                    <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Only the city will be visible to applicants until you select a helper.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -615,7 +641,7 @@ const PostJob = () => {
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
-                      <span>{location}</span>
+                      <span>{`${streetAddress}, ${city}, ${addrState} ${zipCode}`}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 text-primary shrink-0" />

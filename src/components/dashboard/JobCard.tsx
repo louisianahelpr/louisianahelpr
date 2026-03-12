@@ -57,40 +57,40 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       }`}
       onClick={() => onSelect(job)}
     >
-      {/* Top bar: category + tags + earnings */}
+      {/* Top bar: title + earnings */}
       <div className={`flex items-center justify-between px-4 py-2 border-b border-border/50 ${
         job.isBoosted ? "bg-primary/5" : job.is_urgent ? "bg-accent/5" : "bg-muted/30"
       }`}>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${catColor}`}>
-            {categoryLabels[job.category] || job.category}
-          </span>
-          {job.is_urgent && (
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
-              <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-            </span>
-          )}
-          {job.isBoosted && (
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-              <Rocket className="w-2.5 h-2.5" /> Boosted
-            </span>
-          )}
-        </div>
-        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0">
+        <h3 className="font-semibold text-foreground text-[15px] leading-snug group-hover:text-primary transition-colors truncate min-w-0">
+          {job.title}
+        </h3>
+        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-2">
           <DollarSign className="w-3.5 h-3.5" />{earnings}
         </span>
       </div>
 
       {/* Main content */}
       <div className="px-4 py-3 space-y-2">
-        {/* Title + Apply */}
+        {/* Category tags + Apply */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-semibold text-foreground text-[15px] leading-snug group-hover:text-primary transition-colors">
-              {job.title}
-            </h3>
+            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${catColor}`}>
+                {categoryLabels[job.category] || job.category}
+              </span>
+              {job.is_urgent && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
+                  <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
+                </span>
+              )}
+              {job.isBoosted && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                  <Rocket className="w-2.5 h-2.5" /> Boosted
+                </span>
+              )}
+            </div>
             {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{job.description}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
             )}
           </div>
           {showApply && currentUserId !== job.customer_id && (

@@ -688,10 +688,10 @@ const Activity = () => {
                             </>
                           )}
                           {job.status === "accepted" && (
-                            <>
-                              <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
-                            </>
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="outline" className="flex-1" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}>Cancel</Button>
+                            </div>
                           )}
                           {(job.status === "in_progress" || job.status === "revision_requested") && (
                             <>

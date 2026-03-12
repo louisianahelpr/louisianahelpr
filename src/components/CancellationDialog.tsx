@@ -117,11 +117,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           )}
           {cancellationFee > 0 && (
             <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
-              <p className="text-sm text-foreground font-medium">💰 Cancellation Fee: ${cancellationFee}</p>
+              <p className="text-sm text-foreground font-medium">💰 Cancellation Fee: ${cancellationFee} ({cancellationFeePercent}% of budget)</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {hoursUntilJob < 4
-                  ? "A helpr has been assigned and the job starts very soon. A $15 fee applies to compensate the helpr."
-                  : "A helpr has been assigned. A $5 cancellation fee applies, with a portion going to the helpr as compensation."}
+                {isVeryLateCancellation
+                  ? "The job starts in less than 2 hours. A 50% fee applies to compensate the helper."
+                  : "The job is less than 24 hours away. A 25% fee applies to compensate the helper."}
               </p>
             </div>
           )}

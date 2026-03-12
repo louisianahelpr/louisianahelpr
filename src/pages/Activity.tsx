@@ -611,7 +611,7 @@ const Activity = () => {
 
                       {/* Top bar: title + budget */}
                       <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
-                        <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
+                        <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
                           {job.title}
                         </h3>
                         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3">
@@ -675,11 +675,11 @@ const Activity = () => {
                       )}
 
                       {/* Actions */}
-                      <div className="border-t border-border px-4 py-3">
+                      <div className="border-t border-border/40 px-4 py-3">
                         <div className="space-y-2">
                           {job.status === "open" && (
                             <>
-                              <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" variant="outline" className="w-full" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <div className="flex items-center gap-2">
                                 <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                                 <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>

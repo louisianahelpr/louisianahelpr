@@ -713,33 +713,18 @@ const Activity = () => {
                             <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                           )}
                           {job.status === "completed" && (
-                            <div className="w-full space-y-3">
-                              {/* Tip options first */}
-                              {job.payment_status === "released" && (
-                                <div className="space-y-2">
-                                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1"><Gift className="w-3.5 h-3.5" /> Send a tip</p>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 5)} disabled={tipping}>$5</Button>
-                                    <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 10)} disabled={tipping}>$10</Button>
-                                    <Button size="sm" variant="outline" onClick={() => sendTip(job.id, 20)} disabled={tipping}>$20</Button>
-                                    {tipJobId === job.id ? (
-                                      <div className="flex items-center gap-2">
-                                        <Input type="number" min="1" placeholder="Custom $" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} className="max-w-[90px] h-9" />
-                                        <Button size="sm" onClick={() => sendTip(job.id)} disabled={tipping}>{tipping ? "…" : "Send"}</Button>
-                                        <Button size="sm" variant="ghost" onClick={() => { setTipJobId(null); setTipAmount(""); }}>✕</Button>
-                                      </div>
-                                    ) : (
-                                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setTipJobId(job.id); setTipAmount(""); }}>Custom</Button>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              {/* Review & Rebook below */}
                               <div className="flex flex-wrap items-center gap-2">
+                                {job.payment_status === "released" && job.helper_id && (
+                                  <Button size="sm" variant="outline" onClick={() => {
+                                    setEnhancedTipJobId(job.id);
+                                    // Try to find helper name
+                                    const helperProfile = profiles?.find((p: any) => p.user_id === job.helper_id);
+                                    setEnhancedTipHelperName(helperProfile?.full_name || "");
+                                  }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                                )}
                                 {job.helper_id && <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
                                 <Button size="sm" variant="outline" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
                               </div>
-                            </div>
                           )}
                         </div>
                       </div>

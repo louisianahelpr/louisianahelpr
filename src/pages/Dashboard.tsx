@@ -14,7 +14,7 @@ import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import JobFilters from "@/components/dashboard/JobFilters";
+import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import JobCard from "@/components/dashboard/JobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import InviteBanner from "@/components/dashboard/InviteBanner";

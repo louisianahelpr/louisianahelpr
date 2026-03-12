@@ -59,7 +59,7 @@ const GREETING_MESSAGES = [
   "Every task completed is someone's day made better. You're amazing! ✨",
   "Together we lift each other up — that's the Helpr way! 🤝",
   "Your kindness ripples through the whole community. Thank you! 🌊",
-  "Helpers and customers alike — you're the heartbeat of Helpr! ❤️",
+  "Helprs and customers alike — you're the heartbeat of Helpr! ❤️",
   "Small acts of service build big community bonds. You're proof! 🌟",
   "We see you, we value you, and we're grateful you're here! 🙏",
   "Community isn't just a word here — it's what we build together! 🏗️",

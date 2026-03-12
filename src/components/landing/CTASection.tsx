@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import SocialShare from "@/components/SocialShare";
 
 const CTASection = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const CTASection = () => {
           <p className="text-primary-foreground/80 max-w-md mx-auto mb-8">
             Join your Louisiana neighbors on Helpr to get things done — or earn extra income helping others.
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
             <Button
               variant="hero-outline"
               size="xl"
@@ -23,6 +24,12 @@ const CTASection = () => {
             >
               Sign up free
             </Button>
+          </div>
+          <div className="flex justify-center">
+            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl px-4 py-3 space-y-1.5">
+              <p className="text-xs text-primary-foreground/70 font-medium">Share Helpr with friends</p>
+              <SocialShare />
+            </div>
           </div>
         </div>
       </div>

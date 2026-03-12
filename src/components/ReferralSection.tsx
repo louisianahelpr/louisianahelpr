@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Gift, Copy, Share2, Users, DollarSign, Check, Banknote, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import SocialShare from "@/components/SocialShare";
 
 interface ReferralCredit {
   id: string;

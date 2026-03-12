@@ -463,44 +463,58 @@ const Dashboard = () => {
             expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
           />
 
-          {/* All Tasks header */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
-              <Briefcase className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-sm font-display font-bold text-foreground leading-tight">
-                {hasFilters ? "Filtered Results" : "All Tasks"}
-              </h2>
-              <span className="text-[10px] text-muted-foreground">
-                {filteredJobs.length} active
-              </span>
-            </div>
-          </div>
-
-          {/* Job list */}
-          {filteredJobs.length === 0 ? (
-            <div className="text-center py-16 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto">
-                <Briefcase className="w-7 h-7 text-primary/50" />
-              </div>
-              <div>
-                <p className="font-display font-semibold text-foreground">{hasFilters ? "No matching tasks" : "No open tasks right now"}</p>
-                <p className="text-sm text-muted-foreground mt-1">{hasFilters ? "Try adjusting your filters" : "Check back soon — new tasks are posted daily!"}</p>
+          {/* All Tasks section */}
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+            className="space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
+                  <Briefcase className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">
+                    {hasFilters ? "Filtered Results" : "All Tasks"}
+                  </h2>
+                  <span className="text-[10px] text-muted-foreground">
+                    {filteredJobs.length} active
+                  </span>
+                </div>
               </div>
               {hasFilters && (
-                <Button variant="outline" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); }}>
-                  Clear filters
+                <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); setExpiresWithin(""); }} className="text-xs text-muted-foreground hover:text-destructive h-7 rounded-xl btn-press">
+                  <X className="w-3 h-3 mr-1" /> Clear
                 </Button>
               )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredJobs.map((job, i) => (
-                <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} />
-              ))}
-            </div>
-          )}
+
+            {/* Job list */}
+            {filteredJobs.length === 0 ? (
+              <div className="text-center py-16 space-y-4 rounded-2xl border border-dashed border-border/60 bg-muted/10">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto">
+                  <Briefcase className="w-7 h-7 text-primary/40" />
+                </div>
+                <div>
+                  <p className="font-display font-semibold text-foreground">{hasFilters ? "No matching tasks" : "No open tasks right now"}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{hasFilters ? "Try adjusting your filters" : "Check back soon — new tasks are posted daily!"}</p>
+                </div>
+                {hasFilters && (
+                  <Button variant="outline" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); setExpiresWithin(""); }} className="rounded-xl btn-press">
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredJobs.map((job, i) => (
+                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} />
+                ))}
+              </div>
+            )}
+          </motion.section>
         </div>
       </main>
 

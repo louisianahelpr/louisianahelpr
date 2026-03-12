@@ -18,6 +18,7 @@ import JobFilters from "@/components/dashboard/JobFilters";
 import JobCard from "@/components/dashboard/JobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import InviteBanner from "@/components/dashboard/InviteBanner";
+import BroadcastBanner from "@/components/BroadcastBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];

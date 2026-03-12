@@ -61,6 +61,31 @@ const JobFilters = ({
   return (
     <div className="overflow-hidden">
       <div className="space-y-4 px-4 py-3">
+        {/* Sort */}
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { value: "newest", label: "Newest" },
+              { value: "highest_pay", label: "Highest pay" },
+              { value: "lowest_pay", label: "Lowest pay" },
+              { value: "ending_soon", label: "Ending soon" },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSortBy(opt.value)}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-200 btn-press ${
+                  sortBy === opt.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-secondary/70 text-secondary-foreground hover:bg-secondary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Category pills */}
         <div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
@@ -138,31 +163,6 @@ const JobFilters = ({
             <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} />
           </div>
         )}
-
-        {/* Sort */}
-        <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { value: "newest", label: "Newest" },
-              { value: "highest_pay", label: "Highest pay" },
-              { value: "lowest_pay", label: "Lowest pay" },
-              { value: "ending_soon", label: "Ending soon" },
-            ].map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setSortBy(opt.value)}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-200 btn-press ${
-                  sortBy === opt.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary/70 text-secondary-foreground hover:bg-secondary"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Clear all */}
         {hasFilters && (

@@ -365,6 +365,12 @@ const UserProfile = () => {
             />
           )}
 
+          {/* Jobs Posted */}
+          {postedJobs.length > 0 && <JobHistorySection jobs={postedJobs} title="Jobs Posted" icon={<ClipboardList className="w-4 h-4 text-primary" />} />}
+
+          {/* Jobs Worked */}
+          {workedJobs.length > 0 && <JobHistorySection jobs={workedJobs} title="Jobs Completed" icon={<Hammer className="w-4 h-4 text-primary" />} />}
+
           {/* Reviews - collapsed summary, click to expand */}
           <ReviewsSection reviews={reviews} stats={stats} />
 

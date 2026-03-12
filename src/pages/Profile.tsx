@@ -273,17 +273,6 @@ const ProfilePage = () => {
   const selectedJobs = selectedDate ? (jobsByDate.get(selectedDate) || []) : [];
   const upcomingJobs = allScheduleJobs.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
 
-  // History calculations
-  const getHistoryJobs = () => {
-    let jobs: (Job & { _source: "posted" | "worked" })[] = [];
-    if (histTab === "all" || histTab === "posted") jobs = [...jobs, ...histPostedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
-    if (histTab === "all" || histTab === "worked") jobs = [...jobs, ...histWorkedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
-    const seen = new Set<string>();
-    jobs = jobs.filter((j) => { if (seen.has(j.id)) return false; seen.add(j.id); return true; });
-    if (statusFilter !== "all") jobs = jobs.filter((j) => j.status === statusFilter);
-    return jobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  };
-  const historyJobs = getHistoryJobs();
 
   const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },

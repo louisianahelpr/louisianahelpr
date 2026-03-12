@@ -75,7 +75,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     if (navigator.share) {
       navigator.share({
         title: "Join Helpr!",
-        text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job and we both earn $5!`,
+        text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job (post or work) and we both earn $5!`,
         url,
       }).catch(() => {});
     } else {
@@ -116,7 +116,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Gift className="w-6 h-6 text-primary" /> Referral Program
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          When they complete their first job — as poster or crew — you both earn $5!
+          Once their first job is completed — whether they posted it or worked it — you both earn $5!
         </p>
       </div>
 
@@ -140,7 +140,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <div className="flex justify-center">
             <SocialShare
               url={`${window.location.origin}/signup?ref=${referralCode}`}
-              text={`Join me on Helpr! Use my referral code ${referralCode} and we both earn $5 after your first job.`}
+              text={`Join me on Helpr! Use my referral code ${referralCode} — once your first job is completed, we both earn $5.`}
               compact
             />
           </div>
@@ -206,7 +206,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your unique referral code with friends",
             "They enter it during signup to link the referral",
-            "When they complete their first job — as poster or crew — you both earn $5",
+            "Once their first job is completed — whether they posted it or worked it — you both earn $5",
             "Cash out credits directly to your connected Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">

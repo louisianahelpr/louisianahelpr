@@ -96,6 +96,68 @@ export type Database = {
           },
         ]
       }
+      broadcast_dismissals: {
+        Row: {
+          broadcast_id: string
+          dismissed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          broadcast_id: string
+          dismissed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string
+          dismissed_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_dismissals_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_messages: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          message: string
+          starts_at: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          message: string
+          starts_at?: string
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          message?: string
+          starts_at?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string

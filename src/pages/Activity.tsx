@@ -81,6 +81,7 @@ const Activity = () => {
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
+  const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<(Application & { profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null; reviewCount?: number; avgRating?: number })[]>([]);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
@@ -158,7 +159,17 @@ const Activity = () => {
       supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
     ]);
 
-    if (postedRes.data) setPostedJobs(postedRes.data);
+    if (postedRes.data) {
+      setPostedJobs(postedRes.data);
+      // Fetch applicant counts for posted jobs
+      const jobIds = postedRes.data.map(j => j.id);
+      if (jobIds.length > 0) {
+        const { data: allApps } = await supabase.from("applications").select("job_id").in("job_id", jobIds);
+        const counts: Record<string, number> = {};
+        allApps?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
+        setApplicantCounts(counts);
+      }
+    }
 
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];
@@ -616,6 +627,11 @@ const Activity = () => {
                           {job.title}
                         </h3>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
+                          {(applicantCounts[job.id] || 0) > 0 && (
+                            <span className="flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                              <Users className="w-3 h-3" /> {applicantCounts[job.id]}
+                            </span>
+                          )}
                           <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
                             <DollarSign className="w-3.5 h-3.5" />{job.budget}
                           </span>

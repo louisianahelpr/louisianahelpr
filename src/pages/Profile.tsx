@@ -1358,7 +1358,22 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
 );
 
 
-const tierConfig = [
+const LegalCard = ({ icon, title, children, variant }: { icon: React.ReactNode; title: string; children: React.ReactNode; variant?: "warning" }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`rounded-xl border p-4 transition-colors ${variant === "warning" ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-2 text-left">
+        <span className="flex items-center gap-2 font-display font-semibold text-foreground text-sm">
+          {icon} {title}
+        </span>
+        <ChevronRightIcon className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+      </button>
+      {open && <div className="text-sm text-muted-foreground space-y-1.5 mt-3 pt-3 border-t border-border/50">{children}</div>}
+    </div>
+  );
+};
+
+
   {
     id: "basic",
     name: "Basic",

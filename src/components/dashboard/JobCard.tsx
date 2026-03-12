@@ -16,6 +16,7 @@ interface JobCardProps {
   onApply: (jobId: string) => void;
   onReport: (jobId: string) => void;
   onSelect: (job: EnrichedJob) => void;
+  index?: number;
 }
 
 const categoryColors: Record<string, string> = {

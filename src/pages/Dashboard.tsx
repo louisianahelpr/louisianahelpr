@@ -205,6 +205,7 @@ const Dashboard = () => {
   const dayIndex = Math.floor(Date.now() / 86400000) % GREETING_MESSAGES.length;
 
   return (
+    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div className="min-h-screen bg-background pb-20">
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />

@@ -732,15 +732,14 @@ const Activity = () => {
                 </div>
               )}
 
-              {/* Applicants panel */}
-              {selectedJob && (
-                <div className="border border-border rounded-xl bg-card p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display font-semibold text-foreground">Applicants for "{selectedJob.title}"</h2>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedJob(null)}>Close</Button>
-                  </div>
+              {/* Applicants Dialog */}
+              <Dialog open={!!selectedJob} onOpenChange={(open) => { if (!open) setSelectedJob(null); }}>
+                <DialogContent className="max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="font-display">Applicants for "{selectedJob?.title}"</DialogTitle>
+                  </DialogHeader>
                   {applications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No applications yet.</p>
+                    <p className="text-sm text-muted-foreground py-4">No applications yet.</p>
                   ) : (
                     <div className="space-y-3">
                       {applications.map((app) => (
@@ -767,8 +766,8 @@ const Activity = () => {
                       ))}
                     </div>
                   )}
-                </div>
-              )}
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 

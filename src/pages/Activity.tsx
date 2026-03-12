@@ -688,6 +688,11 @@ const Activity = () => {
 
                         {/* Info grid */}
                         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                          {(applicantCounts[job.id] || 0) > 0 && (job.status === "open" || job.status === "accepted") && (
+                            <span className="flex items-center gap-1.5 text-primary font-medium">
+                              <Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}
+                            </span>
+                          )}
                           <span className="flex items-center gap-1.5 text-muted-foreground truncate">
                             <MapPin className="w-3 h-3 shrink-0" />
                             <span className="truncate">{job.location}</span>

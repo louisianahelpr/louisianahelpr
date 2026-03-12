@@ -713,41 +713,15 @@ const Activity = () => {
                             <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                           )}
                           {job.status === "completed" && (
-                              <div className="grid grid-cols-3 gap-2">
+                              <div className="flex items-center justify-center gap-2">
                                 {job.payment_status === "released" && job.helper_id && (
-                                  <button
-                                    onClick={() => {
-                                      setEnhancedTipJobId(job.id);
-                                      setEnhancedTipHelperName("");
-                                    }}
-                                    className="rounded-xl border border-border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm"
-                                  >
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Gift className="w-3.5 h-3.5 text-primary" />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-1">Tip</p>
-                                  </button>
+                                  <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
+                                    setEnhancedTipJobId(job.id);
+                                    setEnhancedTipHelperName("");
+                                  }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
                                 )}
-                                {job.helper_id && (
-                                  <button
-                                    onClick={() => openReviewForPosted(job)}
-                                    className="rounded-xl border border-border bg-card p-3 text-center transition-all cursor-pointer hover:border-accent/30 hover:shadow-sm"
-                                  >
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Star className="w-3.5 h-3.5 text-accent fill-accent" />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-1">Review</p>
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                                  className="rounded-xl border border-border bg-card p-3 text-center transition-all cursor-pointer hover:border-sky-500/30 hover:shadow-sm"
-                                >
-                                  <div className="flex items-center justify-center gap-1">
-                                    <RotateCcw className="w-3.5 h-3.5 text-sky-500" />
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground mt-1">Rebook</p>
-                                </button>
+                                {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
+                                <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
                               </div>
                           )}
                         </div>

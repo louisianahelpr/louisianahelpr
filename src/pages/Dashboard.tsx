@@ -234,7 +234,6 @@ const Dashboard = () => {
         const tenMinutes = 10 * 60 * 1000;
         if (jobAge < tenMinutes) return false;
       }
-      }
       return true;
     })
     .sort((a, b) => {

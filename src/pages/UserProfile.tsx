@@ -136,7 +136,7 @@ const UserProfile = () => {
       const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
       const jobIds = [...new Set(reviewsRes.data.map(r => r.job_id))];
       const [profilesRes, jobsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds),
+        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
         supabase.from("jobs").select("id, title").in("id", jobIds),
       ]);
       const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, p.full_name || "User"]) || []);

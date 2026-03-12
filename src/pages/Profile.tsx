@@ -597,9 +597,14 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* PROFILE TAB */}
           {tab === "profile" && (
             <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
-                <p className="text-muted-foreground text-sm mt-1">Keep your info up to date</p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
+                  <p className="text-muted-foreground text-sm">Keep your info up to date</p>
+                </div>
               </div>
 
               <form onSubmit={handleSave} className="space-y-4">

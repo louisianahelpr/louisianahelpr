@@ -49,6 +49,7 @@ const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user: cachedUser, profile: cachedProfile } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);

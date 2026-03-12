@@ -18,6 +18,7 @@ import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
@@ -389,32 +390,10 @@ function SupportInline({ userId }: { userId?: string }) {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-4">
-            {tab !== "landing" ? (
-              <Button variant="ghost" size="icon" onClick={() => setTab("landing")}>
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            )}
-            <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-          </div>
-          <div className="flex items-center gap-1">
-            {tab === "landing" && (
-              <Button variant="ghost" size="icon" onClick={() => setTab("referral")} title="Referral Program">
-                <Gift className="w-4 h-4" />
-              </Button>
-            )}
-            {tab === "landing" && (
-              <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut className="w-4 h-4" /></Button>
-            )}
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        showBack
+        onBack={tab !== "landing" ? () => setTab("landing") : () => navigate("/dashboard")}
+      />
 
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-lg mx-auto space-y-4">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -291,14 +292,7 @@ const PostJob = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Button variant="ghost" size="icon" onClick={() => step === "checkout" ? setStep("form") : navigate("/dashboard")}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-        </div>
-      </header>
+      <DashboardHeader showBack onBack={() => step === "checkout" ? setStep("form") : navigate("/dashboard")} />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-lg mx-auto space-y-8">

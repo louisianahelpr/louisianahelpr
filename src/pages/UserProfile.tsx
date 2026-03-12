@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -186,21 +187,7 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-          </div>
-          {!isOwnProfile && currentUserId && (
-            <Button variant="ghost" size="icon" onClick={toggleFavorite}>
-              {isFavorited ? <Heart className="w-4 h-4 fill-destructive text-destructive" /> : <Heart className="w-4 h-4" />}
-            </Button>
-          )}
-        </div>
-      </header>
+      <DashboardHeader showBack onBack={() => navigate(-1)} />
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-lg mx-auto space-y-5">

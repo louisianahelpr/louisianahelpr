@@ -99,41 +99,103 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            {isLateCancellation && <AlertTriangle className="w-5 h-5 text-destructive" />}
+            {isLateCancellation ? <AlertTriangle className="w-5 h-5 text-destructive" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
             Cancel Job
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {isLateCancellation && (
-            <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-              <p className="text-sm text-destructive font-medium">⚠️ Late Cancellation Warning</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                This job is within 24 hours. Late cancellations are tracked. A second late cancellation will result in a permanent ban.
-              </p>
-            </div>
-          )}
-          {cancellationFee > 0 && (
-            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
-              <p className="text-sm text-foreground font-medium">💰 Cancellation Fee: ${cancellationFee} ({cancellationFeePercent}% of budget)</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {isVeryLateCancellation
-                  ? "The job starts in less than 2 hours. A 50% fee applies to compensate the helper."
-                  : "The job is less than 24 hours away. A 25% fee applies to compensate the helper."}
-              </p>
-            </div>
-          )}
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to cancel "{jobTitle}"?
+            Are you sure you want to cancel <strong className="text-foreground">"{jobTitle}"</strong>?
           </p>
+
+          {/* Fee breakdown */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">What happens if you cancel</p>
+
+            {/* Fee tier explanation */}
+            <div className="space-y-2">
+              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${!isLateCancellation ? "bg-primary/10 border border-primary/20" : "bg-card border border-border"}`}>
+                <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${!isLateCancellation ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <p className="text-xs font-medium text-foreground">24+ hours before job — <span className="text-primary">Free</span></p>
+                  <p className="text-[11px] text-muted-foreground">No fee, no penalties.</p>
+                </div>
+                {!isLateCancellation && <span className="ml-auto text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">YOU</span>}
+              </div>
+
+              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${isLateCancellation && !isVeryLateCancellation ? "bg-accent/10 border border-accent/20" : "bg-card border border-border"}`}>
+                <DollarSign className={`w-4 h-4 mt-0.5 shrink-0 ${isLateCancellation && !isVeryLateCancellation ? "text-accent" : "text-muted-foreground"}`} />
+                <div>
+                  <p className="text-xs font-medium text-foreground">2–24 hours before — <span className="text-accent">25% fee</span></p>
+                  <p className="text-[11px] text-muted-foreground">25% of the job budget goes to the helper as compensation.</p>
+                </div>
+                {isLateCancellation && !isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">YOU</span>}
+              </div>
+
+              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${isVeryLateCancellation ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
+                <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isVeryLateCancellation ? "text-destructive" : "text-muted-foreground"}`} />
+                <div>
+                  <p className="text-xs font-medium text-foreground">Less than 2 hours — <span className="text-destructive">50% fee</span></p>
+                  <p className="text-[11px] text-muted-foreground">50% of the job budget. The helper has already prepared for this job.</p>
+                </div>
+                {isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
+              </div>
+            </div>
+
+            {/* Actual fee for this cancellation */}
+            {cancellationFee > 0 && (
+              <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 text-center">
+                <p className="text-lg font-bold text-foreground">${cancellationFee}</p>
+                <p className="text-xs text-muted-foreground">{cancellationFeePercent}% of ${jobBudget} budget</p>
+              </div>
+            )}
+            {cancellationFee === 0 && hasHelper && (
+              <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
+                <p className="text-sm font-semibold text-primary">No fee — you're cancelling with plenty of notice ✓</p>
+              </div>
+            )}
+            {!hasHelper && (
+              <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
+                <p className="text-sm font-semibold text-primary">No fee — no helper has been assigned yet ✓</p>
+              </div>
+            )}
+          </div>
+
+          {/* Consequences for late cancellations */}
+          {isLateCancellation && (
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+              <p className="text-xs font-semibold text-destructive uppercase tracking-wide flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5" /> Account consequences
+              </p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">1st late cancellation:</strong> Written warning recorded on your account. Admins are notified.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">2nd late cancellation:</strong> 7-day account suspension. You cannot post or accept jobs.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Ban className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">3rd late cancellation:</strong> Permanent ban from Helpr. This cannot be reversed.</p>
+                </div>
+              </div>
+              <p className="text-[11px] text-destructive/70 italic">
+                This cancellation will be recorded as a late cancellation on your account.
+              </p>
+            </div>
+          )}
+
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for cancellation (optional)" rows={2} />
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Keep Job</Button>
           <Button variant="destructive" onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? "Cancelling…" : isLateCancellation ? "Cancel Anyway" : "Cancel Job"}
+            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel & Pay $${cancellationFee}` : isLateCancellation ? "Cancel Anyway" : "Cancel Job"}
           </Button>
         </DialogFooter>
       </DialogContent>

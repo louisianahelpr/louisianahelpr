@@ -2,7 +2,19 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CreditCard, DollarSign, CheckCircle, AlertCircle, ExternalLink, Loader2, BanknoteIcon, Crown, Sparkles, Star, Zap } from "lucide-react";
+import { CreditCard, DollarSign, CheckCircle, AlertCircle, ExternalLink, Loader2, BanknoteIcon, Crown, Sparkles, Star, Zap, XCircle, CalendarDays } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -89,6 +101,8 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [subLoading, setSubLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [billingDay, setBillingDay] = useState<number | null>(null);
 
   useEffect(() => {
     checkConnectStatus();
@@ -162,7 +176,9 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const handleCheckout = async (tier: string) => {
     setCheckoutLoading(tier);
     try {
-      const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body: { tier } });
+      const body: any = { tier };
+      if (billingDay) body.billing_day = billingDay;
+      const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       if (data?.url) window.open(data.url, "_blank");
@@ -170,6 +186,21 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
       toast.error(err.message || "Failed to start checkout");
     } finally {
       setCheckoutLoading(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-pro-subscription");
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success(`Subscription will cancel at the end of your billing period.`);
+      checkSubscription();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel subscription");
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -204,7 +235,31 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
               <Loader2 className="w-4 h-4 animate-spin" /> Checking subscription…
             </div>
           ) : (
-            <>
+           <>
+              {/* Billing day selector — shown when no active subscription */}
+              {!currentTier && (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                  <CalendarDays className="w-5 h-5 text-primary shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Preferred billing date</p>
+                    <p className="text-xs text-muted-foreground">Choose which day of the month you'd like to be billed.</p>
+                  </div>
+                  <Select value={billingDay?.toString() ?? ""} onValueChange={(v) => setBillingDay(v ? Number(v) : null)}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue placeholder="Auto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Auto</SelectItem>
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                        <SelectItem key={d} value={d.toString()}>
+                          {d === 1 ? "1st" : d === 2 ? "2nd" : d === 3 ? "3rd" : `${d}th`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="grid gap-4">
                 {TIERS.map((tier) => {
                   const isActive = currentTier === tier.key;
@@ -268,13 +323,41 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                       Renews {new Date(subEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                     </p>
                   )}
-                  <Button variant="outline" onClick={handleManageSubscription} disabled={portalLoading} className="w-full">
-                    {portalLoading ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</>
-                    ) : (
-                      <><ExternalLink className="w-4 h-4 mr-2" /> Manage subscription</>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleManageSubscription} disabled={portalLoading} className="flex-1">
+                      {portalLoading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</>
+                      ) : (
+                        <><ExternalLink className="w-4 h-4 mr-2" /> Manage subscription</>
+                      )}
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" className="shrink-0">
+                          <XCircle className="w-4 h-4 mr-1" /> Cancel
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancel subscription?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Your subscription will remain active until the end of your current billing period. After that, you'll lose access to all premium features.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep subscription</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelSubscription}
+                            disabled={cancelLoading}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {cancelLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                            Yes, cancel
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               )}
             </>

@@ -592,15 +592,14 @@ const Activity = () => {
               ) : (
                 <div className="space-y-3">
                   {filteredPostedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3 className="font-semibold text-foreground">{job.title}</h3>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace(/_/g, " ")}</span>
-                            {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
-                          </div>
-                          <p className="text-sm text-muted-foreground">${job.budget} · {job.location}</p>
+                    <div key={job.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                      <div className="p-4">
+                        <h3 className="font-semibold text-foreground">{job.title}</h3>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
+                          <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
+                          {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
+                        </div>
                           {/* Show who has confirmed completion */}
                           {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                             <div className="mt-1 flex items-center gap-2 flex-wrap">

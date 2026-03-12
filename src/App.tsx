@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import FavoriteHelpers from "./pages/FavoriteHelpers";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Community from "./pages/Community";
 import ProtectedRoute from "./components/ProtectedRoute";
 import InstallPrompt from "./components/InstallPrompt";
 

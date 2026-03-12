@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";

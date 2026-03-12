@@ -302,7 +302,13 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                           </div>
                           <div>
                             <h3 className="font-display font-bold text-foreground">{tier.name}</h3>
-                            <p className="text-sm font-semibold text-primary">{tier.price}</p>
+                            <p className="text-sm font-semibold text-primary">{PRICING[billingCycle][tier.key].price}</p>
+                            {billingCycle === "annual" && (
+                              <p className="text-xs text-muted-foreground">{PRICING[billingCycle][tier.key].monthly}/mo · 2 months free</p>
+                            )}
+                            {billingCycle === "one_time" && (
+                              <p className="text-xs text-muted-foreground">No auto-renewal</p>
+                            )}
                           </div>
                         </div>
                         {!isActive && !currentTier && (

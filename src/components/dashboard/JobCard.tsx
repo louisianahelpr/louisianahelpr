@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send,
+  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send, Users, Repeat,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
@@ -48,6 +48,30 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   const isOwnJob = currentUserId === job.customer_id;
   const photos = job.photos || [];
 
+  // Parse city/state from location string (e.g. "Baton Rouge, LA" or "123 Main St, Baton Rouge, LA 70801")
+  const locationParts = job.location.split(",").map(s => s.trim());
+  let cityState = job.location;
+  if (locationParts.length >= 2) {
+    const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
+    const city = locationParts[locationParts.length - 2];
+    cityState = `${city}, ${state}`;
+  }
+
+  // Format start time
+  const formattedTime = job.start_time
+    ? job.start_time === "flexible"
+      ? "Flexible"
+      : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    : null;
+
+  // Expiry info
+  const expiryText = job.expires_at
+    ? new Date(job.expires_at) <= new Date()
+      ? "Expired"
+      : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"
+    : null;
+  const isExpiringSoon = job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -64,32 +88,49 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       }`}
       onClick={() => onToggleExpand?.(job.id)}
     >
-      {/* Header */}
+      {/* Header: title + price */}
       <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between gap-3">
-        <h3 className={`font-bold text-[15px] leading-snug min-w-0 ${catStyle.title} ${isExpanded ? "" : "truncate"}`}>
-          {job.title}
-        </h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className={`font-bold text-[15px] leading-snug min-w-0 ${catStyle.title} ${isExpanded ? "" : "truncate"}`}>
+            {job.title}
+          </h3>
+          {job.is_urgent && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider shrink-0">
+              <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
+            </span>
+          )}
+          {job.isBoosted && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-wider shrink-0">
+              <Rocket className="w-2.5 h-2.5" /> Boosted
+            </span>
+          )}
+        </div>
         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0">
           <DollarSign className="w-3.5 h-3.5" />{earnings}
         </span>
       </div>
 
-      {/* Always-visible summary: location, date, apply+flag */}
-      <div className="px-4 py-3 space-y-2.5">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {job.is_urgent && (
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
-              <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
+      {/* Always-visible summary: date, time, city/state, expiry */}
+      <div className="px-4 py-3 space-y-2">
+        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+          {/* Date */}
+          {job.special_requirements?.includes("[Flexible date]") ? (
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3 shrink-0" />
+              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
           )}
-          {job.isBoosted && (
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-              <Rocket className="w-2.5 h-2.5" /> Boosted
+          {/* Time */}
+          {formattedTime && (
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3 shrink-0" /> {formattedTime}
             </span>
           )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+          {/* City, State */}
           <a
             onClick={(e) => e.stopPropagation()}
             href={job.latitude && job.longitude
@@ -97,37 +138,21 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors truncate"
+            className="flex items-center gap-1 hover:text-primary transition-colors"
           >
             <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{job.location}</span>
+            <span className="truncate max-w-[140px]">{cityState}</span>
           </a>
-          {job.special_requirements?.includes("[Flexible date]") ? (
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Calendar className="w-3 h-3 shrink-0" />
-              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+          {/* Expiry */}
+          {expiryText && (
+            <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+              <Timer className="w-3 h-3 shrink-0" /> {expiryText}
             </span>
           )}
-        </div>
-
-        {/* Apply + Flag — always visible */}
-        <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-          {showApply && !isOwnJob && (
-            <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onApply(job.id)}>
-              <Send className="w-4 h-4 mr-1" /> Apply
-            </Button>
-          )}
-          <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => onReport(job.id)}>
-            <Flag className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 
-      {/* Expandable section — less important details */}
+      {/* Expandable section */}
       <div onClick={(e) => e.stopPropagation()} className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
         <div className="px-4 pb-4 space-y-3 border-t border-border/40">
           {/* Description */}
@@ -140,43 +165,26 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
           {/* Photos */}
           {photos.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pt-1 pb-1">
-              {photos.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                  <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
-                </a>
-              ))}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {photos.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                    <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                  </a>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Extra details grid */}
+          {/* Details grid */}
           <div className="grid grid-cols-2 gap-2">
-            {job.start_time && (
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
-                <p className="font-semibold text-foreground text-sm">
-                  {job.start_time === "flexible"
-                    ? "Flexible"
-                    : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-                </p>
-              </div>
-            )}
             {job.estimated_hours && (
               <div className="rounded-lg bg-secondary/30 p-2.5">
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
                 <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
               </div>
             )}
-            <div className="rounded-lg bg-secondary/30 p-2.5">
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Timer className="w-3 h-3" /> Expires</p>
-              <p className={`font-semibold text-sm ${job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24 ? "text-destructive" : "text-foreground"}`}>
-                {job.expires_at
-                  ? new Date(job.expires_at) <= new Date()
-                    ? "Expired"
-                    : formatDistanceToNow(new Date(job.expires_at), { addSuffix: true })
-                  : "No expiry"}
-              </p>
-            </div>
             <div className="rounded-lg bg-secondary/30 p-2.5">
               <p className="text-[10px] text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> You Earn</p>
               <p className="font-semibold text-primary text-sm">${earnings}</p>
@@ -190,6 +198,45 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               <p className="text-sm text-foreground">{job.special_requirements}</p>
             </div>
           )}
+
+          {/* Recurring info */}
+          {job.is_recurring && (
+            <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+              <Repeat className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] text-muted-foreground">Recurring Task</p>
+                <p className="text-sm font-medium text-foreground">
+                  {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Yes"}
+                  {job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Group job info */}
+          {job.is_group_job && (
+            <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+              <Users className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] text-muted-foreground">Group Task</p>
+                <p className="text-sm font-medium text-foreground">
+                  {job.helpers_needed ? `${job.helpers_needed} helpers needed` : "Multiple helpers needed"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Apply + Flag */}
+          <div className="flex items-center gap-2 pt-1">
+            {showApply && !isOwnJob && (
+              <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onApply(job.id)}>
+                <Send className="w-4 h-4 mr-1" /> Apply
+              </Button>
+            )}
+            <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => onReport(job.id)}>
+              <Flag className="w-4 h-4" />
+            </Button>
+          </div>
 
           {/* Poster info */}
           <div className="flex items-center gap-2 pt-2 border-t border-border/40 flex-wrap">

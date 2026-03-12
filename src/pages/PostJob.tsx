@@ -42,7 +42,10 @@ const PostJob = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
-  const [location, setLocation] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [zipCode, setZipCode] = useState("");
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");

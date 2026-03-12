@@ -1475,7 +1475,12 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+      <div className="flex items-center gap-3">
+        <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+      </div>
 
       {currentTier && (
         <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">

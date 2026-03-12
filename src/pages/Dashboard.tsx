@@ -453,17 +453,6 @@ const Dashboard = () => {
             </motion.section>
           )}
 
-          {/* Filters */}
-          <JobFilters
-            searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-            selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
-            maxBudget={maxBudget} setMaxBudget={setMaxBudget}
-            locationFilter={locationFilter} setLocationFilter={setLocationFilter}
-            sortBy={sortBy} setSortBy={setSortBy}
-            filtersOpen={filtersOpen} setFiltersOpen={setFiltersOpen}
-            expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
-          />
-
           {/* All Tasks section */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
@@ -471,6 +460,7 @@ const Dashboard = () => {
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
             className="space-y-3"
           >
+            {/* Header row with search & filter icons */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
@@ -485,12 +475,117 @@ const Dashboard = () => {
                   </span>
                 </div>
               </div>
-              {hasFilters && (
-                <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); setExpiresWithin(""); }} className="text-xs text-muted-foreground hover:text-destructive h-7 rounded-xl btn-press">
-                  <X className="w-3 h-3 mr-1" /> Clear
+              <div className="flex items-center gap-1">
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setSelectedCategory(null); setMaxBudget(""); setLocationFilter(""); setExpiresWithin(""); }} className="text-xs text-muted-foreground hover:text-destructive h-8 rounded-xl btn-press">
+                    <X className="w-3 h-3 mr-1" /> Clear
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
+                  className={`h-8 w-8 rounded-xl btn-press ${searchOpen || searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Search className="w-4 h-4" />
                 </Button>
-              )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
+                  className={`h-8 w-8 rounded-xl btn-press relative ${filtersOpen || (activeFilterCount > 0 && !searchQuery ? activeFilterCount > 0 : false) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
+
+            {/* Expandable search bar */}
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      autoFocus
+                      placeholder="Search tasks…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-card focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                    />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Expandable filters panel */}
+            <AnimatePresence>
+              {filtersOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="overflow-hidden"
+                >
+                  <JobFilters
+                    searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+                    selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+                    maxBudget={maxBudget} setMaxBudget={setMaxBudget}
+                    locationFilter={locationFilter} setLocationFilter={setLocationFilter}
+                    sortBy={sortBy} setSortBy={setSortBy}
+                    filtersOpen={true} setFiltersOpen={setFiltersOpen}
+                    expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Active filter chips */}
+            {!filtersOpen && (selectedCategory || locationFilter || maxBudget || expiresWithin) && (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedCategory && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                    {categoryLabels[selectedCategory]}
+                    <button onClick={() => setSelectedCategory(null)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {locationFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                    <MapPin className="w-3 h-3" />{locationFilter}
+                    <button onClick={() => setLocationFilter("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {maxBudget && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                    ≤ ${maxBudget}
+                    <button onClick={() => setMaxBudget("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {expiresWithin && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                    {expiresWithin}
+                    <button onClick={() => setExpiresWithin("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Job list */}
             {filteredJobs.length === 0 ? (

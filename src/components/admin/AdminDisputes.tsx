@@ -90,8 +90,6 @@ const AdminDisputes = () => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
-        <AlertTriangle className="w-5 h-5 text-destructive" /> Disputed Jobs ({disputes.length})
       </h2>
       {disputes.map((job) => (
         <div key={job.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">

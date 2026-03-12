@@ -307,8 +307,7 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-display font-bold text-foreground">Users</h2>
+      <div className="flex items-center justify-end">
         <span className="text-sm text-muted-foreground">{profiles.length} total</span>
       </div>
 

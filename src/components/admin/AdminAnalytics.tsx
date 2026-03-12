@@ -219,7 +219,7 @@ const AdminAnalytics = () => {
   // ─── Main dashboard ───
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-display font-bold text-foreground">Analytics Dashboard</h2>
+      
 
       {/* ── Row 1: Key Financial Metrics ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

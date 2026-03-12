@@ -150,7 +150,7 @@ const AdminSettings = () => {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-2xl font-display font-bold text-foreground">Platform Settings</h2>
+      
 
       {/* Platform Fee */}
       <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-5">

@@ -183,36 +183,27 @@ const Activity = () => {
         action_taken: actionTaken,
       });
 
-      // Apply penalties
+      // Apply penalties: 1st & 2nd = warning, 3rd = permanent ban
       if (actionTaken === "warning") {
+        const warningNum = priorCount + 1; // 1st or 2nd
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
         await supabase.from("notifications").insert({
           user_id: user.id,
-          title: "⚠️ Decline Warning",
-          message: "You've declined 3 job offers. Further declines may result in account suspension.",
+          title: `⚠️ Decline Warning (${warningNum}/2)`,
+          message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. One more decline will result in a permanent ban.`,
           type: "warning",
           link: "/profile",
         });
-        toast.warning("Warning: You've declined multiple job offers. Further declines may result in suspension.");
-      } else if (actionTaken === "temp_ban") {
-        await supabase.from("user_bans").insert({
-          user_id: user.id,
-          ban_type: "temporary",
-          reason: "Excessive job offer declines",
-          banned_by: user.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-        await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", user.id);
-        toast.error("Your account has been temporarily suspended for 7 days due to excessive declines.");
+        toast.warning(`Warning ${warningNum}/2: You've declined a job offer. A 3rd decline will result in a permanent ban.`);
       } else if (actionTaken === "permanent_ban") {
         await supabase.from("user_bans").insert({
           user_id: user.id,
           ban_type: "permanent",
-          reason: "Repeated job offer declines",
+          reason: "Declined 3 job offers after being selected",
           banned_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
-        toast.error("Your account has been permanently banned due to repeated declines.");
+        toast.error("Your account has been permanently banned due to 3 job offer declines.");
       }
 
       // Notify admins

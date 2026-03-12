@@ -7,9 +7,6 @@ const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
 
-// Check if an error is a rate-limit (429) response.
-// Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
-// falls back to parsing the error message for older versions.
 function isRateLimited(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
     return (error as { status: number }).status === 429
@@ -17,7 +14,6 @@ function isRateLimited(error: unknown): boolean {
   return error instanceof Error && error.message.includes('429')
 }
 
-// Extract Retry-After seconds from a structured EmailAPIError, or default to 60s.
 function getRetryAfterSeconds(error: unknown): number {
   if (error && typeof error === 'object' && 'retryAfterSeconds' in error) {
     return (error as { retryAfterSeconds: number | null }).retryAfterSeconds ?? 60
@@ -25,12 +21,42 @@ function getRetryAfterSeconds(error: unknown): number {
   return 60
 }
 
+// Send via Resend API for transactional emails
+async function sendWithResend(apiKey: string, payload: any): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: payload.from,
+      to: [payload.to],
+      subject: payload.subject,
+      html: payload.html,
+      text: payload.text,
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    const err: any = new Error(`Resend API error [${res.status}]: ${body}`)
+    err.status = res.status
+    if (res.status === 429) {
+      const retryAfter = res.headers.get('Retry-After')
+      err.retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : 60
+    }
+    throw err
+  }
+}
+
 Deno.serve(async (req) => {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
+  const resendApiKey = Deno.env.get('RESEND_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
@@ -38,8 +64,13 @@ Deno.serve(async (req) => {
     )
   }
 
-  // Auth: verify_jwt = true in config.toml — Supabase gateway validates the
-  // service role JWT from the pg_cron Authorization header before this runs.
+  if (!lovableApiKey && !resendApiKey) {
+    console.error('Neither LOVABLE_API_KEY nor RESEND_API_KEY configured')
+    return new Response(
+      JSON.stringify({ error: 'No email provider configured' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -65,7 +96,7 @@ Deno.serve(async (req) => {
 
   let totalProcessed = 0
 
-  // 2. Process auth_emails first (priority), then transactional_emails
+  // 2. Process auth_emails first (via Lovable), then transactional_emails (via Resend)
   for (const queue of ['auth_emails', 'transactional_emails']) {
     const dlq = `${queue}_dlq`
     const { data: messages, error: readError } = await supabase.rpc('read_email_batch', {
@@ -137,7 +168,7 @@ Deno.serve(async (req) => {
         continue
       }
 
-      // Guard: skip if another worker already sent this message (VT expired race)
+      // Guard: skip if another worker already sent this message
       if (payload.message_id) {
         const { data: alreadySent } = await supabase
           .from('email_send_log')
@@ -164,26 +195,31 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendLovableEmail(
-          {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            external_id: payload.external_id,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-          },
-          // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-          // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-          // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
-          { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-        )
+        if (queue === 'auth_emails' && lovableApiKey) {
+          // Auth emails use sendLovableEmail (run_id from webhook)
+          await sendLovableEmail(
+            {
+              run_id: payload.run_id,
+              to: payload.to,
+              from: payload.from,
+              sender_domain: payload.sender_domain,
+              subject: payload.subject,
+              html: payload.html,
+              text: payload.text,
+              purpose: payload.purpose,
+              label: payload.label,
+              external_id: payload.external_id,
+              idempotency_key: payload.idempotency_key,
+              unsubscribe_token: payload.unsubscribe_token,
+            },
+            { apiKey: lovableApiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
+          )
+        } else if (queue === 'transactional_emails' && resendApiKey) {
+          // Transactional emails use Resend directly
+          await sendWithResend(resendApiKey, payload)
+        } else {
+          throw new Error(`No API key for queue: ${queue}`)
+        }
 
         // Log success
         await supabase.from('email_send_log').insert({
@@ -211,7 +247,6 @@ Deno.serve(async (req) => {
           error: errorMsg,
         })
 
-        // Log every send failure to email_send_log for visibility
         await supabase.from('email_send_log').insert({
           message_id: payload.message_id,
           template_name: payload.label || queue,
@@ -232,17 +267,14 @@ Deno.serve(async (req) => {
             })
             .eq('id', 1)
 
-          // Stop processing — remaining messages stay in queue (VT expires, retried next cycle)
           return new Response(
             JSON.stringify({ processed: totalProcessed, stopped: 'rate_limited' }),
             { headers: { 'Content-Type': 'application/json' } }
           )
         }
-
-        // Non-429 errors: message stays invisible until VT expires, then retried
       }
 
-      // Small delay between sends to smooth bursts
+      // Small delay between sends
       if (i < messages.length - 1) {
         await new Promise((r) => setTimeout(r, sendDelayMs))
       }

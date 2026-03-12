@@ -195,7 +195,8 @@ const Dashboard = () => {
     }
   }, [user, allJobs, navigate]);
 
-  const hasFilters = [searchQuery, selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length > 0;
+  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length;
+  const hasFilters = activeFilterCount > 0 || !!searchQuery;
   const effectiveFee = platformFee;
 
   const filteredJobs = allJobs

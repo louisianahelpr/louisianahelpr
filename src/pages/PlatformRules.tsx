@@ -111,6 +111,91 @@ const PlatformRules = () => {
           </div>
         </section>
 
+        {/* Cancellation Strike System */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-accent" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Cancellation Strike System (Posters)</h2>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cancelling a job <strong className="text-foreground">after a helper has already been selected</strong> is taken seriously. 
+              Helpers commit their time and may turn down other opportunities. The following escalation applies:
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/10">
+                <span className="text-sm font-bold text-accent mt-0.5 shrink-0">1st</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Written warning (Strike 1/2)</p>
+                  <p className="text-xs text-muted-foreground">You'll receive a formal warning. The cancellation is recorded on your account and admins are notified.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/10">
+                <span className="text-sm font-bold text-accent mt-0.5 shrink-0">2nd</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Final warning (Strike 2/2)</p>
+                  <p className="text-xs text-muted-foreground">This is your last chance. Another cancellation after selecting a helper will result in a permanent ban.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                <span className="text-sm font-bold text-destructive mt-0.5 shrink-0">3rd</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Permanent ban</p>
+                  <p className="text-xs text-muted-foreground">Your account is permanently removed from Helpr. This decision is final and cannot be appealed.</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              Note: Cancelling a job that has <strong>no helper assigned yet</strong> does not count toward strikes. 
+              Cancellation fees still apply based on timing regardless of strikes.
+            </p>
+          </div>
+        </section>
+
+        {/* Job Denial Strike System */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+              <XCircle className="w-5 h-5 text-accent" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Job Denial Strike System (Helpers)</h2>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              If you're <strong className="text-foreground">selected for a job and decline it</strong>, it impacts the poster who chose you 
+              and delays their task. Declining after being selected follows the same escalation:
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/10">
+                <span className="text-sm font-bold text-accent mt-0.5 shrink-0">1st</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Written warning (Strike 1/2)</p>
+                  <p className="text-xs text-muted-foreground">A formal warning is recorded. Consider only applying to jobs you can commit to.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/10">
+                <span className="text-sm font-bold text-accent mt-0.5 shrink-0">2nd</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Final warning (Strike 2/2)</p>
+                  <p className="text-xs text-muted-foreground">This is your last chance. One more decline will permanently ban your account.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                <span className="text-sm font-bold text-destructive mt-0.5 shrink-0">3rd</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Permanent ban</p>
+                  <p className="text-xs text-muted-foreground">Your account is permanently removed from Helpr. This cannot be reversed.</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              Tip: Only apply to jobs you're confident you can complete. Withdrawing your application <strong>before</strong> being selected does not count as a decline.
+            </p>
+          </div>
+        </section>
+
         {/* No-Show Policy */}
         <section className="mb-10">
           <div className="flex items-center gap-3 mb-4">
@@ -120,15 +205,67 @@ const PlatformRules = () => {
             <h2 className="text-xl font-display font-bold text-foreground">No-Show Policy</h2>
           </div>
           <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 space-y-3">
-            <p className="text-sm font-semibold text-foreground">Zero tolerance — permanent ban</p>
+            <p className="text-sm font-semibold text-foreground">Zero tolerance — immediate permanent ban</p>
             <p className="text-sm text-muted-foreground">
               If a helper accepts a job and fails to show up without prior cancellation, their account will be 
-              <strong className="text-destructive"> permanently banned</strong> from Helpr. No exceptions.
+              <strong className="text-destructive"> permanently banned</strong> from Helpr. No warnings. No exceptions.
             </p>
             <p className="text-sm text-muted-foreground">
               The poster will receive a full refund. If you can't make it, cancel the job ahead of time — 
               even a late cancellation is better than a no-show.
             </p>
+          </div>
+        </section>
+
+        {/* Immediate Ban Offenses */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-destructive" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Immediate Ban Offenses</h2>
+          </div>
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              The following actions skip all warnings and result in an <strong className="text-destructive">immediate permanent ban</strong>:
+            </p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">No-show</strong> — accepting a job and not showing up</span></li>
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Fraud</strong> — fake profiles, falsified completion photos, or payment manipulation</span></li>
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Harassment or threats</strong> — abusive language, intimidation, or safety threats toward any user</span></li>
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Off-platform payments</strong> — attempting to arrange payment outside of Helpr</span></li>
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Identity fraud</strong> — using someone else's identity or fake ID documents</span></li>
+              <li className="flex items-start gap-2"><Ban className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> <span><strong className="text-foreground">Dispute system abuse</strong> — filing false disputes to avoid paying helpers</span></li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Job Editing Restrictions */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Job Editing Restrictions</h2>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <CheckCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Before a helper is selected</p>
+                <p className="text-xs text-muted-foreground">You can freely edit your job title, description, budget, date, and other details.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+              <XCircle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">After a helper is selected</p>
+                <p className="text-xs text-muted-foreground">
+                  Jobs cannot be edited once a helper has been accepted. This protects helpers from unexpected scope or budget changes. 
+                  If adjustments are needed, use the addon request feature or cancel and repost.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 

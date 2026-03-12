@@ -123,7 +123,6 @@ Deno.serve(async (req) => {
     try {
       await sendLovableEmail(
         {
-          run_id: crypto.randomUUID(),
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
           sender_domain: SENDER_DOMAIN,
@@ -133,7 +132,7 @@ Deno.serve(async (req) => {
           purpose: 'transactional',
           label: `notification_${type}`,
         },
-        { apiKey: apiKey || '', apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
+        { apiKey: apiKey || '', sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
       )
 
       await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)

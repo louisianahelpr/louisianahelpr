@@ -842,6 +842,7 @@ export type Database = {
           role: string
           skills: string | null
           stripe_account_id: string | null
+          subscription_tier: string | null
           updated_at: string
           user_id: string
         }
@@ -870,6 +871,7 @@ export type Database = {
           role?: string
           skills?: string | null
           stripe_account_id?: string | null
+          subscription_tier?: string | null
           updated_at?: string
           user_id: string
         }
@@ -898,6 +900,7 @@ export type Database = {
           role?: string
           skills?: string | null
           stripe_account_id?: string | null
+          subscription_tier?: string | null
           updated_at?: string
           user_id?: string
         }

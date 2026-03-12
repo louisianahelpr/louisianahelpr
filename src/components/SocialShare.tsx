@@ -29,7 +29,7 @@ const SocialShare = ({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-center gap-1.5">
         <Button variant="outline" size="icon" className="h-8 w-8" asChild>
           <a href={facebookLink} target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook">
             <Facebook className="w-3.5 h-3.5" />
@@ -43,7 +43,7 @@ const SocialShare = ({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       <Button variant="outline" size="sm" asChild>
         <a href={facebookLink} target="_blank" rel="noopener noreferrer">
           <Facebook className="w-4 h-4 mr-1.5" /> Facebook

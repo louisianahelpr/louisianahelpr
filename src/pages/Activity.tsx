@@ -171,9 +171,8 @@ const Activity = () => {
       const priorCount = existing?.length || 0;
 
       let actionTaken = "none";
-      if (priorCount >= 4) actionTaken = "permanent_ban";
-      else if (priorCount >= 3) actionTaken = "temp_ban";
-      else if (priorCount >= 2) actionTaken = "warning";
+      if (priorCount >= 2) actionTaken = "permanent_ban";
+      else if (priorCount >= 1) actionTaken = "warning";
 
       // Log the violation
       await supabase.from("user_violations").insert({
@@ -184,36 +183,27 @@ const Activity = () => {
         action_taken: actionTaken,
       });
 
-      // Apply penalties
+      // Apply penalties: 1st & 2nd = warning, 3rd = permanent ban
       if (actionTaken === "warning") {
+        const warningNum = priorCount + 1; // 1st or 2nd
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
         await supabase.from("notifications").insert({
           user_id: user.id,
-          title: "⚠️ Decline Warning",
-          message: "You've declined 3 job offers. Further declines may result in account suspension.",
+          title: `⚠️ Decline Warning (${warningNum}/2)`,
+          message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. One more decline will result in a permanent ban.`,
           type: "warning",
           link: "/profile",
         });
-        toast.warning("Warning: You've declined multiple job offers. Further declines may result in suspension.");
-      } else if (actionTaken === "temp_ban") {
-        await supabase.from("user_bans").insert({
-          user_id: user.id,
-          ban_type: "temporary",
-          reason: "Excessive job offer declines",
-          banned_by: user.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-        await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", user.id);
-        toast.error("Your account has been temporarily suspended for 7 days due to excessive declines.");
+        toast.warning(`Warning ${warningNum}/2: You've declined a job offer. A 3rd decline will result in a permanent ban.`);
       } else if (actionTaken === "permanent_ban") {
         await supabase.from("user_bans").insert({
           user_id: user.id,
           ban_type: "permanent",
-          reason: "Repeated job offer declines",
+          reason: "Declined 3 job offers after being selected",
           banned_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
-        toast.error("Your account has been permanently banned due to repeated declines.");
+        toast.error("Your account has been permanently banned due to 3 job offer declines.");
       }
 
       // Notify admins
@@ -589,10 +579,16 @@ const Activity = () => {
                           )}
                         </div>
                         <div className="flex gap-1.5 flex-wrap justify-end">
-                          {(job.status === "open" || job.status === "accepted") && (
+                          {job.status === "open" && (
                             <>
                               <Button size="sm" variant="outline" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                               <Button size="sm" variant="outline" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
+                            </>
+                          )}
+                          {job.status === "accepted" && (
+                            <>
                               <Button size="sm" variant="outline" onClick={() => loadApplications(job)}><Users className="w-4 h-4 mr-1" /> Applicants</Button>
                               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4" /></Button>
                             </>

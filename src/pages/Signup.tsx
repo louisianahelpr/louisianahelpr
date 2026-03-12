@@ -12,6 +12,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Signup = () => {
   const navigate = useNavigate();
+  usePageTitle("Sign Up — Helpr");
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);

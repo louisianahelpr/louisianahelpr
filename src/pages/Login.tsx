@@ -9,6 +9,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Login = () => {
   const navigate = useNavigate();
+  usePageTitle("Log In — Helpr");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

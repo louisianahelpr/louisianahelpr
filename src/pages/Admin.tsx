@@ -16,6 +16,7 @@ type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | 
 
 const Admin = () => {
   const { loading } = useAdminAuth();
+  usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
   const [stats, setStats] = useState({

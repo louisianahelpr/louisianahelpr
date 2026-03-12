@@ -276,7 +276,7 @@ const ProfilePage = () => {
 
   const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
-    { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
+    
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     
     
@@ -347,14 +347,14 @@ const ProfilePage = () => {
               </div>
 
               {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <button
                   onClick={() => setTab("reviews")}
                   className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                    <p className="text-xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
+                    <p className="text-lg font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
                   </div>
                   <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
@@ -362,15 +362,25 @@ const ProfilePage = () => {
                   onClick={() => { if (postedCount > 0) { loadInlineJobs(); setShowPostedJobs(!showPostedJobs); setShowCompletedJobs(false); } }}
                   className={`rounded-xl border bg-card p-3 text-center transition-all ${postedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
                 >
-                  <p className="text-xl font-bold text-foreground">{postedCount}</p>
+                  <p className="text-lg font-bold text-foreground">{postedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Posted</p>
                 </button>
                 <button
                   onClick={() => { if (completedCount > 0) { loadInlineJobs(); setShowCompletedJobs(!showCompletedJobs); setShowPostedJobs(false); } }}
                   className={`rounded-xl border bg-card p-3 text-center transition-all ${completedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showCompletedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
                 >
-                  <p className="text-xl font-bold text-foreground">{completedCount}</p>
+                  <p className="text-lg font-bold text-foreground">{completedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Completed</p>
+                </button>
+                <button
+                  onClick={() => { loadEarnings(); setTab("earnings"); }}
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-primary" />
+                    <p className="text-lg font-bold text-foreground">{totalEarned > 0 ? `${totalEarned.toFixed(0)}` : "—"}</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Earnings</p>
                 </button>
               </div>
 

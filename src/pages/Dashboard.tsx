@@ -87,6 +87,16 @@ const Dashboard = () => {
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;
     return true;
   });
+  // Seed from cached data for instant render
+  useEffect(() => {
+    if (cachedUser && !user) {
+      setUser(cachedUser);
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+        setIsAdmin(cachedIsAdmin);
+      }
+    }
+  }, [cachedUser, cachedProfile, cachedIsAdmin]);
 
   useEffect(() => {
     const init = async () => {

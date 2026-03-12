@@ -778,12 +778,14 @@ const Activity = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h3 className="font-semibold text-foreground">{app.job?.title || "Task"}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
-                            app.status === "accepted" ? "bg-primary/10 text-primary"
-                            : app.status === "rejected" ? "bg-destructive/10 text-destructive"
-                            : "bg-secondary text-secondary-foreground"
-                          }`}>{app.status}</span>
-                          {app.job && (
+                          {!(app.status === "accepted" && app.job?.status === "completed") && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
+                              app.status === "accepted" ? "bg-primary/10 text-primary"
+                              : app.status === "rejected" ? "bg-destructive/10 text-destructive"
+                              : "bg-secondary text-secondary-foreground"
+                            }`}>{app.status}</span>
+                          )}
+                          {app.job && app.job.status !== "completed" && (
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[app.job.status] || ""}`}>
                               {app.job.status.replace(/_/g, " ")}
                             </span>

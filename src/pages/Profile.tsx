@@ -86,6 +86,7 @@ const ProfilePage = () => {
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Inline job lists on landing
   const [showPostedJobs, setShowPostedJobs] = useState(false);

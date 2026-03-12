@@ -629,10 +629,8 @@ const Activity = () => {
                             </>
                           )}
                           {job.status === "cancelled" && <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>}
-                          {job.status === "completed" && job.helper_id && (
-                            <>
-                              <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
-                            </>
+                          {job.status === "completed" && job.payment_status !== "released" && job.helper_id && (
+                            <Button size="sm" variant="outline" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
                           )}
                         </div>
                       </div>

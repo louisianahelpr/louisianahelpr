@@ -27,7 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "history" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "support" | "retainers" | "notifications";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "favorites" | "support" | "retainers" | "notifications";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -81,12 +81,12 @@ const ProfilePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // History state
-  const [histPostedJobs, setHistPostedJobs] = useState<Job[]>([]);
-  const [histWorkedJobs, setHistWorkedJobs] = useState<Job[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [histTab, setHistTab] = useState<HistoryTab>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // Inline job lists on landing
+  const [showPostedJobs, setShowPostedJobs] = useState(false);
+  const [showCompletedJobs, setShowCompletedJobs] = useState(false);
+  const [inlinePostedJobs, setInlinePostedJobs] = useState<Job[]>([]);
+  const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
+  const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -171,7 +171,7 @@ const ProfilePage = () => {
     if (!user) return;
     if (tab === "earnings") loadEarnings();
     if (tab === "schedule") loadSchedule();
-    if (tab === "history") loadHistory();
+    if (tab === "reviews") loadReviews();
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
@@ -199,16 +199,15 @@ const ProfilePage = () => {
     setScheduleLoading(false);
   };
 
-  const loadHistory = async () => {
-    if (!user) return;
-    setHistoryLoading(true);
-    const [posted, worked] = await Promise.all([
-      supabase.from("jobs").select("*").eq("customer_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*").eq("helper_id", user.id).eq("status", "completed").order("created_at", { ascending: false }),
+  const loadInlineJobs = async () => {
+    if (!user || inlineJobsLoaded) return;
+    const [posted, completed] = await Promise.all([
+      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("jobs").select("*").or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
     ]);
-    if (posted.data) setHistPostedJobs(posted.data);
-    if (worked.data) setHistWorkedJobs(worked.data);
-    setHistoryLoading(false);
+    if (posted.data) setInlinePostedJobs(posted.data);
+    if (completed.data) setInlineCompletedJobs(completed.data);
+    setInlineJobsLoaded(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -274,23 +273,12 @@ const ProfilePage = () => {
   const selectedJobs = selectedDate ? (jobsByDate.get(selectedDate) || []) : [];
   const upcomingJobs = allScheduleJobs.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
 
-  // History calculations
-  const getHistoryJobs = () => {
-    let jobs: (Job & { _source: "posted" | "worked" })[] = [];
-    if (histTab === "all" || histTab === "posted") jobs = [...jobs, ...histPostedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
-    if (histTab === "all" || histTab === "worked") jobs = [...jobs, ...histWorkedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
-    const seen = new Set<string>();
-    jobs = jobs.filter((j) => { if (seen.has(j.id)) return false; seen.add(j.id); return true; });
-    if (statusFilter !== "all") jobs = jobs.filter((j) => j.status === statusFilter);
-    return jobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  };
-  const historyJobs = getHistoryJobs();
 
   const menuItems: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
     { key: "earnings", label: "Earnings", icon: <DollarSign className="w-5 h-5" />, desc: "Track income & tips" },
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
-    { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
+    
     { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
     
     { key: "retainers", label: "Retainer Agreements", icon: <CalendarHeart className="w-5 h-5" />, desc: "Recurring bookings" },
@@ -363,16 +351,66 @@ const ProfilePage = () => {
                   </div>
                   <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <button
+                  onClick={() => { if (postedCount > 0) { loadInlineJobs(); setShowPostedJobs(!showPostedJobs); setShowCompletedJobs(false); } }}
+                  className={`rounded-xl border bg-card p-3 text-center transition-all ${postedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                >
                   <p className="text-xl font-bold text-foreground">{postedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Posted</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                </button>
+                <button
+                  onClick={() => { if (completedCount > 0) { loadInlineJobs(); setShowCompletedJobs(!showCompletedJobs); setShowPostedJobs(false); } }}
+                  className={`rounded-xl border bg-card p-3 text-center transition-all ${completedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showCompletedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                >
                   <p className="text-xl font-bold text-foreground">{completedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Completed</p>
-                </div>
+                </button>
               </div>
 
+              {/* Inline Posted Jobs */}
+              {showPostedJobs && inlinePostedJobs.length > 0 && (
+                <div className="space-y-2 animate-fade-in">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Posted Jobs</p>
+                  {inlinePostedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-primary">${job.budget}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Inline Completed Jobs */}
+              {showCompletedJobs && inlineCompletedJobs.length > 0 && (
+                <div className="space-y-2 animate-fade-in">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Completed Jobs</p>
+                  {inlineCompletedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-primary">${job.budget}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 px-2"
+                          onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" /> Rebook
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* Vertical menu */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
                 {menuItems.map((item) => (
@@ -719,69 +757,6 @@ const ProfilePage = () => {
                 <p className="text-muted-foreground text-xs mb-4">Set your weekly availability so customers know when you're free</p>
                 {user && <HelperAvailability userId={user.id} />}
               </div>
-            </div>
-          )}
-
-          {/* HISTORY TAB */}
-          {tab === "history" && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground">Job History</h1>
-              {historyLoading ? (
-                <p className="text-muted-foreground">Loading…</p>
-              ) : (
-                <>
-                  <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-                    {(["all", "posted", "worked"] as HistoryTab[]).map((t) => (
-                      <button key={t} onClick={() => setHistTab(t)}
-                        className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${
-                          histTab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                        }`}>
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                  {historyJobs.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No jobs found.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">{historyJobs.length} job{historyJobs.length !== 1 ? "s" : ""}</p>
-                      {historyJobs.map((job) => (
-                        <div key={`${job.id}-${job._source}`} className="rounded-xl border border-border bg-card p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">{job._source === "posted" ? "Posted" : "Worked"}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-                                <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(job.created_at).toLocaleDateString()}</p>
-                              {job._source === "posted" && job.status === "completed" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs h-7 px-2"
-                                  onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                                >
-                                  <RotateCcw className="w-3 h-3 mr-1" /> Rebook
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
             </div>
           )}
 

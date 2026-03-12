@@ -35,8 +35,7 @@ const SupportPage = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
     });
-    });
-  }, [navigate]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

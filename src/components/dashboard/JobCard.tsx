@@ -20,17 +20,17 @@ interface JobCardProps {
   index?: number;
 }
 
-const categoryColors: Record<string, { badge: string; title: string }> = {
-  cleaning: { badge: "bg-sky-100 text-sky-700 border-sky-200", title: "text-sky-700" },
-  yard_work: { badge: "bg-emerald-100 text-emerald-700 border-emerald-200", title: "text-emerald-700" },
-  moving: { badge: "bg-violet-100 text-violet-700 border-violet-200", title: "text-violet-700" },
-  errands: { badge: "bg-amber-100 text-amber-700 border-amber-200", title: "text-amber-700" },
-  handyman: { badge: "bg-orange-100 text-orange-700 border-orange-200", title: "text-orange-700" },
-  painting: { badge: "bg-pink-100 text-pink-700 border-pink-200", title: "text-pink-700" },
-  delivery: { badge: "bg-indigo-100 text-indigo-700 border-indigo-200", title: "text-indigo-700" },
-  pet_care: { badge: "bg-rose-100 text-rose-700 border-rose-200", title: "text-rose-700" },
-  assembly: { badge: "bg-teal-100 text-teal-700 border-teal-200", title: "text-teal-700" },
-  other: { badge: "bg-slate-100 text-slate-700 border-slate-200", title: "text-slate-700" },
+const categoryColors: Record<string, { badge: string; title: string; accent: string }> = {
+  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700", accent: "from-sky-400/10 to-sky-500/5" },
+  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700", accent: "from-emerald-400/10 to-emerald-500/5" },
+  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700", accent: "from-violet-400/10 to-violet-500/5" },
+  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700", accent: "from-amber-400/10 to-amber-500/5" },
+  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", accent: "from-orange-400/10 to-orange-500/5" },
+  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700", accent: "from-pink-400/10 to-pink-500/5" },
+  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700", accent: "from-indigo-400/10 to-indigo-500/5" },
+  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700", accent: "from-rose-400/10 to-rose-500/5" },
+  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700", accent: "from-teal-400/10 to-teal-500/5" },
+  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", accent: "from-slate-400/10 to-slate-500/5" },
 };
 
 const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0 }: JobCardProps) => {
@@ -45,36 +45,40 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.5), ease: "easeOut" }}
-      className={`group relative rounded-2xl border bg-card transition-all duration-200 cursor-pointer hover:shadow-[var(--card-hover-shadow)] hover:-translate-y-0.5 overflow-hidden ${
+      transition={{ duration: 0.4, delay: Math.min(index * 0.07, 0.5), ease: [0.25, 0.46, 0.45, 0.94] }}
+      whileHover={{ y: -3 }}
+      className={`group relative rounded-2xl border bg-card cursor-pointer overflow-hidden transition-shadow duration-300 ${
         job.isBoosted
-          ? "border-primary/30 ring-1 ring-primary/10"
+          ? "border-primary/30 ring-1 ring-primary/10 shadow-[0_4px_20px_-4px_hsl(158_45%_42%/0.12)]"
           : job.is_urgent
-          ? "border-accent/30"
-          : "border-border hover:border-primary/20"
+          ? "border-accent/30 shadow-[var(--card-shadow)]"
+          : "border-border/60 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20"
       }`}
       onClick={() => onSelect(job)}
     >
+      {/* Category accent strip */}
+      <div className={`h-0.5 bg-gradient-to-r ${catStyle.accent}`} />
+
       {/* Top bar: title + earnings */}
-      <div className={`flex items-center justify-between px-4 py-2 border-b border-border/50 ${
-        job.isBoosted ? "bg-primary/5" : job.is_urgent ? "bg-accent/5" : "bg-muted/30"
+      <div className={`flex items-center justify-between px-4 py-2.5 ${
+        job.isBoosted ? "bg-primary/[0.03]" : job.is_urgent ? "bg-accent/[0.03]" : ""
       }`}>
         <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
           {job.title}
         </h3>
-        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-2">
+        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3 bg-primary/[0.06] px-2 py-0.5 rounded-full">
           <DollarSign className="w-3.5 h-3.5" />{earnings}
         </span>
       </div>
 
       {/* Main content */}
-      <div className="px-4 py-3 space-y-2">
+      <div className="px-4 py-3 space-y-2.5">
         {/* Tags + Apply */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               {job.is_urgent && (
                 <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
                   <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
@@ -91,15 +95,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             )}
           </div>
           {showApply && currentUserId !== job.customer_id && (
-            <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
                 onClick={() => onApply(job.id)}
-                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-sm gap-1 h-8 text-xs"
+                className="btn-press bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-sm gap-1 h-8 text-xs rounded-xl"
               >
                 Apply <ArrowRight className="w-3 h-3" />
               </Button>
-              <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-7" onClick={() => onReport(job.id)}>
+              <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-7 rounded-xl" onClick={() => onReport(job.id)}>
                 <Flag className="w-3 h-3" />
               </Button>
             </div>
@@ -162,7 +166,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       </div>
 
       {/* Footer: poster info + category */}
-      <div className="px-4 py-2 border-t border-border/50 bg-muted/20 flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span>
             by{" "}

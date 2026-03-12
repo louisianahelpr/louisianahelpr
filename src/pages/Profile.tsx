@@ -973,7 +973,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
 
           {/* SUPPORT TAB */}
           {tab === "support" && (
-            <SupportInline userId={user?.id} />
+            <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
           )}
 
           {tab === "notifications" && (

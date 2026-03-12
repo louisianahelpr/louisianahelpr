@@ -461,6 +461,7 @@ serve(async (req) => {
 
 /**
  * Capture the held (manual capture) payment for a job.
+ * Uses Stripe's native application_fee_amount + transfer_data for clean fee reporting.
  * Returns the payment intent ID.
  */
 async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): Promise<string | null> {
@@ -488,7 +489,33 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): 
   try {
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (pi.status === "requires_capture") {
-      await stripe.paymentIntents.capture(paymentIntentId);
+      // Get helper's connected Stripe account for native fee splitting
+      let captureParams: any = {};
+
+      if (job.helper_id) {
+        const { data: helperProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("stripe_account_id")
+          .eq("user_id", job.helper_id)
+          .single();
+
+        if (helperProfile?.stripe_account_id) {
+          const feeAmountCents = Math.round((job.platform_fee_amount || 0) * 100);
+
+          // Update the PaymentIntent with transfer destination before capturing
+          // This enables Stripe's native application fee tracking
+          await stripe.paymentIntents.update(paymentIntentId, {
+            transfer_data: {
+              destination: helperProfile.stripe_account_id,
+            },
+            application_fee_amount: feeAmountCents,
+          });
+
+          console.log(`Set native fee split: $${(job.platform_fee_amount || 0).toFixed(2)} fee, destination: ${helperProfile.stripe_account_id}`);
+        }
+      }
+
+      await stripe.paymentIntents.capture(paymentIntentId, captureParams);
       console.log(`Captured payment ${paymentIntentId} for job ${job.id}`);
     } else {
       console.log(`Payment ${paymentIntentId} status is ${pi.status}, no capture needed`);

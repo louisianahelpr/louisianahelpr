@@ -1,7 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield, Plus, Heart, Gift, HelpCircle } from "lucide-react";
+import { LogOut, Shield, Plus } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
+import FavoritesPanel from "@/components/FavoritesPanel";
+import ReferralPanel from "@/components/ReferralPanel";
+import SupportPanel from "@/components/SupportPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,15 +58,9 @@ const DashboardHeader = ({ isAdmin, showBack, onBack, title }: DashboardHeaderPr
           >
             <Plus className="w-4 h-4" /> Post task
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/favorites")} title="Favorite Helpers" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
-            <Heart className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/profile?tab=referral")} title="Referral Program" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
-            <Gift className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/support")} title="Help & Support" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
-            <HelpCircle className="w-4 h-4" />
-          </Button>
+          <FavoritesPanel />
+          <ReferralPanel />
+          <SupportPanel />
           <ThemeToggle />
           <NotificationPanel />
           <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">

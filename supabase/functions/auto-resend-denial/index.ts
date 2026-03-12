@@ -1,5 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,10 +7,33 @@ const corsHeaders = {
 
 const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "notify.louisianahelpr.com"
-const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
 
-function renderDenialReminderEmail(fullName: string, reason?: string, attemptNumber?: number): { html: string; text: string } {
+async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: params.from,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Resend API error [${res.status}]: ${body}`)
+  }
+
+  return await res.json()
+}
+
+function renderDenialReminderEmail(fullName: string, reason?: string): { html: string; text: string } {
   const siteUrl = `https://${ROOT_DOMAIN}`
   const reasonText = reason
     ? `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
@@ -50,17 +72,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured')
+      return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY')
-
-    // Find denied profiles where:
-    // - denial_email_count < 3
-    // - last_denial_email_at is more than 3 days ago
-    // - approval_status is still 'denied'
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
 
     const { data: profiles, error: fetchErr } = await supabase
@@ -93,13 +118,11 @@ Deno.serve(async (req) => {
       const newCount = (profile.denial_email_count || 0) + 1
       const { html, text } = renderDenialReminderEmail(
         profile.full_name || '',
-        profile.denial_reason || undefined,
-        newCount
+        profile.denial_reason || undefined
       )
 
       const messageId = crypto.randomUUID()
 
-      // Log pending
       await supabase.from('email_send_log').insert({
         message_id: messageId,
         template_name: 'denial_reminder',
@@ -107,22 +130,14 @@ Deno.serve(async (req) => {
         status: 'pending',
       })
 
-      // Send directly using sendLovableEmail
       try {
-        await sendLovableEmail(
-          {
-            run_id: crypto.randomUUID(),
-            to: profile.email,
-            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-            sender_domain: SENDER_DOMAIN,
-            subject: `Reminder: Update your Helpr profile to get approved`,
-            html,
-            text,
-            purpose: 'transactional',
-            label: 'denial_reminder',
-          },
-          { apiKey: apiKey || '', apiBaseUrl: Deno.env.get('LOVABLE_SEND_URL') || 'https://api.lovable.dev' }
-        )
+        await sendWithResend(resendApiKey, {
+          to: profile.email,
+          from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+          subject: `Reminder: Update your Helpr profile to get approved`,
+          html,
+          text,
+        })
 
         await supabase.from('email_send_log').update({
           status: 'sent',
@@ -140,7 +155,6 @@ Deno.serve(async (req) => {
         continue
       }
 
-      // Update tracking
       await supabase
         .from('profiles')
         .update({

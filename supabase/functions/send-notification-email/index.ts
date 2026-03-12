@@ -1,5 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,11 +7,9 @@ const corsHeaders = {
 
 const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "notify.louisianahelpr.com"
-const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
 const SITE_URL = `https://${ROOT_DOMAIN}`
 
-// Map notification types to preference columns
 const TYPE_TO_PREF: Record<string, string> = {
   application: 'email_job_applications',
   job_update: 'email_job_updates',
@@ -23,6 +20,30 @@ const TYPE_TO_PREF: Record<string, string> = {
   payment: 'email_payments',
   review: 'email_reviews',
   promotion: 'email_promotions',
+}
+
+async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: params.from,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Resend API error [${res.status}]: ${body}`)
+  }
+
+  return await res.json()
 }
 
 function renderNotificationEmail(title: string, message: string, link: string | null, userName: string): { html: string; text: string } {
@@ -52,7 +73,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('LOVABLE_API_KEY')
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured')
+      return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
@@ -66,7 +95,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Check user's email notification preference for this type
     const prefColumn = TYPE_TO_PREF[type] || 'email_system_alerts'
     
     const { data: prefs } = await supabase
@@ -75,14 +103,12 @@ Deno.serve(async (req) => {
       .eq('user_id', user_id)
       .single()
 
-    // If no prefs row or email is disabled for this type, skip
     if (!prefs || !(prefs as any)[prefColumn]) {
       return new Response(JSON.stringify({ skipped: true, reason: 'email_disabled' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Get user email and name
     const { data: profile } = await supabase
       .from('profiles')
       .select('email, full_name')
@@ -95,7 +121,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Check suppression list
     const { data: suppressed } = await supabase
       .from('suppressed_emails')
       .select('id')
@@ -111,7 +136,6 @@ Deno.serve(async (req) => {
     const { html, text } = renderNotificationEmail(title, message, link, profile.full_name || '')
     const messageId = crypto.randomUUID()
 
-    // Log pending
     await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: `notification_${type}`,
@@ -119,25 +143,14 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    // Use Lovable project ID as run_id for transactional emails
-    const runId = '215189c5-272d-4716-babd-430ab4187c14'
-
-    // Send email
     try {
-      await sendLovableEmail(
-        {
-          run_id: runId,
-          to: profile.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject: title,
-          html,
-          text,
-          purpose: 'transactional',
-          label: `notification_${type}`,
-        },
-        { apiKey: apiKey || '', sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-      )
+      await sendWithResend(resendApiKey, {
+        to: profile.email,
+        from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+        subject: title,
+        html,
+        text,
+      })
 
       await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
       console.log(`Notification email sent to ${profile.email}: ${title}`)
@@ -145,27 +158,9 @@ Deno.serve(async (req) => {
       const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
       console.error('Notification email failed:', errMsg)
 
-      // Fallback to queue
-      await supabase.rpc('enqueue_email', {
-        queue_name: 'transactional_emails',
-        payload: {
-          run_id: runId,
-          message_id: messageId,
-          to: profile.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject: title,
-          html,
-          text,
-          purpose: 'transactional',
-          label: `notification_${type}`,
-          queued_at: new Date().toISOString(),
-        },
-      })
-
       await supabase.from('email_send_log').update({
-        status: 'queued',
-        error_message: `Direct failed: ${errMsg}`,
+        status: 'failed',
+        error_message: errMsg,
       }).eq('message_id', messageId)
     }
 

@@ -1,5 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +9,30 @@ const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "notify.louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
+
+async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: params.from,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Resend API error [${res.status}]: ${body}`)
+  }
+
+  return await res.json()
+}
 
 function renderApprovedEmail(fullName: string): { html: string; text: string } {
   const siteUrl = `https://${ROOT_DOMAIN}`
@@ -80,11 +103,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is an admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured')
+      return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -111,7 +142,6 @@ Deno.serve(async (req) => {
 
     const adminId = claims.claims.sub as string
 
-    // Verify admin role
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
       _user_id: adminId,
       _role: 'admin',
@@ -133,7 +163,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get user profile for name and email
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('full_name, email')
@@ -156,9 +185,7 @@ Deno.serve(async (req) => {
       : 'Helpr Account Update'
 
     const messageId = crypto.randomUUID()
-    const apiKey = Deno.env.get('LOVABLE_API_KEY')
 
-    // Log pending
     await supabaseAdmin.from('email_send_log').insert({
       message_id: messageId,
       template_name: `account_${status}`,
@@ -166,7 +193,6 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    // Reset denial tracking on approval
     if (status === 'approved') {
       await supabaseAdmin.from('profiles').update({
         denial_email_count: 0,
@@ -175,68 +201,33 @@ Deno.serve(async (req) => {
       }).eq('user_id', userId)
     }
 
-    // Use Lovable project ID as run_id for transactional emails
-    const runId = '215189c5-272d-4716-babd-430ab4187c14'
-
-    // Send email using sendLovableEmail
     try {
-      await sendLovableEmail(
-        {
-          run_id: runId,
-          to: profile.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject,
-          html,
-          text,
-          purpose: 'transactional',
-          label: `account_${status}`,
-        },
-        { apiKey: apiKey || '', sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-      )
+      await sendWithResend(resendApiKey, {
+        to: profile.email,
+        from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+        subject,
+        html,
+        text,
+      })
 
-      // Mark as sent
       await supabaseAdmin.from('email_send_log').update({
         status: 'sent',
       }).eq('message_id', messageId)
 
-      console.log(`Account ${status} email sent directly to ${profile.email}`)
+      console.log(`Account ${status} email sent to ${profile.email}`)
     } catch (sendErr) {
       const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
-      console.error('Direct email send failed, falling back to queue:', errMsg)
+      console.error('Email send failed:', errMsg)
 
-      // Fallback: enqueue to transactional_emails queue
-      const { error: enqueueError } = await supabaseAdmin.rpc('enqueue_email', {
-        queue_name: 'transactional_emails',
-        payload: {
-          run_id: runId,
-          message_id: messageId,
-          to: profile.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject,
-          html,
-          text,
-          purpose: 'transactional',
-          label: `account_${status}`,
-          queued_at: new Date().toISOString(),
-        },
+      await supabaseAdmin.from('email_send_log').update({
+        status: 'failed',
+        error_message: errMsg,
+      }).eq('message_id', messageId)
+
+      return new Response(JSON.stringify({ error: 'Failed to send email', details: errMsg }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
-
-      if (enqueueError) {
-        console.error('Failed to enqueue email', enqueueError)
-        await supabaseAdmin.from('email_send_log').update({
-          status: 'failed',
-          error_message: `Direct: ${errMsg}; Queue: ${enqueueError.message}`,
-        }).eq('message_id', messageId)
-
-        return new Response(JSON.stringify({ error: 'Failed to send email' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      console.log(`Account ${status} email enqueued for ${profile.email}`)
     }
 
     return new Response(JSON.stringify({ success: true }), {

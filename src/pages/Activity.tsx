@@ -1014,7 +1014,7 @@ const Activity = () => {
 
       {/* Poster reviewing helper */}
       {reviewJob && reviewTarget && (
-        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
+        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); if (user) loadData(user.id); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
       )}
 
       {/* Helper reviewing poster */}

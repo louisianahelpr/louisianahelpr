@@ -53,7 +53,7 @@ const JobFilters = ({
   };
 
   return (
-    <div className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden">
+    <div className="overflow-hidden">
       <div className="space-y-4 px-4 py-3">
         {/* Category pills */}
         <div>

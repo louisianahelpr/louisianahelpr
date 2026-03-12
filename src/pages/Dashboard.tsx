@@ -72,6 +72,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProHelpr, setIsProHelpr] = useState(false);
+  const [helprTier, setHelprTier] = useState<string | null>(null);
 
   // Enable realtime push notifications
   useRealtimePush(user?.id ?? null);

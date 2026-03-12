@@ -1,25 +1,23 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, Users, Briefcase, TrendingUp } from "lucide-react";
+import { CheckCircle, Users, TrendingUp } from "lucide-react";
 
 const SocialProofSection = () => {
-  const [stats, setStats] = useState({ completedJobs: 0, totalHelpers: 0, totalCustomers: 0, avgRating: 0 });
+  const [stats, setStats] = useState({ completedJobs: 0, totalUsers: 0, avgRating: 0 });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const loadStats = async () => {
-      const [jobsRes, helpersRes, customersRes, reviewsRes] = await Promise.all([
+      const [jobsRes, usersRes, reviewsRes] = await Promise.all([
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "helper").eq("approval_status", "approved"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("reviews").select("rating"),
       ]);
 
       const ratings = reviewsRes.data?.map(r => r.rating) || [];
       setStats({
         completedJobs: jobsRes.count || 0,
-        totalHelpers: helpersRes.count || 0,
-        totalCustomers: customersRes.count || 0,
+        totalUsers: usersRes.count || 0,
         avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
       });
       setLoaded(true);
@@ -48,15 +46,14 @@ const SocialProofSection = () => {
 
   const items = [
     { icon: CheckCircle, value: stats.completedJobs, label: "Jobs completed", suffix: "+" },
-    { icon: Users, value: stats.totalHelpers, label: "Verified helprs", suffix: "+" },
-    { icon: Briefcase, value: stats.totalCustomers, label: "Happy customers", suffix: "+" },
+    { icon: Users, value: stats.totalUsers, label: "Users", suffix: "+" },
     { icon: TrendingUp, value: parseFloat(stats.avgRating.toFixed(1)) || 4.9, label: "Average rating", suffix: "★" },
   ];
 
   return (
     <section className="py-16 px-4 border-t border-border">
       <div className="container mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-3 gap-6 max-w-3xl mx-auto">
           {items.map((item, i) => (
             <div
               key={item.label}

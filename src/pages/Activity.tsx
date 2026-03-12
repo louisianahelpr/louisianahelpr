@@ -537,7 +537,7 @@ const Activity = () => {
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", job.helper_id);
       }
 
-      await supabase.from("notifications").insert({
+      await createNotification({
         user_id: job.helper_id,
         title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning",
         message: priorCount >= 1

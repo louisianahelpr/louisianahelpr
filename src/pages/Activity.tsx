@@ -808,7 +808,7 @@ const Activity = () => {
                             }`}>{app.status}</span>
                           )}
                           {app.job && app.job.status !== "completed" && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[app.job.status] || ""}`}>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusBadge[app.job.status] || ""}`}>
                               {app.job.status.replace(/_/g, " ")}
                             </span>
                           )}

@@ -99,9 +99,17 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
-            <span className="flex items-center gap-1 text-muted-foreground">
+            <a
+              href={job.latitude && job.longitude
+                ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
+                : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline"
+            >
               <MapPin className="w-3.5 h-3.5" /> {job.location}
-            </span>
+            </a>
             <span className="flex items-center gap-1 text-muted-foreground">
               <Calendar className="w-3.5 h-3.5" /> {new Date(job.date_needed).toLocaleDateString()}
             </span>

@@ -622,7 +622,6 @@ const Activity = () => {
                           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
                         </div>
                       </button>
-                      </div>
 
                       {/* Main content */}
                       <div className="px-4 py-3 space-y-2.5">

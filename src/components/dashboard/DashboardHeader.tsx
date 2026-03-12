@@ -1,14 +1,17 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield, Briefcase, Heart, Plus } from "lucide-react";
+import { LogOut, Shield, Plus, Heart, Gift, HelpCircle } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardHeaderProps {
-  isAdmin: boolean;
+  isAdmin?: boolean;
+  showBack?: boolean;
+  onBack?: () => void;
+  title?: string;
 }
 
-const DashboardHeader = ({ isAdmin }: DashboardHeaderProps) => {
+const DashboardHeader = ({ isAdmin, showBack, onBack, title }: DashboardHeaderProps) => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -19,14 +22,25 @@ const DashboardHeader = ({ isAdmin }: DashboardHeaderProps) => {
   return (
     <header className="sticky top-0 z-40 glass border-b border-border/30">
       <div className="container mx-auto flex items-center justify-between h-14 px-4">
-        <Link to="/dashboard" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
-            <span className="text-primary-foreground font-bold text-sm">H</span>
-          </div>
-          <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Helpr
-          </span>
-        </Link>
+        <div className="flex items-center gap-2">
+          {showBack && (
+            <Button variant="ghost" size="icon" onClick={onBack || (() => navigate("/dashboard"))} className="rounded-xl h-9 w-9">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </Button>
+          )}
+          {title ? (
+            <span className="text-lg font-display font-bold text-foreground">{title}</span>
+          ) : (
+            <Link to="/dashboard" className="flex items-center gap-2 group">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
+                <span className="text-primary-foreground font-bold text-sm">H</span>
+              </div>
+              <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Helpr
+              </span>
+            </Link>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           {isAdmin && (
             <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-xl h-9 w-9">
@@ -40,8 +54,14 @@ const DashboardHeader = ({ isAdmin }: DashboardHeaderProps) => {
           >
             <Plus className="w-4 h-4" /> Post task
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/favorites")} title="Favorite Helprs" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/favorites")} title="Favorite Helpers" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
             <Heart className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/profile?tab=referral")} title="Referral Program" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
+            <Gift className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/support")} title="Help & Support" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
+            <HelpCircle className="w-4 h-4" />
           </Button>
           <NotificationPanel />
           <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">

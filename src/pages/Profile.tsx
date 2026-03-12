@@ -1112,9 +1112,9 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
       {/* Billing Interval Toggle */}
       <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-muted">
         {([
+          { key: "lifetime", label: "One-Time" },
           { key: "monthly", label: "Monthly" },
           { key: "annual", label: "Annual" },
-          { key: "lifetime", label: "One-Time" },
         ] as const).map((opt) => (
           <button
             key={opt.key}

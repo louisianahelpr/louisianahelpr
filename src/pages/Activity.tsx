@@ -592,11 +592,13 @@ const Activity = () => {
               ) : (
                 <div className="space-y-3">
                   {filteredPostedJobs.map((job) => (
-                    <div key={job.id} className={`rounded-xl border overflow-hidden relative ${
-                      job.status === "open" ? "border-primary/30 bg-gradient-to-br from-primary/5 to-card" :
-                      job.status === "in_progress" || job.status === "accepted" ? "border-accent/30 bg-gradient-to-br from-accent/10 to-card" :
-                      job.status === "completed" ? "border-green-500/30 bg-gradient-to-br from-green-500/5 to-card" :
-                      job.status === "cancelled" ? "border-destructive/20 bg-gradient-to-br from-destructive/5 to-card" :
+                    <div key={job.id} className={`rounded-2xl border-2 overflow-hidden relative shadow-sm transition-all hover:shadow-md ${
+                      job.status === "open" ? "border-primary/40 bg-gradient-to-br from-primary/10 via-primary/5 to-card" :
+                      job.status === "in_progress" || job.status === "accepted" ? "border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-card" :
+                      job.status === "completed" ? "border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-400/5 to-card" :
+                      job.status === "revision_requested" ? "border-orange-500/40 bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-card" :
+                      job.status === "cancelled" ? "border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-card" :
+                      job.status === "disputed" ? "border-red-500/40 bg-gradient-to-br from-red-500/10 via-red-400/5 to-card" :
                       "border-border bg-card"
                     }`}>
 

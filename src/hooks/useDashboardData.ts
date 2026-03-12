@@ -148,8 +148,12 @@ export function useDashboardData() {
     return () => subscription.unsubscribe();
   }, [loadData]);
 
+  const refresh = useCallback(async () => {
+    if (user) await loadData(user.id);
+  }, [user, loadData]);
+
   return {
     user, profile, isAdmin, loading, helprTier,
-    allJobs, platformFee, helperAvailability, recommendedJobs,
+    allJobs, platformFee, helperAvailability, recommendedJobs, refresh,
   };
 }

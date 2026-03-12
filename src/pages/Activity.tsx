@@ -518,10 +518,10 @@ const Activity = () => {
   ];
 
   const appliedStatusFilters = [
-    { key: "pending", label: "Pending" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "completed", label: "Completed" },
-    { key: "rejected", label: "Rejected" },
+    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
+    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ];
 
   const filteredPostedJobs = !statusFilter

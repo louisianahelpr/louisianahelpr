@@ -271,7 +271,22 @@ const Signup = () => {
                 </p>
               )}
             </div>
-            <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)}>
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Checkbox
+                id="policies"
+                checked={acceptedPolicies}
+                onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="policies" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                I agree to the{" "}
+                <Link to="/rules" target="_blank" className="text-primary hover:underline font-medium">Platform Rules</Link>,{" "}
+                <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">Terms of Service</Link>, and{" "}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+                I understand the cancellation, no-show, and dispute policies.
+              </label>
+            </div>
+            <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)} disabled={!acceptedPolicies}>
               Continue <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>

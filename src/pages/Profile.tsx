@@ -233,6 +233,43 @@ const ProfilePage = () => {
     else toast.success("Profile updated!");
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+
+    setAvatarUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `avatars/${user.id}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("user-documents")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error("Upload failed: " + uploadError.message);
+      setAvatarUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("user-documents").getPublicUrl(path);
+    const avatarUrl = urlData.publicUrl + "?t=" + Date.now();
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: avatarUrl })
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      toast.error("Failed to save avatar");
+    } else {
+      setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
+      toast.success("Profile picture updated!");
+    }
+    setAvatarUploading(false);
+  };
+
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   if (loading) {

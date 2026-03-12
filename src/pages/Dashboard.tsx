@@ -299,7 +299,12 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           {/* Welcome section */}
-          <div className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-display font-bold text-foreground">
@@ -319,7 +324,7 @@ const Dashboard = () => {
                 <Briefcase className="w-4 h-4" /> Post
               </Button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Invite Friends Banner */}
           {user && <InviteBanner userId={user.id} />}

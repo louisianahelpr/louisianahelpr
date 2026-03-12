@@ -578,7 +578,7 @@ const Dashboard = () => {
             </AnimatePresence>
 
             {/* Active filter chips */}
-            {!filtersOpen && (selectedCategory || locationFilter || maxBudget || expiresWithin) && (
+            {!filtersOpen && (selectedCategory || locationFilter || maxBudget || expiresWithin || matchAvailability) && (
               <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
                 {selectedCategory && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">

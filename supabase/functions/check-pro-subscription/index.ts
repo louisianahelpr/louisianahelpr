@@ -56,6 +56,9 @@ serve(async (req) => {
       const productId = sub.items.data[0]?.price.product as string;
       const tier = PRODUCT_TO_TIER[productId];
       if (tier) {
+        // Sync tier to profile
+        await supabaseClient.from("profiles").update({ subscription_tier: tier }).eq("email", user.email);
+        
         return new Response(JSON.stringify({
           subscribed: true,
           tier,
@@ -66,6 +69,9 @@ serve(async (req) => {
         });
       }
     }
+
+    // No active sub — clear tier from profile
+    await supabaseClient.from("profiles").update({ subscription_tier: null }).eq("email", user.email);
 
     return new Response(JSON.stringify({ subscribed: false, tier: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

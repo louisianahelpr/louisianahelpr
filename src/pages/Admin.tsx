@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
@@ -12,8 +12,9 @@ import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
+import AdminNotifications from "@/components/admin/AdminNotifications";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -66,7 +67,7 @@ const Admin = () => {
 
   const viewLabels: Record<View, string> = {
     home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts", notifications: "Notifications",
   };
 
   const header = (
@@ -112,6 +113,7 @@ const Admin = () => {
           {view === "settings" && <AdminSettings />}
           {view === "disputes" && <AdminDisputes />}
           {view === "broadcasts" && <AdminBroadcasts />}
+          {view === "notifications" && <AdminNotifications />}
         </div>
       </div>
     );
@@ -139,6 +141,10 @@ const Admin = () => {
     {
       id: "broadcasts", label: "Broadcasts", description: "Send announcements to all users",
       icon: <Megaphone className="w-5 h-5" />,
+    },
+    {
+      id: "notifications", label: "Notifications", description: "Choose which alerts you receive",
+      icon: <BellRing className="w-5 h-5" />,
     },
     {
       id: "settings", label: "Settings", description: "Platform configuration",

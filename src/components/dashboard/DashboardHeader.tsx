@@ -4,7 +4,6 @@ import { LogOut, Shield, Plus, Heart, Gift, HelpCircle } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardHeaderProps {
   isAdmin?: boolean;

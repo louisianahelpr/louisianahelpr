@@ -767,18 +767,6 @@ const ProfilePage = () => {
             <SubscriptionTab profile={profile} user={user} />
           )}
 
-          {/* FAVORITES TAB */}
-          {tab === "favorites" && user && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-                <Heart className="w-6 h-6 text-primary" /> Favorite Helpers
-              </h1>
-              <p className="text-sm text-muted-foreground">View and manage your saved helpers.</p>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/favorites")}>
-                View All Favorites
-              </Button>
-            </div>
-          )}
 
 
 

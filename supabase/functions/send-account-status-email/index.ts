@@ -179,6 +179,7 @@ Deno.serve(async (req) => {
     try {
       await sendLovableEmail(
         {
+          run_id: crypto.randomUUID(),
           to: profile.email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
           sender_domain: SENDER_DOMAIN,

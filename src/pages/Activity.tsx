@@ -64,7 +64,7 @@ const Activity = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
@@ -511,7 +511,6 @@ const Activity = () => {
   }
 
   const postedStatusFilters = [
-    { key: "all", label: "All" },
     { key: "open", label: "Open" },
     { key: "accepted", label: "Accepted" },
     { key: "in_progress", label: "In Progress" },
@@ -521,24 +520,18 @@ const Activity = () => {
   ];
 
   const appliedStatusFilters = [
-    { key: "all", label: "All" },
     { key: "pending", label: "Pending" },
     { key: "accepted", label: "Accepted" },
     { key: "rejected", label: "Rejected" },
   ];
 
-  const filteredPostedJobs = statusFilter === "all"
+  const filteredPostedJobs = !statusFilter
     ? postedJobs
     : postedJobs.filter((j) => j.status === statusFilter);
 
-  const filteredAppliedApps = statusFilter === "all"
+  const filteredAppliedApps = !statusFilter
     ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending" || statusFilter === "accepted" || statusFilter === "rejected") {
-          return a.status === statusFilter;
-        }
-        return true;
-      });
+    : appliedApps.filter((a) => a.status === statusFilter);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },
@@ -557,7 +550,7 @@ const Activity = () => {
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter("all"); }}
+              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(""); }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
                 <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
@@ -565,11 +558,11 @@ const Activity = () => {
             ))}
           </div>
 
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex flex-wrap gap-1.5">
             {activeStatusFilters.map((f) => (
               <button
                 key={f.key}
-                onClick={() => setStatusFilter(f.key)}
+                onClick={() => setStatusFilter(statusFilter === f.key ? "" : f.key)}
                 className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   statusFilter === f.key
                     ? "bg-primary text-primary-foreground"

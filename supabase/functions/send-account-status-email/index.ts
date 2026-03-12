@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 const SITE_NAME = "Helpr"
-const SENDER_DOMAIN = "notify.louisianahelpr.com"
+const SENDER_DOMAIN = "louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
 

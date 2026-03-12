@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert } from "lucide-react";

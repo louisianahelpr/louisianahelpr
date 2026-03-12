@@ -1037,6 +1037,108 @@ function SupportInline({ userId }: { userId?: string }) {
                   </div>
                 </div>
 
+                {/* Cancellation Policy */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-destructive" /> Cancellation Policy
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Free Cancellation:</strong> Cancel 24+ hours before the job at no charge.</p>
+                    <p><strong className="text-foreground">Late Cancellation (&lt;24h):</strong> 25% cancellation fee applied to compensate the helper.</p>
+                    <p><strong className="text-foreground">Very Late Cancellation (&lt;2h):</strong> 50% cancellation fee applied.</p>
+                  </div>
+                </div>
+
+                {/* Cancellation Strike System */}
+                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-destructive" /> Cancellation Strikes (Posters)
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Cancelling a job <strong className="text-foreground">after a helper has been selected</strong> triggers escalating penalties:</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• <strong className="text-accent">1st cancellation:</strong> Written warning (Strike 1/2)</p>
+                    <p>• <strong className="text-accent">2nd cancellation:</strong> Final warning (Strike 2/2)</p>
+                    <p>• <strong className="text-destructive">3rd cancellation:</strong> Permanent account ban</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">Cancelling jobs with no helper assigned does not count toward strikes.</p>
+                </div>
+
+                {/* Denial Strike System */}
+                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Ban className="w-4 h-4 text-destructive" /> Job Denial Strikes (Helpers)
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Declining a job <strong className="text-foreground">after being selected</strong> triggers escalating penalties:</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• <strong className="text-accent">1st decline:</strong> Written warning (Strike 1/2)</p>
+                    <p>• <strong className="text-accent">2nd decline:</strong> Final warning (Strike 2/2)</p>
+                    <p>• <strong className="text-destructive">3rd decline:</strong> Permanent account ban</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">Withdrawing your application before being selected does not count.</p>
+                </div>
+
+                {/* No-Show Policy */}
+                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Ban className="w-4 h-4 text-destructive" /> No-Show Policy
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    If a helper accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.
+                  </p>
+                </div>
+
+                {/* Immediate Ban Offenses */}
+                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-destructive" /> Immediate Ban Offenses
+                  </h2>
+                  <p className="text-sm text-muted-foreground">These skip all warnings and result in an immediate permanent ban:</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• <strong className="text-foreground">No-show</strong> — accepting a job and not showing up</p>
+                    <p>• <strong className="text-foreground">Fraud</strong> — fake profiles, falsified photos, or payment manipulation</p>
+                    <p>• <strong className="text-foreground">Harassment or threats</strong> — abusive language, intimidation, or safety threats</p>
+                    <p>• <strong className="text-foreground">Off-platform payments</strong> — arranging payment outside of Helpr</p>
+                    <p>• <strong className="text-foreground">Identity fraud</strong> — using someone else's identity or fake ID</p>
+                    <p>• <strong className="text-foreground">Dispute abuse</strong> — filing false disputes to avoid paying</p>
+                  </div>
+                </div>
+
+                {/* Job Editing Restrictions */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" /> Job Editing Restrictions
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">Before helper selected:</strong> You can freely edit job details.</p>
+                    <p><strong className="text-foreground">After helper selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
+                  </div>
+                </div>
+
+                {/* Dispute Resolution */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-primary" /> Dispute Resolution
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
+                    <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
+                    <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution. Abuse of the dispute system may result in account restrictions.</p>
+                  </div>
+                </div>
+
+                {/* Repeat Offender */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-accent" /> Repeat Offender Policy
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p><strong className="text-foreground">1st violation:</strong> Written warning via email and in-app notification.</p>
+                    <p><strong className="text-foreground">2nd violation:</strong> 7-day account suspension.</p>
+                    <p><strong className="text-foreground">3rd violation:</strong> Permanent ban from the platform.</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
+                </div>
+
                 <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                   <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
                     <Shield className="w-4 h-4 text-primary" /> Community Guidelines

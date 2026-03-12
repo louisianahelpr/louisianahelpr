@@ -607,7 +607,7 @@ const Activity = () => {
                         <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
                           <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}{job.start_time ? ` · ${job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}</span>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground capitalize">{categoryLabels[job.category] || job.category}</span>
                           {job.payment_status === "released" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>}
                         </div>

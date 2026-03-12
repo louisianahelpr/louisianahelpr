@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -567,6 +567,34 @@ const Activity = () => {
     }
   };
 
+  const postedStatusFilters = useMemo(() => [
+    { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
+    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
+  ], []);
+
+  const appliedStatusFilters = useMemo(() => [
+    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
+    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
+  ], []);
+
+  const filteredPostedJobs = useMemo(() => !statusFilter
+    ? postedJobs
+    : postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
+
+  const filteredAppliedApps = useMemo(() => !statusFilter
+    ? appliedApps
+    : appliedApps.filter((a) => {
+        if (statusFilter === "pending") return a.status === "pending";
+        if (statusFilter === "rejected") return a.status === "rejected";
+        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
+        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
+        return true;
+      }), [appliedApps, statusFilter]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -581,34 +609,6 @@ const Activity = () => {
       </div>
     );
   }
-
-  const postedStatusFilters = [
-    { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
-    { key: "cancelled", label: "Cancelled", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ];
-
-  const appliedStatusFilters = [
-    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
-    { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ];
-
-  const filteredPostedJobs = !statusFilter
-    ? postedJobs
-    : postedJobs.filter((j) => j.status === statusFilter);
-
-  const filteredAppliedApps = !statusFilter
-    ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending") return a.status === "pending";
-        if (statusFilter === "rejected") return a.status === "rejected";
-        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
-        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-        return true;
-      });
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posted", label: "Posted", count: postedJobs.length },
@@ -1000,41 +1000,169 @@ const Activity = () => {
                 </div>
               ) : (
                 filteredAppliedApps.map((app) => (
-                  <div key={app.id} className="rounded-xl border border-border bg-card overflow-hidden cursor-pointer" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
-                    {/* Header */}
-                    <div className="w-full px-4 py-3 flex items-center justify-between text-left">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-semibold text-foreground">{app.job?.title || "Task"}</h3>
-                          {!(app.status === "accepted" && app.job?.status === "completed") && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
-                              app.status === "accepted" ? "bg-primary/10 text-primary"
-                              : app.status === "rejected" ? "bg-destructive/10 text-destructive"
-                              : "bg-secondary text-secondary-foreground"
-                            }`}>{app.status}</span>
-                          )}
-                          {app.job && app.job.status !== "completed" && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusBadge[app.job.status] || ""}`}>
-                              {app.job.status.replace(/_/g, " ")}
-                            </span>
-                          )}
-                        </div>
-                        {app.job && (
-                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {app.job.location}</span>
-                            <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${app.job.budget}</span>
-                          </div>
+                  <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden cursor-pointer shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+                    {/* Top bar: title + budget + chevron */}
+                    <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className={`font-bold text-[15px] leading-snug min-w-0 truncate ${(categoryColors[app.job?.category || "other"] || categoryColors.other).title}`}>
+                          {app.job?.title || "Task"}
+                        </h3>
+                        {!(app.status === "accepted" && app.job?.status === "completed") && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                            app.status === "accepted" ? "bg-primary/10 text-primary"
+                            : app.status === "rejected" ? "bg-destructive/10 text-destructive"
+                            : "bg-secondary text-secondary-foreground"
+                          }`}>{app.status}</span>
+                        )}
+                        {app.job && app.job.status !== "completed" && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${statusBadge[app.job.status] || ""}`}>
+                            {app.job.status.replace(/_/g, " ")}
+                          </span>
                         )}
                       </div>
-                      <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        {app.job && (
+                          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
+                            <DollarSign className="w-3.5 h-3.5" />{app.job.budget}
+                          </span>
+                        )}
+                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
+                      </div>
                     </div>
+
+                    {/* Always-visible summary: date, time, city/state */}
+                    {app.job && (
+                      <div className="px-4 py-3 space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+                          {/* Date */}
+                          {app.job.special_requirements?.includes("[Flexible date]") ? (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              {new Date(app.job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                          {/* Time */}
+                          {app.job.start_time && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 shrink-0" /> {app.job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${app.job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          )}
+                          {/* City, State */}
+                          {(() => {
+                            const locationParts = app.job!.location.split(",").map(s => s.trim());
+                            let cityState = app.job!.location;
+                            if (locationParts.length >= 2) {
+                              const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
+                              const city = locationParts[locationParts.length - 2];
+                              cityState = `${city}, ${state}`;
+                            }
+                            return (
+                              <a
+                                onClick={(e) => e.stopPropagation()}
+                                href={app.job!.latitude && app.job!.longitude
+                                  ? `https://www.google.com/maps?q=${app.job!.latitude},${app.job!.longitude}`
+                                  : `https://www.google.com/maps/search/${encodeURIComponent(app.job!.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-primary transition-colors"
+                              >
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="truncate max-w-[140px]">{cityState}</span>
+                              </a>
+                            );
+                          })()}
+                          {/* Expiry */}
+                          {app.job.expires_at && (() => {
+                            const expiryText = new Date(app.job!.expires_at!) <= new Date()
+                              ? "Expired"
+                              : formatDistanceToNow(new Date(app.job!.expires_at!), { addSuffix: false }) + " left";
+                            const isExpiringSoon = differenceInHours(new Date(app.job!.expires_at!), new Date()) < 24;
+                            return (
+                              <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+                                <Timer className="w-3 h-3 shrink-0" /> {expiryText}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Expandable content */}
                     <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">
+                        {/* Job details — matches dashboard expanded section */}
+                        {app.job && app.job.description.trim().toLowerCase() !== (app.job.title || "").trim().toLowerCase() && (
+                          <div className="pt-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+                            <p className="text-sm text-foreground leading-relaxed">{app.job.description}</p>
+                          </div>
+                        )}
+
+                        {/* Photos */}
+                        {app.job && (app.job.photos || []).length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {(app.job.photos || []).map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                  <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Estimated hours */}
+                        {app.job?.estimated_hours && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5">
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                            <p className="font-semibold text-foreground text-sm">{app.job.estimated_hours}h</p>
+                          </div>
+                        )}
+
+                        {/* Special requirements */}
+                        {app.job?.special_requirements && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5">
+                            <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
+                            <p className="text-sm text-foreground">{app.job.special_requirements}</p>
+                          </div>
+                        )}
+
+                        {/* Recurring info */}
+                        {app.job?.is_recurring && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+                            <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Recurring Task</p>
+                              <p className="text-sm font-medium text-foreground">
+                                {app.job.recurrence_interval ? `Every ${app.job.recurrence_interval}` : "Yes"}
+                                {app.job.recurrence_end_date && ` until ${new Date(app.job.recurrence_end_date).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Group job info */}
+                        {app.job?.is_group_job && (
+                          <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+                            <Users className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Group Task</p>
+                              <p className="text-sm font-medium text-foreground">
+                                {app.job.helpers_needed ? `${app.job.helpers_needed} helpers needed` : "Multiple helpers needed"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Poster info */}
                         {app.job && (
-                          <div className="pt-3 text-xs text-muted-foreground">
-                            <span>Posted by <a href={`/user/${app.job?.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
+                          <div className="pt-2 text-xs text-muted-foreground">
+                            <span>Posted by <a href={`/user/${app.job.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
                           </div>
                         )}
                         {app.message && <p className="text-sm text-muted-foreground">{app.message}</p>}

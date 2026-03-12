@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,9 +219,8 @@ const Dashboard = () => {
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
   const effectiveFee = platformFee;
 
-  const filteredJobs = allJobs
+  const filteredJobs = useMemo(() => allJobs
     .filter((job) => {
-      // Hide jobs posted by the current user
       if (user?.id && job.customer_id === user.id) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -243,7 +242,6 @@ const Dashboard = () => {
         const delayMs = (20 - earlyMinutes) * 60 * 1000;
         if (jobAge < delayMs) return false;
       }
-      // Availability filter
       if (matchAvailability && helperAvailability.length > 0) {
         const jobDate = new Date(job.date_needed + "T12:00:00");
         const jobDow = jobDate.getDay();
@@ -268,12 +266,14 @@ const Dashboard = () => {
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    });
+    }), [allJobs, user?.id, searchQuery, selectedCategory, maxBudget, locationFilter, expiresWithin, profile?.role, helprTier, matchAvailability, helperAvailability, sortBy]);
 
-  const userLocation = profile?.location?.toLowerCase() || "";
-  const nearbyJobs = userLocation
-    ? allJobs.filter((j) => j.location.toLowerCase().includes(userLocation) || userLocation.includes(j.location.toLowerCase())).slice(0, 5)
-    : [];
+  const nearbyJobs = useMemo(() => {
+    const userLocation = profile?.location?.toLowerCase() || "";
+    return userLocation
+      ? allJobs.filter((j) => j.location.toLowerCase().includes(userLocation) || userLocation.includes(j.location.toLowerCase())).slice(0, 5)
+      : [];
+  }, [allJobs, profile?.location]);
 
   if (loading) {
     return (

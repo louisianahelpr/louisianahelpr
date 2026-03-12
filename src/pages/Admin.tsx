@@ -64,30 +64,47 @@ const Admin = () => {
     );
   }
 
+  const viewLabels: Record<View, string> = {
+    home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+  };
+
   const header = (
-    <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <div className="flex items-center gap-3">
-          {view !== "home" && (
-            <Button variant="ghost" size="icon" onClick={() => setView("home")} className="mr-1">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          )}
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-          <span className="text-xs font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
+    <header className="sticky top-0 z-40 glass border-b border-border/30">
+      <div className="container mx-auto flex items-center justify-between h-14 px-4">
+        <div className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
+              <span className="text-primary-foreground font-bold text-sm">H</span>
+            </div>
+            <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Helpr
+            </span>
+          </Link>
+          <span className="text-[10px] font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}>
+        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
           <LogOut className="w-4 h-4" />
         </Button>
       </div>
     </header>
   );
 
+  const subHeader = view !== "home" && (
+    <div className="container mx-auto px-4 pt-4 pb-2 flex items-center gap-2">
+      <Button variant="ghost" size="icon" onClick={() => setView("home")} className="rounded-xl h-9 w-9">
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
+      <h2 className="text-lg font-display font-bold text-foreground">{viewLabels[view]}</h2>
+    </div>
+  );
+
   if (view !== "home") {
     return (
       <div className="min-h-screen bg-background">
         {header}
-        <div className="container mx-auto px-4 py-6">
+        {subHeader}
+        <div className="container mx-auto px-4 py-4">
           {view === "analytics" && <AdminAnalytics />}
           {view === "reviews" && <AdminReviews />}
           {view === "people" && <AdminUsers />}

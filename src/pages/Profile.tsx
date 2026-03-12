@@ -31,7 +31,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -504,15 +504,15 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                   <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
                 <button
-                  onClick={() => { if (postedCount > 0) { loadInlineJobs(); setShowPostedJobs(!showPostedJobs); setShowCompletedJobs(false); } }}
-                  className={`rounded-xl border bg-card p-3 text-center transition-all ${postedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                  onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }}
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   <p className="text-lg font-bold text-foreground">{postedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Posted</p>
                 </button>
                 <button
-                  onClick={() => { if (completedCount > 0) { loadInlineJobs(); setShowCompletedJobs(!showCompletedJobs); setShowPostedJobs(false); } }}
-                  className={`rounded-xl border bg-card p-3 text-center transition-all ${completedCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showCompletedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                  onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }}
+                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   <p className="text-lg font-bold text-foreground">{completedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Completed</p>
@@ -529,50 +529,6 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 </button>
               </div>
 
-              {/* Inline Posted Jobs */}
-              {showPostedJobs && inlinePostedJobs.length > 0 && (
-                <div className="space-y-2 animate-fade-in">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Posted Jobs</p>
-                  {inlinePostedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-sm font-bold text-primary">${job.budget}</span>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Inline Completed Jobs */}
-              {showCompletedJobs && inlineCompletedJobs.length > 0 && (
-                <div className="space-y-2 animate-fade-in">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Completed Jobs</p>
-                  {inlineCompletedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-sm font-bold text-primary">${job.budget}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7 px-2"
-                          onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" /> Rebook
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
               {/* Vertical menu */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
                 {menuItems.map((item) => (
@@ -978,6 +934,89 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
           )}
 
 
+          {/* POSTED JOBS TAB */}
+          {tab === "posted_jobs" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Posted Jobs</h1>
+              </div>
+              {inlinePostedJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-4">No posted jobs yet.</p>
+                  <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {inlinePostedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">{job.title}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                            <span className="capitalize">{job.category.replace("_", " ")}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className="text-sm font-bold text-primary">${job.budget}</span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* COMPLETED JOBS TAB */}
+          {tab === "completed_jobs" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Completed Jobs</h1>
+              </div>
+              {inlineCompletedJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No completed jobs yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {inlineCompletedJobs.map((job) => (
+                    <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">{job.title}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                            <span className="capitalize">{job.category.replace("_", " ")}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="text-sm font-bold text-primary">${job.budget}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 px-2"
+                            onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" /> Rebook
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
 
           {/* SUPPORT TAB */}

@@ -33,8 +33,9 @@ const JobFilters = ({
   searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
   maxBudget, setMaxBudget, locationFilter, setLocationFilter,
   sortBy, setSortBy, filtersOpen, setFiltersOpen,
+  expiresWithin, setExpiresWithin,
 }: JobFiltersProps) => {
-  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
+  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter, expiresWithin].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
@@ -42,6 +43,7 @@ const JobFilters = ({
     setSelectedCategory(null);
     setMaxBudget("");
     setLocationFilter("");
+    setExpiresWithin("");
   };
 
   return (

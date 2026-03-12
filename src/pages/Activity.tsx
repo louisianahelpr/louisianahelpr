@@ -644,7 +644,7 @@ const Activity = () => {
                     <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
 
                       {/* Clickable top bar: title + budget + chevron */}
-                      <button className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left" onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}>
+                      <button className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left" onClick={() => handleExpandJob(job.id, job)}>
                         <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
                           {job.title}
                         </h3>

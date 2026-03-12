@@ -84,7 +84,7 @@ const AdminUsers = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`${profile.full_name || "User"} approved!`);
-      await supabase.from("notifications").insert({
+      await createNotification({
         user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",
         type: "success", link: "/dashboard",

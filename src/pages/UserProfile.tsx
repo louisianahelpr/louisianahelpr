@@ -176,6 +176,7 @@ const UserProfile = () => {
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -363,11 +364,40 @@ const UserProfile = () => {
               </div>
               <p className="text-xs text-muted-foreground">Rating</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-3 text-center">
+            <button
+              onClick={() => stats.reviewCount > 0 && setShowReviews(!showReviews)}
+              className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+            >
               <p className="text-2xl font-bold text-foreground">{stats.reviewCount}</p>
               <p className="text-xs text-muted-foreground">Reviews</p>
-            </div>
+              {stats.reviewCount > 0 && (
+                <p className="text-[10px] text-primary font-medium mt-1">{showReviews ? "Hide" : "Tap to view"}</p>
+              )}
+            </button>
           </div>
+
+          {/* Reviews expanded inline */}
+          {showReviews && reviews.length > 0 && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              {reviews.map((r, i) => (
+                <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />
+                        ))}
+                      </div>
+                      <span className="text-xs font-medium text-foreground">{r.reviewerName}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
+                  {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Response Metrics */}
           {responseMetrics.totalApplications > 0 && (
@@ -431,8 +461,6 @@ const UserProfile = () => {
           {/* Jobs Worked */}
           {workedJobs.length > 0 && <JobHistorySection jobs={workedJobs} title="Jobs Completed" icon={<Hammer className="w-4 h-4 text-primary" />} />}
 
-          {/* Reviews - collapsed summary, click to expand */}
-          <ReviewsSection reviews={reviews} stats={stats} />
 
           {/* Member since */}
           <p className="text-xs text-muted-foreground text-center">

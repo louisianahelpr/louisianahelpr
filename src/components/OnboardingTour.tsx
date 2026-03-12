@@ -89,8 +89,10 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
 
   useEffect(() => {
     const s = getState();
-    if (!s.completed && !s.dismissedAt && !s.seen) {
-      // Show tour only the very first time the user signs in
+    // Never show again if completed (finished, skipped, or dismissed)
+    if (s.completed) return;
+    // Show tour only the very first time
+    if (!s.seen) {
       saveState({ ...s, seen: true });
       const timer = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(timer);

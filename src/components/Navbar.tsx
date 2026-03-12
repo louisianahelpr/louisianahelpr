@@ -21,9 +21,11 @@ const Navbar = () => {
           </a>
           <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Features
+          </a>
           <Link to="/community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
           </Link>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in
           </Button>
           <Button size="sm" onClick={() => navigate("/signup")}>
@@ -49,6 +51,7 @@ const Navbar = () => {
           <Link to="/community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Community
           </Link>
+          <Button variant="ghost" size="sm" className="w-full" onClick={() => { navigate("/login"); setMobileOpen(false); }}>
             Log in
           </Button>
           <Button size="sm" className="w-full" onClick={() => { navigate("/signup"); setMobileOpen(false); }}>

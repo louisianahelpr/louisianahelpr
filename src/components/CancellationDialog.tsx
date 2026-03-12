@@ -73,7 +73,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
         if (actionTaken === "warning") {
           await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
-          await supabase.from("notifications").insert({
+          await createNotification({
             user_id: userId,
             title: `⚠️ Cancellation Warning (${warningNum}/2)`,
             message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a helper. A 3rd cancellation will result in a permanent ban.`,

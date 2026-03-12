@@ -715,7 +715,7 @@ const Activity = () => {
                           {job.status === "completed" && (
                               <div className="flex items-center justify-center gap-2">
                                 {job.payment_status === "released" && job.helper_id && (
-                                  <Button size="sm" className="flex-1 border border-primary text-primary hover:bg-primary/10 bg-transparent" onClick={() => {
+                                  <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
                                     setEnhancedTipJobId(job.id);
                                     setEnhancedTipHelperName("");
                                   }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>

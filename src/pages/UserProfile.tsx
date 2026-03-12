@@ -215,7 +215,7 @@ const UserProfile = () => {
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">{profile.full_name || "User"}</h1>
               <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>
+                {profile.role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>}
                 {profile.location && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
                 )}

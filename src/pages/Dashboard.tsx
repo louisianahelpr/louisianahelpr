@@ -309,7 +309,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen bg-background pb-20">
       <DashboardHeader isAdmin={isAdmin} />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 

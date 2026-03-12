@@ -16,6 +16,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JobFilters from "@/components/dashboard/JobFilters";
 import JobCard from "@/components/dashboard/JobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
+import InviteBanner from "@/components/dashboard/InviteBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -296,6 +297,9 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
           <p className="text-lg font-display font-semibold text-foreground">Hi, {firstName} 👋</p>
+
+          {/* Invite Friends Banner */}
+          {user && <InviteBanner userId={user.id} />}
 
           {/* Jobs Near You */}
           {nearbyJobs.length > 0 && !hasFilters && (

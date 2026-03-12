@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
@@ -11,8 +11,9 @@ import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminDisputes from "@/components/admin/AdminDisputes";
+import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -93,6 +94,7 @@ const Admin = () => {
           {view === "jobs" && <AdminJobs />}
           {view === "settings" && <AdminSettings />}
           {view === "disputes" && <AdminDisputes />}
+          {view === "broadcasts" && <AdminBroadcasts />}
         </div>
       </div>
     );
@@ -122,6 +124,10 @@ const Admin = () => {
     {
       id: "reviews", label: "Reviews", description: "Ratings & feedback",
       icon: <ClipboardCheck className="w-5 h-5" />,
+    },
+    {
+      id: "broadcasts", label: "Broadcasts", description: "Send announcements to all users",
+      icon: <Megaphone className="w-5 h-5" />,
     },
     {
       id: "settings", label: "Settings", description: "Platform configuration",

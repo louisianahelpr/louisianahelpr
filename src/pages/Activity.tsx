@@ -593,7 +593,7 @@ const Activity = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {postedJobs.map((job) => (
+                  {filteredPostedJobs.map((job) => (
                     <div key={job.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>

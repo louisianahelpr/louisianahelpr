@@ -75,11 +75,15 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             </div>
           </div>
           <Textarea
-            placeholder="Additional details (optional)…"
+            placeholder="Please describe the issue (required, at least 10 characters)…"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
+            required
           />
+          {description.length > 0 && description.trim().length < 10 && (
+            <p className="text-xs text-destructive">At least 10 characters required</p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

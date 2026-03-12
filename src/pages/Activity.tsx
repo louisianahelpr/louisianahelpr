@@ -33,6 +33,7 @@ import { DisputeDialog } from "@/components/DisputeDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 type Application = Database["public"]["Tables"]["applications"]["Row"];

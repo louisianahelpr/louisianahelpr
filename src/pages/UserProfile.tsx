@@ -220,11 +220,6 @@ const UserProfile = () => {
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
                 )}
               </div>
-              {(profile as any).email && (
-                <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-center gap-1">
-                  <Mail className="w-3 h-3" />{(profile as any).email}
-                </p>
-              )}
               {profile.phone && (
                 <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
                   <Phone className="w-3 h-3" />{profile.phone}

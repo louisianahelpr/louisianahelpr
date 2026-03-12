@@ -22,14 +22,26 @@ const Login = () => {
       return;
     }
 
-    // Check approval status before redirecting
+    // Check approval + ban status before redirecting
     const userId = data.session?.user?.id;
     if (userId) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, ban_status")
         .eq("user_id", userId)
         .single();
+
+      // Block banned users
+      if (profile?.ban_status === "permanently_banned" || profile?.ban_status === "temp_banned") {
+        await supabase.auth.signOut();
+        setLoading(false);
+        toast.error(
+          profile.ban_status === "permanently_banned"
+            ? "Your account has been permanently banned. Contact support if you believe this is an error."
+            : "Your account has been temporarily suspended. Please try again later."
+        );
+        return;
+      }
 
       setLoading(false);
       toast.success("Welcome back!");

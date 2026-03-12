@@ -64,7 +64,9 @@ const SocialProofSection = () => {
                 <item.icon className="w-5 h-5 text-primary" />
               </div>
               <p className="text-3xl font-display font-bold text-foreground">
-                {item.label === "Average rating" ? (
+                {!loaded ? (
+                  <span className="inline-block w-16 h-8 bg-muted animate-pulse rounded" />
+                ) : item.label === "Average rating" ? (
                   <>{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "4.9"}{item.suffix}</>
                 ) : (
                   <AnimatedNumber value={item.value} suffix={item.suffix} />

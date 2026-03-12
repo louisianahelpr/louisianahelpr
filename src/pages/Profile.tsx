@@ -965,9 +965,10 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
               </div>
               <PaymentTab
                 role={role}
-              earningsJobs={earningsJobs}
-              totalEarnings={totalEarnings}
-            />
+                earningsJobs={earningsJobs}
+                totalEarnings={totalEarnings}
+              />
+            </div>
           )}
 
           {/* SUBSCRIPTION TAB */}

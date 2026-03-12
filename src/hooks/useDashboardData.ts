@@ -41,8 +41,8 @@ export function useDashboardData() {
       supabase.from("helper_availability").select("day_of_week, is_available, start_time, end_time").eq("helper_id", userId).is("specific_date", null).order("day_of_week"),
     ]);
 
-    if (availRes.data && (availRes.data as any[]).length > 0) {
-      setHelperAvailability(availRes.data as any[]);
+    if (availRes.data && availRes.data.length > 0) {
+      setHelperAvailability(availRes.data);
     }
 
     if (feeRes.data) setPlatformFee(feeRes.data.platform_fee_percent);

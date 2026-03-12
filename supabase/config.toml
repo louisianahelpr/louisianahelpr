@@ -15,5 +15,7 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.auto-release-payment]
     verify_jwt = false
+  [functions.process-scheduled-payouts]
+    verify_jwt = false
   [functions.stripe-webhook]
     verify_jwt = false

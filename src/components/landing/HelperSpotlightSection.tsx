@@ -11,6 +11,7 @@ interface SpotlightHelper {
   bio: string | null;
   location: string | null;
   skills: string | null;
+  subscription_tier: string | null;
   avgRating: number;
   reviewCount: number;
   completedJobs: number;

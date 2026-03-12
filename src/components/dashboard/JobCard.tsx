@@ -32,7 +32,7 @@ const categoryColors: Record<string, string> = {
   other: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
-const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0 }: JobCardProps) => {
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
     reviewCount: job.posterReviewCount || 0,

@@ -316,7 +316,42 @@ const Dashboard = () => {
                     : "No tasks right now — check back soon!"}
                 </p>
                 <p className="text-xs text-primary/80 mt-1 italic">
-                  Thank you for being part of the Helpr community — we appreciate you! 💚
+                  {(() => {
+                    const messages = [
+                      "Thank you for being part of the Helpr community — we appreciate you! 💚",
+                      "You make this community stronger just by showing up. Keep going! 💪",
+                      "Every task completed is someone's day made better. You're amazing! ✨",
+                      "Together we lift each other up — that's the Helpr way! 🤝",
+                      "Your kindness ripples through the whole community. Thank you! 🌊",
+                      "Helpers and customers alike — you're the heartbeat of Helpr! ❤️",
+                      "Small acts of service build big community bonds. You're proof! 🌟",
+                      "We see you, we value you, and we're grateful you're here! 🙏",
+                      "Community isn't just a word here — it's what we build together! 🏗️",
+                      "Whether you're posting or helping, you're making Louisiana better! 🎉",
+                      "Never forget: your effort matters and your community notices! 👏",
+                      "Gratitude fuels everything we do — and we're grateful for YOU! 💛",
+                      "One task at a time, we're changing how neighbors help neighbors! 🏠",
+                      "You bring the heart, we bring the platform — magic happens! ✨",
+                      "Today's a great day to make someone's life a little easier! ☀️",
+                      "Behind every job is a real person who appreciates your help! 💚",
+                      "This community thrives because of people like you. Don't forget that! 🌱",
+                      "Keep shining — your positive energy makes Helpr special! 🌞",
+                      "Neighbors helping neighbors — that's the Louisiana spirit! ⚜️",
+                      "You showed up today. That already makes a difference! 🙌",
+                      "Be proud of every connection you've made through Helpr! 🔗",
+                      "Your trust in this community inspires us every single day! 💫",
+                      "Great things happen when good people come together! 🎊",
+                      "Remember: someone out there is thankful for what you do! 💝",
+                      "The best communities are built on generosity — like yours! 🌻",
+                      "Another day, another chance to uplift someone. Let's go! 🚀",
+                      "Kindness is contagious — and you're spreading it! 😊",
+                      "Helpr exists because of YOUR belief in community. Thank you! 🏆",
+                      "Every review, every task, every message — it all matters! 📝",
+                      "You're not just using an app — you're building something real! 💎",
+                    ];
+                    const dayIndex = Math.floor(Date.now() / 86400000) % messages.length;
+                    return messages[dayIndex];
+                  })()}
                 </p>
               </div>
               <Button

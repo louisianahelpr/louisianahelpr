@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
-  Rocket, Clock,
+  Rocket, Clock, ChevronDown,
 } from "lucide-react";
 import { JobBoostDialog } from "@/components/JobBoostDialog";
 import { TipDialog } from "@/components/TipDialog";

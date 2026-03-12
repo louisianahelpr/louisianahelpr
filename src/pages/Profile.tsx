@@ -39,6 +39,7 @@ type HistoryTab = "all" | "posted" | "worked";
 type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 
 const ProfilePage = () => {
+  usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);

@@ -135,6 +135,7 @@ const Index = () => {
       <FeaturesSection />
       <HelperSpotlightSection />
       <JobStoriesSection />
+      <PublicJobsPreview />
       <CommunityLoveSection />
       <CTASection />
       <Footer />

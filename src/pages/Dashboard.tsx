@@ -82,6 +82,7 @@ const Dashboard = () => {
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<EnrichedJob[]>([]);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showGreeting, setShowGreeting] = useState(() => {
     const dismissed = localStorage.getItem("greeting_dismissed_at");
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;

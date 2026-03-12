@@ -94,7 +94,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
         if (adminRoles) {
           for (const admin of adminRoles) {
-            await supabase.from("notifications").insert({
+            await createNotification({
               user_id: admin.user_id, title: "⚠️ Cancellation with helper",
               message: `User cancelled "${jobTitle}" after selecting a helper (${warningNum} total). Action: ${actionTaken}.`,
               type: "warning", link: "/admin",

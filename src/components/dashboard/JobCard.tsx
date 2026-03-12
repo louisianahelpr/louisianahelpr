@@ -71,13 +71,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
       {/* Main content */}
       <div className="px-4 py-3 space-y-2">
-        {/* Category tags + Apply */}
+        {/* Tags + Apply */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${catColor}`}>
-                {categoryLabels[job.category] || job.category}
-              </span>
               {job.is_urgent && (
                 <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
                   <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent

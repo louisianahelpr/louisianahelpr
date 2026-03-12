@@ -107,6 +107,7 @@ const Activity = () => {
   // Dispute
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [completedJobMeta, setCompletedJobMeta] = useState<Record<string, { tipped: boolean; reviewed: boolean }>>({});
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
@@ -163,13 +164,26 @@ const Activity = () => {
 
     if (postedRes.data) {
       setPostedJobs(postedRes.data);
-      // Fetch applicant counts for posted jobs
       const jobIds = postedRes.data.map(j => j.id);
       if (jobIds.length > 0) {
         const { data: allApps } = await supabase.from("applications").select("job_id").in("job_id", jobIds);
         const counts: Record<string, number> = {};
         allApps?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
         setApplicantCounts(counts);
+
+        // Fetch tip & review status for completed jobs
+        const completedIds = postedRes.data.filter(j => j.status === "completed").map(j => j.id);
+        if (completedIds.length > 0) {
+          const [tipsRes, reviewsRes] = await Promise.all([
+            supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId),
+            supabase.from("reviews").select("job_id").in("job_id", completedIds).eq("reviewer_id", userId),
+          ]);
+          const meta: Record<string, { tipped: boolean; reviewed: boolean }> = {};
+          completedIds.forEach(id => { meta[id] = { tipped: false, reviewed: false }; });
+          tipsRes.data?.forEach(t => { if (meta[t.job_id]) meta[t.job_id].tipped = true; });
+          reviewsRes.data?.forEach(r => { if (meta[r.job_id]) meta[r.job_id].reviewed = true; });
+          setCompletedJobMeta(meta);
+        }
       }
     }
 
@@ -306,6 +320,11 @@ const Activity = () => {
   };
 
   const handleExpandJob = (jobId: string, job: Job) => {
+    // For completed jobs, only allow expand if tipped AND reviewed
+    if (job.status === "completed") {
+      const meta = completedJobMeta[jobId];
+      if (!meta || !meta.tipped || !meta.reviewed) return;
+    }
     const newId = expandedJobId === jobId ? null : jobId;
     setExpandedJobId(newId);
     if (newId && (job.status === "open" || job.status === "accepted")) {
@@ -662,7 +681,9 @@ const Activity = () => {
                           <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
                             <DollarSign className="w-3.5 h-3.5" />{job.budget}
                           </span>
-                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                          {!(job.status === "completed" && (!completedJobMeta[job.id]?.tipped || !completedJobMeta[job.id]?.reviewed)) && (
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                          )}
                         </div>
                       </button>
 
@@ -707,6 +728,35 @@ const Activity = () => {
                           <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}>
                             <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
                           </Button>
+                        </div>
+                      )}
+
+                      {/* Completed job actions — always visible (tip & review required before expand) */}
+                      {job.status === "completed" && (
+                        <div className="px-4 py-2 border-t border-border/40">
+                          {(() => {
+                            const meta = completedJobMeta[job.id];
+                            const hasTipped = meta?.tipped;
+                            const hasReviewed = meta?.reviewed;
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-center gap-2">
+                                  {job.payment_status === "released" && job.helper_id && !hasTipped && (
+                                    <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
+                                      setEnhancedTipJobId(job.id);
+                                      setEnhancedTipHelperName("");
+                                    }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
+                                  )}
+                                  {job.helper_id && !hasReviewed && (
+                                    <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
+                                  )}
+                                  <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
+                                </div>
+                                {hasTipped && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Tipped</span>}
+                                {hasReviewed && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Reviewed</span>}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 
@@ -765,18 +815,6 @@ const Activity = () => {
                             )}
                             {job.status === "cancelled" && (
                               <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
-                            )}
-                            {job.status === "completed" && (
-                                <div className="flex items-center justify-center gap-2">
-                                  {job.payment_status === "released" && job.helper_id && (
-                                    <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => {
-                                      setEnhancedTipJobId(job.id);
-                                      setEnhancedTipHelperName("");
-                                    }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
-                                  )}
-                                  {job.helper_id && <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>}
-                                  <Button size="sm" className="flex-1 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                                </div>
                             )}
                           </div>
                         </div>
@@ -978,7 +1016,7 @@ const Activity = () => {
 
       {/* Poster reviewing helper */}
       {reviewJob && reviewTarget && (
-        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
+        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); if (user) loadData(user.id); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
       )}
 
       {/* Helper reviewing poster */}
@@ -1081,7 +1119,7 @@ const Activity = () => {
           jobId={enhancedTipJobId}
           helperName={enhancedTipHelperName}
           open={!!enhancedTipJobId}
-          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); }}
+          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); if (user) loadData(user.id); }}
         />
       )}
 

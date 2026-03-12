@@ -89,6 +89,7 @@ const Signup = () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (password.length < 6) { toast.error("Password must be at least 6 characters"); return false; }
+    if (!phone.trim()) { toast.error("Phone number is required"); return false; }
     if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
     const dob = new Date(dateOfBirth);
     const today = new Date();
@@ -103,6 +104,7 @@ const Signup = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim()) { toast.error("Please tell us about yourself"); return false; }
     if (!location.trim()) { toast.error("Location is required"); return false; }
+    if (!skills.trim()) { toast.error("Skills are required"); return false; }
     return true;
   };
 
@@ -245,8 +247,8 @@ const Signup = () => {
               <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone number <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Label htmlFor="phone">Phone number <span className="text-destructive text-xs">*</span></Label>
+              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="referral" className="flex items-center gap-1.5">
@@ -305,8 +307,8 @@ const Signup = () => {
               <Input id="location" placeholder="City, State" value={location} onChange={(e) => setLocation(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input id="skills" placeholder="e.g. cleaning, moving, handyman" value={skills} onChange={(e) => setSkills(e.target.value)} />
+              <Label htmlFor="skills">Skills <span className="text-destructive text-xs">*</span></Label>
+              <Input id="skills" placeholder="e.g. cleaning, moving, handyman" value={skills} onChange={(e) => setSkills(e.target.value)} required />
             </div>
 
             <div className="flex gap-3">

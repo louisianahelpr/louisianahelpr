@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,20 @@ const typeIcons: Record<string, React.ReactNode> = {
   review: <Star className="w-4 h-4 text-accent" />,
   job_update: <Info className="w-4 h-4 text-primary" />,
 };
+
+const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(
+  ({ unreadCount, ...props }, ref) => (
+    <Button ref={ref} variant="ghost" size="icon" className="relative" {...props}>
+      <Bell className="w-4 h-4" />
+      {unreadCount > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold min-w-[18px] h-[18px]">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </Button>
+  )
+);
+NotificationTrigger.displayName = "NotificationTrigger";
 
 const NotificationPanel = () => {
   const navigate = useNavigate();
@@ -124,14 +138,7 @@ const NotificationPanel = () => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-4 h-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold min-w-[18px] h-[18px]">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Button>
+        <NotificationTrigger unreadCount={unreadCount} />
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md p-0">
         <SheetHeader className="p-4 border-b border-border">

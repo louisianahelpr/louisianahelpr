@@ -29,6 +29,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Community from "./pages/Community";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import InstallPrompt from "./components/InstallPrompt";
 import OnboardingTour from "./components/OnboardingTour";
 
@@ -70,7 +71,7 @@ const App = () => (
           <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
           <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
           <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
           <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/earnings" element={<Navigate to="/profile" replace />} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />

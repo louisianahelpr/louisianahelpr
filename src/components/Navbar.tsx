@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -25,6 +26,7 @@ const Navbar = () => {
           <a href="#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
           </a>
+          <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in
           </Button>

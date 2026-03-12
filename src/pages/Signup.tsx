@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift } from "lucide-react";
+import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -419,7 +419,7 @@ const Signup = () => {
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <Button className="flex-1" size="lg" onClick={handleSignup} disabled={loading}>
-                {loading ? "Creating account…" : "Submit for review"}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</> : "Submit for review"}
               </Button>
             </div>
           </div>

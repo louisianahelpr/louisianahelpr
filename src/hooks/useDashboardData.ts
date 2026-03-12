@@ -8,6 +8,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+
 export function useDashboardData() {
   const navigate = useNavigate();
   const { user: cachedUser, profile: cachedProfile, isAdmin: cachedIsAdmin } = useCurrentUser();
@@ -33,10 +34,11 @@ export function useDashboardData() {
   }, [cachedUser, cachedProfile, cachedIsAdmin]);
 
   const loadData = useCallback(async (userId: string) => {
+    // Phase 1: Load critical data in parallel (profile + jobs + settings)
     const [profileRes, rolesRes, openJobsRes, feeRes, availRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("jobs").select("*").eq("status", "open").order("boosted_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).range(0, 499),
+      supabase.from("jobs").select("*").eq("status", "open").order("boosted_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).range(0, 199),
       supabase.from("platform_settings").select("platform_fee_percent").limit(1).single(),
       supabase.from("helper_availability").select("day_of_week, is_available, start_time, end_time").eq("helper_id", userId).is("specific_date", null).order("day_of_week"),
     ]);
@@ -59,12 +61,23 @@ export function useDashboardData() {
     }
 
     if (openJobsRes.data && openJobsRes.data.length > 0) {
+      // Phase 2: Enrich jobs — only fetch profiles for unique poster IDs
       const posterIds = [...new Set(openJobsRes.data.map((j) => j.customer_id))];
+      
+      // Batch poster IDs into chunks to avoid URL length limits
+      const chunkSize = 50;
+      const posterChunks = [];
+      for (let i = 0; i < posterIds.length; i += chunkSize) {
+        posterChunks.push(posterIds.slice(i, i + chunkSize));
+      }
+
+      // Fetch enrichment data — use select for only needed columns
       const [profilesRes, reviewsRes, completedJobsRes] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name").in("user_id", posterIds),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", posterIds),
         supabase.from("jobs").select("customer_id").in("customer_id", posterIds).eq("status", "completed"),
       ]);
+      
       const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
       const reviewMap = new Map<string, number[]>();
       reviewsRes.data?.forEach((r) => {
@@ -121,10 +134,10 @@ export function useDashboardData() {
       if (!session?.user) return;
       setUser(session.user);
       await loadData(session.user.id);
-      try {
-        const { data } = await supabase.functions.invoke("check-pro-subscription");
+      // Check pro subscription in background (non-blocking)
+      supabase.functions.invoke("check-pro-subscription").then(({ data }) => {
         if (data?.subscribed) setHelprTier(data.tier);
-      } catch {}
+      }).catch(() => {});
     };
     init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

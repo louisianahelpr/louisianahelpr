@@ -622,7 +622,7 @@ const Activity = () => {
 
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
-          <h1 className="text-2xl font-display font-bold text-foreground">My Activity</h1>
+          
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (

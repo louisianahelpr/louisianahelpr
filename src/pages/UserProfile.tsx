@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Mail, Phone } from "lucide-react";
@@ -11,6 +12,96 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+// Collapsible reviews section
+const ReviewsSection = ({ reviews, stats }: {
+  reviews: { rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[];
+  stats: { avgRating: number; reviewCount: number };
+}) => {
+  const [expanded, setExpanded] = useState(false);
+
+  // Rating distribution
+  const distribution = [5, 4, 3, 2, 1].map(star => ({
+    star,
+    count: reviews.filter(r => r.rating === star).length,
+    pct: reviews.length > 0 ? (reviews.filter(r => r.rating === star).length / reviews.length) * 100 : 0,
+  }));
+
+  return (
+    <div className="space-y-3">
+      {/* Clickable summary card */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full rounded-2xl border border-border bg-card p-5 text-left hover:border-primary/20 hover:shadow-sm transition-all"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-display font-bold text-foreground">Reviews</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{stats.reviewCount} review{stats.reviewCount !== 1 ? "s" : ""}</span>
+            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        </div>
+
+        {stats.reviewCount > 0 && (
+          <div className="flex items-center gap-4 mt-3">
+            {/* Big rating number */}
+            <div className="text-center">
+              <p className="text-3xl font-bold text-foreground">{stats.avgRating.toFixed(1)}</p>
+              <div className="flex gap-0.5 mt-1">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(stats.avgRating) ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />
+                ))}
+              </div>
+            </div>
+
+            {/* Distribution bars */}
+            <div className="flex-1 space-y-1">
+              {distribution.map(d => (
+                <div key={d.star} className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-3 text-right">{d.star}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all"
+                      style={{ width: `${d.pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground w-4">{d.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {stats.reviewCount === 0 && (
+          <p className="text-sm text-muted-foreground mt-2">No reviews yet</p>
+        )}
+      </button>
+
+      {/* Expanded review list */}
+      {expanded && reviews.length > 0 && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          {reviews.map((r, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />
+                    ))}
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{r.reviewerName}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
+              {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
@@ -268,35 +359,8 @@ const UserProfile = () => {
             />
           )}
 
-          {/* Reviews */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-display font-semibold text-foreground">Reviews ({stats.reviewCount})</h2>
-            {reviews.length === 0 ? (
-              <div className="rounded-xl border border-border bg-card p-6 text-center">
-                <p className="text-sm text-muted-foreground">No reviews yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {reviews.map((r, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
-                          ))}
-                        </div>
-                        <span className="text-xs text-muted-foreground">by {r.reviewerName}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">For: {r.jobTitle}</p>
-                    {r.feedback && <p className="text-sm text-foreground">{r.feedback}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Reviews - collapsed summary, click to expand */}
+          <ReviewsSection reviews={reviews} stats={stats} />
 
           {/* Member since */}
           <p className="text-xs text-muted-foreground text-center">

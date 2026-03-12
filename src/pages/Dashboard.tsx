@@ -74,6 +74,7 @@ const Dashboard = () => {
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<EnrichedJob[]>([]);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  const [showGreeting, setShowGreeting] = useState(true);
 
   useEffect(() => {
     const init = async () => {

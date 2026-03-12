@@ -103,6 +103,66 @@ const ReviewsSection = ({ reviews, stats }: {
   );
 };
 
+const statusColors: Record<string, string> = {
+  completed: "bg-emerald-100 text-emerald-700",
+  open: "bg-sky-100 text-sky-700",
+  in_progress: "bg-amber-100 text-amber-700",
+  cancelled: "bg-red-100 text-red-600",
+  accepted: "bg-violet-100 text-violet-700",
+  disputed: "bg-red-100 text-red-600",
+  revision_requested: "bg-orange-100 text-orange-700",
+};
+
+const JobHistorySection = ({ jobs, title, icon }: {
+  jobs: { id: string; title: string; status: string; category: string; budget: number; created_at: string }[];
+  title: string;
+  icon: React.ReactNode;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const completedCount = jobs.filter(j => j.status === "completed").length;
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full rounded-2xl border border-border bg-card p-4 text-left hover:border-primary/20 hover:shadow-sm transition-all"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h2 className="text-base font-display font-bold text-foreground">{title}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{jobs.length} total · {completedCount} completed</span>
+            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          {jobs.map((job) => (
+            <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-bold text-primary">${job.budget}</span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>
+                  {job.status.replace("_", " ")}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();

@@ -247,8 +247,8 @@ const Signup = () => {
               <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone number <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Label htmlFor="phone">Phone number <span className="text-destructive text-xs">*</span></Label>
+              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="referral" className="flex items-center gap-1.5">

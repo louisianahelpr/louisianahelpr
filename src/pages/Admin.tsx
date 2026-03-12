@@ -126,6 +126,10 @@ const Admin = () => {
       icon: <ClipboardCheck className="w-5 h-5" />,
     },
     {
+      id: "broadcasts", label: "Broadcasts", description: "Send announcements to all users",
+      icon: <Megaphone className="w-5 h-5" />,
+    },
+    {
       id: "settings", label: "Settings", description: "Platform configuration",
       icon: <Settings className="w-5 h-5" />,
     },

@@ -60,7 +60,7 @@ const InviteBanner = ({ userId }: { userId: string }) => {
 
   return (
     <div
-      onClick={() => navigate("/profile", { state: { tab: "referrals" } })}
+      onClick={() => navigate("/profile?tab=referral")}
       className="relative rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 p-4 cursor-pointer hover:border-primary/30 hover:shadow-md transition-all group"
     >
       <button

@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, Calendar, DollarSign, ArrowLeft, Search, X, Flag, SlidersHorizontal, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import type { Database } from "@/integrations/supabase/types";
@@ -36,26 +37,33 @@ const BrowseJobs = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [matchAvailability, setMatchAvailability] = useState(false);
+  const [helperAvailability, setHelperAvailability] = useState<{ day_of_week: number; is_available: boolean; start_time: string; end_time: string }[]>([]);
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("status", "open")
-        .order("created_at", { ascending: false });
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!error && data) setJobs(data);
+      const [jobsRes, availRes] = await Promise.all([
+        supabase.from("jobs").select("*").eq("status", "open").order("created_at", { ascending: false }),
+        user
+          ? supabase.from("helper_availability" as any).select("day_of_week, is_available, start_time, end_time").eq("helper_id", user.id).is("specific_date", null).order("day_of_week")
+          : Promise.resolve({ data: null }),
+      ]);
+
+      if (!jobsRes.error && jobsRes.data) setJobs(jobsRes.data);
+      if (availRes.data && (availRes.data as any[]).length > 0) {
+        setHelperAvailability(availRes.data as any[]);
+      }
       setLoading(false);
     };
-    fetchJobs();
+    fetchData();
   }, []);
 
   const handleApply = async (jobId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    // New helpr safety limits: max 3 active jobs until 3 verified completions with 4+ stars
     const [activeJobsRes, completedRes, reviewsRes] = await Promise.all([
       supabase.from("applications").select("id", { count: "exact" }).eq("helper_id", user.id).eq("status", "accepted"),
       supabase.from("jobs").select("id", { count: "exact" }).eq("helper_id", user.id).eq("status", "completed"),
@@ -95,9 +103,10 @@ const BrowseJobs = () => {
     setSelectedCategory(null);
     setMaxBudget("");
     setLocationFilter("");
+    setMatchAvailability(false);
   };
 
-  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter].filter(Boolean).length;
+  const activeFilterCount = [searchQuery, selectedCategory, maxBudget, locationFilter, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const filteredJobs = jobs.filter((job) => {
@@ -108,6 +117,15 @@ const BrowseJobs = () => {
     if (selectedCategory && job.category !== selectedCategory) return false;
     if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
     if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+    if (matchAvailability && helperAvailability.length > 0) {
+      const jobDate = new Date(job.date_needed + "T12:00:00");
+      const jobDow = jobDate.getDay();
+      const slot = helperAvailability.find(s => s.day_of_week === jobDow);
+      if (!slot || !slot.is_available) return false;
+      if (job.start_time && job.start_time !== "flexible" && slot.start_time && slot.end_time) {
+        if (job.start_time < slot.start_time || job.start_time > slot.end_time) return false;
+      }
+    }
     return true;
   });
 
@@ -214,6 +232,20 @@ const BrowseJobs = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Match availability */}
+                {helperAvailability.length > 0 && (
+                  <div className="flex items-center justify-between rounded-xl bg-muted/30 border border-border/50 p-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-primary" />
+                      <div>
+                        <p className="text-xs font-medium text-foreground">Match my availability</p>
+                        <p className="text-[10px] text-muted-foreground">Only show jobs on days & times I'm free</p>
+                      </div>
+                    </div>
+                    <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} />
+                  </div>
+                )}
 
                 {/* Clear all */}
                 {hasFilters && (

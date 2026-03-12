@@ -84,6 +84,7 @@ const App = () => (
           </Routes>
           </div>
           <MobileNav />
+          <OnboardingTour />
           <InstallPrompt />
         </BrowserRouter>
       </TooltipProvider>

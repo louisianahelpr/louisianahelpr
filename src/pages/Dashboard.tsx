@@ -459,10 +459,10 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="space-y-3"
+            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden"
           >
-            {/* Header row with search & filter icons */}
-            <div className="flex items-center justify-between">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
                   <Briefcase className="w-4 h-4 text-primary" />
@@ -494,7 +494,7 @@ const Dashboard = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
-                  className={`h-8 w-8 rounded-xl btn-press relative ${filtersOpen || (activeFilterCount > 0 && !searchQuery ? activeFilterCount > 0 : false) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`h-8 w-8 rounded-xl btn-press relative ${filtersOpen || activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   {activeFilterCount > 0 && (
@@ -514,19 +514,19 @@ const Dashboard = () => {
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="overflow-hidden"
+                  className="overflow-hidden border-b border-border/30"
                 >
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <div className="relative px-4 py-3">
+                    <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       autoFocus
                       placeholder="Search tasks…"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-card focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                      className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                     />
                     {searchQuery && (
-                      <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
+                      <button onClick={() => setSearchQuery("")} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
                         <X className="w-4 h-4" />
                       </button>
                     )}
@@ -543,7 +543,7 @@ const Dashboard = () => {
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="overflow-hidden"
+                  className="overflow-hidden border-b border-border/30"
                 >
                   <JobFilters
                     searchQuery={searchQuery} setSearchQuery={setSearchQuery}
@@ -560,7 +560,7 @@ const Dashboard = () => {
 
             {/* Active filter chips */}
             {!filtersOpen && (selectedCategory || locationFilter || maxBudget || expiresWithin) && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
                 {selectedCategory && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
                     {categoryLabels[selectedCategory]}
@@ -590,7 +590,7 @@ const Dashboard = () => {
 
             {/* Job list */}
             {filteredJobs.length === 0 ? (
-              <div className="text-center py-16 space-y-4 rounded-2xl border border-dashed border-border/60 bg-muted/10">
+              <div className="text-center py-16 px-4 space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto">
                   <Briefcase className="w-7 h-7 text-primary/40" />
                 </div>
@@ -605,9 +605,11 @@ const Dashboard = () => {
                 )}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y divide-border/30">
                 {filteredJobs.map((job, i) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} />
+                  <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
+                    <JobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApply} onReport={setReportJobId} onSelect={setDetailJob} index={i} />
+                  </div>
                 ))}
               </div>
             )}

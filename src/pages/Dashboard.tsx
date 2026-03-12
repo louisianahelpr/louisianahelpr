@@ -318,12 +318,15 @@ const Dashboard = () => {
           {/* Welcome section */}
           {showGreeting && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10 relative"
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="rounded-2xl bg-gradient-to-br from-primary/10 via-accent/6 to-primary/4 p-5 border border-primary/12 relative overflow-hidden"
           >
+            {/* Decorative background circles */}
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-primary/[0.04] blur-xl" />
+            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-accent/[0.06] blur-xl" />
             <button
               onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
               className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"

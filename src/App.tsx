@@ -29,6 +29,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Community from "./pages/Community";
 import ProtectedRoute from "./components/ProtectedRoute";
 import InstallPrompt from "./components/InstallPrompt";
+import OnboardingTour from "./components/OnboardingTour";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +84,7 @@ const App = () => (
           </Routes>
           </div>
           <MobileNav />
+          <OnboardingTour />
           <InstallPrompt />
         </BrowserRouter>
       </TooltipProvider>

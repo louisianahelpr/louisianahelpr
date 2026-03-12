@@ -214,6 +214,27 @@ const UserProfile = () => {
             )}
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">{profile.full_name || "User"}</h1>
+              {/* Response Metrics inline */}
+              {responseMetrics.totalApplications > 0 && (
+                <div className="flex items-center justify-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  {responseMetrics.avgResponseHours !== null && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {responseMetrics.avgResponseHours < 1
+                        ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
+                        : responseMetrics.avgResponseHours < 24
+                        ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
+                        : `${Math.round(responseMetrics.avgResponseHours / 24)}d`} avg response
+                    </span>
+                  )}
+                  {responseMetrics.acceptanceRate !== null && (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      {responseMetrics.acceptanceRate.toFixed(0)}% acceptance
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
                 {profile.role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>}
                 {profile.location && (

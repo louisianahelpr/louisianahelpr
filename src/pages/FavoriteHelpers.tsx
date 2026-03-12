@@ -11,10 +11,24 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+interface SafeProfile {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  location: string | null;
+  skills: string | null;
+  hourly_rate: number | null;
+  role: string;
+  subscription_tier: string | null;
+  portfolio_urls: string[] | null;
+  created_at: string;
+}
+
 interface FavoriteHelper {
   id: string;
   helper_id: string;
-  profile: Profile | null;
+  profile: SafeProfile | null;
   stats: { completedJobs: number; avgRating: number; reviewCount: number };
 }
 

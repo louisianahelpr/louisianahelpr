@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
   CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
   User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
-  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2,
+  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2, Heart, Users, HelpCircle,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import { HelperAvailability } from "@/components/HelperAvailability";

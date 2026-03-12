@@ -351,7 +351,7 @@ const supportCategories: { key: SupportCategory; label: string; icon: React.Reac
   { key: "help", label: "Get Help", icon: <HelpCircle className="w-5 h-5" />, description: "Ask a question or request assistance" },
 ];
 
-function SupportInline({ userId }: { userId?: string }) {
+function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void }) {
   const [category, setCategory] = useState<SupportCategory | null>(null);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -392,11 +392,16 @@ function SupportInline({ userId }: { userId?: string }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-          <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Message admin, share suggestions, or report issues</p>
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+            <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
+          </h1>
+          <p className="text-sm text-muted-foreground">Message admin, share suggestions, or report issues</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -457,10 +462,7 @@ function SupportInline({ userId }: { userId?: string }) {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <DashboardHeader
-        showBack={tab !== "landing"}
-        onBack={tab !== "landing" ? () => setTab("landing") : undefined}
-      />
+      <DashboardHeader />
 
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-lg mx-auto space-y-4">
@@ -600,9 +602,14 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* PROFILE TAB */}
           {tab === "profile" && (
             <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
-                <p className="text-muted-foreground text-sm mt-1">Keep your info up to date</p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
+                  <p className="text-muted-foreground text-sm">Keep your info up to date</p>
+                </div>
               </div>
 
               <form onSubmit={handleSave} className="space-y-4">
@@ -774,7 +781,12 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* EARNINGS TAB */}
           {tab === "earnings" && (
             <div className="space-y-6">
-              <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
+              </div>
               {earningsLoading ? (
                 <p className="text-muted-foreground">Loading…</p>
               ) : (
@@ -848,9 +860,14 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* SCHEDULE TAB (includes availability) */}
           {tab === "schedule" && (
             <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
-                <p className="text-muted-foreground text-sm mt-1">Your calendar, upcoming jobs & working hours</p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
+                  <p className="text-muted-foreground text-sm">Your calendar, upcoming jobs & working hours</p>
+                </div>
               </div>
 
               {/* Calendar */}
@@ -939,16 +956,24 @@ function SupportInline({ userId }: { userId?: string }) {
 
           {/* PAYMENT TAB */}
           {tab === "payment" && (
-            <PaymentTab
-              role={role}
-              earningsJobs={earningsJobs}
-              totalEarnings={totalEarnings}
-            />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Payment</h1>
+              </div>
+              <PaymentTab
+                role={role}
+                earningsJobs={earningsJobs}
+                totalEarnings={totalEarnings}
+              />
+            </div>
           )}
 
           {/* SUBSCRIPTION TAB */}
           {tab === "subscription" && (
-            <SubscriptionTab profile={profile} user={user} />
+            <SubscriptionTab profile={profile} user={user} onBack={() => setTab("landing")} />
           )}
 
 
@@ -956,16 +981,29 @@ function SupportInline({ userId }: { userId?: string }) {
 
           {/* SUPPORT TAB */}
           {tab === "support" && (
-            <SupportInline userId={user?.id} />
+            <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
           )}
 
           {tab === "notifications" && (
-            <NotificationPreferences />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Notifications</h1>
+              </div>
+              <NotificationPreferences />
+            </div>
           )}
 
           {tab === "security" && (
             <div className="space-y-6">
-              <h1 className="text-2xl font-display font-bold text-foreground">Account Security</h1>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Account Security</h1>
+              </div>
 
               <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                 <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
@@ -1023,11 +1061,16 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* REVIEWS TAB */}
           {tab === "reviews" && (
             <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                  {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
-                </p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
+                  <p className="text-muted-foreground text-sm">
+                    {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
+                  </p>
+                </div>
               </div>
 
               {reviewsLoading ? (
@@ -1081,7 +1124,12 @@ function SupportInline({ userId }: { userId?: string }) {
           {/* LEGAL TAB */}
           {tab === "legal" && (
             <div className="space-y-6">
-              <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
+              </div>
 
               <div className="space-y-3">
                 <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -1397,7 +1445,7 @@ const tierConfig = [
   },
 ];
 
-const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: User | null }) => {
+const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "lifetime">("monthly");
@@ -1446,7 +1494,12 @@ const SubscriptionTab = ({ profile, user }: { profile: Profile | null; user: Use
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+      </div>
 
       {currentTier && (
         <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">

@@ -249,7 +249,7 @@ const PostJob = () => {
       title: title.trim(),
       description: description.trim(),
       category: category as any,
-      location: location.trim(),
+      location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`,
       date_needed: dateNeeded === "flexible" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : dateNeeded,
       start_time: startTime === "flexible" ? "flexible" : (startTime || null),
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,

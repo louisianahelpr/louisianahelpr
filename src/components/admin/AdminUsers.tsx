@@ -220,7 +220,7 @@ const AdminUsers = () => {
           reported_by: user.id,
         });
         await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", banProfile.user_id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           user_id: banProfile.user_id, title: "🚫 Temporary Ban",
           message: `Your account has been temporarily banned for ${banDuration} days. Reason: ${banReason.trim() || "Platform rule violation."}`,
           type: "warning", link: "/profile",

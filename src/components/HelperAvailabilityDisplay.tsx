@@ -24,7 +24,7 @@ export function HelperAvailabilityDisplay({ helperId }: { helperId: string }) {
         .eq("helper_id", helperId)
         .is("specific_date", null)
         .order("day_of_week");
-      if (data && (data as any[]).length > 0) setSlots(data as Slot[]);
+      if (data && (data as unknown as Slot[]).length > 0) setSlots(data as unknown as Slot[]);
       setLoaded(true);
     })();
   }, [helperId]);

@@ -75,7 +75,11 @@ const Dashboard = () => {
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [recommendedJobs, setRecommendedJobs] = useState<EnrichedJob[]>([]);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
-  const [showGreeting, setShowGreeting] = useState(true);
+  const [showGreeting, setShowGreeting] = useState(() => {
+    const dismissed = localStorage.getItem("greeting_dismissed_at");
+    if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;
+    return true;
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -317,7 +321,7 @@ const Dashboard = () => {
             className="rounded-2xl bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 p-5 border border-primary/10 relative"
           >
             <button
-              onClick={() => setShowGreeting(false)}
+              onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
               className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Dismiss greeting"
             >

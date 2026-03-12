@@ -99,6 +99,7 @@ const Signup = () => {
     const monthDiff = today.getMonth() - dob.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
     if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
+    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
     return true;
   };
 

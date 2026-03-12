@@ -164,88 +164,74 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           </Button>
         </div>
 
-        {/* Inline detail view — shown when "View" is tapped */}
-        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${showDetails ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0"}`}>
-          <div className="px-4 pb-4 space-y-3 border-t border-border/40">
-            {/* Photos */}
-            {photos.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pt-3 pb-1">
-                {photos.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
-                ))}
+        {/* Inline detail view — always shown when expanded */}
+        <div className="px-4 pb-4 space-y-3 border-t border-border/40">
+          {/* Photos */}
+          {photos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pt-3 pb-1">
+              {photos.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                  <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* Full description */}
+          <div className="pt-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+            <p className="text-sm text-foreground leading-relaxed">{job.description}</p>
+          </div>
+
+          {/* Detail grid */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg bg-secondary/30 p-2.5">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> You Earn</p>
+              <p className="font-semibold text-primary text-sm">${earnings}</p>
+            </div>
+            <div className="rounded-lg bg-secondary/30 p-2.5">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
+              <p className="font-semibold text-foreground text-sm truncate">{job.location}</p>
+            </div>
+            <div className="rounded-lg bg-secondary/30 p-2.5">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date</p>
+              <p className="font-semibold text-foreground text-sm">{new Date(job.date_needed).toLocaleDateString()}</p>
+            </div>
+            {job.start_time && (
+              <div className="rounded-lg bg-secondary/30 p-2.5">
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
+                <p className="font-semibold text-foreground text-sm">{job.start_time === "flexible" ? "Flexible" : job.start_time}</p>
               </div>
             )}
-
-            {/* Full description */}
-            <div className="pt-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-              <p className="text-sm text-foreground leading-relaxed">{job.description}</p>
-            </div>
-
-            {/* Detail grid */}
-            <div className="grid grid-cols-2 gap-2">
+            {job.estimated_hours && (
               <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> You Earn</p>
-                <p className="font-semibold text-primary text-sm">${earnings}</p>
-              </div>
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
-                <p className="font-semibold text-foreground text-sm truncate">{job.location}</p>
-              </div>
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date</p>
-                <p className="font-semibold text-foreground text-sm">{new Date(job.date_needed).toLocaleDateString()}</p>
-              </div>
-              {job.start_time && (
-                <div className="rounded-lg bg-secondary/30 p-2.5">
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
-                  <p className="font-semibold text-foreground text-sm">{job.start_time === "flexible" ? "Flexible" : job.start_time}</p>
-                </div>
-              )}
-              {job.estimated_hours && (
-                <div className="rounded-lg bg-secondary/30 p-2.5">
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
-                  <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
-                </div>
-              )}
-            </div>
-
-            {/* Special requirements */}
-            {job.special_requirements && (
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                <p className="text-sm text-foreground">{job.special_requirements}</p>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
               </div>
             )}
+          </div>
 
-            {/* Poster info */}
-            <div className="flex items-center gap-2 pt-2 border-t border-border/40 flex-wrap">
-              <span className="text-xs text-muted-foreground">
-                Posted by <a href={`/user/${job.customer_id}`} className="font-medium text-primary hover:underline">{job.posterName}</a>
+          {/* Special requirements */}
+          {job.special_requirements && (
+            <div className="rounded-lg bg-secondary/30 p-2.5">
+              <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
+              <p className="text-sm text-foreground">{job.special_requirements}</p>
+            </div>
+          )}
+
+          {/* Poster info */}
+          <div className="flex items-center gap-2 pt-2 border-t border-border/40 flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              Posted by <a href={`/user/${job.customer_id}`} className="font-medium text-primary hover:underline">{job.posterName}</a>
+            </span>
+            {(job.posterReviewCount ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5 text-xs">
+                <Star className="w-3 h-3 fill-accent text-accent" />
+                <span className="text-foreground font-medium">{job.posterAvgRating?.toFixed(1)}</span>
+                <span className="text-muted-foreground">({job.posterReviewCount})</span>
               </span>
-              {(job.posterReviewCount ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 text-xs">
-                  <Star className="w-3 h-3 fill-accent text-accent" />
-                  <span className="text-foreground font-medium">{job.posterAvgRating?.toFixed(1)}</span>
-                  <span className="text-muted-foreground">({job.posterReviewCount})</span>
-                </span>
-              )}
-              <HelperBadges badges={posterBadges} />
-            </div>
-
-            {/* Bottom apply/flag */}
-            {showApply && !isOwnJob && (
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onApply(job.id)}>
-                  <Send className="w-4 h-4 mr-1" /> Apply for this task
-                </Button>
-                <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => onReport(job.id)}>
-                  <Flag className="w-4 h-4" />
-                </Button>
-              </div>
             )}
+            <HelperBadges badges={posterBadges} />
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { ArrowLeft, Heart, MapPin, Star, Briefcase, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { TrustedHelperCircle } from "@/components/TrustedHelperCircle";
 import type { Database } from "@/integrations/supabase/types";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -17,6 +18,7 @@ interface FavoriteHelper {
 }
 
 const FavoriteHelpers = () => {
+  usePageTitle("Favorite Helpers — Helpr");
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<FavoriteHelper[]>([]);
   const [loading, setLoading] = useState(true);

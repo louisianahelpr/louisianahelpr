@@ -8,10 +8,12 @@ import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const UserProfile = () => {
+  usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);

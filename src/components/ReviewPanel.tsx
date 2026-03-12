@@ -22,7 +22,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   const handleSubmit = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
-    if (!feedback.trim()) { toast.error("Please share a comment about your experience"); return; }
+    if (feedback.trim().length < 10) { toast.error("Please write at least 10 characters"); return; }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }

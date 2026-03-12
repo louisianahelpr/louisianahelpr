@@ -79,7 +79,7 @@ const Activity = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("posted");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("open");
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
@@ -582,19 +582,17 @@ const Activity = () => {
     { key: "rejected", label: "Rejected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
-  const filteredPostedJobs = useMemo(() => !statusFilter
-    ? postedJobs
-    : postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
+  const filteredPostedJobs = useMemo(() =>
+    postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
 
-  const filteredAppliedApps = useMemo(() => !statusFilter
-    ? appliedApps
-    : appliedApps.filter((a) => {
-        if (statusFilter === "pending") return a.status === "pending";
-        if (statusFilter === "rejected") return a.status === "rejected";
-        if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
-        if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-        return true;
-      }), [appliedApps, statusFilter]);
+  const filteredAppliedApps = useMemo(() =>
+    appliedApps.filter((a) => {
+      if (statusFilter === "pending") return a.status === "pending";
+      if (statusFilter === "rejected") return a.status === "rejected";
+      if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "accepted");
+      if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
+      return false;
+    }), [appliedApps, statusFilter]);
 
   if (loading) {
     return (
@@ -628,10 +626,9 @@ const Activity = () => {
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(""); }}
+              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(t.key === "posted" ? "open" : "pending"); }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
-                <span className={`ml-1.5 text-xs ${tab === t.key ? "text-primary" : "text-muted-foreground"}`}>{t.count}</span>
               </button>
             ))}
           </div>
@@ -640,7 +637,7 @@ const Activity = () => {
             {activeStatusFilters.map((f) => (
               <button
                 key={f.key}
-                onClick={() => setStatusFilter(statusFilter === f.key ? "" : f.key)}
+                onClick={() => setStatusFilter(f.key)}
                 className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                   statusFilter === f.key
                     ? f.color

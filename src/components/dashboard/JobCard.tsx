@@ -110,9 +110,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             >
               <MapPin className="w-3.5 h-3.5" /> {job.location}
             </a>
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Calendar className="w-3.5 h-3.5" /> {new Date(job.date_needed).toLocaleDateString()}
-            </span>
+            <a
+              href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}/${new Date(job.date_needed).toISOString().replace(/[-:]/g, '').split('T')[0]}&details=${encodeURIComponent(job.description)}&location=${encodeURIComponent(job.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline"
+            >
+              <Calendar className="w-3.5 h-3.5" /> {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </a>
             <span className="flex items-center gap-1 font-bold text-primary">
               <DollarSign className="w-3.5 h-3.5" />
               <span className="text-sm">${earnings}</span>

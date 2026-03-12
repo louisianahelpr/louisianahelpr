@@ -630,10 +630,15 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* SCHEDULE TAB */}
+          {/* SCHEDULE TAB (includes availability) */}
           {tab === "schedule" && (
-            <div className="space-y-4">
-              <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
+                <p className="text-muted-foreground text-sm mt-1">Your calendar, upcoming jobs & working hours</p>
+              </div>
+
+              {/* Calendar */}
               {scheduleLoading ? (
                 <p className="text-muted-foreground">Loading…</p>
               ) : (
@@ -707,6 +712,13 @@ const ProfilePage = () => {
                   )}
                 </>
               )}
+
+              {/* Availability section */}
+              <div className="border-t border-border pt-6">
+                <h2 className="text-lg font-display font-bold text-foreground mb-1">Working Hours</h2>
+                <p className="text-muted-foreground text-xs mb-4">Set your weekly availability so customers know when you're free</p>
+                {user && <HelperAvailability userId={user.id} />}
+              </div>
             </div>
           )}
 

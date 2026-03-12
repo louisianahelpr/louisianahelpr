@@ -410,9 +410,18 @@ const PostJob = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Address or area" required maxLength={200} />
+                <div className="space-y-3">
+                  <Label>Location</Label>
+                  <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
+                    <Input id="state" value={state} onChange={(e) => setState(e.target.value)} placeholder="State" required maxLength={50} />
+                    <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Only the city will be visible to applicants until you select a helper.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

@@ -91,7 +91,11 @@ const Dashboard = () => {
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
 
-  const { user, profile, isAdmin, loading, helprTier, allJobs, platformFee, helperAvailability, recommendedJobs } = useDashboardData();
+  const { user, profile, isAdmin, loading, helprTier, allJobs, platformFee, helperAvailability, recommendedJobs, refresh } = useDashboardData();
+
+  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+    onRefresh: refresh,
+  });
 
   useRealtimePush(user?.id ?? null);
 

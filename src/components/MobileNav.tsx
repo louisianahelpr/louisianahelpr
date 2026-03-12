@@ -36,22 +36,22 @@ const MobileNav = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      <div className="mx-3 mb-2 rounded-2xl border border-white/20 bg-background/60 backdrop-blur-xl shadow-[0_-4px_30px_-4px_hsl(158_45%_42%/0.12),inset_0_1px_0_0_hsl(0_0%_100%/0.15)] overflow-hidden">
-        <div className="flex items-center justify-around h-16 px-1 relative">
-          {leftItems.map(renderItem)}
-
-          {/* Center Post button */}
-          <div className="flex flex-col items-center justify-center flex-1">
-            <button
-              onClick={() => navigate("/post-job")}
-              className="-mt-7 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_4px_20px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center transition-transform hover:scale-105 active:scale-95 ring-4 ring-background/60 backdrop-blur-sm"
-            >
-              <Plus className="w-7 h-7" strokeWidth={2.5} />
-            </button>
+      <div className="mx-3 mb-2 flex items-end gap-2">
+        {/* Main nav pill */}
+        <div className="flex-1 rounded-2xl border border-white/20 bg-background/60 backdrop-blur-xl shadow-[0_-4px_30px_-4px_hsl(158_45%_42%/0.12),inset_0_1px_0_0_hsl(0_0%_100%/0.15)]">
+          <div className="flex items-center justify-around h-14 px-2">
+            {leftItems.map(renderItem)}
+            {rightItems.map(renderItem)}
           </div>
-
-          {rightItems.map(renderItem)}
         </div>
+
+        {/* Post button bubble */}
+        <button
+          onClick={() => navigate("/post-job")}
+          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_4px_20px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shrink-0 border border-white/20"
+        >
+          <Plus className="w-7 h-7" strokeWidth={2.5} />
+        </button>
       </div>
     </nav>
   );

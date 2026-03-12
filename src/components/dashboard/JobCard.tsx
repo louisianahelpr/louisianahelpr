@@ -58,21 +58,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       }`}
       onClick={() => onSelect(job)}
     >
-      {/* Category accent strip */}
-      <div className={`h-0.5 bg-gradient-to-r ${catStyle.accent}`} />
-
-      {/* Top bar: title + earnings */}
-      <div className={`flex items-center justify-between px-4 py-2.5 ${
-        job.isBoosted ? "bg-primary/[0.03]" : job.is_urgent ? "bg-accent/[0.03]" : ""
-      }`}>
-        <h3 className={`font-bold text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>
-          {job.title}
-        </h3>
-        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0 ml-3 bg-primary/[0.06] px-2 py-0.5 rounded-full">
-          <DollarSign className="w-3.5 h-3.5" />{earnings}
-        </span>
-      </div>
-
       {/* Main content */}
       <div className="px-4 py-3 space-y-2.5">
         {/* Tags + Apply */}

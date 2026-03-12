@@ -31,6 +31,7 @@ import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import { DisputeDialog } from "@/components/DisputeDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 type Application = Database["public"]["Tables"]["applications"]["Row"];

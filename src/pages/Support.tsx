@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Category = "message" | "suggestion" | "report" | "help";
 

@@ -10,6 +10,7 @@ import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { useChatPresence, OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 import { ConversationSkeleton } from "@/components/SkeletonLoaders";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Message = {
   id: string;

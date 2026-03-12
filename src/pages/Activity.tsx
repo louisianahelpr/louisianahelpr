@@ -885,9 +885,9 @@ const Activity = () => {
                 </div>
               ) : (
                 filteredAppliedApps.map((app) => (
-                  <div key={app.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                    {/* Clickable header */}
-                    <button className="w-full px-4 py-3 flex items-center justify-between text-left" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+                  <div key={app.id} className="rounded-xl border border-border bg-card overflow-hidden cursor-pointer" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+                    {/* Header */}
+                    <div className="w-full px-4 py-3 flex items-center justify-between text-left">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h3 className="font-semibold text-foreground">{app.job?.title || "Task"}</h3>
@@ -912,10 +912,10 @@ const Activity = () => {
                         )}
                       </div>
                       <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
-                    </button>
+                    </div>
 
                     {/* Expandable content */}
-                    <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+                    <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">
                         {app.job && (
                           <div className="pt-3 text-xs text-muted-foreground">

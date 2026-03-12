@@ -143,6 +143,10 @@ const Admin = () => {
       icon: <Megaphone className="w-5 h-5" />,
     },
     {
+      id: "notifications", label: "Notifications", description: "Choose which alerts you receive",
+      icon: <BellRing className="w-5 h-5" />,
+    },
+    {
       id: "settings", label: "Settings", description: "Platform configuration",
       icon: <Settings className="w-5 h-5" />,
     },

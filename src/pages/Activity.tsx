@@ -81,6 +81,7 @@ const Activity = () => {
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
+  const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<(Application & { profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null; reviewCount?: number; avgRating?: number })[]>([]);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);

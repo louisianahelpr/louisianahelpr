@@ -292,7 +292,7 @@ const ProfilePage = () => {
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     { key: "history", label: "Job History", icon: <History className="w-5 h-5" />, desc: "Past jobs & activity" },
     { key: "favorites", label: "Favorite Helpers", icon: <Heart className="w-5 h-5" />, desc: "Your saved helpers" },
-    { key: "circles", label: "Trusted Circles", icon: <Users className="w-5 h-5" />, desc: "Manage helper groups" },
+    
     { key: "retainers", label: "Retainer Agreements", icon: <CalendarHeart className="w-5 h-5" />, desc: "Recurring bookings" },
     { key: "referral", label: "Referral Program", icon: <Gift className="w-5 h-5" />, desc: "Invite friends & earn $5" },
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },

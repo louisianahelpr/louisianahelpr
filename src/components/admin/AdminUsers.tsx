@@ -863,6 +863,67 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Email Dialog */}
+      <Dialog open={!!editEmailProfile} onOpenChange={() => setEditEmailProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" /> Change Email for {editEmailProfile?.full_name || "User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/50 border border-border p-3">
+              <p className="text-xs text-muted-foreground">Current email: <strong className="text-foreground">{(editEmailProfile as any)?.email || "—"}</strong></p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">New Email</p>
+              <Input type="email" value={newEmail1} onChange={(e) => setNewEmail1(e.target.value)} placeholder="Enter new email" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm New Email</p>
+              <Input type="email" value={newEmail2} onChange={(e) => setNewEmail2(e.target.value)} placeholder="Re-enter new email" />
+              {newEmail2 && newEmail1 !== newEmail2 && (
+                <p className="text-xs text-destructive">Emails don't match</p>
+              )}
+              {newEmail2 && newEmail1 === newEmail2 && newEmail1.length > 0 && (
+                <p className="text-xs text-primary">✓ Emails match</p>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Admin Password</p>
+              <Input type="password" value={adminPass1} onChange={(e) => setAdminPass1(e.target.value)} placeholder="Enter your password" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm Admin Password</p>
+              <Input type="password" value={adminPass2} onChange={(e) => setAdminPass2(e.target.value)} placeholder="Re-enter your password" />
+              {adminPass2 && adminPass1 !== adminPass2 && (
+                <p className="text-xs text-destructive">Passwords don't match</p>
+              )}
+              {adminPass2 && adminPass1 === adminPass2 && adminPass1.length > 0 && (
+                <p className="text-xs text-primary">✓ Passwords match</p>
+              )}
+            </div>
+
+            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                ⚠️ This will immediately update the user's login email. They'll be notified of the change.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditEmailProfile(null)}>Cancel</Button>
+            <Button
+              onClick={handleUpdateEmail}
+              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2 || !adminPass1 || adminPass1 !== adminPass2}
+            >
+              {updatingEmail ? "Updating…" : "Update Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

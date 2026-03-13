@@ -128,6 +128,7 @@ serve(async (req) => {
     if (emergencyContactName) updateData.emergency_contact_name = emergencyContactName;
     if (emergencyContactPhone) updateData.emergency_contact_phone = emergencyContactPhone;
     if (jobRadius) updateData.job_radius = jobRadius;
+    if (extraComments) updateData.extra_comments = extraComments;
 
     const { error: profileErr } = await supabase
       .from("profiles")

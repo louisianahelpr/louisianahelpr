@@ -83,7 +83,7 @@ const InviteBanner = ({ userId }: { userId: string }) => {
             </div>
             <p className="text-xs text-muted-foreground">Tap to learn more about the referral program</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2 flex-wrap mr-5" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={copyCode}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-mono text-sm font-bold tracking-widest hover:bg-primary/20 transition-colors"

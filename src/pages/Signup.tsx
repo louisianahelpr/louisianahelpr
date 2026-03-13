@@ -186,6 +186,11 @@ const Signup = () => {
           availability: availability.length > 0 ? availability.join(", ") : null,
           transportation: transportation || null,
           hearAboutUs: hearAboutUs || null,
+          experienceLevel: experienceLevel || null,
+          toolsEquipment: toolsEquipment.length > 0 ? toolsEquipment.join(", ") : null,
+          emergencyContactName: emergencyContactName || null,
+          emergencyContactPhone: emergencyContactPhone || null,
+          jobRadius: jobRadius || null,
         },
       });
 

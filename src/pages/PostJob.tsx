@@ -735,16 +735,29 @@ const PostJob = () => {
                 </div>
               </div>
 
+              {/* Confirmation Checkbox */}
+              <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+                <Checkbox
+                  id="confirm-details"
+                  checked={confirmed}
+                  onCheckedChange={(checked) => setConfirmed(checked === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="confirm-details" className="text-sm text-foreground cursor-pointer leading-snug">
+                  I've reviewed all details above and confirm everything is correct. I understand my payment will be held in escrow until the job is completed.
+                </label>
+              </div>
+
               {/* Action Buttons */}
               <div className="space-y-3">
                 <Button
                   className="w-full"
                   size="lg"
                   onClick={handleSubmit}
-                  disabled={saving || uploading}
+                  disabled={saving || uploading || !confirmed}
                 >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${totalCharge.toFixed(2)}`}
+                  {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${totalCharge.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

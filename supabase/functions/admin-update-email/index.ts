@@ -19,17 +19,18 @@ Deno.serve(async (req) => {
       })
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    // Verify caller is admin
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    // Verify caller is admin via JWT claims
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
 
     const token = authHeader.replace('Bearer ', '')
     const { data: claims, error: claimsErr } = await supabaseUser.auth.getClaims(token)
@@ -93,12 +94,17 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { error: signInErr } = await supabaseAdmin.auth.signInWithPassword({
+    // Use a fresh anon client to verify admin password (not the service role client)
+    const verifyClient = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const { error: signInErr } = await verifyClient.auth.signInWithPassword({
       email: adminProfile.email,
       password: adminPassword,
     })
 
     if (signInErr) {
+      console.error('Admin password verification failed:', signInErr.message)
       return new Response(JSON.stringify({ error: 'Invalid admin password' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -112,6 +118,14 @@ Deno.serve(async (req) => {
     })
 
     if (authErr) {
+      console.error('Auth update error:', authErr)
+      // Check for duplicate email
+      if (authErr.message?.includes('duplicate') || authErr.message?.includes('unique') || authErr.message?.includes('already')) {
+        return new Response(JSON.stringify({ error: 'This email address is already in use by another account. You may need to delete or change the other account first.' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       return new Response(JSON.stringify({ error: `Auth update failed: ${authErr.message}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -126,15 +140,7 @@ Deno.serve(async (req) => {
 
     if (profileErr) {
       console.error('Profile email update failed:', profileErr)
-      // Auth was already updated, log but don't fail
     }
-
-    // Get user name for notification
-    const { data: userProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', userId)
-      .single()
 
     // Notify the user
     await supabaseAdmin.from('notifications').insert({

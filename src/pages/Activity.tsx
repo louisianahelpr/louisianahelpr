@@ -1019,11 +1019,15 @@ const Activity = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-3">
-                        {app.job && (
-                          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
-                            <DollarSign className="w-3.5 h-3.5" />{app.job.budget}
-                          </span>
-                        )}
+                        {app.job && (() => {
+                          const fee = app.job.platform_fee_amount ?? (app.job.budget * (app.job.platform_fee_percent ?? 15) / 100);
+                          const payout = app.job.budget - fee;
+                          return (
+                            <span className="flex items-center gap-0.5 font-bold text-primary text-sm" title={`Budget: $${app.job.budget} · Fee: $${fee.toFixed(2)}`}>
+                              <DollarSign className="w-3.5 h-3.5" />{payout.toFixed(2)}
+                            </span>
+                          );
+                        })()}
                         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
                       </div>
                     </div>

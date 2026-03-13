@@ -118,17 +118,10 @@ const PostJob = () => {
       return;
     }
 
-    // Load draft if no rebook
+    // Show draft prompt instead of auto-loading
     if (hasDraft && !draftLoaded) {
-      setTitle(draft.title); setDescription(draft.description);
-      setCategory(draft.category); setStreetAddress(draft.location);
-      setDateNeeded(draft.dateNeeded); setStartTime(draft.startTime);
-      setEstimatedHours(draft.estimatedHours); setBudget(draft.budget);
-      setSpecialRequirements(draft.specialRequirements);
-      setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
-      setRecurrenceEndDate(draft.recurrenceEndDate);
+      setShowDraftPrompt(true);
       setDraftLoaded(true);
-      toast.info("Draft restored! Your previous progress was saved.");
     }
   }, [searchParams, hasDraft, draftLoaded]);
 

@@ -510,7 +510,10 @@ const Dashboard = () => {
                       </div>
                       <div className="border-t border-border pt-1.5 flex justify-between">
                         <span className="font-semibold text-foreground">You Earn</span>
-                        <span className="font-bold text-primary">${(confirmApplyJob.budget * (1 - platformFee / 100)).toFixed(2)}</span>
+                        <span className="font-bold text-primary">
+                          ${(confirmApplyJob.budget * (1 - platformFee / 100)).toFixed(2)}
+                          {(confirmApplyJob.urgent_fee ?? 0) > 0 && ` + $${Number(confirmApplyJob.urgent_fee).toFixed(2)} urgent tip`}
+                        </span>
                       </div>
                     </div>
                   </div>

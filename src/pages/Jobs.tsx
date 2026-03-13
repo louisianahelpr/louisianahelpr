@@ -10,6 +10,7 @@ import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getCityState } from "@/lib/locationUtils";
 
 interface PublicJob {
   id: string;
@@ -168,7 +169,7 @@ const Jobs = () => {
                   <div className="space-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3 h-3" />
-                      <span className="line-clamp-1">{job.location}</span>
+                      <span className="line-clamp-1">{getCityState(job.location)}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3 h-3" />

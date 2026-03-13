@@ -23,6 +23,7 @@ import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
+import { getCityState } from "@/lib/locationUtils";
 import { ScopeAgreement } from "@/components/ScopeAgreement";
 import { AddonRequests } from "@/components/AddonRequests";
 import { JobConfirmation } from "@/components/JobConfirmation";
@@ -705,13 +706,7 @@ const Activity = () => {
                           )}
                           {/* City, State */}
                           {(() => {
-                            const locationParts = job.location.split(",").map(s => s.trim());
-                            let cityState = job.location;
-                            if (locationParts.length >= 2) {
-                              const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
-                              const city = locationParts[locationParts.length - 2];
-                              cityState = `${city}, ${state}`;
-                            }
+                            const cityState = getCityState(job.location);
                             return (
                               <a
                                 onClick={(e) => e.stopPropagation()}

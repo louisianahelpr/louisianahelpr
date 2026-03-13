@@ -7,6 +7,7 @@ import {
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
+import { getCityState } from "@/lib/locationUtils";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -49,14 +50,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   const isOwnJob = currentUserId === job.customer_id;
   const photos = job.photos || [];
 
-  // Parse city/state from location string (e.g. "Baton Rouge, LA" or "123 Main St, Baton Rouge, LA 70801")
-  const locationParts = job.location.split(",").map(s => s.trim());
-  let cityState = job.location;
-  if (locationParts.length >= 2) {
-    const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
-    const city = locationParts[locationParts.length - 2];
-    cityState = `${city}, ${state}`;
-  }
+  const cityState = getCityState(job.location);
 
   // Format start time
   const formattedTime = job.start_time

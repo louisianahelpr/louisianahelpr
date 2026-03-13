@@ -367,6 +367,7 @@ const PostJob = () => {
                         setSpecialRequirements(draft.specialRequirements);
                         setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
                         setRecurrenceEndDate(draft.recurrenceEndDate);
+                        if (draft.jobDuration) setJobDuration(draft.jobDuration);
                         setShowDraftPrompt(false);
                         toast.success("Draft restored!");
                       }}

@@ -236,8 +236,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
 
       {/* Footer: poster + category badge */}
       <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{job.posterName}</a>
+          {(job.posterReviewCount ?? 0) > 0 && (
+            <span className="flex items-center gap-0.5">
+              <Star className="w-3 h-3 fill-accent text-accent" />
+              <span className="text-foreground font-medium">{job.posterAvgRating?.toFixed(1)}</span>
+              <span className="text-muted-foreground">({job.posterReviewCount})</span>
+            </span>
+          )}
         </span>
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
           {categoryLabels[job.category] || job.category}

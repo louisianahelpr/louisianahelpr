@@ -262,8 +262,26 @@ const Signup = () => {
               <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="confirmEmail">Confirm email <span className="text-destructive">*</span></Label>
+              <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required />
+              {confirmEmail && (
+                <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
+                  {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
               <Input id="password" type="password" placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm password <span className="text-destructive">*</span></Label>
+              <Input id="confirmPassword" type="password" placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} />
+              {confirmPassword && (
+                <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+                  {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="dob">Date of birth <span className="text-destructive text-xs">*</span></Label>

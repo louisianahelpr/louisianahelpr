@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -61,6 +62,7 @@ const PostJob = () => {
   const urgentFee = 5;
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   // AI Job Builder
   const [aiPrompt, setAiPrompt] = useState("");
@@ -221,6 +223,7 @@ const PostJob = () => {
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
     if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }
+    setConfirmed(false);
     setStep("checkout");
   };
 
@@ -732,16 +735,29 @@ const PostJob = () => {
                 </div>
               </div>
 
+              {/* Confirmation Checkbox */}
+              <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+                <Checkbox
+                  id="confirm-details"
+                  checked={confirmed}
+                  onCheckedChange={(checked) => setConfirmed(checked === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="confirm-details" className="text-sm text-foreground cursor-pointer leading-snug">
+                  I've reviewed all details above and confirm everything is correct. I understand my payment will be held in escrow until the job is completed.
+                </label>
+              </div>
+
               {/* Action Buttons */}
               <div className="space-y-3">
                 <Button
                   className="w-full"
                   size="lg"
                   onClick={handleSubmit}
-                  disabled={saving || uploading}
+                  disabled={saving || uploading || !confirmed}
                 >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : `Pay $${totalCharge.toFixed(2)}`}
+                  {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${totalCharge.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

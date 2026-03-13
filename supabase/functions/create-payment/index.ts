@@ -60,7 +60,7 @@ serve(async (req) => {
 
       const feeAmount = (job.budget * feePercent) / 100;
       const feeTax = feeAmount * 0.085;
-      const totalCharge = job.budget + feeTax;
+      const totalDeduction = feeAmount + feeTax; // Platform fee + 8.5% tax on fee, deducted from helpr payout
 
       const lineItems: any[] = [
         {
@@ -71,17 +71,6 @@ serve(async (req) => {
               description: `Escrow payment — funds are held until the job is complete.`,
             },
             unit_amount: Math.round(job.budget * 100),
-          },
-          quantity: 1,
-        },
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Service Fee Tax (8.5%)`,
-              description: `8.5% tax on the ${feePercent}% platform service fee`,
-            },
-            unit_amount: Math.round(feeTax * 100),
           },
           quantity: 1,
         },
@@ -113,7 +102,6 @@ serve(async (req) => {
             job_id: jobId,
             customer_id: user.id,
             platform_fee_percent: String(feePercent),
-            fee_tax: String(Math.round(feeTax * 100)),
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
@@ -125,7 +113,7 @@ serve(async (req) => {
         stripe_session_id: session.id,
         payment_status: "escrow",
         platform_fee_percent: feePercent,
-        platform_fee_amount: feeAmount,
+        platform_fee_amount: totalDeduction,
       }).eq("id", jobId);
 
       return new Response(JSON.stringify({ url: session.url }), {

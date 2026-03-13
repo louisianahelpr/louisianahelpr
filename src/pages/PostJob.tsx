@@ -496,7 +496,7 @@ const PostJob = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="requirements">Special requirements <span className="text-destructive">*</span></Label>
-                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
+                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} required />
                 </div>
 
                 {/* Recurring Job */}

@@ -101,7 +101,9 @@ const Signup = () => {
   const validateStep1 = () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
+    if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
     if (password.length < 6) { toast.error("Password must be at least 6 characters"); return false; }
+    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
     if (!phone.trim()) { toast.error("Phone number is required"); return false; }
     if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
     const dob = new Date(dateOfBirth);

@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
-import { motion } from "framer-motion";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -32,11 +31,7 @@ const MobileNav = () => {
         <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
         <span className="font-medium">{label}</span>
         {active && (
-          <motion.div
-            layoutId="nav-indicator"
-            className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary"
-            transition={{ type: "spring", stiffness: 500, damping: 35 }}
-          />
+          <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary transition-all duration-200" />
         )}
       </button>
     );
@@ -54,14 +49,12 @@ const MobileNav = () => {
         </div>
 
         {/* Post button bubble */}
-        <motion.button
-          whileTap={{ scale: 0.92 }}
-          whileHover={{ scale: 1.05 }}
+        <button
           onClick={() => navigate("/post-job")}
-          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15"
+          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15 active:scale-95 transition-transform duration-150"
         >
           <Plus className="w-7 h-7" strokeWidth={2.5} />
-        </motion.button>
+        </button>
       </div>
     </nav>
   );

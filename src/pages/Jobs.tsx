@@ -204,7 +204,7 @@ const Jobs = () => {
                       Get Started
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

@@ -63,6 +63,7 @@ const AdminUsers = () => {
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      (supabase.from("email_tracking" as any) as any).select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
     ]);
 
     // Generate signed URL for private ID document

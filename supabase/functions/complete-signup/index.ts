@@ -31,6 +31,9 @@ serve(async (req) => {
       location,
       skills,
       dateOfBirth,
+      availability,
+      transportation,
+      hearAboutUs,
     } = await req.json();
 
     if (!userId) {

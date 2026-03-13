@@ -39,6 +39,7 @@ serve(async (req) => {
       emergencyContactName,
       emergencyContactPhone,
       jobRadius,
+      extraComments,
     } = await req.json();
 
     if (!userId) {

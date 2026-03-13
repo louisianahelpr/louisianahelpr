@@ -961,23 +961,26 @@ const Activity = () => {
                         {applications.map((app) => (
                           <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-2">
                             <div className="flex items-center justify-between">
-                              <div>
+                              <div className="flex-1 min-w-0">
                                 <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helpr").split(" ")[0]}</a>
                                 {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
-                                {app.proposed_rate && <p className="text-xs text-muted-foreground">${app.proposed_rate}/hr</p>}
-                                {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
                                 {app.reviewCount !== undefined && app.reviewCount > 0 && (
                                   <div className="flex items-center gap-1 mt-1">
                                     <Star className="w-3 h-3 fill-accent text-accent" />
                                     <span className="text-xs text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
                                   </div>
                                 )}
-                                {app.reviewCount === 0 && <p className="text-xs text-muted-foreground mt-1">No reviews yet</p>}
                               </div>
                               {app.status === "pending" && <Button size="sm" onClick={() => acceptApplication(app)}>Select</Button>}
                               {app.status === "accepted" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
                               {app.status === "rejected" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
                             </div>
+                            {app.message && (
+                              <div className="rounded-lg bg-secondary/30 p-3 mt-2">
+                                <p className="text-xs text-muted-foreground mb-0.5">Their message to you:</p>
+                                <p className="text-sm text-foreground">{app.message}</p>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

@@ -58,28 +58,62 @@ serve(async (req) => {
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
       const feePercent = settings?.platform_fee_percent ?? 15;
 
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        customer_email: customerId ? undefined : user.email,
-        line_items: [{
+      const feeAmount = (job.budget * feePercent) / 100;
+      const feeTax = feeAmount * 0.085;
+      const totalCharge = job.budget + feeTax;
+
+      const lineItems: any[] = [
+        {
           price_data: {
             currency: "usd",
             product_data: {
               name: `Helpr Task: ${job.title}`,
-              description: `Escrow payment — funds are held until the job is complete. Platform fee: ${feePercent}%`,
+              description: `Escrow payment — funds are held until the job is complete.`,
             },
             unit_amount: Math.round(job.budget * 100),
           },
           quantity: 1,
-        }],
+        },
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Service Fee Tax (8.5%)`,
+              description: `8.5% tax on the ${feePercent}% platform service fee`,
+            },
+            unit_amount: Math.round(feeTax * 100),
+          },
+          quantity: 1,
+        },
+      ];
+
+      // Add urgent tip line item if applicable
+      if ((job.urgent_fee ?? 0) > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Urgent Tip",
+              description: "Urgent tip — goes directly to the helpr",
+            },
+            unit_amount: Math.round(job.urgent_fee * 100),
+          },
+          quantity: 1,
+        });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: lineItems,
         mode: "payment",
-        automatic_tax: { enabled: true },
         payment_intent_data: {
           capture_method: "manual",
           metadata: {
             job_id: jobId,
             customer_id: user.id,
             platform_fee_percent: String(feePercent),
+            fee_tax: String(Math.round(feeTax * 100)),
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
@@ -87,7 +121,6 @@ serve(async (req) => {
         metadata: { job_id: jobId, customer_id: user.id },
       });
 
-      const feeAmount = (job.budget * feePercent) / 100;
       await supabaseAdmin.from("jobs").update({
         stripe_session_id: session.id,
         payment_status: "escrow",

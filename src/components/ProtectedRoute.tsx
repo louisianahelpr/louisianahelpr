@@ -1,70 +1,15 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** Allow users with pending/denied approval to access this route (e.g. profile, support) */
   allowUnapproved?: boolean;
 }
 
 const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRouteProps) => {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
+  const { user, profile, isLoading } = useCurrentUser();
 
-  useEffect(() => {
-    let mounted = true;
-
-    const checkAuth = async (userId: string | undefined) => {
-      if (!userId) {
-        if (mounted) {
-          setAuthenticated(false);
-          setLoading(false);
-        }
-        return;
-      }
-
-      // User is authenticated, now check approval status
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("approval_status, ban_status")
-        .eq("user_id", userId)
-        .single();
-
-      if (mounted) {
-        setAuthenticated(true);
-
-        // Banned users get signed out
-        if (profile?.ban_status === "banned") {
-          await supabase.auth.signOut();
-          setAuthenticated(false);
-          setLoading(false);
-          return;
-        }
-
-        setApprovalStatus(profile?.approval_status ?? "pending");
-        setLoading(false);
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        checkAuth(session?.user?.id);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      checkAuth(session?.user?.id);
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -72,16 +17,20 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     );
   }
 
-  if (!authenticated) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // If this route allows unapproved users (profile editing, support), let them through
+  // Banned users
+  if (profile?.ban_status === "banned") {
+    return <Navigate to="/login" replace />;
+  }
+
   if (!allowUnapproved) {
-    if (approvalStatus === "pending") {
+    if (profile?.approval_status === "pending") {
       return <Navigate to="/account-pending" replace />;
     }
-    if (approvalStatus === "denied") {
+    if (profile?.approval_status === "denied") {
       return <Navigate to="/account-denied" replace />;
     }
   }

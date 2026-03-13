@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -64,40 +64,36 @@ const PageFallback = () => (
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <PageTransition key={location.pathname}>
-        <Routes location={location}>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/signup-pending" element={<SignupPending />} />
-          <Route path="/account-pending" element={<AccountPending />} />
-          <Route path="/account-denied" element={<AccountDenied />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
-          <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
-          <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
-          <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-          <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
-          <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
-          <Route path="/earnings" element={<Navigate to="/profile" replace />} />
-          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
-          <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/rules" element={<PlatformRules />} />
-          <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-          <Route path="/job-history" element={<Navigate to="/profile" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </PageTransition>
-    </AnimatePresence>
+    <Routes location={location}>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+      <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
+      <Route path="/signup-pending" element={<PageTransition><SignupPending /></PageTransition>} />
+      <Route path="/account-pending" element={<PageTransition><AccountPending /></PageTransition>} />
+      <Route path="/account-denied" element={<PageTransition><AccountDenied /></PageTransition>} />
+      <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+      <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
+      <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+      <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
+      <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+      <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
+      <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+      <Route path="/earnings" element={<Navigate to="/profile" replace />} />
+      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
+      <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
+      <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
+      <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+      <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
+      <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
+      <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+      <Route path="/job-history" element={<Navigate to="/profile" replace />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 

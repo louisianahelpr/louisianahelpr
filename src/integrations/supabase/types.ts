@@ -948,6 +948,7 @@ export type Database = {
         Row: {
           approval_email_count: number
           approval_status: string
+          availability: string | null
           avatar_url: string | null
           ban_status: string | null
           bio: string | null
@@ -958,6 +959,7 @@ export type Database = {
           drip_step: number
           email: string | null
           full_name: string | null
+          hear_about_us: string | null
           hourly_rate: number | null
           id: string
           id_document_url: string | null
@@ -971,12 +973,14 @@ export type Database = {
           skills: string | null
           stripe_account_id: string | null
           subscription_tier: string | null
+          transportation: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           approval_email_count?: number
           approval_status?: string
+          availability?: string | null
           avatar_url?: string | null
           ban_status?: string | null
           bio?: string | null
@@ -987,6 +991,7 @@ export type Database = {
           drip_step?: number
           email?: string | null
           full_name?: string | null
+          hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
@@ -1000,12 +1005,14 @@ export type Database = {
           skills?: string | null
           stripe_account_id?: string | null
           subscription_tier?: string | null
+          transportation?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           approval_email_count?: number
           approval_status?: string
+          availability?: string | null
           avatar_url?: string | null
           ban_status?: string | null
           bio?: string | null
@@ -1016,6 +1023,7 @@ export type Database = {
           drip_step?: number
           email?: string | null
           full_name?: string | null
+          hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
@@ -1029,6 +1037,7 @@ export type Database = {
           skills?: string | null
           stripe_account_id?: string | null
           subscription_tier?: string | null
+          transportation?: string | null
           updated_at?: string
           user_id?: string
         }

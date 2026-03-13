@@ -137,6 +137,60 @@ const Signup = () => {
     });
   };
 
+  const prepareFileData = async () => {
+    const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
+    const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
+
+    const idBase64 = idFile ? await fileToBase64(idFile) : null;
+    const idExt = idFile ? idFile.name.split(".").pop() : null;
+
+    const portfolioData = [];
+    for (const file of portfolioFiles) {
+      portfolioData.push({
+        base64: await fileToBase64(file),
+        ext: file.name.split(".").pop(),
+        contentType: file.type,
+      });
+    }
+
+    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
+  };
+
+  const completeProfile = async (userId: string) => {
+    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
+
+    const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
+      body: {
+        userId,
+        avatarBase64,
+        avatarExt,
+        avatarContentType: avatarFile?.type,
+        idBase64,
+        idExt,
+        idContentType: idFile?.type,
+        portfolioFiles: portfolioData,
+        phone,
+        bio,
+        location,
+        skills: skills || null,
+        dateOfBirth: dateOfBirth || null,
+        availability: availability.length > 0 ? availability.join(", ") : null,
+        transportation: transportation || null,
+        hearAboutUs: hearAboutUs || null,
+        experienceLevel: experienceLevel || null,
+        toolsEquipment: toolsEquipment.length > 0 ? toolsEquipment.join(", ") : null,
+        emergencyContactName: emergencyContactName || null,
+        emergencyContactPhone: emergencyContactPhone || null,
+        jobRadius: jobRadius || null,
+        extraComments: extraComments || null,
+      },
+    });
+
+    if (fnError || result?.error) {
+      console.error("Signup completion error:", fnError || result?.error);
+    }
+  };
+
   const handleSignup = async () => {
     if (!validateStep4()) return;
 
@@ -152,60 +206,55 @@ const Signup = () => {
         },
       });
 
+      // If user already exists, try to sign in and resubmit if denied
+      if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          toast.error("An account with this email already exists. Please log in instead.");
+          setLoading(false);
+          return;
+        }
+
+        const userId = signInData.user?.id;
+        if (!userId) throw new Error("Login failed");
+
+        // Check if the account is denied
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("approval_status")
+          .eq("user_id", userId)
+          .single();
+
+        if (profile?.approval_status === "denied") {
+          // Resubmit with updated info
+          await completeProfile(userId);
+          toast.success("Your profile has been updated and resubmitted for review!");
+          navigate("/account-pending");
+        } else if (profile?.approval_status === "pending") {
+          toast.info("Your account is already pending review.");
+          navigate("/account-pending");
+        } else if (profile?.approval_status === "approved") {
+          toast.info("Your account is already approved!");
+          navigate("/dashboard");
+        } else {
+          toast.error("An account with this email already exists. Please log in instead.");
+        }
+        setLoading(false);
+        return;
+      }
+
       if (authError) throw authError;
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // 2. Prepare file data for server-side upload
-      const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
-      const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
+      // 2. Complete profile with uploads
+      await completeProfile(userId);
 
-      const idBase64 = idFile ? await fileToBase64(idFile) : null;
-      const idExt = idFile ? idFile.name.split(".").pop() : null;
-
-      const portfolioData = [];
-      for (const file of portfolioFiles) {
-        portfolioData.push({
-          base64: await fileToBase64(file),
-          ext: file.name.split(".").pop(),
-          contentType: file.type,
-        });
-      }
-
-      // 3. Call edge function to handle uploads & profile update (uses service role)
-      const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
-        body: {
-          userId,
-          avatarBase64,
-          avatarExt,
-          avatarContentType: avatarFile?.type,
-          idBase64,
-          idExt,
-          idContentType: idFile?.type,
-          portfolioFiles: portfolioData,
-          phone,
-          bio,
-          location,
-          skills: skills || null,
-          dateOfBirth: dateOfBirth || null,
-          availability: availability.length > 0 ? availability.join(", ") : null,
-          transportation: transportation || null,
-          hearAboutUs: hearAboutUs || null,
-          experienceLevel: experienceLevel || null,
-          toolsEquipment: toolsEquipment.length > 0 ? toolsEquipment.join(", ") : null,
-          emergencyContactName: emergencyContactName || null,
-          emergencyContactPhone: emergencyContactPhone || null,
-          jobRadius: jobRadius || null,
-          extraComments: extraComments || null,
-        },
-      });
-
-      if (fnError || result?.error) {
-        console.error("Signup completion error:", fnError || result?.error);
-        // Profile was created but files may have failed - still redirect to verify email
-      }
-
-      // 4. Process referral code if provided
+      // 3. Process referral code if provided
       if (referralCode.trim()) {
         try {
           await supabase.rpc("process_referral", {

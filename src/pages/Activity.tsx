@@ -579,7 +579,6 @@ const Activity = () => {
   ], []);
 
   const appliedStatusFilters = useMemo(() => [
-    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
     { key: "active", label: "Active", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
     { key: "rejected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },

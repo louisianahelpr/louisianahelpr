@@ -178,6 +178,16 @@ const Jobs = () => {
                       <DollarSign className="w-3 h-3" />
                       <span className="font-medium text-foreground">${job.budget}</span>
                     </div>
+                    {job.expires_at && (
+                      <div className={`flex items-center gap-1.5 ${differenceInHours(new Date(job.expires_at), new Date()) < 24 ? "text-destructive font-medium" : ""}`}>
+                        <Timer className="w-3 h-3" />
+                        <span>
+                          {new Date(job.expires_at) <= new Date()
+                            ? "Expired"
+                            : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Locked overlay on hover */}

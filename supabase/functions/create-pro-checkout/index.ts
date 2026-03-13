@@ -22,7 +22,7 @@ const PRICE_MAP: Record<string, Record<string, string>> = {
   one_time: {
     basic: "price_1T9xIIKp2H4b7tECUav5CUEm",
     pro: "price_1T9xIjKp2H4b7tEC8jRz0yIi",
-    elite: "price_1T9xJAKp2H4b7tEC04B2AFBg",
+    elite: "price_1TAZfmKp2H4b7tECJke2WxGV",
   },
 };
 

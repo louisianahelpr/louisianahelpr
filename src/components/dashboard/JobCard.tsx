@@ -149,6 +149,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               <Timer className="w-3 h-3 shrink-0" /> {expiryText}
             </span>
           )}
+          {/* Category badge - always visible */}
+          <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
+            {categoryLabels[job.category] || job.category}
+          </span>
         </div>
       </div>
 

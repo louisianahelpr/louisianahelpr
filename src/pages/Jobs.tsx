@@ -50,7 +50,7 @@ const Jobs = () => {
     const fetchJobs = async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, title, category, location, budget, date_needed, is_urgent, created_at")
+        .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
         .eq("status", "open")
         .order("created_at", { ascending: false })
         .limit(50);

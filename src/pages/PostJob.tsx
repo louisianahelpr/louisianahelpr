@@ -127,9 +127,9 @@ const PostJob = () => {
   const autoSave = useCallback(() => {
     const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate });
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration });
     }
-  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);
@@ -367,6 +367,7 @@ const PostJob = () => {
                         setSpecialRequirements(draft.specialRequirements);
                         setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
                         setRecurrenceEndDate(draft.recurrenceEndDate);
+                        if (draft.jobDuration) setJobDuration(draft.jobDuration);
                         setShowDraftPrompt(false);
                         toast.success("Draft restored!");
                       }}

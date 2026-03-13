@@ -15,6 +15,7 @@ export interface JobDraft {
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
+  jobDuration: string;
   savedAt: number;
 }
 
@@ -22,7 +23,7 @@ const emptyDraft: JobDraft = {
   title: "", description: "", category: "other", location: "",
   dateNeeded: "", startTime: "", estimatedHours: "", budget: "",
   specialRequirements: "", isRecurring: false, recurrenceInterval: "weekly",
-  recurrenceEndDate: "", savedAt: 0,
+  recurrenceEndDate: "", jobDuration: "none", savedAt: 0,
 };
 
 export function useDraftJob() {

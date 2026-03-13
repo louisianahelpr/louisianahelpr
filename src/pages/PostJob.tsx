@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";

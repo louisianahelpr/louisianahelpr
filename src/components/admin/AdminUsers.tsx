@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -27,6 +27,7 @@ const AdminUsers = () => {
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
   const [profileBans, setProfileBans] = useState<any[]>([]);
   const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
+  const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
@@ -56,11 +57,13 @@ const AdminUsers = () => {
   const openProfile = async (profile: Profile) => {
     setViewProfile(profile);
     setIdDocSignedUrl(null);
+    setEmailTracking([]);
 
-    const [reviewsRes, violationsRes, bansRes] = await Promise.all([
+    const [reviewsRes, violationsRes, bansRes, trackingRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      (supabase.from("email_tracking" as any) as any).select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
     ]);
 
     // Generate signed URL for private ID document
@@ -86,6 +89,7 @@ const AdminUsers = () => {
 
     setProfileViolations(violationsRes.data || []);
     setProfileBans(bansRes.data || []);
+    setEmailTracking(trackingRes.data || []);
   };
 
   const approveUser = async (profile: Profile) => {
@@ -630,6 +634,24 @@ const AdminUsers = () => {
                       <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
                     )}
                   </div>
+                  {(() => {
+                    const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
+                    const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+                    return (opens.length > 0 || clicks.length > 0) ? (
+                      <div className="flex gap-4 pt-1">
+                        <span className="flex items-center gap-1 text-xs text-primary">
+                          <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                          {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-primary">
+                          <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
+                          {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -648,6 +670,24 @@ const AdminUsers = () => {
                   {(viewProfile as any).denial_reason && (
                     <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
                   )}
+                  {(() => {
+                    const opens = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'open');
+                    const clicks = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'click');
+                    return (opens.length > 0 || clicks.length > 0) ? (
+                      <div className="flex gap-4 pt-1">
+                        <span className="flex items-center gap-1 text-xs text-destructive">
+                          <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                          {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-destructive">
+                          <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
+                          {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                    );
+                  })()}
                 </div>
               )}
 

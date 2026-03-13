@@ -7,6 +7,7 @@ import {
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
+import { getCityState } from "@/lib/locationUtils";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {

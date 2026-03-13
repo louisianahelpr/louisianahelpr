@@ -20,6 +20,7 @@ interface PublicJob {
   date_needed: string;
   is_urgent: boolean | null;
   created_at: string;
+  expires_at: string | null;
 }
 
 const categoryLabels: Record<string, string> = {

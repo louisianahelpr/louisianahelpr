@@ -147,15 +147,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
         </div>
       </div>
 
-      {/* Footer: poster name + category */}
-      <div className="px-4 py-2 border-t border-border/40 flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground truncate">
-          {job.posterName ? <>Posted by <span className="font-medium text-foreground">{job.posterName}</span></> : ""}
-        </span>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
-          {categoryLabels[job.category] || job.category}
-        </span>
-      </div>
 
       {/* Expandable section */}
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
@@ -257,25 +248,12 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
         </div>
       </div>
 
-      {/* Collapsed footer */}
-      {!isExpanded && (
-        <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <span>
-              by{" "}
-              <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-semibold text-foreground hover:text-primary transition-colors">
-                {job.posterName}
-              </a>
-            </span>
-            {(job.posterReviewCount ?? 0) > 0 && (
-              <span className="flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
-                <Star className="w-2.5 h-2.5 fill-accent text-accent" />
-                <span className="font-medium text-accent-foreground">{job.posterAvgRating?.toFixed(1)}</span>
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Footer: category badge */}
+      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-end">
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
+          {categoryLabels[job.category] || job.category}
+        </span>
+      </div>
     </motion.div>
   );
 };

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Calendar, DollarSign, ArrowRight, Search, Briefcase, Lock } from "lucide-react";
+import { MapPin, Calendar, DollarSign, ArrowRight, Search, Briefcase, Lock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -20,6 +20,7 @@ interface PublicJob {
   date_needed: string;
   is_urgent: boolean | null;
   created_at: string;
+  expires_at: string | null;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -49,7 +50,7 @@ const Jobs = () => {
     const fetchJobs = async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, title, category, location, budget, date_needed, is_urgent, created_at")
+        .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
         .eq("status", "open")
         .order("created_at", { ascending: false })
         .limit(50);
@@ -177,6 +178,16 @@ const Jobs = () => {
                       <DollarSign className="w-3 h-3" />
                       <span className="font-medium text-foreground">${job.budget}</span>
                     </div>
+                    {job.expires_at && (
+                      <div className={`flex items-center gap-1.5 ${differenceInHours(new Date(job.expires_at), new Date()) < 24 ? "text-destructive font-medium" : ""}`}>
+                        <Timer className="w-3 h-3" />
+                        <span>
+                          {new Date(job.expires_at) <= new Date()
+                            ? "Expired"
+                            : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Locked overlay on hover */}

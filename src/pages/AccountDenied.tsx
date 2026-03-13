@@ -3,12 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const AccountDenied = () => {
   const navigate = useNavigate();
   const [denyReason, setDenyReason] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const check = async () => {

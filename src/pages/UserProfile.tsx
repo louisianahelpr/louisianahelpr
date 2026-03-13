@@ -42,113 +42,87 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    if (!userId) return;
+
+    const loadAll = async () => {
       setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .rpc("get_safe_profiles", { user_ids: [userId] });
 
-        if (error) {
-          console.error("Error fetching profile:", error);
-          toast.error("Failed to load profile.");
-        }
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUserId(session?.user?.id || null);
 
-        if (data && data.length > 0) {
-          setProfile(data[0] as any);
-        } else {
-          setProfile(null);
-          toast.error("Profile not found.");
-        }
-      } catch (err) {
-        console.error("Unexpected error:", err);
-        toast.error("An unexpected error occurred.");
+      // All independent queries in parallel
+      const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes, appsRes] = await Promise.all([
+        supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
+        supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
+        session?.user
+          ? supabase.from("favorite_helpers").select("id").eq("customer_id", session.user.id).eq("helper_id", userId)
+          : Promise.resolve({ data: [] }),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId),
+      ]);
+
+      if (profileRes.data && profileRes.data.length > 0) {
+        setProfile(profileRes.data[0] as any);
+      } else {
         setProfile(null);
-      } finally {
         setLoading(false);
+        return;
       }
+
+      setIsFavorited((favRes.data?.length || 0) > 0);
+      if (postedRes.data) setPostedJobs(postedRes.data);
+      if (workedRes.data) setWorkedJobs(workedRes.data);
+
+      const ratings = reviewsRes.data?.map(r => r.rating) || [];
+      setStats({
+        completedJobs: (completedRes as any).count || completedRes.data?.length || 0,
+        avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+        reviewCount: ratings.length,
+      });
+
+      // Response metrics
+      const allApps = appsRes.data;
+      if (allApps && allApps.length > 0) {
+        const accepted = allApps.filter(a => a.status === "accepted");
+        const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
+        const responseTimes = accepted
+          .map(a => {
+            const created = new Date(a.created_at).getTime();
+            const updated = new Date(a.updated_at).getTime();
+            return (updated - created) / (1000 * 60 * 60);
+          })
+          .filter(h => h > 0 && h < 720);
+        setResponseMetrics({
+          avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : null,
+          acceptanceRate,
+          totalApplications: allApps.length,
+        });
+      }
+
+      // Enrich reviews with names — parallel
+      if (reviewsRes.data && reviewsRes.data.length > 0) {
+        const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
+        const jobIds = [...new Set(reviewsRes.data.map(r => r.job_id))];
+        const [profilesRes2, jobsRes] = await Promise.all([
+          supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
+          supabase.from("jobs").select("id, title").in("id", jobIds),
+        ]);
+        const nameMap = new Map(profilesRes2.data?.map(p => [p.user_id, p.full_name || "User"]) || []);
+        const jobMap = new Map(jobsRes.data?.map(j => [j.id, j.title]) || []);
+        setReviews(reviewsRes.data.map(r => ({
+          rating: r.rating, feedback: r.feedback, created_at: r.created_at,
+          reviewerName: nameMap.get(r.reviewer_id) || "User",
+          jobTitle: jobMap.get(r.job_id) || "Job",
+        })));
+      }
+
+      setLoading(false);
     };
 
-    if (userId) {
-      loadProfile();
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
     loadAll();
   }, [userId]);
-
-  const loadAll = async () => {
-    if (!userId) return;
-    setLoading(true);
-
-    const { data: { session } } = await supabase.auth.getSession();
-    setCurrentUserId(session?.user?.id || null);
-
-    const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes] = await Promise.all([
-      supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
-      supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
-      supabase.from("jobs").select("id").or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
-      session?.user
-        ? supabase.from("favorite_helpers").select("id").eq("customer_id", session.user.id).eq("helper_id", userId)
-        : Promise.resolve({ data: [] }),
-      supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
-      supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
-    ]);
-
-    if (profileRes.data && profileRes.data.length > 0) setProfile(profileRes.data[0] as any);
-    setIsFavorited((favRes.data?.length || 0) > 0);
-    if (postedRes.data) setPostedJobs(postedRes.data);
-    if (workedRes.data) setWorkedJobs(workedRes.data);
-
-    const ratings = reviewsRes.data?.map(r => r.rating) || [];
-    setStats({
-      completedJobs: completedRes.data?.length || 0,
-      avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
-      reviewCount: ratings.length,
-    });
-
-    // Load response metrics (for helpers)
-    const { data: allApps } = await supabase
-      .from("applications")
-      .select("status, created_at, updated_at")
-      .eq("helper_id", userId);
-
-    if (allApps && allApps.length > 0) {
-      const accepted = allApps.filter(a => a.status === "accepted");
-      const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
-      const responseTimes = accepted
-        .map(a => {
-          const created = new Date(a.created_at).getTime();
-          const updated = new Date(a.updated_at).getTime();
-          return (updated - created) / (1000 * 60 * 60);
-        })
-        .filter(h => h > 0 && h < 720);
-
-      setResponseMetrics({
-        avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : null,
-        acceptanceRate,
-        totalApplications: allApps.length,
-      });
-    }
-
-    if (reviewsRes.data && reviewsRes.data.length > 0) {
-      const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
-      const jobIds = [...new Set(reviewsRes.data.map(r => r.job_id))];
-      const [profilesRes, jobsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-        supabase.from("jobs").select("id, title").in("id", jobIds),
-      ]);
-      const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, p.full_name || "User"]) || []);
-      const jobMap = new Map(jobsRes.data?.map(j => [j.id, j.title]) || []);
-      setReviews(reviewsRes.data.map(r => ({
-        rating: r.rating, feedback: r.feedback, created_at: r.created_at,
-        reviewerName: nameMap.get(r.reviewer_id) || "User",
-        jobTitle: jobMap.get(r.job_id) || "Job",
-      })));
-    }
-    setLoading(false);
-  };
 
   const toggleFavorite = async () => {
     if (!currentUserId || !userId) { navigate("/login"); return; }

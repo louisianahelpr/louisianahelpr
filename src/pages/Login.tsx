@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Login = () => {
   const navigate = useNavigate();

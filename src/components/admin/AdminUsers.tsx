@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -40,6 +40,14 @@ const AdminUsers = () => {
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("7"); // days
   const [banning, setBanning] = useState(false);
+
+  // Edit email dialog
+  const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
+  const [newEmail1, setNewEmail1] = useState("");
+  const [newEmail2, setNewEmail2] = useState("");
+  const [adminPass1, setAdminPass1] = useState("");
+  const [adminPass2, setAdminPass2] = useState("");
+  const [updatingEmail, setUpdatingEmail] = useState(false);
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -290,6 +298,32 @@ const AdminUsers = () => {
     setViewProfile(null);
   };
 
+  const handleUpdateEmail = async () => {
+    if (!editEmailProfile) return;
+    if (newEmail1 !== newEmail2) { toast.error("Emails don't match"); return; }
+    if (adminPass1 !== adminPass2) { toast.error("Passwords don't match"); return; }
+    if (!newEmail1.trim() || !adminPass1.trim()) { toast.error("All fields are required"); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail1)) { toast.error("Invalid email format"); return; }
+
+    setUpdatingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("admin-update-email", {
+        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim(), adminPassword: adminPass1 },
+      });
+      if (error) throw error;
+      toast.success(`Email updated to ${newEmail1.trim()}`);
+      setEditEmailProfile(null);
+      setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2("");
+      loadProfiles();
+      setViewProfile(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update email");
+    } finally {
+      setUpdatingEmail(false);
+    }
+  };
+
   const filtered = profiles.filter((p) => {
     if (tab === "pending") return p.approval_status === "pending";
     if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
@@ -435,7 +469,16 @@ const AdminUsers = () => {
                     {statusBadge(viewProfile)}
                     <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
+                    <button
+                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2(""); }}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                      title="Edit email"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
                   {viewProfile.bio && <p className="text-sm text-foreground leading-relaxed">{viewProfile.bio}</p>}
                 </div>
               </div>
@@ -816,6 +859,67 @@ const AdminUsers = () => {
               disabled={banning || !banReason.trim()}
             >
               {banning ? "Processing…" : banType === "warning" ? "Issue Warning" : banType === "temporary" ? `Ban for ${banDuration} days` : "Permanently Ban"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Email Dialog */}
+      <Dialog open={!!editEmailProfile} onOpenChange={() => setEditEmailProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" /> Change Email for {editEmailProfile?.full_name || "User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/50 border border-border p-3">
+              <p className="text-xs text-muted-foreground">Current email: <strong className="text-foreground">{(editEmailProfile as any)?.email || "—"}</strong></p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">New Email</p>
+              <Input type="email" value={newEmail1} onChange={(e) => setNewEmail1(e.target.value)} placeholder="Enter new email" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm New Email</p>
+              <Input type="email" value={newEmail2} onChange={(e) => setNewEmail2(e.target.value)} placeholder="Re-enter new email" />
+              {newEmail2 && newEmail1 !== newEmail2 && (
+                <p className="text-xs text-destructive">Emails don't match</p>
+              )}
+              {newEmail2 && newEmail1 === newEmail2 && newEmail1.length > 0 && (
+                <p className="text-xs text-primary">✓ Emails match</p>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Admin Password</p>
+              <Input type="password" value={adminPass1} onChange={(e) => setAdminPass1(e.target.value)} placeholder="Enter your password" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm Admin Password</p>
+              <Input type="password" value={adminPass2} onChange={(e) => setAdminPass2(e.target.value)} placeholder="Re-enter your password" />
+              {adminPass2 && adminPass1 !== adminPass2 && (
+                <p className="text-xs text-destructive">Passwords don't match</p>
+              )}
+              {adminPass2 && adminPass1 === adminPass2 && adminPass1.length > 0 && (
+                <p className="text-xs text-primary">✓ Passwords match</p>
+              )}
+            </div>
+
+            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                ⚠️ This will immediately update the user's login email. They'll be notified of the change.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditEmailProfile(null)}>Cancel</Button>
+            <Button
+              onClick={handleUpdateEmail}
+              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2 || !adminPass1 || adminPass1 !== adminPass2}
+            >
+              {updatingEmail ? "Updating…" : "Update Email"}
             </Button>
           </DialogFooter>
         </DialogContent>

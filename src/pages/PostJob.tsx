@@ -329,6 +329,44 @@ const PostJob = () => {
                 <p className="text-muted-foreground mt-1 ml-11">Describe what you need help with</p>
               </div>
 
+              {/* Draft Prompt */}
+              {showDraftPrompt && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">You have a saved draft</p>
+                    <p className="text-xs text-muted-foreground">Would you like to continue where you left off?</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        clearDraft();
+                        setShowDraftPrompt(false);
+                      }}
+                    >
+                      Start fresh
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setTitle(draft.title); setDescription(draft.description);
+                        setCategory(draft.category); setStreetAddress(draft.location);
+                        setDateNeeded(draft.dateNeeded); setStartTime(draft.startTime);
+                        setEstimatedHours(draft.estimatedHours); setBudget(draft.budget);
+                        setSpecialRequirements(draft.specialRequirements);
+                        setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
+                        setRecurrenceEndDate(draft.recurrenceEndDate);
+                        setShowDraftPrompt(false);
+                        toast.success("Draft restored!");
+                      }}
+                    >
+                      Load draft
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* AI Job Builder */}
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
                 <button

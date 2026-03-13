@@ -38,19 +38,19 @@ type BillingCycle = "monthly" | "annual" | "one_time";
 
 const PRICING: Record<BillingCycle, Record<string, { label: string; price: string; monthly: string }>> = {
   monthly: {
-    basic: { label: "Monthly", price: "$9.99/mo", monthly: "$9.99" },
-    pro: { label: "Monthly", price: "$14.99/mo", monthly: "$14.99" },
-    elite: { label: "Monthly", price: "$24.99/mo", monthly: "$24.99" },
+    basic: { label: "Monthly", price: "$5/mo", monthly: "$5" },
+    pro: { label: "Monthly", price: "$10/mo", monthly: "$10" },
+    elite: { label: "Monthly", price: "$15/mo", monthly: "$15" },
   },
   annual: {
-    basic: { label: "Annual", price: "$99.90/yr", monthly: "$8.33" },
-    pro: { label: "Annual", price: "$149.90/yr", monthly: "$12.49" },
-    elite: { label: "Annual", price: "$249.90/yr", monthly: "$20.83" },
+    basic: { label: "Annual", price: "$50/yr", monthly: "$4.17" },
+    pro: { label: "Annual", price: "$100/yr", monthly: "$8.33" },
+    elite: { label: "Annual", price: "$150/yr", monthly: "$12.50" },
   },
   one_time: {
-    basic: { label: "One month", price: "$9.99", monthly: "$9.99" },
-    pro: { label: "One month", price: "$14.99", monthly: "$14.99" },
-    elite: { label: "One month", price: "$24.99", monthly: "$24.99" },
+    basic: { label: "One month", price: "$5", monthly: "$5" },
+    pro: { label: "One month", price: "$10", monthly: "$10" },
+    elite: { label: "One month", price: "$15", monthly: "$15" },
   },
 };
 

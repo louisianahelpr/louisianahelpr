@@ -59,7 +59,8 @@ const PostJob = () => {
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
   const [isUrgent, setIsUrgent] = useState(false);
-  const urgentFee = 5;
+  const [urgentFee, setUrgentFee] = useState("5");
+  const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -223,6 +224,7 @@ const PostJob = () => {
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
     if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }
+    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent tip must be at least $5"); return; }
     setConfirmed(false);
     setStep("checkout");
   };
@@ -268,7 +270,7 @@ const PostJob = () => {
       helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
       expires_at: expiresAt,
       is_urgent: isUrgent,
-      urgent_fee: isUrgent ? urgentFee : 0,
+      urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
     } as any).select("id").single();
 
     if (error || !jobData) {
@@ -306,7 +308,8 @@ const PostJob = () => {
   };
 
   const budgetNum = parseFloat(budget) || 0;
-  const totalCharge = budgetNum + (isUrgent ? urgentFee : 0);
+  const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
+  const totalCharge = budgetNum + urgentFeeNum;
   const feeAmount = budgetNum * (platformFee / 100);
   const helperEarns = budgetNum - feeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
@@ -558,14 +561,55 @@ const PostJob = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-accent" />
-                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent (+${urgentFee})</Label>
+                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent</Label>
                     </div>
                     <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
                   </div>
                   {isUrgent && (
-                    <p className="text-xs text-muted-foreground">
-                      ⚡ Your job will be highlighted in the feed and nearby helprs will be notified immediately. An additional ${urgentFee} fee applies.
-                    </p>
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent tip goes directly to the helpr — no platform fee applied.
+                      </p>
+                      <Label className="text-xs">Urgent tip ($5 minimum)</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {["5", "10", "15", "20"].map((amt) => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              urgentFee === amt && !customUrgentFee
+                                ? "bg-accent text-accent-foreground"
+                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                            }`}
+                          >
+                            ${amt}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            customUrgentFee
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {customUrgentFee && (
+                        <Input
+                          type="number"
+                          min="5"
+                          step="1"
+                          value={urgentFee}
+                          onChange={(e) => setUrgentFee(e.target.value)}
+                          placeholder="Enter amount ($5+)"
+                          className="w-32"
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -691,10 +735,10 @@ const PostJob = () => {
                     <span className="text-muted-foreground">Task budget</span>
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
-                  {isUrgent && (
+                  {isUrgent && urgentFeeNum > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent fee</span>
-                      <span className="font-medium text-foreground">${urgentFee.toFixed(2)}</span>
+                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent tip (goes to helpr)</span>
+                      <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
@@ -708,7 +752,9 @@ const PostJob = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Helpr receives</span>
-                    <span className="font-medium text-primary">${helperEarns.toFixed(2)}</span>
+                    <span className="font-medium text-primary">
+                      ${helperEarns.toFixed(2)}{urgentFeeNum > 0 ? ` + $${urgentFeeNum.toFixed(2)} urgent tip` : ""}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -260,7 +260,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span>
               by{" "}
-              <a href={`/user/${job.customer_id}`} className="font-semibold text-foreground hover:text-primary transition-colors">
+              <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-semibold text-foreground hover:text-primary transition-colors">
                 {job.posterName}
               </a>
             </span>

@@ -122,6 +122,11 @@ serve(async (req) => {
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;
     if (hearAboutUs) updateData.hear_about_us = hearAboutUs;
+    if (experienceLevel) updateData.experience_level = experienceLevel;
+    if (toolsEquipment) updateData.tools_equipment = toolsEquipment;
+    if (emergencyContactName) updateData.emergency_contact_name = emergencyContactName;
+    if (emergencyContactPhone) updateData.emergency_contact_phone = emergencyContactPhone;
+    if (jobRadius) updateData.job_radius = jobRadius;
 
     const { error: profileErr } = await supabase
       .from("profiles")

@@ -270,7 +270,7 @@ const PostJob = () => {
       helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
       expires_at: expiresAt,
       is_urgent: isUrgent,
-      urgent_fee: isUrgent ? urgentFee : 0,
+      urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
     } as any).select("id").single();
 
     if (error || !jobData) {

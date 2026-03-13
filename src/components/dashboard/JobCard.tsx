@@ -217,7 +217,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
                   {job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Multiple helprs needed"}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Each helpr earns ${job.budget.toFixed(2)} (before fees)
+                  Each helpr earns ${earnings}{urgentTip > 0 ? ` + $${Number(urgentTip).toFixed(2)} urgent tip` : ""}
                 </p>
               </div>
             </div>

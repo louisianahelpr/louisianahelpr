@@ -64,7 +64,7 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
             </div>
             <div className="rounded-lg bg-secondary/30 p-3">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
-              <p className="font-semibold text-foreground">{job.location}</p>
+              <p className="font-semibold text-foreground">{getCityState(job.location)}</p>
             </div>
             <div className="rounded-lg bg-secondary/30 p-3">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>

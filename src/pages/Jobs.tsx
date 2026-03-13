@@ -10,6 +10,7 @@ import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getCityState } from "@/lib/locationUtils";
 
 interface PublicJob {
   id: string;

@@ -34,6 +34,11 @@ serve(async (req) => {
       availability,
       transportation,
       hearAboutUs,
+      experienceLevel,
+      toolsEquipment,
+      emergencyContactName,
+      emergencyContactPhone,
+      jobRadius,
     } = await req.json();
 
     if (!userId) {

@@ -62,7 +62,8 @@ const NotificationPanel = () => {
   };
 
   useEffect(() => {
-    loadNotifications();
+    // Defer initial notification load to avoid blocking page render
+    const timer = setTimeout(() => loadNotifications(), 800);
 
     // Check push support
     const supported = isPushSupported();
@@ -77,11 +78,9 @@ const NotificationPanel = () => {
       .channel("notifications-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
         const n = payload.new as Notification;
-        // Only show if it's for the current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && n.user_id === user.id) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && n.user_id === session.user.id) {
           setNotifications((prev) => [n, ...prev]);
-          // Trigger browser push if enabled and tab is not focused
           if (document.hidden && getPushPermission() === "granted") {
             showLocalNotification(n.title, n.message, n.link || undefined);
           }
@@ -89,7 +88,7 @@ const NotificationPanel = () => {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timer); supabase.removeChannel(channel); };
   }, []);
 
   const enablePush = async () => {

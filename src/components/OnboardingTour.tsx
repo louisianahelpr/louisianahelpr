@@ -89,17 +89,14 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const progress = ((state.currentStep + 1) / steps.length) * 100;
 
   useEffect(() => {
-    // Only show on the dashboard (first page after login for approved users)
     if (location.pathname !== "/dashboard") return;
     const s = getState();
-    // Never show again if completed (finished, skipped, or dismissed)
-    if (s.completed) return;
-    // Show tour only the very first time
-    if (!s.seen) {
-      saveState({ ...s, seen: true });
-      const timer = setTimeout(() => setVisible(true), 1500);
-      return () => clearTimeout(timer);
-    }
+    // Never show again once seen or completed
+    if (s.completed || s.seen) return;
+    // Mark as seen immediately so it never shows again
+    saveState({ ...s, seen: true });
+    const timer = setTimeout(() => setVisible(true), 1500);
+    return () => clearTimeout(timer);
   }, [location.pathname]);
 
   const updateState = useCallback((updates: Partial<OnboardingState>) => {

@@ -77,8 +77,8 @@ const AccountDenied = () => {
                 <RefreshCw className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Update & resubmit</p>
-                <p className="text-xs text-muted-foreground">Update your profile, upload a clearer ID, and resubmit for review.</p>
+                <p className="text-sm font-medium text-foreground">Re-apply with updated info</p>
+                <p className="text-xs text-muted-foreground">Sign up again with the same email to resubmit your profile with a new photo, ID, and details.</p>
               </div>
             </div>
 
@@ -94,14 +94,9 @@ const AccountDenied = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link to="/profile">
-              <Button className="w-full" size="lg">
-                Update My Profile
-              </Button>
-            </Link>
-            <Button variant="outline" className="w-full" onClick={handleResubmit} disabled={loading}>
+            <Button className="w-full" size="lg" onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              {loading ? "Resubmitting…" : "Resubmit for Review"}
+              Re-apply Now
             </Button>
             <Link to="/support">
               <Button variant="ghost" className="w-full" size="sm">

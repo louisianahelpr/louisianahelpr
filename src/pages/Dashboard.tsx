@@ -240,9 +240,6 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Browse tasks to help with, or post your own.
                 </p>
-                <p className="text-xs text-primary/80 mt-1 italic">
-                  {GREETING_MESSAGES[dayIndex]}
-                </p>
               </div>
               <Button
                 onClick={() => navigate("/post-job")}

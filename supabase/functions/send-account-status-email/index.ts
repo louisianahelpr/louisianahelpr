@@ -34,8 +34,21 @@ async function sendWithResend(apiKey: string, params: { to: string; from: string
   return await res.json()
 }
 
-function renderApprovedEmail(fullName: string): { html: string; text: string } {
+function trackingPixelUrl(userId: string, emailType: string): string {
+  const base = Deno.env.get('SUPABASE_URL')!
+  return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=open`
+}
+
+function trackedLink(userId: string, emailType: string, destination: string): string {
+  const base = Deno.env.get('SUPABASE_URL')!
+  return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=click&redirect=${encodeURIComponent(destination)}`
+}
+
+function renderApprovedEmail(fullName: string, userId: string): { html: string; text: string } {
   const siteUrl = `https://${ROOT_DOMAIN}`
+  const ctaUrl = trackedLink(userId, 'account_approved', `${siteUrl}/login`)
+  const pixelUrl = trackingPixelUrl(userId, 'account_approved')
+
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
@@ -47,12 +60,13 @@ function renderApprovedEmail(fullName: string): { html: string; text: string } {
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Great news — your account has been reviewed and <strong style="color:hsl(158,45%,42%)">approved</strong>! You now have full access to the Helpr platform.
   </p>
-  <a href="${siteUrl}/login" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Log In Now
   </a>
   <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
     Welcome to the Helpr community! If you have any questions, don't hesitate to reach out to our support team.
   </p>
+  <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
 </div>
 </body></html>`
 

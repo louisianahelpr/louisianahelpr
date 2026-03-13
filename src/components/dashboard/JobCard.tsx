@@ -44,6 +44,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   });
 
   const earnings = (job.budget * (1 - effectiveFee / 100)).toFixed(2);
+  const urgentTip = job.urgent_fee ?? 0;
   const catStyle = categoryColors[job.category] || categoryColors.other;
   const isOwnJob = currentUserId === job.customer_id;
   const photos = job.photos || [];

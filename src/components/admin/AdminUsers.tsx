@@ -634,6 +634,24 @@ const AdminUsers = () => {
                       <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
                     )}
                   </div>
+                  {(() => {
+                    const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
+                    const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+                    return (opens.length > 0 || clicks.length > 0) ? (
+                      <div className="flex gap-4 pt-1">
+                        <span className="flex items-center gap-1 text-xs text-primary">
+                          <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                          {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-primary">
+                          <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
+                          {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -652,6 +670,24 @@ const AdminUsers = () => {
                   {(viewProfile as any).denial_reason && (
                     <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
                   )}
+                  {(() => {
+                    const opens = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'open');
+                    const clicks = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'click');
+                    return (opens.length > 0 || clicks.length > 0) ? (
+                      <div className="flex gap-4 pt-1">
+                        <span className="flex items-center gap-1 text-xs text-destructive">
+                          <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                          {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-destructive">
+                          <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
+                          {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                    );
+                  })()}
                 </div>
               )}
 

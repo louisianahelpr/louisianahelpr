@@ -798,10 +798,6 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
-                    <span className="font-medium text-foreground">−${feeAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax on service fee (8.5%)</span>
                     <span className="font-medium text-foreground">${feeTax.toFixed(2)}</span>
                   </div>
@@ -809,12 +805,6 @@ const PostJob = () => {
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">You pay</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Helpr receives</span>
-                    <span className="font-medium text-primary">
-                      ${helperEarns.toFixed(2)}{urgentFeeNum > 0 ? ` + $${urgentFeeNum.toFixed(2)} urgent tip` : ""}
-                    </span>
                   </div>
                 </div>
               </div>

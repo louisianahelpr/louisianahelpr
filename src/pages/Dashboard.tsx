@@ -495,10 +495,26 @@ const Dashboard = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Application</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription asChild>
               {confirmApplyJob
-                ? <>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span> for <span className="font-semibold text-primary">${confirmApplyJob.budget}</span>?</>
-                : "Are you sure you want to apply for this task?"}
+                ? <div className="space-y-3">
+                    <p>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span>?</p>
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Job Budget</span>
+                        <span className="font-medium text-foreground">${confirmApplyJob.budget.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Platform Fee ({platformFee}%)</span>
+                        <span className="text-destructive">-${(confirmApplyJob.budget * platformFee / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="border-t border-border pt-1.5 flex justify-between">
+                        <span className="font-semibold text-foreground">You Earn</span>
+                        <span className="font-bold text-primary">${(confirmApplyJob.budget * (1 - platformFee / 100)).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                : <p>Are you sure you want to apply for this task?</p>}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

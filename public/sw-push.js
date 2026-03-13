@@ -1,9 +1,9 @@
 // Service Worker for browser push notifications + offline support
 
-const CACHE_NAME = 'helpr-offline-v1';
+const CACHE_NAME = 'helpr-offline-v3';
 const OFFLINE_URL = '/offline.html';
 
-// Cache offline page on install
+// Cache offline page on install — always activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.add(OFFLINE_URL))
@@ -11,7 +11,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Clean up old caches on activate
+// Clean up ALL old caches on activate
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -21,13 +21,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Serve offline page when navigation fails
+// Network-first for navigation — never serve stale HTML
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() =>
-        caches.match(OFFLINE_URL)
-      )
+      fetch(event.request)
+        .then((response) => response)
+        .catch(() => caches.match(OFFLINE_URL))
     );
   }
 });

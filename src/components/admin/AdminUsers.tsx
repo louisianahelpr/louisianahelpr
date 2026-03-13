@@ -301,19 +301,19 @@ const AdminUsers = () => {
   const handleUpdateEmail = async () => {
     if (!editEmailProfile) return;
     if (newEmail1 !== newEmail2) { toast.error("Emails don't match"); return; }
-    if (!newEmail1.trim() || !adminPass1.trim()) { toast.error("All fields are required"); return; }
+    if (!newEmail1.trim()) { toast.error("New email is required"); return; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail1)) { toast.error("Invalid email format"); return; }
 
     setUpdatingEmail(true);
     try {
       const { error } = await supabase.functions.invoke("admin-update-email", {
-        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim(), adminPassword: adminPass1 },
+        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim() },
       });
       if (error) throw error;
       toast.success(`Email updated to ${newEmail1.trim()}`);
       setEditEmailProfile(null);
-      setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2("");
+      setNewEmail1(""); setNewEmail2("");
       loadProfiles();
       setViewProfile(null);
     } catch (err: any) {

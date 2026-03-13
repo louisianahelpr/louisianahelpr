@@ -311,6 +311,10 @@ const Signup = () => {
         {/* Step 2: Profile details */}
         {step === 2 && (
           <div className="space-y-4">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
+              <p className="text-sm font-medium text-primary">💡 The more you share, the better your chances!</p>
+              <p className="text-xs text-muted-foreground mt-1">Completed profiles get up to 3x more job offers. Fill in as much as you can.</p>
+            </div>
             <div className="flex flex-col items-center gap-3">
               <Label>Profile picture <span className="text-destructive text-xs">*</span></Label>
               <label className="cursor-pointer group">

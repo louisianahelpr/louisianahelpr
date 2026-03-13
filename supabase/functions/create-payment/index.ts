@@ -59,8 +59,6 @@ serve(async (req) => {
       const feePercent = settings?.platform_fee_percent ?? 15;
 
       const feeAmount = (job.budget * feePercent) / 100;
-      const feeTax = feeAmount * 0.085;
-      const totalCharge = job.budget + feeTax;
 
       const lineItems: any[] = [
         {
@@ -71,17 +69,6 @@ serve(async (req) => {
               description: `Escrow payment — funds are held until the job is complete.`,
             },
             unit_amount: Math.round(job.budget * 100),
-          },
-          quantity: 1,
-        },
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Service Fee Tax (8.5%)`,
-              description: `8.5% tax on the ${feePercent}% platform service fee`,
-            },
-            unit_amount: Math.round(feeTax * 100),
           },
           quantity: 1,
         },

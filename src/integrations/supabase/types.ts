@@ -958,11 +958,15 @@ export type Database = {
           denial_reason: string | null
           drip_step: number
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          experience_level: string | null
           full_name: string | null
           hear_about_us: string | null
           hourly_rate: number | null
           id: string
           id_document_url: string | null
+          job_radius: string | null
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
@@ -973,6 +977,7 @@ export type Database = {
           skills: string | null
           stripe_account_id: string | null
           subscription_tier: string | null
+          tools_equipment: string | null
           transportation: string | null
           updated_at: string
           user_id: string
@@ -990,11 +995,15 @@ export type Database = {
           denial_reason?: string | null
           drip_step?: number
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          experience_level?: string | null
           full_name?: string | null
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -1005,6 +1014,7 @@ export type Database = {
           skills?: string | null
           stripe_account_id?: string | null
           subscription_tier?: string | null
+          tools_equipment?: string | null
           transportation?: string | null
           updated_at?: string
           user_id: string
@@ -1022,11 +1032,15 @@ export type Database = {
           denial_reason?: string | null
           drip_step?: number
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          experience_level?: string | null
           full_name?: string | null
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -1037,6 +1051,7 @@ export type Database = {
           skills?: string | null
           stripe_account_id?: string | null
           subscription_tier?: string | null
+          tools_equipment?: string | null
           transportation?: string | null
           updated_at?: string
           user_id?: string

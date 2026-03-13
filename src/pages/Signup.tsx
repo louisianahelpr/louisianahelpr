@@ -31,6 +31,9 @@ const Signup = () => {
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [skills, setSkills] = useState("");
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [transportation, setTransportation] = useState("");
+  const [hearAboutUs, setHearAboutUs] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -105,9 +108,8 @@ const Signup = () => {
 
   const validateStep2 = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
-    if (!bio.trim()) { toast.error("Please tell us about yourself"); return false; }
+    if (!bio.trim() || bio.trim().length < 100) { toast.error("About you must be at least 100 characters"); return false; }
     if (!location.trim()) { toast.error("Location is required"); return false; }
-    // Skills are optional — helpers can add later
     return true;
   };
 
@@ -176,6 +178,9 @@ const Signup = () => {
           location,
           skills: skills || null,
           dateOfBirth: dateOfBirth || null,
+          availability: availability.length > 0 ? availability.join(", ") : null,
+          transportation: transportation || null,
+          hearAboutUs: hearAboutUs || null,
         },
       });
 
@@ -313,12 +318,16 @@ const Signup = () => {
               <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
-                placeholder="Tell us about yourself, your experience, and what you're looking for…"
+                placeholder="Tell us about yourself, your experience, and what you're looking for… (minimum 100 characters)"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                rows={3}
+                rows={4}
                 required
+                minLength={100}
               />
+              <p className={`text-xs ${bio.trim().length >= 100 ? "text-primary" : "text-muted-foreground"}`}>
+                {bio.trim().length}/100 characters minimum {bio.trim().length >= 100 && "✓"}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="location">Location <span className="text-destructive">*</span></Label>
@@ -353,6 +362,77 @@ const Signup = () => {
                 })}
               </div>
               <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Availability <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Weekday mornings", "Weekday afternoons", "Weekday evenings", "Weekends", "Flexible / Anytime"].map((slot) => {
+                  const isActive = availability.includes(slot);
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => {
+                        setAvailability(isActive ? availability.filter(a => a !== slot) : [...availability, slot]);
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : "+ "}{slot}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Transportation <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Car", "Truck / Van", "Bike", "Public Transit", "No vehicle"].map((opt) => {
+                  const isActive = transportation === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setTransportation(isActive ? "" : opt)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : ""}{opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Word of mouth", "Social media", "Google search", "Flyer / poster", "Friend / family", "Other"].map((opt) => {
+                  const isActive = hearAboutUs === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setHearAboutUs(isActive ? "" : opt)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : ""}{opt}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex gap-3">

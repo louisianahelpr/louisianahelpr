@@ -31,6 +31,9 @@ serve(async (req) => {
       location,
       skills,
       dateOfBirth,
+      availability,
+      transportation,
+      hearAboutUs,
     } = await req.json();
 
     if (!userId) {
@@ -111,6 +114,9 @@ serve(async (req) => {
     if (avatarUrl) updateData.avatar_url = avatarUrl;
     if (idDocumentUrl) updateData.id_document_url = idDocumentUrl;
     if (portfolioUrls.length > 0) updateData.portfolio_urls = portfolioUrls;
+    if (availability) updateData.availability = availability;
+    if (transportation) updateData.transportation = transportation;
+    if (hearAboutUs) updateData.hear_about_us = hearAboutUs;
 
     const { error: profileErr } = await supabase
       .from("profiles")

@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { userId, newEmail, adminPassword } = await req.json()
+    const { userId, newEmail } = await req.json()
     const normalizedEmail = typeof newEmail === 'string' ? newEmail.trim().toLowerCase() : ''
 
     if (!userId || !normalizedEmail) {
@@ -64,7 +64,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'Invalid email format' }), {
@@ -73,7 +72,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Early duplicate check to avoid opaque auth 500s
+    // Early duplicate check
     const { data: conflictingProfiles, error: conflictErr } = await supabaseAdmin
       .from('profiles')
       .select('user_id, approval_status, email')
@@ -102,51 +101,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Verify admin password for extra security
-    if (!adminPassword) {
-      return new Response(JSON.stringify({ error: 'Admin password required for this action' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Prefer email claim from current JWT, fallback to profile
-    let adminEmail = (claims.claims.email as string | undefined)?.trim()?.toLowerCase()
-
-    if (!adminEmail) {
-      const { data: adminProfile } = await supabaseAdmin
-        .from('profiles')
-        .select('email')
-        .eq('user_id', adminId)
-        .single()
-
-      adminEmail = adminProfile?.email?.trim()?.toLowerCase()
-    }
-
-    if (!adminEmail) {
-      return new Response(JSON.stringify({ error: 'Admin email not found' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Use a fresh anon client to verify admin password (not the service role client)
-    const verifyClient = createClient(supabaseUrl, anonKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-    const { error: signInErr } = await verifyClient.auth.signInWithPassword({
-      email: adminEmail,
-      password: adminPassword,
-    })
-
-    if (signInErr) {
-      console.error('Admin password verification failed:', signInErr.message)
-      return new Response(JSON.stringify({ error: 'Invalid admin password' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     // Update email in auth.users via admin API
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       email: normalizedEmail,
@@ -155,9 +109,8 @@ Deno.serve(async (req) => {
 
     if (authErr) {
       console.error('Auth update error:', authErr)
-      // Check for duplicate email
       if (authErr.message?.includes('duplicate') || authErr.message?.includes('unique') || authErr.message?.includes('already')) {
-        return new Response(JSON.stringify({ error: 'This email address is already in use by another account. You may need to delete or change the other account first.' }), {
+        return new Response(JSON.stringify({ error: 'This email address is already in use by another account.' }), {
           status: 409,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })

@@ -45,8 +45,8 @@ const AdminUsers = () => {
   const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
   const [newEmail1, setNewEmail1] = useState("");
   const [newEmail2, setNewEmail2] = useState("");
-  const [adminPass1, setAdminPass1] = useState("");
-  const [adminPass2, setAdminPass2] = useState("");
+  const [adminPass1] = useState(""); // kept for compat, unused
+  const [adminPass2] = useState(""); // kept for compat, unused
   const [updatingEmail, setUpdatingEmail] = useState(false);
 
   const loadProfiles = async () => {
@@ -301,19 +301,19 @@ const AdminUsers = () => {
   const handleUpdateEmail = async () => {
     if (!editEmailProfile) return;
     if (newEmail1 !== newEmail2) { toast.error("Emails don't match"); return; }
-    if (!newEmail1.trim() || !adminPass1.trim()) { toast.error("All fields are required"); return; }
+    if (!newEmail1.trim()) { toast.error("New email is required"); return; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail1)) { toast.error("Invalid email format"); return; }
 
     setUpdatingEmail(true);
     try {
       const { error } = await supabase.functions.invoke("admin-update-email", {
-        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim(), adminPassword: adminPass1 },
+        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim() },
       });
       if (error) throw error;
       toast.success(`Email updated to ${newEmail1.trim()}`);
       setEditEmailProfile(null);
-      setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2("");
+      setNewEmail1(""); setNewEmail2("");
       loadProfiles();
       setViewProfile(null);
     } catch (err: any) {
@@ -480,7 +480,7 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
                     <button
-                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2(""); }}
+                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
                       className="text-muted-foreground hover:text-primary transition-colors"
                       title="Edit email"
                     >
@@ -900,11 +900,6 @@ const AdminUsers = () => {
               )}
             </div>
 
-            <div className="border-t border-border pt-4 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Admin Password</p>
-              <Input type="password" value={adminPass1} onChange={(e) => setAdminPass1(e.target.value)} placeholder="Enter your password to confirm" />
-            </div>
-
             <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
               <p className="text-xs text-muted-foreground">
                 ⚠️ This will immediately update the user's login email. They'll be notified of the change.
@@ -915,7 +910,7 @@ const AdminUsers = () => {
             <Button variant="ghost" onClick={() => setEditEmailProfile(null)}>Cancel</Button>
             <Button
               onClick={handleUpdateEmail}
-              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2 || !adminPass1}
+              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2}
             >
               {updatingEmail ? "Updating…" : "Update Email"}
             </Button>

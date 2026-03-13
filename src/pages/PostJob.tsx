@@ -560,14 +560,56 @@ const PostJob = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-accent" />
-                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent (+${urgentFee})</Label>
+                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent</Label>
                     </div>
                     <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
                   </div>
                   {isUrgent && (
-                    <p className="text-xs text-muted-foreground">
-                      ⚡ Your job will be highlighted in the feed and nearby helprs will be notified immediately. An additional ${urgentFee} fee applies.
-                    </p>
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent tip goes directly to the helpr — no platform fee applied.
+                      </p>
+                      <Label className="text-xs">Urgent tip ($5 minimum)</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {["5", "10", "15", "20"].map((amt) => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              urgentFee === amt && !customUrgentFee
+                                ? "bg-accent text-accent-foreground"
+                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                            }`}
+                          >
+                            ${amt}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            customUrgentFee
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {customUrgentFee && (
+                        <Input
+                          type="number"
+                          min="5"
+                          step="1"
+                          value={urgentFee}
+                          onChange={(e) => setUrgentFee(e.target.value)}
+                          placeholder="Enter amount ($5+)"
+                          className="w-32"
+                        />
+                      )}
+                    </div>
+                  )}
                   )}
                 </div>
 

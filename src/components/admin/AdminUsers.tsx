@@ -57,8 +57,9 @@ const AdminUsers = () => {
   const openProfile = async (profile: Profile) => {
     setViewProfile(profile);
     setIdDocSignedUrl(null);
+    setEmailTracking([]);
 
-    const [reviewsRes, violationsRes, bansRes] = await Promise.all([
+    const [reviewsRes, violationsRes, bansRes, trackingRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),

@@ -31,24 +31,26 @@ const Admin = () => {
   useEffect(() => {
     if (loading) return;
     const load = async () => {
-      const [profilesRes, pendingRes, reportsRes, jobsRes, reviewsRes, disputesRes] = await Promise.all([
+      // All count-only queries — no full row fetches
+      const [profilesRes, pendingRes, reportsRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
         supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("jobs").select("status, budget, platform_fee_amount"),
-        supabase.from("reviews").select("id", { count: "exact", head: true }),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
+        supabase.from("reviews").select("id", { count: "exact", head: true }),
+        supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed").range(0, 999),
       ]);
-      const allJobs = jobsRes.data || [];
-      const completed = allJobs.filter(j => j.status === "completed");
+      const feeRows = feesRes.data || [];
       setStats({
         totalUsers: profilesRes.count || 0,
         pendingApprovals: pendingRes.count || 0,
         openReports: reportsRes.count || 0,
-        activeJobs: allJobs.filter(j => ["open", "accepted", "in_progress"].includes(j.status)).length,
-        completedJobs: completed.length,
-        totalRevenue: completed.reduce((s, j) => s + (j.budget || 0), 0),
-        totalFees: completed.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
+        activeJobs: activeRes.count || 0,
+        completedJobs: completedRes.count || 0,
+        totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),
+        totalFees: feeRows.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
         pendingReviews: reviewsRes.count || 0,
         disputedJobs: disputesRes.count || 0,
       });

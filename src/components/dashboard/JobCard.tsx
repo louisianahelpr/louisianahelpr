@@ -107,7 +107,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           )}
         </div>
         <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0">
-          <DollarSign className="w-3.5 h-3.5" />{earnings}
+          <DollarSign className="w-3.5 h-3.5" />{earnings}{urgentTip > 0 && <span className="text-accent ml-0.5">+${Number(urgentTip).toFixed(0)}</span>}
         </span>
       </div>
 

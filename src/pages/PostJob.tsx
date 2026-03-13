@@ -77,14 +77,12 @@ const PostJob = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/login");
-    });
+    // Auth is already checked by ProtectedRoute — just fetch platform fee
     supabase.from("platform_settings").select("platform_fee_percent").limit(1).single()
       .then(({ data }) => {
         if (data) setPlatformFee(data.platform_fee_percent);
       });
-  }, [navigate]);
+  }, []);
 
   // One-tap rebook: load from query params
   useEffect(() => {

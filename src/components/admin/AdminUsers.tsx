@@ -89,6 +89,7 @@ const AdminUsers = () => {
 
     setProfileViolations(violationsRes.data || []);
     setProfileBans(bansRes.data || []);
+    setEmailTracking(trackingRes.data || []);
   };
 
   const approveUser = async (profile: Profile) => {

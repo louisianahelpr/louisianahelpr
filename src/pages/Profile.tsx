@@ -466,7 +466,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
       <DashboardHeader />
 
       <main className="container mx-auto px-4 py-4">
-        <div className="max-w-lg mx-auto space-y-4">
+        <div className="max-w-2xl mx-auto space-y-4">
 
           {/* LANDING VIEW */}
           {tab === "landing" && (

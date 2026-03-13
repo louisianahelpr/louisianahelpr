@@ -139,12 +139,11 @@ const Jobs = () => {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((job, i) => (
-                <motion.div
+                <div
                   key={job.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.04 }}
-                  className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative"
+                  className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
+                >
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-foreground line-clamp-1 text-sm">

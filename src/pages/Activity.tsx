@@ -706,13 +706,7 @@ const Activity = () => {
                           )}
                           {/* City, State */}
                           {(() => {
-                            const locationParts = job.location.split(",").map(s => s.trim());
-                            let cityState = job.location;
-                            if (locationParts.length >= 2) {
-                              const state = locationParts[locationParts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim();
-                              const city = locationParts[locationParts.length - 2];
-                              cityState = `${city}, ${state}`;
-                            }
+                            const cityState = getCityState(job.location);
                             return (
                               <a
                                 onClick={(e) => e.stopPropagation()}

@@ -73,6 +73,7 @@ serve(async (req) => {
           quantity: 1,
         }],
         mode: "payment",
+        automatic_tax: { enabled: true },
         payment_intent_data: {
           capture_method: "manual",
           metadata: {

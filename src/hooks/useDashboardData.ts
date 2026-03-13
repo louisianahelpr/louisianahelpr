@@ -98,6 +98,8 @@ export function useDashboardData() {
     enabled: !!user && !userLoading,
     staleTime: 60 * 1000, // 1 min cache
     gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000, // auto-refresh every 2 minutes
+    refetchIntervalInBackground: false, // only when tab is visible
   });
 
   // Pro tier — separate lightweight query so it doesn't block dashboard

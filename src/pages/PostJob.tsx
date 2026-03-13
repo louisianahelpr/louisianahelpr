@@ -377,7 +377,7 @@ const PostJob = () => {
 
               <form onSubmit={handleReview} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Task title</Label>
+                  <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
                   <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
                 </div>
 

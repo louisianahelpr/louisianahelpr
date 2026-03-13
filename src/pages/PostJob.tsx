@@ -648,7 +648,7 @@ const PostJob = () => {
                 <div className="rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
-                    <Label>Listing expiration</Label>
+                    <Label>Listing expiration <span className="text-destructive">*</span></Label>
                   </div>
                   <p className="text-xs text-muted-foreground">How long should this listing stay visible to applicants?</p>
                   <Select value={jobDuration} onValueChange={setJobDuration}>

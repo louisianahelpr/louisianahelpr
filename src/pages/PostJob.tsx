@@ -734,10 +734,10 @@ const PostJob = () => {
                     <span className="text-muted-foreground">Task budget</span>
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
-                  {isUrgent && (
+                  {isUrgent && urgentFeeNum > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent fee</span>
-                      <span className="font-medium text-foreground">${urgentFee.toFixed(2)}</span>
+                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent tip (goes to helpr)</span>
+                      <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
@@ -751,7 +751,9 @@ const PostJob = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Helpr receives</span>
-                    <span className="font-medium text-primary">${helperEarns.toFixed(2)}</span>
+                    <span className="font-medium text-primary">
+                      ${helperEarns.toFixed(2)}{urgentFeeNum > 0 ? ` + $${urgentFeeNum.toFixed(2)} urgent tip` : ""}
+                    </span>
                   </div>
                 </div>
               </div>

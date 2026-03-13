@@ -34,6 +34,11 @@ const Signup = () => {
   const [availability, setAvailability] = useState<string[]>([]);
   const [transportation, setTransportation] = useState("");
   const [hearAboutUs, setHearAboutUs] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
+  const [toolsEquipment, setToolsEquipment] = useState<string[]>([]);
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [jobRadius, setJobRadius] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 

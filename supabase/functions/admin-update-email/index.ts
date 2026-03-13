@@ -55,8 +55,9 @@ Deno.serve(async (req) => {
     }
 
     const { userId, newEmail, adminPassword } = await req.json()
+    const normalizedEmail = typeof newEmail === 'string' ? newEmail.trim().toLowerCase() : ''
 
-    if (!userId || !newEmail) {
+    if (!userId || !normalizedEmail) {
       return new Response(JSON.stringify({ error: 'userId and newEmail are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -65,9 +66,38 @@ Deno.serve(async (req) => {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newEmail)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'Invalid email format' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Early duplicate check to avoid opaque auth 500s
+    const { data: conflictingProfiles, error: conflictErr } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, approval_status, email')
+      .neq('user_id', userId)
+      .ilike('email', normalizedEmail)
+      .limit(1)
+
+    if (conflictErr) {
+      console.error('Failed checking email conflict:', conflictErr)
+      return new Response(JSON.stringify({ error: 'Unable to validate email availability right now' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const conflict = conflictingProfiles?.[0]
+    if (conflict) {
+      const conflictState = conflict.approval_status === 'denied'
+        ? ' (already used by a denied account)'
+        : ''
+      return new Response(JSON.stringify({
+        error: `This email address is already in use${conflictState}. Use a different email or free this one first.`,
+      }), {
+        status: 409,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -80,14 +110,20 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get admin's email to verify password
-    const { data: adminProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('email')
-      .eq('user_id', adminId)
-      .single()
+    // Prefer email claim from current JWT, fallback to profile
+    let adminEmail = (claims.claims.email as string | undefined)?.trim()?.toLowerCase()
 
-    if (!adminProfile?.email) {
+    if (!adminEmail) {
+      const { data: adminProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('email')
+        .eq('user_id', adminId)
+        .single()
+
+      adminEmail = adminProfile?.email?.trim()?.toLowerCase()
+    }
+
+    if (!adminEmail) {
       return new Response(JSON.stringify({ error: 'Admin email not found' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -99,7 +135,7 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const { error: signInErr } = await verifyClient.auth.signInWithPassword({
-      email: adminProfile.email,
+      email: adminEmail,
       password: adminPassword,
     })
 

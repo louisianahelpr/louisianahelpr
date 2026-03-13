@@ -108,10 +108,24 @@ serve(async (req) => {
       }
     }
 
-    // 4. Update profile
+    // 4. Check current profile to determine if this is a resubmission
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("approval_status, application_count")
+      .eq("user_id", userId)
+      .single();
+
+    const isResubmission = currentProfile?.approval_status === "denied";
+
+    // 5. Update profile
     const updateData: Record<string, unknown> = {
       approval_status: "pending",
     };
+
+    if (isResubmission) {
+      updateData.application_count = (currentProfile?.application_count || 1) + 1;
+      updateData.denial_reason = null;
+    }
     if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;

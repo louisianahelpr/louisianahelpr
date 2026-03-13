@@ -350,7 +350,17 @@ const PostJob = () => {
                       size="sm"
                       onClick={() => {
                         setTitle(draft.title); setDescription(draft.description);
-                        setCategory(draft.category); setStreetAddress(draft.location);
+                        setCategory(draft.category);
+                        const locParts = (draft.location || "").split(", ");
+                        if (locParts.length >= 3) {
+                          setStreetAddress(locParts[0]);
+                          setCity(locParts[1]);
+                          const stateZip = locParts[2].split(" ");
+                          setAddrState(stateZip[0] || "");
+                          setZipCode(stateZip.slice(1).join(" ") || "");
+                        } else {
+                          setStreetAddress(draft.location);
+                        }
                         setDateNeeded(draft.dateNeeded); setStartTime(draft.startTime);
                         setEstimatedHours(draft.estimatedHours); setBudget(draft.budget);
                         setSpecialRequirements(draft.specialRequirements);

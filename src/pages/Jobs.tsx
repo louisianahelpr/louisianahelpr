@@ -88,7 +88,7 @@ const Jobs = () => {
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
               See what your Louisiana neighbors need help with. Sign up to apply or post your own task.
             </p>
-          </motion.div>
+          </div>
 
           {/* Search & Filters */}
           <div className="mb-8 space-y-4">

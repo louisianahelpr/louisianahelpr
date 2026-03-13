@@ -298,6 +298,32 @@ const AdminUsers = () => {
     setViewProfile(null);
   };
 
+  const handleUpdateEmail = async () => {
+    if (!editEmailProfile) return;
+    if (newEmail1 !== newEmail2) { toast.error("Emails don't match"); return; }
+    if (adminPass1 !== adminPass2) { toast.error("Passwords don't match"); return; }
+    if (!newEmail1.trim() || !adminPass1.trim()) { toast.error("All fields are required"); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail1)) { toast.error("Invalid email format"); return; }
+
+    setUpdatingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("admin-update-email", {
+        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim(), adminPassword: adminPass1 },
+      });
+      if (error) throw error;
+      toast.success(`Email updated to ${newEmail1.trim()}`);
+      setEditEmailProfile(null);
+      setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2("");
+      loadProfiles();
+      setViewProfile(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update email");
+    } finally {
+      setUpdatingEmail(false);
+    }
+  };
+
   const filtered = profiles.filter((p) => {
     if (tab === "pending") return p.approval_status === "pending";
     if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");

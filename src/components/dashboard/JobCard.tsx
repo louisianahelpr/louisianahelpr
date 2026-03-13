@@ -84,8 +84,8 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       onClick={() => onToggleExpand?.(job.id)}
     >
       {/* Header: title + price */}
-      <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <h3 className={`font-bold text-[15px] leading-snug min-w-0 ${catStyle.title} ${isExpanded ? "" : "truncate"}`}>
             {job.title}
           </h3>
@@ -100,9 +100,14 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </span>
           )}
         </div>
-        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0">
-          <DollarSign className="w-3.5 h-3.5" />{earnings}{urgentTip > 0 && <span className="text-accent ml-0.5">+${Number(urgentTip).toFixed(0)}</span>}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${catStyle.badge}`}>
+            {categoryLabels[job.category] || job.category}
+          </span>
+          <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
+            <DollarSign className="w-3.5 h-3.5" />{earnings}{urgentTip > 0 && <span className="text-accent ml-0.5">+${Number(urgentTip).toFixed(0)}</span>}
+          </span>
+        </div>
       </div>
 
       {/* Always-visible summary: date, time, city/state, expiry */}

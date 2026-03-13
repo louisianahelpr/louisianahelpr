@@ -50,12 +50,12 @@ const NotificationPanel = () => {
   const [pushSupported, setPushSupported] = useState(false);
 
   const loadNotifications = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
     const { data } = await supabase
       .from("notifications")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(50);
     if (data) setNotifications(data);

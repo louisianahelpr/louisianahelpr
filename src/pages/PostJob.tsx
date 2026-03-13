@@ -431,7 +431,7 @@ const PostJob = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Location</Label>
+                  <Label>Location <span className="text-destructive">*</span></Label>
                   <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
                   <div className="grid grid-cols-3 gap-3">
                     <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />

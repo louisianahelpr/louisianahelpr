@@ -23,6 +23,7 @@ import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
+import { getCityState } from "@/lib/locationUtils";
 import { ScopeAgreement } from "@/components/ScopeAgreement";
 import { AddonRequests } from "@/components/AddonRequests";
 import { JobConfirmation } from "@/components/JobConfirmation";

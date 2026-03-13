@@ -222,6 +222,7 @@ const PostJob = () => {
     if (!dateNeeded) { toast.error("Date needed is required"); return; }
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
+    if (!specialRequirements.trim()) { toast.error("Special requirements is required"); return; }
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
     if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }
     if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent tip must be at least $5"); return; }
@@ -377,12 +378,12 @@ const PostJob = () => {
 
               <form onSubmit={handleReview} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Task title</Label>
+                  <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
                   <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
                   <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
                 </div>
 
@@ -419,7 +420,7 @@ const PostJob = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Category</Label>
+                  <Label>Category <span className="text-destructive">*</span></Label>
                   <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -431,7 +432,7 @@ const PostJob = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Location</Label>
+                  <Label>Location <span className="text-destructive">*</span></Label>
                   <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
                   <div className="grid grid-cols-3 gap-3">
                     <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
@@ -446,7 +447,7 @@ const PostJob = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date">Date needed</Label>
+                    <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
                     <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} required />
                     <button
                       type="button"
@@ -461,7 +462,7 @@ const PostJob = () => {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="time">Start time</Label>
+                    <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
                     <Input id="time" type="time" value={startTime === "flexible" ? "" : startTime} onChange={(e) => setStartTime(e.target.value)} />
                     <button
                       type="button"
@@ -479,11 +480,11 @@ const PostJob = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="hours">Estimated hours</Label>
+                    <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
                     <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="budget">Budget ($)</Label>
+                    <Label htmlFor="budget">Budget ($) <span className="text-destructive">*</span></Label>
                     <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
                     {category && categoryPricing[category] && (
                       <p className="text-xs text-muted-foreground">
@@ -494,8 +495,8 @@ const PostJob = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="requirements">Special requirements</Label>
-                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} />
+                  <Label htmlFor="requirements">Special requirements <span className="text-destructive">*</span></Label>
+                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} required />
                 </div>
 
                 {/* Recurring Job */}

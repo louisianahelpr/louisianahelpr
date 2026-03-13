@@ -976,6 +976,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          application_count: number
           approval_email_count: number
           approval_status: string
           availability: string | null
@@ -1014,6 +1015,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          application_count?: number
           approval_email_count?: number
           approval_status?: string
           availability?: string | null
@@ -1052,6 +1054,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          application_count?: number
           approval_email_count?: number
           approval_status?: string
           availability?: string | null

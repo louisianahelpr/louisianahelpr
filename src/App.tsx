@@ -36,6 +36,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Community = lazy(() => import("./pages/Community"));
 const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Jobs = lazy(() => import("./pages/Jobs"));
 
 // Lazy load less-critical global components
 const InstallPrompt = lazy(() => import("./components/InstallPrompt"));

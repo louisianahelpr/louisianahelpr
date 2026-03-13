@@ -56,6 +56,9 @@ const Navbar = () => {
           <a href="#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Community
           </a>
+          <Link to="/jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Jobs
+          </Link>
           <Button variant="ghost" size="sm" className="w-full" onClick={() => { navigate("/login"); setMobileOpen(false); }}>
             Log in
           </Button>

@@ -270,9 +270,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               </span>
             )}
           </div>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
-            {categoryLabels[job.category] || job.category}
-          </span>
         </div>
       )}
     </motion.div>

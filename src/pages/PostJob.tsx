@@ -483,7 +483,7 @@ const PostJob = () => {
                     <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="budget">Budget ($)</Label>
+                    <Label htmlFor="budget">Budget ($) <span className="text-destructive">*</span></Label>
                     <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
                     {category && categoryPricing[category] && (
                       <p className="text-xs text-muted-foreground">

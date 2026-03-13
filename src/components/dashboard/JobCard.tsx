@@ -234,8 +234,11 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
         </div>
       </div>
 
-      {/* Footer: category badge */}
-      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-end">
+      {/* Footer: poster + category badge */}
+      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{job.posterName}</a>
+        </span>
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
           {categoryLabels[job.category] || job.category}
         </span>

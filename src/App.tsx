@@ -9,8 +9,8 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import PageTransition from "@/components/PageTransition";
 import MobileNav from "./components/MobileNav";
 
-// Eagerly load the landing page for fast first paint
-import Index from "./pages/Index";
+// Lazy load all pages including landing
+const Index = lazy(() => import("./pages/Index"));
 
 // Lazy load all other pages
 const Schedule = lazy(() => import("./pages/Schedule"));

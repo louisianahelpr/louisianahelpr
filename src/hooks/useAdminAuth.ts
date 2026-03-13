@@ -1,39 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export const useAdminAuth = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user, isAdmin, isLoading } = useCurrentUser();
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        navigate("/login");
-        return;
-      }
-      setUser(session.user);
+    if (isLoading) return;
+    if (!user) { navigate("/login"); return; }
+    if (!isAdmin) { navigate("/dashboard"); return; }
+  }, [user, isAdmin, isLoading, navigate]);
 
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-
-      const hasAdmin = roles?.some((r) => r.role === "admin") ?? false;
-      setIsAdmin(hasAdmin);
-
-      if (!hasAdmin) {
-        navigate("/dashboard");
-      }
-      setLoading(false);
-    };
-
-    checkAdmin();
-  }, [navigate]);
-
-  return { user, isAdmin, loading };
+  return { user, isAdmin, loading: isLoading };
 };

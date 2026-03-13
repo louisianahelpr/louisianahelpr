@@ -27,6 +27,7 @@ const AdminUsers = () => {
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
   const [profileBans, setProfileBans] = useState<any[]>([]);
   const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
+  const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);

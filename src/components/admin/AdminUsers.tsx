@@ -475,7 +475,7 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-bold text-foreground">{viewProfile.full_name || "—"}</h3>
                     {statusBadge(viewProfile)}
-                    <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>
+                    {viewProfile.role !== 'customer' && <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>

@@ -609,8 +609,6 @@ const PostJob = () => {
                         />
                       )}
                     </div>
-                  )}
-                  )}
                 </div>
 
                 {/* Listing Expiration */}

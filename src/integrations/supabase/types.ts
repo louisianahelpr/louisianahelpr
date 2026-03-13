@@ -961,6 +961,7 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           experience_level: string | null
+          extra_comments: string | null
           full_name: string | null
           hear_about_us: string | null
           hourly_rate: number | null
@@ -998,6 +999,7 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           experience_level?: string | null
+          extra_comments?: string | null
           full_name?: string | null
           hear_about_us?: string | null
           hourly_rate?: number | null
@@ -1035,6 +1037,7 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           experience_level?: string | null
+          extra_comments?: string | null
           full_name?: string | null
           hear_about_us?: string | null
           hourly_rate?: number | null

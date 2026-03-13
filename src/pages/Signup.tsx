@@ -39,6 +39,7 @@ const Signup = () => {
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [jobRadius, setJobRadius] = useState("");
+  const [extraComments, setExtraComments] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -191,6 +192,7 @@ const Signup = () => {
           emergencyContactName: emergencyContactName || null,
           emergencyContactPhone: emergencyContactPhone || null,
           jobRadius: jobRadius || null,
+          extraComments: extraComments || null,
         },
       });
 
@@ -310,6 +312,10 @@ const Signup = () => {
         {/* Step 2: Profile details */}
         {step === 2 && (
           <div className="space-y-4">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
+              <p className="text-sm font-medium text-primary">💡 The more you share, the better your chances!</p>
+              <p className="text-xs text-muted-foreground mt-1">Completed profiles get up to 3x more job offers. Fill in as much as you can.</p>
+            </div>
             <div className="flex flex-col items-center gap-3">
               <Label>Profile picture <span className="text-destructive text-xs">*</span></Label>
               <label className="cursor-pointer group">
@@ -520,6 +526,17 @@ const Signup = () => {
                 <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} />
                 <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="extraComments">Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Textarea
+                id="extraComments"
+                placeholder="Special certifications, languages spoken, why you want to join, or anything else…"
+                value={extraComments}
+                onChange={(e) => setExtraComments(e.target.value)}
+                rows={3}
+              />
             </div>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>

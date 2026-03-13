@@ -491,6 +491,7 @@ const AdminUsers = () => {
                   { label: "Preferred Job Radius", value: p.job_radius },
                   { label: "How They Heard About Us", value: p.hear_about_us },
                   { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
+                  { label: "Extra Comments", value: p.extra_comments },
                 ].filter(f => f.value);
                 return fields.length > 0 ? (
                   <div>

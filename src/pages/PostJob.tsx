@@ -39,6 +39,7 @@ const PostJob = () => {
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

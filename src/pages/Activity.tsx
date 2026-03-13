@@ -589,9 +589,8 @@ const Activity = () => {
 
   const filteredAppliedApps = useMemo(() =>
     appliedApps.filter((a) => {
-      if (statusFilter === "pending") return a.status === "pending";
       if (statusFilter === "rejected") return a.status === "rejected" || (a.status === "accepted" && a.job?.status === "cancelled");
-      if (statusFilter === "active") return a.status === "accepted" && ["accepted", "in_progress", "revision_requested", "disputed"].includes(a.job?.status || "");
+      if (statusFilter === "active") return a.status === "pending" || (a.status === "accepted" && ["accepted", "in_progress", "revision_requested", "disputed"].includes(a.job?.status || ""));
       if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
       return false;
     }), [appliedApps, statusFilter]);

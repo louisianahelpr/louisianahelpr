@@ -480,7 +480,7 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
                     <button
-                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2(""); }}
+                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
                       className="text-muted-foreground hover:text-primary transition-colors"
                       title="Edit email"
                     >

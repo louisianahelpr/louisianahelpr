@@ -326,7 +326,32 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span></Label>
-              <Input id="skills" placeholder="e.g. cleaning, moving, handyman" value={skills} onChange={(e) => setSkills(e.target.value)} />
+              <Input id="skills" placeholder="Type your skills, separated by commas" value={skills} onChange={(e) => setSkills(e.target.value)} />
+              <div className="flex flex-wrap gap-1.5">
+                {["Cleaning", "Moving", "Handyman", "Yard Work", "Painting", "Delivery", "Pet Care", "Errands", "Assembly"].map((skill) => {
+                  const isActive = skills.toLowerCase().includes(skill.toLowerCase());
+                  return (
+                    <button
+                      key={skill}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setSkills(skills.split(",").map(s => s.trim()).filter(s => s.toLowerCase() !== skill.toLowerCase()).join(", "));
+                        } else {
+                          setSkills(skills ? `${skills}, ${skill}` : skill);
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : "+ "}{skill}
+                    </button>
+                  );
+                })}
+              </div>
               <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
             </div>
 

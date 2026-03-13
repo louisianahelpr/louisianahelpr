@@ -178,6 +178,9 @@ const Signup = () => {
           location,
           skills: skills || null,
           dateOfBirth: dateOfBirth || null,
+          availability: availability.length > 0 ? availability.join(", ") : null,
+          transportation: transportation || null,
+          hearAboutUs: hearAboutUs || null,
         },
       });
 

@@ -44,7 +44,9 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
     completedJobs: job.posterCompletedJobs || 0,
   });
 
-  const earnings = (job.budget * (1 - effectiveFee / 100)).toFixed(2);
+  const feeAmt = job.budget * (effectiveFee / 100);
+  const feeTax = feeAmt * 0.085;
+  const earnings = (job.budget - feeAmt).toFixed(2);
   const urgentTip = job.urgent_fee ?? 0;
   const catStyle = categoryColors[job.category] || categoryColors.other;
   const isOwnJob = currentUserId === job.customer_id;

@@ -789,6 +789,10 @@ const PostJob = () => {
                     <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
                     <span className="font-medium text-foreground">−${feeAmount.toFixed(2)}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax on service fee (8.5%)</span>
+                    <span className="font-medium text-foreground">${feeTax.toFixed(2)}</span>
+                  </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">You pay</span>

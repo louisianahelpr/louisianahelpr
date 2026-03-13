@@ -520,6 +520,7 @@ const Dashboard = () => {
                           ${((confirmApplyJob.budget * (1 - platformFee / 100)) + (confirmApplyJob.urgent_fee ?? 0)).toFixed(2)}
                         </span>
                       </div>
+                      <p className="text-xs text-muted-foreground">Note: Poster pays 8.5% tax on the service fee at checkout</p>
                     </div>
                   </div>
                 : <p>Are you sure you want to apply for this task?</p>}

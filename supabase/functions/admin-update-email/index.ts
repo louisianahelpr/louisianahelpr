@@ -90,15 +90,32 @@ Deno.serve(async (req) => {
 
     const conflict = conflictingProfiles?.[0]
     if (conflict) {
-      const conflictState = conflict.approval_status === 'denied'
-        ? ' (already used by a denied account)'
-        : ''
-      return new Response(JSON.stringify({
-        error: `This email address is already in use${conflictState}. Use a different email or free this one first.`,
-      }), {
-        status: 409,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      if (conflict.approval_status === 'denied') {
+        // Auto-free the email from the denied account by clearing it
+        const { error: clearErr } = await supabaseAdmin
+          .from('profiles')
+          .update({ email: `denied-${conflict.user_id}@freed.local` })
+          .eq('user_id', conflict.user_id)
+
+        if (clearErr) {
+          console.error('Failed to free email from denied account:', clearErr)
+          return new Response(JSON.stringify({
+            error: 'Failed to free email from denied account. Try again.',
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        console.log(`Auto-freed email ${normalizedEmail} from denied account ${conflict.user_id}`)
+      } else {
+        return new Response(JSON.stringify({
+          error: 'This email address is already in use by another active account.',
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     // Update email in auth.users via admin API

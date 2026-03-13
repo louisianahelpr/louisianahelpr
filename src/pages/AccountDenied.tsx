@@ -3,12 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const AccountDenied = () => {
   const navigate = useNavigate();
   const [denyReason, setDenyReason] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -44,24 +42,6 @@ const AccountDenied = () => {
     loadReason();
   }, [navigate]);
 
-  const handleResubmit = async () => {
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { navigate("/login"); return; }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ approval_status: "pending" })
-      .eq("user_id", session.user.id);
-
-    if (error) {
-      toast.error("Failed to resubmit. Please try again.");
-    } else {
-      toast.success("Your profile has been resubmitted for review!");
-      navigate("/account-pending");
-    }
-    setLoading(false);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -97,8 +77,8 @@ const AccountDenied = () => {
                 <RefreshCw className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Update & resubmit</p>
-                <p className="text-xs text-muted-foreground">Update your profile, upload a clearer ID, and resubmit for review.</p>
+                <p className="text-sm font-medium text-foreground">Re-apply with updated info</p>
+                <p className="text-xs text-muted-foreground">Sign up again with the same email to resubmit your profile with a new photo, ID, and details.</p>
               </div>
             </div>
 
@@ -114,14 +94,9 @@ const AccountDenied = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link to="/profile">
-              <Button className="w-full" size="lg">
-                Update My Profile
-              </Button>
-            </Link>
-            <Button variant="outline" className="w-full" onClick={handleResubmit} disabled={loading}>
+            <Button className="w-full" size="lg" onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              {loading ? "Resubmitting…" : "Resubmit for Review"}
+              Re-apply Now
             </Button>
             <Link to="/support">
               <Button variant="ghost" className="w-full" size="sm">

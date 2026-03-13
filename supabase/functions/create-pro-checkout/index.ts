@@ -84,6 +84,7 @@ serve(async (req) => {
       success_url: `${req.headers.get("origin")}/profile?pro=success`,
       cancel_url: `${req.headers.get("origin")}/profile?pro=cancel`,
       metadata: { tier, billing_cycle },
+      automatic_tax: { enabled: true },
     };
 
     if (!isOneTime && Object.keys(subscriptionData).length > 0) {

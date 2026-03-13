@@ -476,6 +476,11 @@ const AdminUsers = () => {
                     <h3 className="text-lg font-bold text-foreground">{viewProfile.full_name || "—"}</h3>
                     {statusBadge(viewProfile)}
                     {viewProfile.role !== 'customer' && <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>}
+                    {((viewProfile as any).application_count || 1) > 1 && (
+                      <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-accent/30">
+                        Applied {(viewProfile as any).application_count} times
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
@@ -487,6 +492,26 @@ const AdminUsers = () => {
                       <Pencil className="w-3 h-3" />
                     </button>
                   </div>
+                  {viewProfile.approval_status === "denied" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-1"
+                      onClick={async () => {
+                        const currentCount = (viewProfile as any).application_count || 1;
+                        await supabase.from("profiles").update({
+                          approval_status: "pending",
+                          denial_reason: null,
+                          application_count: currentCount + 1,
+                        } as any).eq("id", viewProfile.id);
+                        toast.success("User moved back to pending for re-review.");
+                        loadProfiles();
+                        setViewProfile(null);
+                      }}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry — Move to Pending
+                    </Button>
+                  )}
                   {viewProfile.bio && <p className="text-sm text-foreground leading-relaxed">{viewProfile.bio}</p>}
                 </div>
               </div>

@@ -628,7 +628,7 @@ const Activity = () => {
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(t.key === "posted" ? "open" : "pending"); }}
+              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(t.key === "posted" ? "open" : "active"); }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {t.label}
               </button>

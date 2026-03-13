@@ -213,7 +213,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               <div>
                 <p className="text-[10px] text-muted-foreground">Group Task</p>
                 <p className="text-sm font-medium text-foreground">
-                  {job.helpers_needed ? `${job.helpers_needed} helpers needed` : "Multiple helpers needed"}
+                  {job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Multiple helprs needed"}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Each helpr earns ${job.budget.toFixed(2)} (before fees)
                 </p>
               </div>
             </div>

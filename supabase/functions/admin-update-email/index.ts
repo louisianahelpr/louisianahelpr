@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
 
     while (!authHolderId && page <= 10) {
       const { data: usersPage, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
-      if (usersErr) {
+      if (usersErr || !usersPage?.users) {
         console.error('Failed listing auth users for conflict check:', usersErr)
         break
       }

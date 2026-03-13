@@ -75,8 +75,10 @@ function renderApprovedEmail(fullName: string, userId: string): { html: string; 
   return { html, text }
 }
 
-function renderDeniedEmail(fullName: string, reason?: string): { html: string; text: string } {
+function renderDeniedEmail(fullName: string, userId: string, reason?: string): { html: string; text: string } {
   const siteUrl = `https://${ROOT_DOMAIN}`
+  const ctaUrl = trackedLink(userId, 'account_denied', `${siteUrl}/login`)
+  const pixelUrl = trackingPixelUrl(userId, 'account_denied')
   const reasonText = reason
     ? `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
     : ''
@@ -97,12 +99,13 @@ function renderDeniedEmail(fullName: string, reason?: string): { html: string; t
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     You can update your profile and resubmit for review:
   </p>
-  <a href="${siteUrl}/login" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Update My Profile
   </a>
   <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
     If you believe this was a mistake, please contact our support team.
   </p>
+  <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
 </div>
 </body></html>`
 

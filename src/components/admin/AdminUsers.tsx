@@ -894,17 +894,7 @@ const AdminUsers = () => {
 
             <div className="border-t border-border pt-4 space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Admin Password</p>
-              <Input type="password" value={adminPass1} onChange={(e) => setAdminPass1(e.target.value)} placeholder="Enter your password" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm Admin Password</p>
-              <Input type="password" value={adminPass2} onChange={(e) => setAdminPass2(e.target.value)} placeholder="Re-enter your password" />
-              {adminPass2 && adminPass1 !== adminPass2 && (
-                <p className="text-xs text-destructive">Passwords don't match</p>
-              )}
-              {adminPass2 && adminPass1 === adminPass2 && adminPass1.length > 0 && (
-                <p className="text-xs text-primary">✓ Passwords match</p>
-              )}
+              <Input type="password" value={adminPass1} onChange={(e) => setAdminPass1(e.target.value)} placeholder="Enter your password to confirm" />
             </div>
 
             <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
@@ -917,7 +907,7 @@ const AdminUsers = () => {
             <Button variant="ghost" onClick={() => setEditEmailProfile(null)}>Cancel</Button>
             <Button
               onClick={handleUpdateEmail}
-              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2 || !adminPass1 || adminPass1 !== adminPass2}
+              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2 || !adminPass1}
             >
               {updatingEmail ? "Updating…" : "Update Email"}
             </Button>

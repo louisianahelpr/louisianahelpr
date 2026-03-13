@@ -72,7 +72,40 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Early duplicate check
+    const buildFreedEmail = (sourceEmail: string, deniedUserId: string) => {
+      const [localPart, domainPart] = sourceEmail.split('@')
+      const safeLocal = (localPart || 'user').replace(/[^a-zA-Z0-9._%+-]/g, '').slice(0, 32) || 'user'
+      const safeDomain = domainPart || 'example.com'
+      return `${safeLocal}+denied-${deniedUserId.slice(0, 8)}-${Date.now().toString(36)}@${safeDomain}`
+    }
+
+    const freeDeniedAccountEmail = async (deniedUserId: string, sourceEmail: string) => {
+      const freedEmail = buildFreedEmail(sourceEmail, deniedUserId)
+
+      const { error: deniedAuthErr } = await supabaseAdmin.auth.admin.updateUserById(deniedUserId, {
+        email: freedEmail,
+        email_confirm: true,
+      })
+
+      if (deniedAuthErr) {
+        console.error('Failed to free email in auth for denied account:', deniedAuthErr)
+        throw new Error('Failed to free email from denied account in auth')
+      }
+
+      const { error: deniedProfileErr } = await supabaseAdmin
+        .from('profiles')
+        .update({ email: freedEmail })
+        .eq('user_id', deniedUserId)
+
+      if (deniedProfileErr) {
+        console.error('Failed syncing denied profile email after auth update:', deniedProfileErr)
+        throw new Error('Freed auth email, but failed to sync denied profile email')
+      }
+
+      console.log(`Auto-freed email ${sourceEmail} from denied account ${deniedUserId} -> ${freedEmail}`)
+    }
+
+    // 1) Fast profile-level conflict check
     const { data: conflictingProfiles, error: conflictErr } = await supabaseAdmin
       .from('profiles')
       .select('user_id, approval_status, email')
@@ -88,47 +121,69 @@ Deno.serve(async (req) => {
       })
     }
 
-    const conflict = conflictingProfiles?.[0]
-    if (conflict) {
-      if (conflict.approval_status === 'denied') {
-        const [localPart, domainPart] = normalizedEmail.split('@')
-        const safeLocal = (localPart || 'user').replace(/[^a-zA-Z0-9._%+-]/g, '').slice(0, 32) || 'user'
-        const safeDomain = domainPart || 'example.com'
-        const freedEmail = `${safeLocal}+denied-${conflict.user_id.slice(0, 8)}-${Date.now().toString(36)}@${safeDomain}`
-
-        // Free the email in auth first (this is what enforces unique email)
-        const { error: deniedAuthErr } = await supabaseAdmin.auth.admin.updateUserById(conflict.user_id, {
-          email: freedEmail,
-          email_confirm: true,
+    const profileConflict = conflictingProfiles?.[0]
+    if (profileConflict) {
+      if (profileConflict.approval_status === 'denied') {
+        try {
+          await freeDeniedAccountEmail(profileConflict.user_id, normalizedEmail)
+        } catch (freeErr) {
+          return new Response(JSON.stringify({
+            error: freeErr instanceof Error ? freeErr.message : 'Failed to free email from denied account.',
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      } else {
+        return new Response(JSON.stringify({
+          error: 'This email address is already in use by another active account.',
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
+      }
+    }
 
-        if (deniedAuthErr) {
-          console.error('Failed to free email in auth for denied account:', deniedAuthErr)
+    // 2) Auth-level conflict check (covers cases where profile email was already moved)
+    let authHolderId: string | null = null
+    let page = 1
+    const perPage = 200
+
+    while (!authHolderId && page <= 10) {
+      const { data: usersPage, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
+      if (usersErr) {
+        console.error('Failed listing auth users for conflict check:', usersErr)
+        break
+      }
+
+      const holder = usersPage.users.find((u) => u.email?.toLowerCase() === normalizedEmail)
+      if (holder) {
+        authHolderId = holder.id
+        break
+      }
+
+      if (usersPage.users.length < perPage) break
+      page += 1
+    }
+
+    if (authHolderId && authHolderId !== userId) {
+      const { data: holderProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('approval_status')
+        .eq('user_id', authHolderId)
+        .maybeSingle()
+
+      if (holderProfile?.approval_status === 'denied') {
+        try {
+          await freeDeniedAccountEmail(authHolderId, normalizedEmail)
+        } catch (freeErr) {
           return new Response(JSON.stringify({
-            error: 'Failed to free email from denied account. Try again.',
+            error: freeErr instanceof Error ? freeErr.message : 'Failed to free email from denied account.',
           }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
-
-        // Keep profile email in sync
-        const { error: clearErr } = await supabaseAdmin
-          .from('profiles')
-          .update({ email: freedEmail })
-          .eq('user_id', conflict.user_id)
-
-        if (clearErr) {
-          console.error('Failed syncing denied profile email after auth update:', clearErr)
-          return new Response(JSON.stringify({
-            error: 'Freed auth email, but failed to sync denied profile email.',
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-
-        console.log(`Auto-freed email ${normalizedEmail} from denied account ${conflict.user_id} -> ${freedEmail}`)
       } else {
         return new Response(JSON.stringify({
           error: 'This email address is already in use by another active account.',

@@ -59,6 +59,8 @@ serve(async (req) => {
       const feePercent = settings?.platform_fee_percent ?? 15;
 
       const feeAmount = (job.budget * feePercent) / 100;
+      const feeTax = feeAmount * 0.085;
+      const totalDeduction = feeAmount + feeTax; // Platform fee + 8.5% tax on fee, deducted from helpr payout
 
       const lineItems: any[] = [
         {
@@ -111,7 +113,7 @@ serve(async (req) => {
         stripe_session_id: session.id,
         payment_status: "escrow",
         platform_fee_percent: feePercent,
-        platform_fee_amount: feeAmount,
+        platform_fee_amount: totalDeduction,
       }).eq("id", jobId);
 
       return new Response(JSON.stringify({ url: session.url }), {

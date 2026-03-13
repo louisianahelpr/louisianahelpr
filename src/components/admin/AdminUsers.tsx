@@ -301,7 +301,6 @@ const AdminUsers = () => {
   const handleUpdateEmail = async () => {
     if (!editEmailProfile) return;
     if (newEmail1 !== newEmail2) { toast.error("Emails don't match"); return; }
-    if (adminPass1 !== adminPass2) { toast.error("Passwords don't match"); return; }
     if (!newEmail1.trim() || !adminPass1.trim()) { toast.error("All fields are required"); return; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail1)) { toast.error("Invalid email format"); return; }

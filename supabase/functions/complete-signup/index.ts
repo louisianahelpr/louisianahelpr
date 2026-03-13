@@ -143,6 +143,39 @@ serve(async (req) => {
       });
     }
 
+    // Notify all admins about the new signup
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, location, role")
+        .eq("user_id", userId)
+        .single();
+
+      const { data: admins } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (admins?.length) {
+        const userName = profile?.full_name || "Someone";
+        const userLocation = profile?.location ? ` from ${profile.location}` : "";
+        const userRole = profile?.role || "user";
+
+        const adminNotifs = admins.map((admin: { user_id: string }) => ({
+          user_id: admin.user_id,
+          title: "👤 New signup pending review",
+          message: `${userName}${userLocation} just signed up as a ${userRole}. Tap to review their profile.`,
+          type: "info",
+          link: "/admin",
+        }));
+
+        await supabase.from("notifications").insert(adminNotifs);
+      }
+    } catch (notifErr) {
+      console.error("Failed to notify admins:", notifErr);
+      // Don't fail the signup if notification fails
+    }
+
     return new Response(
       JSON.stringify({ success: true, avatarUrl, idDocumentUrl, portfolioUrls }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

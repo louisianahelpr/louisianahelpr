@@ -62,6 +62,7 @@ const PostJob = () => {
   const urgentFee = 5;
   const [platformFee, setPlatformFee] = useState(15);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   // AI Job Builder
   const [aiPrompt, setAiPrompt] = useState("");

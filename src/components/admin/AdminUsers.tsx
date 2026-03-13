@@ -469,7 +469,16 @@ const AdminUsers = () => {
                     {statusBadge(viewProfile)}
                     <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
+                    <button
+                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); setAdminPass1(""); setAdminPass2(""); }}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                      title="Edit email"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
                   {viewProfile.bio && <p className="text-sm text-foreground leading-relaxed">{viewProfile.bio}</p>}
                 </div>
               </div>

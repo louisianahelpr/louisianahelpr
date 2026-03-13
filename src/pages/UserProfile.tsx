@@ -161,13 +161,13 @@ const UserProfile = () => {
       <DashboardHeader />
 
       <main className="container mx-auto px-4 py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-2xl font-display font-bold text-foreground">Profile Review</h1>
-        </div>
         <div className="max-w-lg mx-auto space-y-5">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="text-2xl font-display font-bold text-foreground">Profile Review</h1>
+          </div>
           {/* Profile Card */}
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
             {profile.avatar_url ? (

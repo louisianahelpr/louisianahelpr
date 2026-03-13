@@ -66,7 +66,8 @@ const Messages = () => {
   useEffect(() => {
     if (userId) return; // already seeded from cache
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
       setUserId(user.id);
       await loadConversations(user.id);

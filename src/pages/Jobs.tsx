@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+
 import { MapPin, Calendar, DollarSign, ArrowRight, Search, Briefcase, Lock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,12 +77,7 @@ const Jobs = () => {
       <main className="pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-5xl">
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-center mb-10"
-          >
+          <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-4">
               <Briefcase className="w-3 h-3" />
               Live Jobs
@@ -93,7 +88,7 @@ const Jobs = () => {
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
               See what your Louisiana neighbors need help with. Sign up to apply or post your own task.
             </p>
-          </motion.div>
+          </div>
 
           {/* Search & Filters */}
           <div className="mb-8 space-y-4">
@@ -144,12 +139,10 @@ const Jobs = () => {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((job, i) => (
-                <motion.div
+                <div
                   key={job.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.04 }}
-                  className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative"
+                  className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
@@ -210,7 +203,7 @@ const Jobs = () => {
                       Get Started
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

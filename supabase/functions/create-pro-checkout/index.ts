@@ -10,19 +10,19 @@ const corsHeaders = {
 // billing_cycle: "monthly" | "annual" | "one_time"
 const PRICE_MAP: Record<string, Record<string, string>> = {
   monthly: {
-    basic: "price_1T9wfJKp2H4b7tEC4w8zbfui",
-    pro: "price_1T9vO7Kp2H4b7tECC6KCaygf",
-    elite: "price_1T9wg7Kp2H4b7tECOdwba00D",
+    basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
+    pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
+    elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
   },
   annual: {
-    basic: "price_1T9xGzKp2H4b7tECCRjdEzLr",
-    pro: "price_1T9xHSKp2H4b7tECv7EytnsS",
-    elite: "price_1T9xHqKp2H4b7tECqBGeuvUW",
+    basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
+    pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
+    elite: "price_1TAZkcKp2H4b7tECagD42xRa",
   },
   one_time: {
-    basic: "price_1T9xIIKp2H4b7tECUav5CUEm",
-    pro: "price_1T9xIjKp2H4b7tEC8jRz0yIi",
-    elite: "price_1TAZfmKp2H4b7tECJke2WxGV",
+    basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
+    pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
+    elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
   },
 };
 

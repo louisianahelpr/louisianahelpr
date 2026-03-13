@@ -21,7 +21,9 @@ const Signup = () => {
   // Step 1 fields
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");

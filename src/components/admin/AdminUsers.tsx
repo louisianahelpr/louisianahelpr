@@ -900,11 +900,6 @@ const AdminUsers = () => {
               )}
             </div>
 
-            <div className="border-t border-border pt-4 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Admin Password</p>
-              <Input type="password" value={adminPass1} onChange={(e) => setAdminPass1(e.target.value)} placeholder="Enter your password to confirm" />
-            </div>
-
             <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
               <p className="text-xs text-muted-foreground">
                 ⚠️ This will immediately update the user's login email. They'll be notified of the change.
@@ -915,7 +910,7 @@ const AdminUsers = () => {
             <Button variant="ghost" onClick={() => setEditEmailProfile(null)}>Cancel</Button>
             <Button
               onClick={handleUpdateEmail}
-              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2 || !adminPass1}
+              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2}
             >
               {updatingEmail ? "Updating…" : "Update Email"}
             </Button>

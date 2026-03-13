@@ -36,6 +36,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Community = lazy(() => import("./pages/Community"));
 const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Jobs = lazy(() => import("./pages/Jobs"));
 
 // Lazy load less-critical global components
 const InstallPrompt = lazy(() => import("./components/InstallPrompt"));
@@ -89,6 +90,7 @@ const AnimatedRoutes = () => {
       <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
       <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
+      <Route path="/jobs" element={<PageTransition><Jobs /></PageTransition>} />
       <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />

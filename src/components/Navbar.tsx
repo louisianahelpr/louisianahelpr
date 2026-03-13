@@ -26,6 +26,9 @@ const Navbar = () => {
           <a href="#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
           </a>
+          <Link to="/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Jobs
+          </Link>
           <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in
@@ -53,6 +56,9 @@ const Navbar = () => {
           <a href="#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Community
           </a>
+          <Link to="/jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Jobs
+          </Link>
           <Button variant="ghost" size="sm" className="w-full" onClick={() => { navigate("/login"); setMobileOpen(false); }}>
             Log in
           </Button>

@@ -31,6 +31,9 @@ const Signup = () => {
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [skills, setSkills] = useState("");
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [transportation, setTransportation] = useState("");
+  const [hearAboutUs, setHearAboutUs] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 

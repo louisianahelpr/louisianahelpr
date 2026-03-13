@@ -527,6 +527,17 @@ const Signup = () => {
                 <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="extraComments">Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Textarea
+                id="extraComments"
+                placeholder="Special certifications, languages spoken, why you want to join, or anything else…"
+                value={extraComments}
+                onChange={(e) => setExtraComments(e.target.value)}
+                rows={3}
+              />
+            </div>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back

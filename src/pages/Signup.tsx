@@ -39,6 +39,7 @@ const Signup = () => {
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [jobRadius, setJobRadius] = useState("");
+  const [extraComments, setExtraComments] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 

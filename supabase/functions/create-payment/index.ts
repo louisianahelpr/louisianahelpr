@@ -100,7 +100,6 @@ serve(async (req) => {
             job_id: jobId,
             customer_id: user.id,
             platform_fee_percent: String(feePercent),
-            fee_tax: String(Math.round(feeTax * 100)),
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,

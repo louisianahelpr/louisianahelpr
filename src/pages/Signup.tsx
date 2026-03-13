@@ -192,6 +192,7 @@ const Signup = () => {
           emergencyContactName: emergencyContactName || null,
           emergencyContactPhone: emergencyContactPhone || null,
           jobRadius: jobRadius || null,
+          extraComments: extraComments || null,
         },
       });
 

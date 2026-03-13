@@ -45,8 +45,8 @@ const AdminUsers = () => {
   const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
   const [newEmail1, setNewEmail1] = useState("");
   const [newEmail2, setNewEmail2] = useState("");
-  const [adminPass1, setAdminPass1] = useState("");
-  const [adminPass2, setAdminPass2] = useState("");
+  const [adminPass1] = useState(""); // kept for compat, unused
+  const [adminPass2] = useState(""); // kept for compat, unused
   const [updatingEmail, setUpdatingEmail] = useState(false);
 
   const loadProfiles = async () => {

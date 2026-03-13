@@ -461,7 +461,7 @@ const PostJob = () => {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="time">Start time</Label>
+                    <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
                     <Input id="time" type="time" value={startTime === "flexible" ? "" : startTime} onChange={(e) => setStartTime(e.target.value)} />
                     <button
                       type="button"

@@ -9,13 +9,13 @@ const corsHeaders = {
 
 const PRODUCT_TO_TIER: Record<string, string> = {
   // Monthly recurring
-  "prod_U8D5po9hjUJCGc": "basic",
-  "prod_U8BlHeIMjMcSgA": "pro",
-  "prod_U8D6oVie3pcjAC": "elite",
+  "prod_U8rS2fR6KvQoRk": "basic",
+  "prod_U8rTRJZSUyzaha": "pro",
+  "prod_U8rTUX4EhN5wG3": "elite",
   // Annual recurring
-  "prod_U8DiEHun3sWONY": "basic",
-  "prod_U8DiMCIrfVpxn1": "pro",
-  "prod_U8DjLmcSKObhf8": "elite",
+  "prod_U8rTux09RGNWWd": "basic",
+  "prod_U8rTiOIcITvnIT": "pro",
+  "prod_U8rT5zWKWe29By": "elite",
 };
 
 serve(async (req) => {

@@ -21,3 +21,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.email-tracking]
     verify_jwt = false
+  [functions.admin-update-email]
+    verify_jwt = false

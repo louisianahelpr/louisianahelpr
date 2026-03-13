@@ -194,8 +194,8 @@ Deno.serve(async (req) => {
     }
 
     const { html, text } = status === 'approved'
-      ? renderApprovedEmail(profile.full_name || '')
-      : renderDeniedEmail(profile.full_name || '', reason)
+      ? renderApprovedEmail(profile.full_name || '', userId)
+      : renderDeniedEmail(profile.full_name || '', userId, reason)
 
     const subject = status === 'approved'
       ? 'Your Helpr account has been approved! 🎉'

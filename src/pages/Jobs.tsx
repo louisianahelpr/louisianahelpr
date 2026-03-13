@@ -77,12 +77,7 @@ const Jobs = () => {
       <main className="pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-5xl">
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-center mb-10"
-          >
+          <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-4">
               <Briefcase className="w-3 h-3" />
               Live Jobs

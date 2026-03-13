@@ -91,14 +91,19 @@ Deno.serve(async (req) => {
     const conflict = conflictingProfiles?.[0]
     if (conflict) {
       if (conflict.approval_status === 'denied') {
-        // Auto-free the email from the denied account by clearing it
-        const { error: clearErr } = await supabaseAdmin
-          .from('profiles')
-          .update({ email: `denied-${conflict.user_id}@freed.local` })
-          .eq('user_id', conflict.user_id)
+        const [localPart, domainPart] = normalizedEmail.split('@')
+        const safeLocal = (localPart || 'user').replace(/[^a-zA-Z0-9._%+-]/g, '').slice(0, 32) || 'user'
+        const safeDomain = domainPart || 'example.com'
+        const freedEmail = `${safeLocal}+denied-${conflict.user_id.slice(0, 8)}-${Date.now().toString(36)}@${safeDomain}`
 
-        if (clearErr) {
-          console.error('Failed to free email from denied account:', clearErr)
+        // Free the email in auth first (this is what enforces unique email)
+        const { error: deniedAuthErr } = await supabaseAdmin.auth.admin.updateUserById(conflict.user_id, {
+          email: freedEmail,
+          email_confirm: true,
+        })
+
+        if (deniedAuthErr) {
+          console.error('Failed to free email in auth for denied account:', deniedAuthErr)
           return new Response(JSON.stringify({
             error: 'Failed to free email from denied account. Try again.',
           }), {
@@ -107,7 +112,23 @@ Deno.serve(async (req) => {
           })
         }
 
-        console.log(`Auto-freed email ${normalizedEmail} from denied account ${conflict.user_id}`)
+        // Keep profile email in sync
+        const { error: clearErr } = await supabaseAdmin
+          .from('profiles')
+          .update({ email: freedEmail })
+          .eq('user_id', conflict.user_id)
+
+        if (clearErr) {
+          console.error('Failed syncing denied profile email after auth update:', clearErr)
+          return new Response(JSON.stringify({
+            error: 'Freed auth email, but failed to sync denied profile email.',
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        console.log(`Auto-freed email ${normalizedEmail} from denied account ${conflict.user_id} -> ${freedEmail}`)
       } else {
         return new Response(JSON.stringify({
           error: 'This email address is already in use by another active account.',

@@ -480,6 +480,33 @@ const AdminUsers = () => {
                 </div>
               )}
 
+              {/* Signup Answers */}
+              {(() => {
+                const p = viewProfile as any;
+                const fields = [
+                  { label: "Availability", value: p.availability },
+                  { label: "Transportation", value: p.transportation },
+                  { label: "Experience Level", value: p.experience_level },
+                  { label: "Tools / Equipment", value: p.tools_equipment },
+                  { label: "Preferred Job Radius", value: p.job_radius },
+                  { label: "How They Heard About Us", value: p.hear_about_us },
+                  { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
+                ].filter(f => f.value);
+                return fields.length > 0 ? (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Signup Answers</p>
+                    <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-4">
+                      {fields.map((f, i) => (
+                        <div key={i}>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
+                          <p className="text-sm font-medium text-foreground">{f.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
               {/* ID Document */}
               {viewProfile.id_document_url && (
                 <div>

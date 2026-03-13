@@ -104,6 +104,17 @@ const AccountDenied = () => {
               </Button>
             </Link>
           </div>
+
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            You can also go to the{" "}
+            <span
+              className="text-primary font-medium cursor-pointer hover:underline"
+              onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}
+            >
+              Sign Up page
+            </span>{" "}
+            to re-submit your profile with updated info and documents.
+          </p>
         </div>
 
         <Button

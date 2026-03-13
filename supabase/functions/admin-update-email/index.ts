@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
 
     // Update email in auth.users via admin API
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      email: newEmail,
+      email: normalizedEmail,
       email_confirm: true,
     })
 
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     // Update email in profiles table
     const { error: profileErr } = await supabaseAdmin
       .from('profiles')
-      .update({ email: newEmail })
+      .update({ email: normalizedEmail })
       .eq('user_id', userId)
 
     if (profileErr) {
@@ -182,12 +182,12 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from('notifications').insert({
       user_id: userId,
       title: '📧 Email address updated',
-      message: `Your email has been updated to ${newEmail} by an administrator. Use this email to log in going forward.`,
+      message: `Your email has been updated to ${normalizedEmail} by an administrator. Use this email to log in going forward.`,
       type: 'info',
       link: '/profile',
     })
 
-    console.log(`Admin ${adminId} updated email for user ${userId} to ${newEmail}`)
+    console.log(`Admin ${adminId} updated email for user ${userId} to ${normalizedEmail}`)
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

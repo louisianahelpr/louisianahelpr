@@ -317,7 +317,16 @@ const AdminUsers = () => {
       loadProfiles();
       setViewProfile(null);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update email");
+      let message = err?.message || "Failed to update email";
+      if (err?.context && typeof err.context?.json === "function") {
+        try {
+          const body = await err.context.json();
+          if (body?.error) message = body.error;
+        } catch {
+          // keep fallback message
+        }
+      }
+      toast.error(message);
     } finally {
       setUpdatingEmail(false);
     }

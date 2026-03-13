@@ -117,6 +117,23 @@ serve(async (req) => {
 
     const isResubmission = currentProfile?.approval_status === "denied";
 
+    // For resubmissions, require all essential documents and fields
+    if (isResubmission) {
+      const missing: string[] = [];
+      if (!avatarUrl) missing.push("profile picture");
+      if (!idDocumentUrl) missing.push("ID document");
+      if (!bio) missing.push("bio");
+      if (!phone) missing.push("phone number");
+      if (!location) missing.push("location");
+
+      if (missing.length > 0) {
+        return new Response(
+          JSON.stringify({ error: `Resubmission requires: ${missing.join(", ")}. Please complete all required fields.` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // 5. Update profile
     const updateData: Record<string, unknown> = {
       approval_status: "pending",

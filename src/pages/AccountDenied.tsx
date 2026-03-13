@@ -44,24 +44,6 @@ const AccountDenied = () => {
     loadReason();
   }, [navigate]);
 
-  const handleResubmit = async () => {
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { navigate("/login"); return; }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ approval_status: "pending" })
-      .eq("user_id", session.user.id);
-
-    if (error) {
-      toast.error("Failed to resubmit. Please try again.");
-    } else {
-      toast.success("Your profile has been resubmitted for review!");
-      navigate("/account-pending");
-    }
-    setLoading(false);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">

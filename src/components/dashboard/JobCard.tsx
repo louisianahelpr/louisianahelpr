@@ -240,7 +240,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           {/* Poster info */}
           <div className="flex items-center gap-2 pt-2 border-t border-border/40 flex-wrap">
             <span className="text-xs text-muted-foreground">
-              Posted by <a href={`/user/${job.customer_id}`} className="font-medium text-primary hover:underline">{job.posterName}</a>
+              Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{job.posterName}</a>
             </span>
             {(job.posterReviewCount ?? 0) > 0 && (
               <span className="flex items-center gap-0.5 text-xs">

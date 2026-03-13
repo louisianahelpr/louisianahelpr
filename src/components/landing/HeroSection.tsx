@@ -5,6 +5,7 @@ import heroWebp from "@/assets/hero-illustration.webp";
 import heroJpg from "@/assets/hero-illustration.jpg";
 import heroV3 from "@/assets/hero-illustration-v3.jpg";
 import heroV4 from "@/assets/hero-illustration-v4.jpg";
+import heroV5 from "@/assets/hero-illustration-v5.jpg";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const HeroSection = () => {
         {comparing ? (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-2xl font-display font-bold text-foreground text-center">Compare Hero Images</h2>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <p className="text-sm font-medium text-muted-foreground text-center">Current</p>
                 <img src={heroJpg} alt="Current hero" className="w-full rounded-2xl shadow-lg" />
@@ -28,6 +29,10 @@ const HeroSection = () => {
               <div className="space-y-3">
                 <p className="text-sm font-medium text-muted-foreground text-center">v4 — Festival scene</p>
                 <img src={heroV4} alt="Hero v4 festival" className="w-full rounded-2xl shadow-lg" />
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground text-center">v5 — Community helping</p>
+                <img src={heroV5} alt="Hero v5 community" className="w-full rounded-2xl shadow-lg" />
               </div>
             </div>
             <p className="text-center text-sm text-muted-foreground">Tell me which one you prefer!</p>

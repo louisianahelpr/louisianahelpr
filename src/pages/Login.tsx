@@ -48,15 +48,18 @@ const Login = () => {
         return;
       }
 
+      // Pre-populate the currentUser cache so ProtectedRoute sees the session immediately
+      await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+
       setLoading(false);
       toast.success("Welcome back!");
 
       if (profile?.approval_status === "pending") {
-        navigate("/account-pending");
+        navigate("/account-pending", { replace: true });
       } else if (profile?.approval_status === "denied") {
-        navigate("/account-denied");
+        navigate("/account-denied", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } else {
       setLoading(false);

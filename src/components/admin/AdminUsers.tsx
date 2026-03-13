@@ -41,6 +41,14 @@ const AdminUsers = () => {
   const [banDuration, setBanDuration] = useState("7"); // days
   const [banning, setBanning] = useState(false);
 
+  // Edit email dialog
+  const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
+  const [newEmail1, setNewEmail1] = useState("");
+  const [newEmail2, setNewEmail2] = useState("");
+  const [adminPass1, setAdminPass1] = useState("");
+  const [adminPass2, setAdminPass2] = useState("");
+  const [updatingEmail, setUpdatingEmail] = useState(false);
+
   const loadProfiles = async () => {
     const { data } = await supabase
       .from("profiles")

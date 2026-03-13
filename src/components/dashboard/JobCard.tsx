@@ -147,6 +147,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
         </div>
       </div>
 
+      {/* Footer: poster name + category */}
+      <div className="px-4 py-2 border-t border-border/40 flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground truncate">
+          {job.posterName ? <>Posted by <span className="font-medium text-foreground">{job.posterName}</span></> : ""}
+        </span>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
+          {categoryLabels[job.category] || job.category}
+        </span>
+      </div>
+
       {/* Expandable section */}
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
         <div className="px-4 pb-4 space-y-3 border-t border-border/40">

@@ -99,10 +99,16 @@ const PublicJobsPreview = () => {
               </Badge>
 
               <div className="space-y-1.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
+                <a
+                  href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MapPin className="w-3 h-3" />
                   <span className="line-clamp-1">{getCityState(job.location)}</span>
-                </div>
+                </a>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3 h-3" />
                   <span>{format(new Date(job.date_needed), "MMM d, yyyy")}</span>

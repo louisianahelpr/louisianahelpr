@@ -424,6 +424,23 @@ const Activity = () => {
     }
   };
 
+  const tryCancelJob = async (job: Job) => {
+    // Check if helper is already on the way or further along
+    const { data: tracking } = await supabase
+      .from("job_tracking")
+      .select("status")
+      .eq("job_id", job.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const trackingStatus = (tracking as any[])?.[0]?.status;
+    const blockedStatuses = ["on_the_way", "arrived", "working"];
+    if (trackingStatus && blockedStatuses.includes(trackingStatus)) {
+      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
+      return;
+    }
+    setCancelDialogJob(job);
+  };
+
   const cancelJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
     if (error) toast.error("Failed to cancel");
@@ -1071,7 +1088,7 @@ const Activity = () => {
                               <div className="flex items-center gap-2">
                                 <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => setBoostJobId(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
                                 <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => openEditJob(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                                <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             )}
                             {job.status === "accepted" && (
@@ -1079,7 +1096,7 @@ const Activity = () => {
                                 <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
                                   <MessageSquare className="w-4 h-4 mr-1" /> Message
                                 </Button>
-                                <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             )}
                             {(job.status === "in_progress" || job.status === "revision_requested") && (
@@ -1095,7 +1112,7 @@ const Activity = () => {
                                   </>
                                 )}
                                 <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
-                                <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </>
                             )}
                             {job.status === "cancelled" && (

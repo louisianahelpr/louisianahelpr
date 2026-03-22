@@ -118,7 +118,7 @@ const AdminSettings = () => {
       if (error.code === "23505") toast.error("User is already an admin");
       else toast.error(error.message);
     } else {
-      toast.success(`${profile.full_name || "User"} added as admin`);
+      toast.success(`${formatName(profile.full_name)} added as admin`);
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
     }

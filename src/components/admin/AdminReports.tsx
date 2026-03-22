@@ -52,7 +52,7 @@ const AdminReports = () => {
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", userIds);
-      const nameMap = new Map((profiles || []).map(p => [p.user_id, p.full_name || "Unknown"]));
+      const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
       setReports((data || []).map(r => ({
         ...r,
         reporter_name: nameMap.get(r.reporter_id) || "Unknown",

@@ -108,7 +108,7 @@ const HelperSpotlightSection = () => {
                     {initials}
                   </div>
                 )}
-                <h3 className="text-lg font-display font-semibold text-foreground mt-3">{h.full_name || "Helpr"}</h3>
+                <h3 className="text-lg font-display font-semibold text-foreground mt-3">{formatName(h.full_name, "Helpr")}</h3>
                 {h.location && (
                   <p className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
                     <MapPin className="w-3 h-3" /> {h.location}

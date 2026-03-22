@@ -88,7 +88,7 @@ const AdminUsers = () => {
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
       const { data: reviewerProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds);
-      const nameMap = new Map(reviewerProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+      const nameMap = new Map(reviewerProfiles?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       setProfileReviews(reviewsRes.data.map((r: any) => ({
         rating: r.rating, feedback: r.feedback, reviewer_name: nameMap.get(r.reviewer_id) || "User",
       })));

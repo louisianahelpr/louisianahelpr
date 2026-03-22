@@ -119,7 +119,7 @@ const AdminJobs = () => {
     if (ids.length > 0) {
       const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
       if (data) {
-        const map = new Map(data.map((p) => [p.user_id, p.full_name || "User"]));
+        const map = new Map(data.map((p) => [p.user_id, formatName(p.full_name)]));
         setPosterName(map.get(job.customer_id) || "Unknown");
         if (job.helper_id) setHelperName(map.get(job.helper_id) || "Unknown");
       }

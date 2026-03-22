@@ -152,7 +152,7 @@ const FavoritesPanel = () => {
                         variant="ghost"
                         size="icon"
                         className="shrink-0 h-8 w-8"
-                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id, p?.full_name || "helpr"); }}
+                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id, formatName(p?.full_name, "helpr")); }}
                       >
                         <Heart className="w-4 h-4 fill-destructive text-destructive" />
                       </Button>

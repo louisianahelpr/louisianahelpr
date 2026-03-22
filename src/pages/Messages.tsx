@@ -166,8 +166,11 @@ const Messages = () => {
     return () => { supabase.removeChannel(channel); };
   }, [userId, activeConvo]);
 
-  const logViolation = async (violationDescription: string) => {
+  const logViolation = async (violationDescription: string, blockedContent: string) => {
     if (!userId) return;
+    const userName = activeConvo?.otherUserName || "Unknown";
+    const senderName = cachedUser?.user_metadata?.full_name || "A user";
+
     const { data: existing } = await supabase
       .from("user_violations" as any)
       .select("id")
@@ -184,14 +187,14 @@ const Messages = () => {
       await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
       await (supabase.from("user_violations" as any) as any).insert({
         user_id: userId, violation_type: "off_platform",
-        description: violationDescription, action_taken: "permanent_ban",
+        description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "permanent_ban",
       });
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
           await createNotification({
             user_id: admin.user_id, title: "⛔ User permanently banned",
-            message: `A user was auto-banned for repeated off-platform activity: ${violationDescription}`,
+            message: `${senderName} was auto-banned for repeated off-platform activity. They tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
             type: "warning", link: `/admin?tab=reports`,
           });
         }
@@ -200,7 +203,7 @@ const Messages = () => {
     } else {
       await (supabase.from("user_violations" as any) as any).insert({
         user_id: userId, violation_type: "off_platform",
-        description: violationDescription, action_taken: "warning",
+        description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "warning",
       });
       await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
@@ -208,7 +211,7 @@ const Messages = () => {
         for (const admin of adminRoles) {
           await createNotification({
             user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
-            message: `A user attempted off-platform activity: ${violationDescription}`,
+            message: `${senderName} tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
             type: "warning", link: `/admin?tab=reports`,
           });
         }

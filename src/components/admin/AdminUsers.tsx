@@ -406,7 +406,7 @@ const AdminUsers = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="font-semibold text-foreground">{p.full_name || "—"}</p>
+                      <p className="font-semibold text-foreground">{formatName(p.full_name, "—")}</p>
                       {statusBadge(p)}
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

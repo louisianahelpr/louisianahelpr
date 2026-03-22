@@ -570,12 +570,15 @@ const Activity = () => {
   const saveEditJob = async () => {
     if (!editJob) return;
     setEditSaving(true);
-    const { error } = await supabase.from("jobs").update({
+    const isPaid = editJob.payment_status === 'paid' || editJob.payment_status === 'authorized';
+    const updateData: any = {
       title: editTitle.trim(), description: editDescription.trim(), category: editCategory as any,
       location: editLocation.trim(), date_needed: editDateNeeded, start_time: editStartTime || null,
       estimated_hours: editEstimatedHours ? parseFloat(editEstimatedHours) : null,
-      budget: parseFloat(editBudget), special_requirements: editSpecialReq.trim() || null,
-    }).eq("id", editJob.id);
+      special_requirements: editSpecialReq.trim() || null,
+    };
+    if (!isPaid) updateData.budget = parseFloat(editBudget);
+    const { error } = await supabase.from("jobs").update(updateData).eq("id", editJob.id);
     setEditSaving(false);
     if (error) toast.error(error.message);
     else { toast.success("Job updated!"); setEditJob(null); if (user) loadData(user.id); }

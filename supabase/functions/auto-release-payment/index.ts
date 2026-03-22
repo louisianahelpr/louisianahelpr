@@ -88,7 +88,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job auto-completed",
           message: `"${job.title}" was automatically marked complete after 72 hours. Payment has been captured and the helpr will be paid in 24 hours.`,
-          type: "info", link: "/activity",
+          type: "info", link: "/activity?tab=posted&filter=completed",
         });
       }
       released++;

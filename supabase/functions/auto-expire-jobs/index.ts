@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
           title: "Job expired",
           message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helprs.`,
           type: "warning",
-          link: "/activity",
+          link: "/activity?tab=applied&filter=rejected",
         });
       }
 

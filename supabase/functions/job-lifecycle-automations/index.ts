@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
             title: 'Job started! 🚀',
             message: `"${job.title}" is now in progress. Good luck!`,
             type: 'info',
-            link: '/activity',
+            link: '/activity?tab=applied&filter=active',
           })
         }
         await supabase.from('notifications').insert(notifications)

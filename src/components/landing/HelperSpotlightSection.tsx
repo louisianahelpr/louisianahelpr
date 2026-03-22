@@ -91,7 +91,7 @@ const HelperSpotlightSection = () => {
 
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {helpers.map((h, i) => {
-            const initials = (h.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+            const initials = formatName(h.full_name, "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
             const badges = computeBadges({ avgRating: h.avgRating, reviewCount: h.reviewCount, completedJobs: h.completedJobs, helprTier: h.subscription_tier });
 
             return (

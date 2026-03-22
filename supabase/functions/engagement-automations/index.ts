@@ -100,13 +100,13 @@ function adminDigestEmail(stats: {
   openReports: number
   revenue: number
 }) {
-  const subject = `Helpr Daily Digest — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  const subject = `Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
   const stat = (label: string, value: string | number) =>
     `<tr><td style="padding:8px 0;font-size:15px;color:hsl(160,6%,50%);border-bottom:1px solid hsl(150,12%,92%)">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:hsl(160,10%,12%);text-align:right;border-bottom:1px solid hsl(150,12%,92%)">${value}</td></tr>`
 
   const html = wrapEmail(`
-    ${h1("📊 Daily Digest")}
-    ${p(`Here's your platform summary for ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}:`)}
+    ${h1("📊 Weekly Digest")}
+    ${p(`Here's your platform summary for the past 7 days ( ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}:`)}
     <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
       ${stat("New signups", stats.newUsers)}
       ${stat("Jobs posted", stats.newJobs)}
@@ -117,7 +117,7 @@ function adminDigestEmail(stats: {
     </table>
     ${btn("Open Admin Dashboard", `${SITE_URL}/admin`)}
   `)
-  const text = `Helpr Daily Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
+  const text = `Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
   return { subject, html, text }
 }
 
@@ -345,8 +345,12 @@ Deno.serve(async (_req) => {
       results.reEngagement++
     }
 
-    // ─── 3. Admin Daily Digest ────────────────────────────────────
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+    // ─── 3. Admin Weekly Digest (Monday mornings only) ───────────
+    const dayOfWeek = now.getUTCDay() // 0=Sun, 1=Mon
+    if (dayOfWeek !== 1) {
+      console.log('Skipping admin digest — not Monday')
+    } else {
+    const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
     const [newUsersRes, newJobsRes, completedJobsRes, pendingRes, reportsRes, revenueRes, adminRolesRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
@@ -401,13 +405,14 @@ Deno.serve(async (_req) => {
           html,
           text,
           purpose: 'transactional',
-          label: 'admin_daily_digest',
+          label: 'admin_weekly_digest',
           queued_at: now.toISOString(),
         },
       })
 
       results.adminDigest++
     }
+    } // end Monday check
   } catch (err) {
     results.errors.push(err.message)
     console.error('Engagement automation error:', err)

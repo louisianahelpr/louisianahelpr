@@ -155,13 +155,22 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 {isLateCancellation && !isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">YOU</span>}
               </div>
 
-              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${isVeryLateCancellation ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
-                <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isVeryLateCancellation ? "text-destructive" : "text-muted-foreground"}`} />
+              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${isVeryLateCancellation && !helperEnRoute ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
+                <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isVeryLateCancellation && !helperEnRoute ? "text-destructive" : "text-muted-foreground"}`} />
                 <div>
                   <p className="text-xs font-medium text-foreground">Less than 2 hours — <span className="text-destructive">50% fee</span></p>
                   <p className="text-[11px] text-muted-foreground">50% of the job budget. The helpr has already prepared for this job.</p>
                 </div>
-                {isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
+                {isVeryLateCancellation && !helperEnRoute && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
+              </div>
+
+              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${helperEnRoute ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
+                <Ban className={`w-4 h-4 mt-0.5 shrink-0 ${helperEnRoute ? "text-destructive" : "text-muted-foreground"}`} />
+                <div>
+                  <p className="text-xs font-medium text-foreground">Helpr en route / working — <span className="text-destructive">100% fee</span></p>
+                  <p className="text-[11px] text-muted-foreground">Full budget goes to the helpr. They're already on their way or working.</p>
+                </div>
+                {helperEnRoute && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
               </div>
             </div>
 

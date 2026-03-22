@@ -168,6 +168,9 @@ serve(async (req) => {
         updateFields.payout_scheduled_at = payoutTime;
         updateFields.status = "completed";
         updateFields.payment_status = "payout_pending";
+      } else if (job.status === "accepted") {
+        // If job was still in accepted, move to in_progress when one party marks complete
+        updateFields.status = "in_progress";
       }
 
       await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId);

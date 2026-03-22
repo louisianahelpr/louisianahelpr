@@ -474,7 +474,7 @@ const AdminUsers = () => {
                 )}
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-bold text-foreground">{viewProfile.full_name || "—"}</h3>
+                    <h3 className="text-lg font-bold text-foreground">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
                     {viewProfile.role !== 'customer' && <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>}
                     {((viewProfile as any).application_count || 1) > 1 && (

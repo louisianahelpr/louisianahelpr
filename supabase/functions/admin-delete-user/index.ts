@@ -70,18 +70,18 @@ serve(async (req) => {
       });
     }
 
-    // Verify the target user is actually denied
+    // Verify the target user exists
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("approval_status")
       .eq("user_id", userId)
       .single();
 
-    if (!profile || profile.approval_status !== "denied") {
+    if (!profile) {
       return new Response(
-        JSON.stringify({ error: "Only denied accounts can be deleted" }),
+        JSON.stringify({ error: "User not found" }),
         {
-          status: 400,
+          status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );

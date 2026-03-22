@@ -1642,8 +1642,9 @@ const Activity = () => {
           jobBudget={cancelDialogJob.budget}
           userId={user.id}
           hasHelper={!!cancelDialogJob.helper_id}
+          helperEnRoute={cancelHelperEnRoute}
           open={!!cancelDialogJob}
-          onClose={() => setCancelDialogJob(null)}
+          onClose={() => { setCancelDialogJob(null); setCancelHelperEnRoute(false); }}
           onCancelled={() => { if (user) loadData(user.id); }}
         />
       )}

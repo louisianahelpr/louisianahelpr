@@ -206,7 +206,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job completed!",
           message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
-          type: "payment", link: "/activity",
+          type: "payment", link: "/activity?tab=posted&filter=completed",
         });
       }
 

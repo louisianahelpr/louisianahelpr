@@ -645,6 +645,7 @@ const Activity = () => {
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
     { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "revision", label: "Revision", color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
@@ -658,9 +659,8 @@ const Activity = () => {
     appliedApps.filter((a) => {
       if (statusFilter === "pending") return a.status === "pending" && a.job?.status !== "cancelled";
       if (statusFilter === "offered") return a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
-      if (statusFilter === "in_progress") return a.status === "accepted" && (
-        (a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) || a.job?.status === "in_progress" || a.job?.status === "disputed"
-      );
+      if (statusFilter === "accepted") return a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
+      if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
       if (statusFilter === "revision") return a.status === "accepted" && a.job?.status === "revision_requested";
       if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
       if (statusFilter === "not_selected") return a.status === "rejected" || a.job?.status === "cancelled";
@@ -668,13 +668,12 @@ const Activity = () => {
     }), [appliedApps, statusFilter]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, offered: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at) counts.offered++;
-      else if (a.status === "accepted" && (
-        (a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) || a.job?.status === "in_progress" || a.job?.status === "disputed"
-      )) counts.in_progress++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) counts.accepted++;
+      else if (a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed")) counts.in_progress++;
       else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
       else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
       else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;

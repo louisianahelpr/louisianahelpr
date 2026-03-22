@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     const results = {
       reviewReminders: 0,
       jobStartReminders: 0,
+      autoStarted: 0,
       autoCompleted: 0,
       noShowFlagged: 0,
       expiredJobs: 0,
@@ -145,6 +146,43 @@ Deno.serve(async (req) => {
             results.jobStartReminders++
           }
         }
+      }
+    }
+
+    // ── 2b. AUTO-START ACCEPTED JOBS ON SCHEDULED DATE ──
+    // Jobs in "accepted" status where helper confirmed and date_needed is today or past
+    const { data: acceptedJobsToStart } = await supabase
+      .from('jobs')
+      .select('id, title, customer_id, helper_id')
+      .eq('status', 'accepted')
+      .not('helper_id', 'is', null)
+      .not('helper_confirmed_at', 'is', null)
+      .lte('date_needed', todayStr)
+
+    if (acceptedJobsToStart) {
+      for (const job of acceptedJobsToStart) {
+        await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', job.id)
+        
+        const notifications = [
+          {
+            user_id: job.customer_id,
+            title: 'Job is now in progress! 🚀',
+            message: `"${job.title}" has automatically started. Your helpr is on it!`,
+            type: 'info',
+            link: '/activity',
+          },
+        ]
+        if (job.helper_id) {
+          notifications.push({
+            user_id: job.helper_id,
+            title: 'Job started! 🚀',
+            message: `"${job.title}" is now in progress. Good luck!`,
+            type: 'info',
+            link: '/activity',
+          })
+        }
+        await supabase.from('notifications').insert(notifications)
+        results.autoStarted++
       }
     }
 

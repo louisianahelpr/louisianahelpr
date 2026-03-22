@@ -214,9 +214,10 @@ const Activity = () => {
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     if (accept) {
-      await supabase.from("jobs").update({ status: "in_progress", response_deadline: null } as any).eq("id", app.job_id);
+      // Keep as "accepted" — will move to "in_progress" on job date or manual start
+      await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
-      toast.success("Job accepted! You can now message the poster.");
+      toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       loadData(user.id);
     } else {
       // Track denial as violation
@@ -447,6 +448,12 @@ const Activity = () => {
     }
   };
 
+  const startJob = async (jobId: string) => {
+    const { error } = await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+    if (error) toast.error("Failed to start job");
+    else { toast.success("Job started! You're now in progress."); if (user) loadData(user.id); }
+  };
+
   const sendTip = async (jobId: string, quickAmount?: number) => {
     const amount = quickAmount || parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }
@@ -572,7 +579,7 @@ const Activity = () => {
 
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "accepted", label: "Accepted", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "accepted", label: "Pending", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "revision_requested", label: "Revision", color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
@@ -742,6 +749,16 @@ const Activity = () => {
                             </span>
                           )}
                         </div>
+
+                        {/* Pending confirmation status for accepted jobs */}
+                        {job.status === "accepted" && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {(job as any).helper_confirmed_at
+                              ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed — waiting to start</span>
+                              : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
+                            }
+                          </div>
+                        )}
 
                         {/* Completion confirmation status */}
                         {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
@@ -1209,7 +1226,7 @@ const Activity = () => {
 
                         {/* Actions */}
                         <div className="flex flex-col gap-1.5 pt-2">
-                          {app.status === "accepted" && app.job?.status === "accepted" && (
+                          {app.status === "accepted" && app.job?.status === "accepted" && !(app.job as any)?.helper_confirmed_at && (
                             <div className="flex flex-col gap-1.5">
                               {(app.job as any)?.response_deadline && (
                                 <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
@@ -1222,6 +1239,19 @@ const Activity = () => {
                               </Button>
                               <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
                                 <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                              </Button>
+                            </div>
+                          )}
+                          {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
+                                ✓ You accepted this job
+                              </div>
+                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                                <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
                               </Button>
                             </div>
                           )}
@@ -1427,7 +1457,7 @@ const Activity = () => {
       {deadlineDialogApp && (
         <ResponseDeadlineDialog
           open={!!deadlineDialogApp}
-          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helpr"}
+          helperName={formatName(deadlineDialogApp.profiles?.full_name, "Helpr")}
           onConfirm={confirmAcceptWithDeadline}
           onClose={() => setDeadlineDialogApp(null)}
         />

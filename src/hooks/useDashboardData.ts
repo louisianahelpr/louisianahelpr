@@ -55,47 +55,25 @@ export function useDashboardData() {
         return { allJobs: [] as EnrichedJob[], platformFee, helperAvailability, recommendedJobs: [] as EnrichedJob[], helprTier: null as string | null };
       }
 
-      // Phase 2: Enrich — poster names + review counts
+      // Phase 2: Enrich — only poster names (skip heavy reviews/completed counts)
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
 
-      const [profilesRes, reviewsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
-        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", posterIds),
-      ]);
-
-      const formatName = (fullName: string | null) => {
-        if (!fullName) return "User";
-        const parts = fullName.trim().split(/\s+/);
-        if (parts.length === 1) return parts[0];
-        return `${parts[0]} ${parts[parts.length - 1][0]}.`;
-      };
+      const profilesRes = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
 
       const nameMap = new Map(
-        profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []
+        profilesRes.data?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []
       );
-
-      const reviewMap = new Map<string, { count: number; avg: number }>();
-      posterIds.forEach(id => reviewMap.set(id, { count: 0, avg: 0 }));
-      const reviewsByPoster = new Map<string, number[]>();
-      reviewsRes.data?.forEach((r) => {
-        if (!reviewsByPoster.has(r.reviewee_id)) reviewsByPoster.set(r.reviewee_id, []);
-        reviewsByPoster.get(r.reviewee_id)!.push(r.rating);
-      });
-      reviewsByPoster.forEach((ratings, id) => {
-        reviewMap.set(id, { count: ratings.length, avg: ratings.reduce((a, b) => a + b, 0) / ratings.length });
-      });
 
       const now = new Date();
       const enriched: EnrichedJob[] = rawJobs
         .filter((j) => !appliedJobIds.has(j.id))
         .map((j) => {
           const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
-          const review = reviewMap.get(j.customer_id) || { count: 0, avg: 0 };
           return {
             ...j,
             posterName: nameMap.get(j.customer_id) || "User",
-            posterReviewCount: review.count,
-            posterAvgRating: review.avg,
+            posterReviewCount: 0,
+            posterAvgRating: 0,
             posterCompletedJobs: 0,
             isBoosted,
           };

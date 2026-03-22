@@ -77,7 +77,7 @@ const Admin = () => {
 
   const viewLabels: Record<View, string> = {
     home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts", notifications: "Notifications",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts", notifications: "Notifications", reports: "Reports",
   };
 
   const header = (

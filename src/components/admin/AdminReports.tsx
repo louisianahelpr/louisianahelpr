@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 type Report = {
@@ -19,6 +20,7 @@ type Report = {
 };
 
 const AdminReports = () => {
+  const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "resolved" | "all">("pending");
@@ -37,7 +39,6 @@ const AdminReports = () => {
       return;
     }
 
-    // Fetch profile names for reporters and reported users
     const userIds = [...new Set((data || []).flatMap(r => [r.reporter_id, r.reported_id]))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
@@ -77,7 +78,6 @@ const AdminReports = () => {
 
   return (
     <div className="space-y-4">
-      {/* Filter tabs */}
       <div className="flex gap-2">
         {(["pending", "resolved", "all"] as const).map(f => (
           <Button
@@ -110,11 +110,23 @@ const AdminReports = () => {
                   {typeIcon(report.reported_type)}
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      {report.reported_name}
+                      <button
+                        onClick={() => navigate(`/user/${report.reported_id}`)}
+                        className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                      >
+                        {report.reported_name}
+                      </button>
                       <span className="text-muted-foreground font-normal"> — {report.reason}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Reported by {report.reporter_name} · {new Date(report.created_at).toLocaleDateString()}
+                      Reported by{" "}
+                      <button
+                        onClick={() => navigate(`/user/${report.reporter_id}`)}
+                        className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                      >
+                        {report.reporter_name}
+                      </button>
+                      {" · "}{new Date(report.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -127,25 +139,34 @@ const AdminReports = () => {
                 <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
               )}
 
-              {report.status === "pending" && (
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    size="sm"
-                    onClick={() => updateStatus(report.id, "resolved")}
-                    disabled={updating === report.id}
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Resolve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => updateStatus(report.id, "dismissed")}
-                    disabled={updating === report.id}
-                  >
-                    Dismiss
-                  </Button>
-                </div>
-              )}
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/user/${report.reported_id}`)}
+                >
+                  <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
+                </Button>
+                {report.status === "pending" && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => updateStatus(report.id, "resolved")}
+                      disabled={updating === report.id}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Resolve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateStatus(report.id, "dismissed")}
+                      disabled={updating === report.id}
+                    >
+                      Dismiss
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>

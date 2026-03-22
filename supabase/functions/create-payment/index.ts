@@ -188,7 +188,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Helper marked job complete",
           message: `The helper marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/activity",
+          type: "info", link: "/activity?tab=posted&filter=in_progress",
         });
       }
 

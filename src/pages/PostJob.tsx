@@ -297,7 +297,7 @@ const PostJob = () => {
       toast.error("Job created but payment failed. You can pay from your dashboard.");
       navigate("/dashboard");
     } else {
-      window.open(paymentData.url, "_blank");
+      window.location.href = paymentData.url;
     }
   };
 

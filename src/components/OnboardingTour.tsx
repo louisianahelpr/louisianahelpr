@@ -76,9 +76,10 @@ const saveState = (state: OnboardingState) => {
 
 interface OnboardingTourProps {
   profileComplete?: boolean;
+  profileCreatedAt?: string | null;
 }
 
-const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: OnboardingTourProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState<OnboardingState>(getState);
@@ -93,11 +94,19 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
     const s = getState();
     // Never show again once seen or completed
     if (s.completed || s.seen) return;
+    // Don't show for existing users (account older than 2 minutes)
+    if (profileCreatedAt) {
+      const ageMs = Date.now() - new Date(profileCreatedAt).getTime();
+      if (ageMs > 2 * 60 * 1000) {
+        saveState({ ...s, seen: true, completed: true });
+        return;
+      }
+    }
     // Mark as seen immediately so it never shows again
     saveState({ ...s, seen: true });
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
-  }, [location.pathname]);
+  }, [location.pathname, profileCreatedAt]);
 
   const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState(prev => {

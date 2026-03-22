@@ -1328,6 +1328,59 @@ const Activity = () => {
                       </div>
                     )}
 
+                    {/* Accepted: Start Job + Message always visible */}
+                    {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
+                          ✓ You accepted this job
+                        </div>
+                        {startRequestedJobIds.has(app.job_id) ? (
+                          <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
+                            ⏳ Waiting for poster to confirm start
+                          </div>
+                        ) : (
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
+                          <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* In Progress / Revision: actions always visible */}
+                    {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
+                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
+                            <MessageSquare className="w-4 h-4 mr-1" /> Message
+                          </Button>
+                        </div>
+                        {app.job?.status === "revision_requested" && (
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => resolveRevision(app.job_id)}>
+                            <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Completed: photo proof + review always visible */}
+                    {app.status === "accepted" && app.job?.status === "completed" && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
+                        <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => {
+                          setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
+                        }}>
+                          <Star className="w-4 h-4 mr-1" /> Review Poster
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Expandable content */}
                     <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">

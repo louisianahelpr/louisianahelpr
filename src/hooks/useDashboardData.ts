@@ -23,8 +23,8 @@ export function useDashboardData() {
       if (!user) return null;
       const userId = user.id;
 
-      // Phase 1: jobs + settings + availability in parallel
-      const [openJobsRes, feeRes, availRes] = await Promise.all([
+      // Phase 1: jobs + settings + availability + user applications in parallel
+      const [openJobsRes, feeRes, availRes, appliedRes] = await Promise.all([
         supabase
           .from("jobs")
           .select("*")
@@ -39,7 +39,13 @@ export function useDashboardData() {
           .eq("helper_id", userId)
           .is("specific_date", null)
           .order("day_of_week"),
+        supabase
+          .from("applications")
+          .select("job_id")
+          .eq("helper_id", userId),
       ]);
+
+      const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
 
       const platformFee = feeRes.data?.platform_fee_percent ?? 15;
       const helperAvailability = availRes.data ?? [];
@@ -59,17 +65,19 @@ export function useDashboardData() {
       );
 
       const now = new Date();
-      const enriched: EnrichedJob[] = rawJobs.map((j) => {
-        const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
-        return {
-          ...j,
-          posterName: nameMap.get(j.customer_id) || "User",
-          posterReviewCount: 0,
-          posterAvgRating: 0,
-          posterCompletedJobs: 0,
-          isBoosted,
-        };
-      });
+      const enriched: EnrichedJob[] = rawJobs
+        .filter((j) => !appliedJobIds.has(j.id))
+        .map((j) => {
+          const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
+          return {
+            ...j,
+            posterName: nameMap.get(j.customer_id) || "User",
+            posterReviewCount: 0,
+            posterAvgRating: 0,
+            posterCompletedJobs: 0,
+            isBoosted,
+          };
+        });
 
       // Build recommended jobs
       let recommendedJobs: EnrichedJob[] = [];

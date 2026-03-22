@@ -51,41 +51,50 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             Show your appreciation{helperName ? ` to ${helperName}` : ""} with a tip!
           </p>
 
+          {/* Custom amount — primary option */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Enter tip amount</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min="1"
+                  className="pl-7 text-lg font-semibold h-12"
+                />
+              </div>
+              <Button
+                className="h-12 px-6"
+                onClick={() => handleSend(parseFloat(amount))}
+                disabled={sending || !amount}
+              >
+                {sending ? "..." : "Send Tip"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or quick pick</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
           {/* Suggested amounts */}
           <div className="grid grid-cols-3 gap-3">
             {SUGGESTED_AMOUNTS.map((amt) => (
               <Button
                 key={amt}
                 variant="outline"
-                className="text-lg font-bold h-16 hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="text-lg font-bold h-14 hover:bg-primary hover:text-primary-foreground transition-colors"
                 onClick={() => handleSend(amt)}
                 disabled={sending}
               >
                 ${amt}
               </Button>
             ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">or custom amount</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="1"
-            />
-            <Button
-              onClick={() => handleSend(parseFloat(amount))}
-              disabled={sending || !amount}
-            >
-              {sending ? "..." : "Send"}
-            </Button>
           </div>
         </div>
       </DialogContent>

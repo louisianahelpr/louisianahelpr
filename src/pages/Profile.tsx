@@ -449,8 +449,23 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
     
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
     { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits" },
-    
-    
+
+  // Warnings & violations
+  type Violation = { id: string; violation_type: string; description: string | null; action_taken: string; created_at: string | null; job_id: string | null };
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [violationsLoading, setViolationsLoading] = useState(false);
+  const [violationsLoaded, setViolationsLoaded] = useState(false);
+
+  const loadViolations = async () => {
+    if (!user || violationsLoaded) return;
+    setViolationsLoading(true);
+    const { data } = await (supabase.from("user_violations" as any) as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setViolations(data || []);
+    setViolationsLoaded(true);
+    setViolationsLoading(false);
+  };
+
+
     
     
     

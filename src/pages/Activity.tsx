@@ -985,22 +985,16 @@ const Activity = () => {
                         </div>
                       )}
 
-                      {/* Completed job actions — always visible */}
+                      {/* Status hint for completed */}
                       {job.status === "completed" && (() => {
                         const meta = completedJobMeta[job.id];
                         const hasTipped = meta?.tipped;
                         const hasReviewed = meta?.reviewed;
-                        const bothDone = hasTipped && hasReviewed;
-                        return !bothDone ? (
-                          <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-                            <div className="grid grid-cols-3 gap-2">
-                              <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => {
-                                setEnhancedTipJobId(job.id);
-                                setEnhancedTipHelperName("");
-                              }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
-                              <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
-                              <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                            </div>
+                        return (!hasTipped || !hasReviewed) ? (
+                          <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
+                            <span className="text-xs text-muted-foreground">
+                              {!hasTipped && !hasReviewed ? "Tap to tip & review" : !hasTipped ? "Tap to leave a tip" : "Tap to leave a review"}
+                            </span>
                           </div>
                         ) : null;
                       })()}

@@ -806,15 +806,13 @@ const AdminUsers = () => {
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <>
-                    <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
-                      <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
-                    </Button>
-                    <Button variant="destructive" className="flex-1" onClick={() => setDeleteProfile(viewProfile)}>
-                      <Trash2 className="w-4 h-4 mr-1" /> Delete Account
-                    </Button>
-                  </>
+                  <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
+                  </Button>
                 )}
+                <Button variant="destructive" className="flex-1" onClick={() => setDeleteProfile(viewProfile)}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+                </Button>
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
                     <Button variant="outline" className="flex-1" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>

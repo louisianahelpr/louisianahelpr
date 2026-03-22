@@ -298,8 +298,8 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                {filters.nearbyJobs.slice(0, 3).map((job, i) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                {filters.nearbyJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
+                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                 ))}
               </div>
               {filters.nearbyJobs.length > 3 && (

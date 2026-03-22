@@ -1029,6 +1029,9 @@ const Activity = () => {
                             )}
                             {job.status === "accepted" && (
                               <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                                  <MessageSquare className="w-4 h-4 mr-1" /> Message
+                                </Button>
                                 <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             )}

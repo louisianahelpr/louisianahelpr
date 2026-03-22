@@ -1473,19 +1473,21 @@ const Activity = () => {
                             </div>
                           )}
                           {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
-                            <>
-                              <Button size="sm" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
-                              </Button>
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                                </Button>
+                                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
+                                  <MessageSquare className="w-4 h-4 mr-1" /> Message
+                                </Button>
+                              </div>
                               {app.job?.status === "revision_requested" && (
-                                <Button size="sm" variant="outline" onClick={() => resolveRevision(app.job_id)}>
+                                <Button size="sm" variant="outline" className="w-full" onClick={() => resolveRevision(app.job_id)}>
                                   <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
                                 </Button>
                               )}
-                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
-                                <MessageSquare className="w-4 h-4 mr-1" /> Message
-                              </Button>
-                            </>
+                            </div>
                           )}
                           {app.status === "accepted" && app.job?.status === "completed" && (
                             <>

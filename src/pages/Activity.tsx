@@ -367,8 +367,8 @@ const Activity = () => {
     setDeadlineDialogApp(app);
   };
 
-  const confirmAcceptWithDeadline = async (deadlineHours: number) => {
-    if (!deadlineDialogApp || !selectedJob) return;
+  const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
+    if (!deadlineDialogApp || !selectedJob || !user) return;
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
     await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
     await supabase.from("jobs").update({
@@ -376,6 +376,16 @@ const Activity = () => {
       helper_id: deadlineDialogApp.helper_id,
       response_deadline: deadline,
     } as any).eq("id", selectedJob.id);
+
+    // Send initial message if provided
+    if (initialMessage) {
+      await supabase.from("messages").insert({
+        job_id: selectedJob.id,
+        sender_id: user.id,
+        receiver_id: deadlineDialogApp.helper_id,
+        content: initialMessage,
+      });
+    }
 
     // Notify helper about the deadline
     await createNotification({
@@ -1019,6 +1029,9 @@ const Activity = () => {
                             )}
                             {job.status === "accepted" && (
                               <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                                  <MessageSquare className="w-4 h-4 mr-1" /> Message
+                                </Button>
                                 <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             )}

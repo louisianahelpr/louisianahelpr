@@ -32,7 +32,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -98,7 +98,25 @@ const ProfilePage = () => {
   const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
   const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
 
-  // Seed from cache for instant render
+  // Warnings & violations
+  type Violation = { id: string; violation_type: string; description: string | null; action_taken: string; created_at: string | null; job_id: string | null };
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [violationsLoading, setViolationsLoading] = useState(false);
+  const [violationsLoaded, setViolationsLoaded] = useState(false);
+
+  const loadViolations = async () => {
+    if (!user || violationsLoaded) return;
+    setViolationsLoading(true);
+    const { data } = await (supabase.from("user_violations" as any) as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setViolations(data || []);
+    setViolationsLoaded(true);
+    setViolationsLoading(false);
+  };
+
+  // Load violations when tab changes
+  useEffect(() => { if (tab === "warnings") loadViolations(); }, [tab]);
+
+
   useEffect(() => {
     if (cachedUser && !user) {
       setUser(cachedUser);
@@ -452,12 +470,11 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
     
     
     
-    
-    
     { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
     { key: "payment", label: "Payment", icon: <CreditCard className="w-5 h-5" />, desc: "Payment methods & summary" },
     { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
     { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
+    { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
     { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
     { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
   ];
@@ -1327,6 +1344,121 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                   </LegalCard>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* WARNINGS & STRIKES TAB */}
+          {tab === "warnings" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-lg font-display font-bold text-foreground">Warnings & Strikes</h1>
+              </div>
+
+              {violationsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : violations.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-7 h-7 text-green-600" />
+                  </div>
+                  <h2 className="text-base font-display font-bold text-foreground">Clean record!</h2>
+                  <p className="text-sm text-muted-foreground">You have no warnings or strikes on your account. Keep up the great work.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Summary cards */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {(() => {
+                      const warnings = violations.filter(v => v.action_taken === "warning").length;
+                      const suspensions = violations.filter(v => v.action_taken === "suspension" || v.action_taken === "temporary_ban").length;
+                      const bans = violations.filter(v => v.action_taken === "permanent_ban").length;
+                      return (
+                        <>
+                          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+                            <p className="text-2xl font-bold text-amber-600">{warnings}</p>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Warnings</p>
+                          </div>
+                          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 text-center">
+                            <p className="text-2xl font-bold text-orange-600">{suspensions}</p>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Suspensions</p>
+                          </div>
+                          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-center">
+                            <p className="text-2xl font-bold text-destructive">{bans}</p>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Bans</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Strike progress */}
+                  {(() => {
+                    const strikeCount = violations.length;
+                    return (
+                      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-foreground">Strike Progress</span>
+                          <span className={`text-xs font-bold ${strikeCount >= 3 ? "text-destructive" : strikeCount >= 2 ? "text-orange-600" : "text-amber-600"}`}>
+                            {strikeCount}/3
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5">
+                          {[1, 2, 3].map(i => (
+                            <div
+                              key={i}
+                              className={`h-2 flex-1 rounded-full transition-colors ${
+                                i <= strikeCount
+                                  ? i === 3 ? "bg-destructive" : i === 2 ? "bg-orange-500" : "bg-amber-500"
+                                  : "bg-muted"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {strikeCount === 0 ? "No strikes — you're in good standing."
+                            : strikeCount === 1 ? "1 strike — this is your first warning."
+                            : strikeCount === 2 ? "2 strikes — one more violation may result in a permanent ban."
+                            : "3+ strikes — your account may be permanently banned."}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Violation history */}
+                  <div className="space-y-2">
+                    <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">History</h2>
+                    {violations.map((v) => (
+                      <div key={v.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                              v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
+                              : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-orange-500/10 text-orange-600"
+                              : "bg-amber-500/10 text-amber-600"
+                            }`}>
+                              {v.action_taken.replace(/_/g, " ")}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary text-secondary-foreground shrink-0">
+                              {v.violation_type.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                            {v.created_at ? new Date(v.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                          </span>
+                        </div>
+                        {v.description && (
+                          <p className="text-sm text-muted-foreground leading-relaxed">{v.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

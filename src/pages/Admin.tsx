@@ -47,6 +47,7 @@ const Admin = () => {
       totalUsers: profilesRes.count || 0,
       pendingApprovals: pendingRes.count || 0,
       openReports: reportsRes.count || 0,
+      supportTickets: supportRes.count || 0,
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),

@@ -501,29 +501,17 @@ const Dashboard = () => {
                     <p>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span>?</p>
                     <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Job Budget</span>
-                        <span className="font-medium text-foreground">${confirmApplyJob.budget.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Platform Fee ({platformFee}%)</span>
-                        <span className="text-destructive">-${(confirmApplyJob.budget * platformFee / 100).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Service Fee Tax (8.5%)</span>
-                        <span className="text-destructive">-${(confirmApplyJob.budget * platformFee / 100 * 0.085).toFixed(2)}</span>
+                        <span className="font-semibold text-foreground">Your Payout</span>
+                        <span className="font-bold text-primary">
+                          ${((confirmApplyJob.budget * (1 - platformFee / 100) - (confirmApplyJob.budget * platformFee / 100 * 0.085)) + (confirmApplyJob.urgent_fee ?? 0)).toFixed(2)}
+                        </span>
                       </div>
                       {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Urgent Tip</span>
-                          <span className="font-medium text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
+                          <span className="text-muted-foreground text-xs">Includes Urgent Tip</span>
+                          <span className="text-xs text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="border-t border-border pt-1.5 flex justify-between">
-                        <span className="font-semibold text-foreground">You Earn</span>
-                        <span className="font-bold text-primary">
-                          ${((confirmApplyJob.budget - (confirmApplyJob.budget * platformFee / 100) - (confirmApplyJob.budget * platformFee / 100 * 0.085)) + (confirmApplyJob.urgent_fee ?? 0)).toFixed(2)}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 : <p>Are you sure you want to apply for this task?</p>}

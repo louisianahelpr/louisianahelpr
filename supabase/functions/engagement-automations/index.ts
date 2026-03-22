@@ -105,8 +105,8 @@ function adminDigestEmail(stats: {
     `<tr><td style="padding:8px 0;font-size:15px;color:hsl(160,6%,50%);border-bottom:1px solid hsl(150,12%,92%)">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:hsl(160,10%,12%);text-align:right;border-bottom:1px solid hsl(150,12%,92%)">${value}</td></tr>`
 
   const html = wrapEmail(`
-    ${h1("📊 Daily Digest")}
-    ${p(`Here's your platform summary for ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}:`)}
+    ${h1("📊 Weekly Digest")}
+    ${p(`Here's your platform summary for the past 7 days ( ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}:`)}
     <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
       ${stat("New signups", stats.newUsers)}
       ${stat("Jobs posted", stats.newJobs)}

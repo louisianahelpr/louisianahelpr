@@ -180,7 +180,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Poster marked job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/activity?tab=applied&filter=active",
+          type: "info", link: "/activity?tab=applied&filter=in_progress",
         });
       }
       if (isHelper && !posterDone) {
@@ -241,7 +241,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
-          type: "warning", link: "/activity?tab=applied&filter=active",
+          type: "warning", link: "/activity?tab=applied&filter=revision",
         });
       }
 
@@ -464,7 +464,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
-          type: "info", link: "/activity?tab=applied&filter=rejected",
+          type: "info", link: "/activity?tab=applied&filter=not_selected",
         });
       }
 

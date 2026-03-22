@@ -952,7 +952,7 @@ const Activity = () => {
                             </div>
                             {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <span className="text-xs text-amber-600 font-medium">🚀 Helpr is ready to start</span>
+                                <span className="text-xs text-amber-600 font-medium">🚀 {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is ready to start</span>
                                 <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmStartJob(job.id)}>
                                   <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start
                                 </Button>

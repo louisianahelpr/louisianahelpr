@@ -169,6 +169,12 @@ const Admin = () => {
       icon: <BellRing className="w-5 h-5" />,
     },
     {
+      id: "support", label: "Support Tickets", description: "Messages, suggestions & help requests",
+      icon: <Headphones className="w-5 h-5" />,
+      badge: stats.supportTickets > 0 ? stats.supportTickets : undefined,
+      badgeColor: "bg-accent/10 text-accent-foreground",
+    },
+    {
       id: "settings", label: "Settings", description: "Platform configuration",
       icon: <Settings className="w-5 h-5" />,
     },

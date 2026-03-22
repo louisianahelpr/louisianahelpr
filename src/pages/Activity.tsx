@@ -1457,7 +1457,7 @@ const Activity = () => {
           <div className="space-y-4">
           {(() => {
             const hasHelper = !!editJob?.helper_id;
-            const isPaid = editJob?.payment_status === 'paid' || editJob?.payment_status === 'authorized';
+            const isPaid = editJob?.payment_status === 'escrow' || editJob?.payment_status === 'released';
             const locked = hasHelper || isPaid;
             return (
               <>

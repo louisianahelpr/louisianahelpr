@@ -50,6 +50,10 @@ const AdminUsers = () => {
   const [adminPass2] = useState(""); // kept for compat, unused
   const [updatingEmail, setUpdatingEmail] = useState(false);
 
+  // Delete denied account
+  const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const loadProfiles = async () => {
     const { data } = await supabase
       .from("profiles")

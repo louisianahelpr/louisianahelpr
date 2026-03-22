@@ -8,7 +8,7 @@ const corsHeaders = {
 const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"
-const ROOT_DOMAIN = "louisianahelpr.lovable.app"
+const ROOT_DOMAIN = "louisianahelpr.com"
 
 async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
   const res = await fetch('https://api.resend.com/emails', {

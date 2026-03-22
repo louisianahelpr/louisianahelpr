@@ -62,6 +62,10 @@ const MobileNav = () => {
   const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
+  // Hide nav when in an active message conversation
+  const params = new URLSearchParams(location.search);
+  if (location.pathname === "/messages" && params.has("chat")) return null;
+
   const renderItem = ({ path, icon: Icon, label }: { path: string; icon: any; label: string }) => {
     const active = location.pathname === path;
     const showBadge = path === "/messages" && unreadCount > 0;

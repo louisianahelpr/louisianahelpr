@@ -465,9 +465,44 @@ const Activity = () => {
   };
 
   const startJob = async (jobId: string) => {
+    if (!user) return;
+    // Log start request as a checkin so poster can see it
+    await supabase.from("job_checkins").insert({
+      job_id: jobId, user_id: user.id, type: "start_request", note: "Helper requested to start the job",
+    });
+    // Notify poster
+    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
+    if (job) {
+      await createNotification({
+        user_id: job.customer_id,
+        title: "🚀 Helpr ready to start!",
+        message: `Your helpr is ready to start "${job.title}". Please confirm to begin.`,
+        type: "info",
+        link: "/activity?tab=posted&filter=accepted",
+      });
+    }
+    toast.success("Start request sent! Waiting for the poster to confirm.");
+    loadData(user.id);
+  };
+
+  const confirmStartJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
-    if (error) toast.error("Failed to start job");
-    else { toast.success("Job started! You're now in progress."); if (user) loadData(user.id); }
+    if (error) toast.error("Failed to confirm start");
+    else {
+      // Notify helper
+      const job = postedJobs.find(j => j.id === jobId);
+      if (job?.helper_id) {
+        await createNotification({
+          user_id: job.helper_id,
+          title: "✅ Job started!",
+          message: `The poster confirmed "${job.title}" has started. You're now in progress!`,
+          type: "success",
+          link: "/activity?tab=applied&filter=in_progress",
+        });
+      }
+      toast.success("Job started! It's now in progress.");
+      if (user) loadData(user.id);
+    }
   };
 
   const sendTip = async (jobId: string, quickAmount?: number) => {

@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut } from "lucide-react";
+import { Clock, ShieldCheck, Bell, LogOut, MailCheck, MailX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const AccountPending = () => {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { navigate("/login"); return; }
+      
+      // Check actual email verification from the session
+      const isVerified = !!session.user.email_confirmed_at;
+      setEmailVerified(isVerified);
+      
       const { data: profile } = await supabase
         .from("profiles")
         .select("approval_status, full_name")
@@ -46,7 +52,9 @@ const AccountPending = () => {
               {fullName ? `Hey ${fullName.split(" ")[0]}!` : "Almost there!"}
             </h1>
             <p className="text-muted-foreground">
-              Your email is verified ✓ Your account is now under review by our team.
+              {emailVerified 
+                ? "Your email is verified ✓ Your account is now under review by our team."
+                : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by our team."}
             </p>
           </div>
 

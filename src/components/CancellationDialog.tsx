@@ -14,28 +14,24 @@ type CancellationDialogProps = {
   jobBudget: number;
   userId: string;
   hasHelper: boolean;
-  helperEnRoute?: boolean;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperEnRoute, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
-  // Check if cancellation is within 24 hours of the job date
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
   const isVeryLateCancellation = hoursUntilJob < 2 && hoursUntilJob > 0;
 
-  // Tiered cancellation fee: 100% if en route, 50% <2h, 25% <24h, free 24h+
-  const cancellationFeePercent = helperEnRoute
-    ? 100
-    : hasHelper
-      ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
-      : 0;
+  // Tiered cancellation fee: free 24h+, 25% <24h, 50% <2h
+  const cancellationFeePercent = hasHelper
+    ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
+    : 0;
   const cancellationFee = Math.round((jobBudget * cancellationFeePercent) / 100);
 
   const handleCancel = async () => {
@@ -122,7 +118,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            {helperEnRoute ? <ShieldAlert className="w-5 h-5 text-destructive" /> : isLateCancellation ? <AlertTriangle className="w-5 h-5 text-destructive" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
+            {isLateCancellation ? <AlertTriangle className="w-5 h-5 text-destructive" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
             Cancel Job
           </DialogTitle>
         </DialogHeader>
@@ -155,22 +151,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 {isLateCancellation && !isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">YOU</span>}
               </div>
 
-              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${isVeryLateCancellation && !helperEnRoute ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
-                <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isVeryLateCancellation && !helperEnRoute ? "text-destructive" : "text-muted-foreground"}`} />
+              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${isVeryLateCancellation ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
+                <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isVeryLateCancellation ? "text-destructive" : "text-muted-foreground"}`} />
                 <div>
                   <p className="text-xs font-medium text-foreground">Less than 2 hours — <span className="text-destructive">50% fee</span></p>
                   <p className="text-[11px] text-muted-foreground">50% of the job budget. The helpr has already prepared for this job.</p>
                 </div>
-                {isVeryLateCancellation && !helperEnRoute && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
-              </div>
-
-              <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${helperEnRoute ? "bg-destructive/10 border border-destructive/20" : "bg-card border border-border"}`}>
-                <Ban className={`w-4 h-4 mt-0.5 shrink-0 ${helperEnRoute ? "text-destructive" : "text-muted-foreground"}`} />
-                <div>
-                  <p className="text-xs font-medium text-foreground">Helpr en route / working — <span className="text-destructive">100% fee</span></p>
-                  <p className="text-[11px] text-muted-foreground">Full budget goes to the helpr. They're already on their way or working.</p>
-                </div>
-                {helperEnRoute && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
+                {isVeryLateCancellation && <span className="ml-auto text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">YOU</span>}
               </div>
             </div>
 

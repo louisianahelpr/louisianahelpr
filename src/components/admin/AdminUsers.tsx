@@ -401,7 +401,7 @@ const AdminUsers = () => {
                     <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium flex-shrink-0">
-                      {(p.full_name || "?")[0]?.toUpperCase()}
+                      {formatName(p.full_name, "?")[0]?.toUpperCase()}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">

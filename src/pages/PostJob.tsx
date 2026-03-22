@@ -303,21 +303,45 @@ const PostJob = () => {
     }
 
     toast.info("Redirecting to payment…");
-    clearDraft();
 
     // Trigger instant job matching in background
     supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } }).catch(() => {});
 
-    const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
-      body: { action: "escrow", jobId: jobData.id },
-    });
+    try {
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
+        body: { action: "escrow", jobId: jobData.id },
+      });
 
-    setSaving(false);
-    if (paymentError || !paymentData?.url) {
-      toast.error("Job created but payment failed. You can pay from your dashboard.");
-      navigate("/dashboard");
-    } else {
-      window.location.href = paymentData.url;
+      console.log("Payment response:", { paymentData, paymentError });
+
+      setSaving(false);
+
+      // supabase.functions.invoke wraps errors in `data.error` sometimes
+      const paymentUrl = paymentData?.url;
+      const hasError = paymentError || paymentData?.error || !paymentUrl;
+
+      if (hasError) {
+        // Delete the job since payment setup failed — don't leave orphan jobs
+        await supabase.from("jobs").delete().eq("id", jobData.id);
+        localStorage.removeItem(COOLDOWN_KEY);
+        const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
+        toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
+        setStep("checkout");
+        submittingRef.current = false;
+        return;
+      }
+
+      clearDraft();
+      window.location.href = paymentUrl;
+    } catch (err: any) {
+      console.error("Payment invoke error:", err);
+      // Delete the job since payment setup failed
+      await supabase.from("jobs").delete().eq("id", jobData.id);
+      localStorage.removeItem(COOLDOWN_KEY);
+      toast.error("Payment setup failed. Please try again.");
+      setSaving(false);
+      setStep("checkout");
+      submittingRef.current = false;
     }
   };
 

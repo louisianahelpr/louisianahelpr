@@ -241,7 +241,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
-          type: "warning", link: "/activity?tab=applied&filter=active",
+          type: "warning", link: "/activity?tab=applied&filter=revision",
         });
       }
 

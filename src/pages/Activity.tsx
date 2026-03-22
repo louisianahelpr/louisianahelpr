@@ -968,12 +968,15 @@ const Activity = () => {
                           )}
 
                           {/* Special requirements */}
-                          {job.special_requirements && (
-                            <div className="rounded-lg bg-secondary/30 p-2.5">
-                              <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                              <p className="text-sm text-foreground">{job.special_requirements}</p>
-                            </div>
-                          )}
+                          {(() => {
+                            const cleaned = job.special_requirements?.replace(/\[Flexible date\]/g, "").replace(/\[Flexible time\]/g, "").replace(/\s*\|\s*/g, " ").trim();
+                            return cleaned ? (
+                              <div className="rounded-lg bg-secondary/30 p-2.5">
+                                <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
+                                <p className="text-sm text-foreground">{cleaned}</p>
+                              </div>
+                            ) : null;
+                          })()}
 
                           {/* Recurring info */}
                           {job.is_recurring && (

@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
 
 type Report = {
@@ -25,6 +28,9 @@ const AdminReports = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "resolved" | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [messageTarget, setMessageTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const loadReports = async () => {
     setLoading(true);
@@ -68,6 +74,26 @@ const AdminReports = () => {
       loadReports();
     }
     setUpdating(null);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageTarget || !messageText.trim()) return;
+    setSendingMessage(true);
+    try {
+      await createNotification({
+        user_id: messageTarget.userId,
+        title: "📩 Message from Admin",
+        message: messageText.trim(),
+        type: "info",
+        link: "/profile",
+      });
+      toast.success(`Message sent to ${messageTarget.name}`);
+      setMessageTarget(null);
+      setMessageText("");
+    } catch {
+      toast.error("Failed to send message");
+    }
+    setSendingMessage(false);
   };
 
   const typeIcon = (type: string) => {
@@ -139,7 +165,7 @@ const AdminReports = () => {
                 <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
               )}
 
-              <div className="flex gap-2 pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -149,6 +175,20 @@ const AdminReports = () => {
                 </Button>
                 {report.status === "pending" && (
                   <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setMessageTarget({ userId: report.reported_id, name: report.reported_name || "User" }); setMessageText(""); }}
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reported_name?.split(" ")[0] || "Reported"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setMessageTarget({ userId: report.reporter_id, name: report.reporter_name || "User" }); setMessageText(""); }}
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reporter_name?.split(" ")[0] || "Reporter"}
+                    </Button>
                     <Button
                       size="sm"
                       onClick={() => updateStatus(report.id, "resolved")}
@@ -171,6 +211,34 @@ const AdminReports = () => {
           ))}
         </div>
       )}
+
+      {/* Message Dialog */}
+      <Dialog open={!!messageTarget} onOpenChange={(open) => { if (!open) setMessageTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Send className="w-5 h-5 text-primary" /> Message {messageTarget?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This will send an in-app notification to {messageTarget?.name}.
+            </p>
+            <Textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Type your message…"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setMessageTarget(null)}>Cancel</Button>
+            <Button onClick={handleSendMessage} disabled={sendingMessage || !messageText.trim()}>
+              {sendingMessage ? "Sending…" : "Send Message"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

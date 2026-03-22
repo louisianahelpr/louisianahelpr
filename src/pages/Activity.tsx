@@ -448,6 +448,12 @@ const Activity = () => {
     }
   };
 
+  const startJob = async (jobId: string) => {
+    const { error } = await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+    if (error) toast.error("Failed to start job");
+    else { toast.success("Job started! You're now in progress."); if (user) loadData(user.id); }
+  };
+
   const sendTip = async (jobId: string, quickAmount?: number) => {
     const amount = quickAmount || parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }

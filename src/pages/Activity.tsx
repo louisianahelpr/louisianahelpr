@@ -750,6 +750,16 @@ const Activity = () => {
                           )}
                         </div>
 
+                        {/* Pending confirmation status for accepted jobs */}
+                        {job.status === "accepted" && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {(job as any).helper_confirmed_at
+                              ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed — waiting to start</span>
+                              : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
+                            }
+                          </div>
+                        )}
+
                         {/* Completion confirmation status */}
                         {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                           <div className="flex items-center gap-2 flex-wrap">

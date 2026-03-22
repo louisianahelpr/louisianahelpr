@@ -296,7 +296,7 @@ const Messages = () => {
     <div className={`min-h-screen bg-background ${activeConvo ? '' : 'pb-20'}`}>
       <DashboardHeader />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className={`container mx-auto px-4 ${activeConvo ? 'pt-0' : 'py-6'}`}>
         <div className="max-w-3xl mx-auto">
           {!activeConvo ? (
             <div className="space-y-4">
@@ -344,7 +344,7 @@ const Messages = () => {
           ) : (
             <div className="flex flex-col" style={{ height: "calc(100vh - 8rem)" }}>
               {/* Chat header with back button and user info */}
-              <div className="flex items-center gap-3 p-3 -mx-4 border-b border-border mb-3 bg-card">
+              <div className="flex items-center gap-3 p-3 -mx-4 -mt-0 border-b border-border mb-3 bg-card">
                 <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0" onClick={() => { setActiveConvo(null); navigate("/messages", { replace: true }); }}>
                   <ArrowLeft className="w-5 h-5" />
                 </Button>

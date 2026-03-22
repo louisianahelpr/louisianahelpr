@@ -424,6 +424,23 @@ const Activity = () => {
     }
   };
 
+  const tryCancelJob = async (job: Job) => {
+    // Check if helper is already on the way or further along
+    const { data: tracking } = await supabase
+      .from("job_tracking")
+      .select("status")
+      .eq("job_id", job.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const trackingStatus = (tracking as any[])?.[0]?.status;
+    const blockedStatuses = ["on_the_way", "arrived", "working"];
+    if (trackingStatus && blockedStatuses.includes(trackingStatus)) {
+      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
+      return;
+    }
+    setCancelDialogJob(job);
+  };
+
   const cancelJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
     if (error) toast.error("Failed to cancel");

@@ -186,7 +186,7 @@ const UserProfile = () => {
               </div>
             )}
             <div>
-              <h1 className="text-xl font-display font-bold text-foreground">{profile.full_name || "User"}</h1>
+              <h1 className="text-xl font-display font-bold text-foreground">{displayName}</h1>
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
                 <div className="flex items-center justify-center gap-3 mt-1.5 text-xs text-muted-foreground">

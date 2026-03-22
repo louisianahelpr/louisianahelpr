@@ -202,6 +202,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             "Share your unique referral code with friends",
             "They enter it during sign-up — the code can only be used at registration",
             "Once the person you referred completes their first job — whether they posted it or worked it — you both earn $5",
+            "You must also have at least one completed job yourself to qualify for the bonus",
             "Cash out credits directly to your connected Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">

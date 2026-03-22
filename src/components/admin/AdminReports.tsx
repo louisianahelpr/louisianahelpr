@@ -26,7 +26,7 @@ const AdminReports = () => {
 
   const loadReports = async () => {
     setLoading(true);
-    let query = supabase.from("reports").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("reports").select("*").neq("reported_type", "support").order("created_at", { ascending: false });
     if (filter === "pending") query = query.eq("status", "pending");
     if (filter === "resolved") query = query.eq("status", "resolved");
 

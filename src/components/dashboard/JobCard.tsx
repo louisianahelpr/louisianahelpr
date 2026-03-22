@@ -110,21 +110,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       {/* Always-visible summary: date, time, city/state, expiry */}
       <div className="px-4 py-3 space-y-2">
         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-          {/* Date */}
+          {/* Date & Time */}
           {job.special_requirements?.includes("[Flexible date]") ? (
             <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+              <Calendar className="w-3 h-3 shrink-0" /> Flexible date{job.special_requirements?.includes("[Flexible time]") ? " & time" : formattedTime ? ` · ${formattedTime}` : ""}
             </span>
           ) : (
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3 shrink-0" />
               {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </span>
-          )}
-          {/* Time */}
-          {formattedTime && (
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3 shrink-0" /> {formattedTime}
+              {job.special_requirements?.includes("[Flexible time]") ? " · Flexible time" : formattedTime ? ` · ${formattedTime}` : ""}
             </span>
           )}
           {/* City, State */}
@@ -184,12 +179,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           )}
 
           {/* Special requirements */}
-          {job.special_requirements && (
-            <div className="rounded-lg bg-secondary/30 p-2.5">
-              <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-              <p className="text-sm text-foreground">{job.special_requirements}</p>
-            </div>
-          )}
+          {(() => {
+            const cleaned = job.special_requirements?.replace(/\[Flexible date\]/g, "").replace(/\[Flexible time\]/g, "").replace(/\s*\|\s*/g, " ").trim();
+            return cleaned ? (
+              <div className="rounded-lg bg-secondary/30 p-2.5">
+                <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
+                <p className="text-sm text-foreground">{cleaned}</p>
+              </div>
+            ) : null;
+          })()}
 
           {/* Recurring info */}
           {job.is_recurring && (

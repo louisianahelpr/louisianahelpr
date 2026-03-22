@@ -4,6 +4,7 @@ import { createNotification } from "@/lib/notifications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Star, Gift, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 

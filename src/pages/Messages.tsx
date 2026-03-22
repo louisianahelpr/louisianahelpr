@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";

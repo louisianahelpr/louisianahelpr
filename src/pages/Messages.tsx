@@ -47,6 +47,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Chat presence

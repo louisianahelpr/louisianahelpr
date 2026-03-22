@@ -119,7 +119,7 @@ const Signup = () => {
   const validateStep2 = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim() || bio.trim().length < 100) { toast.error("About you must be at least 100 characters"); return false; }
-    if (!location.trim()) { toast.error("Location is required"); return false; }
+    if (!location.trim()) { toast.error("City is required"); return false; }
     return true;
   };
 

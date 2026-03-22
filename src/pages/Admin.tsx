@@ -13,8 +13,9 @@ import AdminReviews from "@/components/admin/AdminReviews";
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
+import AdminReports from "@/components/admin/AdminReports";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -76,7 +77,7 @@ const Admin = () => {
 
   const viewLabels: Record<View, string> = {
     home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts", notifications: "Notifications",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts", notifications: "Notifications", reports: "Reports",
   };
 
   const header = (
@@ -123,6 +124,7 @@ const Admin = () => {
           {view === "disputes" && <AdminDisputes />}
           {view === "broadcasts" && <AdminBroadcasts />}
           {view === "notifications" && <AdminNotifications />}
+          {view === "reports" && <AdminReports />}
         </div>
       </div>
     );
@@ -146,6 +148,12 @@ const Admin = () => {
     {
       id: "reviews", label: "Reviews", description: "Ratings & feedback",
       icon: <ClipboardCheck className="w-5 h-5" />,
+    },
+    {
+      id: "reports", label: "Reports", description: "User & content reports",
+      icon: <AlertTriangle className="w-5 h-5" />,
+      badge: stats.openReports > 0 ? stats.openReports : undefined,
+      badgeColor: "bg-destructive/10 text-destructive",
     },
     {
       id: "broadcasts", label: "Broadcasts", description: "Send announcements to all users",
@@ -206,7 +214,7 @@ const Admin = () => {
             )}
             {stats.openReports > 0 && (
               <button
-                onClick={() => setView("people")}
+                onClick={() => setView("reports")}
                 className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">

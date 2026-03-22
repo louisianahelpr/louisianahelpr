@@ -1107,7 +1107,7 @@ const Activity = () => {
                                 <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </div>
                             )}
-                            {(job.status === "in_progress" || job.status === "revision_requested") && (
+                            {job.status === "in_progress" && (
                               <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-2">
                                   <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
@@ -1115,14 +1115,27 @@ const Activity = () => {
                                   </Button>
                                   <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                                 </div>
-                                {job.status === "in_progress" && (
-                                  <div className="grid grid-cols-3 gap-2">
-                                    <Button size="sm" className="w-full bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
-                                    <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
-                                    <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
-                                  </div>
-                                )}
+                                <div className="grid grid-cols-3 gap-2">
+                                  <Button size="sm" className="w-full bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
+                                  <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
+                                  <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
+                                </div>
                                 <Button size="sm" className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                              </div>
+                            )}
+                            {job.status === "revision_requested" && (
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                                    <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <Button size="sm" className="w-full bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-0" onClick={() => { setRevisionJobId(job.id); setRevisionNote(""); }}><AlertTriangle className="w-4 h-4 mr-1" /> Revision</Button>
+                                  <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
+                                  <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
+                                </div>
                               </div>
                             )}
                             {job.status === "cancelled" && (

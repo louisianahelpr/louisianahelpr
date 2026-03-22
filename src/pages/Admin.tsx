@@ -208,7 +208,7 @@ const Admin = () => {
             )}
             {stats.openReports > 0 && (
               <button
-                onClick={() => setView("people")}
+                onClick={() => setView("reports")}
                 className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">

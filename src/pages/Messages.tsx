@@ -296,7 +296,7 @@ const Messages = () => {
     <div className={`min-h-screen bg-background ${activeConvo ? '' : 'pb-20'}`}>
       <DashboardHeader />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className={`container mx-auto px-4 ${activeConvo ? 'pt-0' : 'py-6'}`}>
         <div className="max-w-3xl mx-auto">
           {!activeConvo ? (
             <div className="space-y-4">

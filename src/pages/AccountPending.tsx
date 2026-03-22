@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut } from "lucide-react";
+import { Clock, ShieldCheck, Bell, LogOut, MailCheck, MailX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const AccountPending = () => {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
     const check = async () => {

@@ -118,7 +118,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            {helperEnRoute ? <ShieldAlert className="w-5 h-5 text-destructive" /> : isLateCancellation ? <AlertTriangle className="w-5 h-5 text-destructive" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
+            {isLateCancellation ? <AlertTriangle className="w-5 h-5 text-destructive" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
             Cancel Job
           </DialogTitle>
         </DialogHeader>

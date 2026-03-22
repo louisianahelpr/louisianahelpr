@@ -24,7 +24,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
   const [stats, setStats] = useState({
-    totalUsers: 0, pendingApprovals: 0, openReports: 0,
+    totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     pendingReviews: 0, disputedJobs: 0,
   });

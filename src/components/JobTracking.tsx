@@ -101,15 +101,15 @@ export function JobTracking({
       });
     }
 
-    // Auto-transition job to in_progress if helper is on the way or beyond
-    const activeStatuses = ["on_the_way", "arrived", "working"];
+    // Auto-transition job to in_progress if helper is active, or keep in_progress if done
+    const activeStatuses = ["on_the_way", "arrived", "working", "done"];
     if (activeStatuses.includes(newStatus)) {
       const { data: job } = await supabase
         .from("jobs")
         .select("status")
         .eq("id", jobId)
         .single();
-      if (job && job.status === "accepted") {
+      if (job && (job.status === "accepted")) {
         await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
       }
     }

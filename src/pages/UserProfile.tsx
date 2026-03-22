@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
@@ -28,6 +28,7 @@ const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
@@ -37,7 +38,7 @@ const UserProfile = () => {
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [showReviews, setShowReviews] = useState(false);
+  const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
 

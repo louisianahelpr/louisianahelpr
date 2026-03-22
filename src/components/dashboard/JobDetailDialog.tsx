@@ -95,7 +95,7 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
             <span className="text-sm text-muted-foreground">
               Posted by <a href={`/user/${job.customer_id}`} className="font-medium text-primary hover:underline">{job.posterName}</a>
             </span>
-            <a href={`/user/${job.customer_id}`} className="flex items-center gap-0.5 text-sm hover:underline">
+            <a href={`/user/${job.customer_id}?tab=reviews`} className="flex items-center gap-0.5 text-sm hover:underline">
               <Star className={`w-3.5 h-3.5 ${(job.posterReviewCount ?? 0) > 0 ? "fill-accent text-accent" : "text-muted-foreground/50"}`} />
               <span className={`font-medium ${(job.posterReviewCount ?? 0) > 0 ? "text-foreground" : "text-muted-foreground"}`}>
                 {(job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : "0.0"}

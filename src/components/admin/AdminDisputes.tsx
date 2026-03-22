@@ -44,7 +44,7 @@ const AdminDisputes = () => {
     if (userIds.length > 0) {
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
       const map: Record<string, string> = {};
-      profs?.forEach(p => { map[p.user_id] = p.full_name || "User"; });
+      profs?.forEach(p => { map[p.user_id] = formatName(p.full_name); });
       setProfiles(map);
     }
     setLoading(false);

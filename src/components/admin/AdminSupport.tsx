@@ -62,7 +62,7 @@ const AdminSupport = () => {
       const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
       setTickets((data || []).map(r => ({
         ...r,
-        reporter_name: profileMap.get(r.reporter_id)?.full_name || "Unknown",
+        reporter_name: formatName(profileMap.get(r.reporter_id)?.full_name, "Unknown"),
         reporter_email: profileMap.get(r.reporter_id)?.email || "",
       })));
     } else {

@@ -141,7 +141,7 @@ const AdminReviews = () => {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-foreground">{profile.full_name || "—"}</h3>
+                    <h3 className="font-semibold text-foreground">{formatName(profile.full_name, "—")}</h3>
                     <Badge variant="secondary" className="text-xs capitalize">{profile.approval_status}</Badge>
                     <Badge variant="outline" className="text-xs capitalize">{profile.role}</Badge>
                   </div>

@@ -597,7 +597,7 @@ const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
         {filtered.map(u => (
           <div key={u.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
             <div>
-              <p className="font-semibold text-foreground text-sm">{u.full_name || "—"}</p>
+              <p className="font-semibold text-foreground text-sm">{formatName(u.full_name, "—")}</p>
               <p className="text-xs text-muted-foreground">{u.email} · {u.location || "No location"}</p>
             </div>
             <Badge className={`capitalize text-xs ${

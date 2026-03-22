@@ -812,7 +812,7 @@ const AdminUsers = () => {
       <Dialog open={!!denyProfile} onOpenChange={() => setDenyProfile(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display">Deny {denyProfile?.full_name || "User"}</DialogTitle>
+            <DialogTitle className="font-display">Deny {formatName(denyProfile?.full_name)}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Provide a reason for denying this application.</p>

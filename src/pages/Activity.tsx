@@ -1124,6 +1124,26 @@ const Activity = () => {
                       </div>
                     )}
 
+                    {/* Offered: accept/decline buttons always visible (no expand needed) */}
+                    {app.status === "accepted" && app.job?.status === "accepted" && !(app.job as any)?.helper_confirmed_at && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        {(app.job as any)?.response_deadline && (
+                          <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
+                            <Clock className="w-3 h-3 inline mr-1" />
+                            Respond by {new Date((app.job as any).response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button size="sm" className="flex-1" onClick={() => handleHelperResponse(app, true)}>
+                            <ThumbsUp className="w-4 h-4 mr-1" /> Accept Job
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => handleHelperResponse(app, false)}>
+                            <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Expandable content */}
                     <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">

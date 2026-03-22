@@ -240,7 +240,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{job.posterName}</a>
-          <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5 hover:underline">
+            <a href={`/user/${job.customer_id}?tab=reviews`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5 hover:underline">
             <Star className={`w-3 h-3 ${(job.posterReviewCount ?? 0) > 0 ? "fill-accent text-accent" : "text-muted-foreground/50"}`} />
             <span className={`font-medium ${(job.posterReviewCount ?? 0) > 0 ? "text-foreground" : "text-muted-foreground"}`}>
               {(job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : "0.0"}

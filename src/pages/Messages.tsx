@@ -236,7 +236,7 @@ const Messages = () => {
             "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
             { duration: 8000 }
           );
-          await logViolation(violationDesc);
+          await logViolation(violationDesc, content);
           return;
         } else {
           await logViolation(violationDesc);

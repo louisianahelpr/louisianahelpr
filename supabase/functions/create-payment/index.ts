@@ -271,7 +271,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Revision completed",
         message: `The helper has addressed your revision request for "${job.title}".`,
-        type: "success", link: "/activity",
+        type: "success", link: "/activity?tab=posted&filter=in_progress",
       });
 
       return new Response(JSON.stringify({ success: true }), {

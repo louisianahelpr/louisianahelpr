@@ -209,7 +209,7 @@ const Messages = () => {
           await createNotification({
             user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
             message: `A user attempted off-platform activity: ${violationDescription}`,
-            type: "warning", link: "/admin",
+            type: "warning", link: `/admin?tab=reports`,
           });
         }
       }

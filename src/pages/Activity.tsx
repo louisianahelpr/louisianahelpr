@@ -172,6 +172,21 @@ const Activity = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Realtime: auto-refresh when jobs or checkins change
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("activity-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => {
+        if (user) loadData(user.id);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins" }, () => {
+        if (user) loadData(user.id);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   const loadData = async (userId: string) => {
     const [postedRes, appsRes] = await Promise.all([
       supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }),

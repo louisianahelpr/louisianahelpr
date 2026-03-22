@@ -113,6 +113,9 @@ const ProfilePage = () => {
     setViolationsLoading(false);
   };
 
+  // Load violations when tab changes
+  useEffect(() => { if (tab === "warnings") loadViolations(); }, [tab]);
+
 
   useEffect(() => {
     if (cachedUser && !user) {

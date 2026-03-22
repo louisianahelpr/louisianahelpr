@@ -24,6 +24,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [customTip, setCustomTip] = useState("");
 
   useEffect(() => {
     // Check if already reviewed

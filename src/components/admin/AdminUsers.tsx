@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -49,6 +49,10 @@ const AdminUsers = () => {
   const [adminPass1] = useState(""); // kept for compat, unused
   const [adminPass2] = useState(""); // kept for compat, unused
   const [updatingEmail, setUpdatingEmail] = useState(false);
+
+  // Delete denied account
+  const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -177,6 +181,26 @@ const AdminUsers = () => {
       setViewProfile(null);
     }
     setDenying(false);
+  };
+
+  const deleteDeniedUser = async () => {
+    if (!deleteProfile) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { userId: deleteProfile.user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${formatName(deleteProfile.full_name)}'s account has been deleted.`);
+      setDeleteProfile(null);
+      setViewProfile(null);
+      loadProfiles();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const [resending, setResending] = useState<string | null>(null);
@@ -782,9 +806,14 @@ const AdminUsers = () => {
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
-                    <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
-                  </Button>
+                  <>
+                    <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                      <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
+                    </Button>
+                    <Button variant="destructive" className="flex-1" onClick={() => setDeleteProfile(viewProfile)}>
+                      <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+                    </Button>
+                  </>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
@@ -939,6 +968,33 @@ const AdminUsers = () => {
               disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2}
             >
               {updatingEmail ? "Updating…" : "Update Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Denied Account Dialog */}
+      <Dialog open={!!deleteProfile} onOpenChange={() => setDeleteProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" /> Delete Account
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete <strong className="text-foreground">{formatName(deleteProfile?.full_name)}</strong>'s account?
+            </p>
+            <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> This action is permanent and cannot be undone. All user data will be removed.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteProfile(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={deleteDeniedUser} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete Permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>

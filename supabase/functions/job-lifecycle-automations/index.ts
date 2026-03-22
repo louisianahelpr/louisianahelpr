@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     const results = {
       reviewReminders: 0,
       jobStartReminders: 0,
+      autoStarted: 0,
       autoCompleted: 0,
       noShowFlagged: 0,
       expiredJobs: 0,

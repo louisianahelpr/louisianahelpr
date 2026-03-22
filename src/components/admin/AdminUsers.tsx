@@ -560,10 +560,6 @@ const AdminUsers = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Hourly Rate</p>
-                  <p className="text-sm font-medium text-foreground">{viewProfile.hourly_rate ? `$${viewProfile.hourly_rate}/hr` : "—"}</p>
-                </div>
-                <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
                   <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                 </div>

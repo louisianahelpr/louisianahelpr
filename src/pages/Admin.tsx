@@ -14,8 +14,9 @@ import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import AdminReports from "@/components/admin/AdminReports";
+import AdminSupport from "@/components/admin/AdminSupport";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support";
 
 const Admin = () => {
   const { loading } = useAdminAuth();

@@ -16,13 +16,11 @@ const PaymentSuccess = () => {
       // Retrieve the checkout session's payment intent and store it, then mark in_progress
       (async () => {
         try {
-          const { data: job } = await supabase
+          // Mark payment as authorized since Stripe checkout succeeded
+          await supabase
             .from("jobs")
-            .select("stripe_session_id")
-            .eq("id", jobId)
-            .single();
-
-          // Payment is confirmed — job stays "open" until a helpr is accepted
+            .update({ payment_status: "authorized" })
+            .eq("id", jobId);
         } catch (e) {
           console.error("Post-payment update error:", e);
         } finally {

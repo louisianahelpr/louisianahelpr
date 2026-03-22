@@ -341,6 +341,22 @@ const Messages = () => {
             </div>
           ) : (
             <div className="flex flex-col" style={{ height: "calc(100vh - 10rem)" }}>
+              {/* Chat header with back button and user info */}
+              <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
+                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" onClick={() => setActiveConvo(null)}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground text-sm truncate flex items-center gap-2">
+                    {activeConvo.otherUserName}
+                    <OnlineIndicator userId={activeConvo.otherUserId} />
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{activeConvo.jobTitle}</p>
+                </div>
+              </div>
               {/* Community rules banner */}
               <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 mb-3 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />

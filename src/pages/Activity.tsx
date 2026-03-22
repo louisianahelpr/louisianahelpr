@@ -845,11 +845,24 @@ const Activity = () => {
 
                         {/* Pending confirmation status for accepted jobs */}
                         {job.status === "accepted" && (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {(job as any).helper_confirmed_at
-                              ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed — waiting to start</span>
-                              : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
-                            }
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {(job as any).helper_confirmed_at
+                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>
+                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
+                              }
+                            </div>
+                            {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <span className="text-xs text-amber-600 font-medium">🚀 Helpr is ready to start</span>
+                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmStartJob(job.id)}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start
+                                </Button>
+                              </div>
+                            )}
+                            {(job as any).helper_confirmed_at && !startRequestedJobIds.has(job.id) && (
+                              <span className="text-xs text-muted-foreground">Waiting for helpr to start or auto-starts on job date</span>
+                            )}
                           </div>
                         )}
 

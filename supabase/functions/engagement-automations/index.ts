@@ -27,17 +27,23 @@ function btn(text: string, href: string): string {
 const p = (t: string) => `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 16px">${t}</p>`
 const h1 = (t: string) => `<h1 style="font-size:22px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">${t}</h1>`
 
-// Welcome drip step 1: Complete your profile (Day 1)
+// Welcome drip step 1: Welcome to Helpr (Day 1)
 function dripStep1(name: string) {
-  const subject = "Get the most out of Helpr — complete your profile ✨"
+  const subject = "Welcome to Helpr — we're glad you're here! 🎉"
   const html = wrapEmail(`
-    ${h1("Let's get you set up!")}
-    ${p(`Hey ${name || "there"}, welcome to Helpr! 🎉`)}
-    ${p("To get the best experience — whether you're posting tasks or looking to earn — take a minute to fill in your profile. Add your location, a photo, and a short bio.")}
-    ${btn("Complete Your Profile", `${SITE_URL}/profile`)}
-    ${p("A complete profile helps build trust and gets you matched faster.")}
+    ${h1("Welcome to Helpr!")}
+    ${p(`Hey ${name || "there"}, thanks for joining the Helpr community! We're excited to have you on board.`)}
+    ${p("Whether you're here to post tasks and get things done, or to pick up jobs and start earning — you're in the right place.")}
+    ${p("Here's what you can do right now:")}
+    <ul style="font-size:15px;color:hsl(160,6%,50%);line-height:1.8;padding-left:20px;margin:0 0 16px">
+      <li><strong>Post a task</strong> — describe what you need and set your budget</li>
+      <li><strong>Browse jobs</strong> — find opportunities near you</li>
+      <li><strong>Connect</strong> — message helpers or customers directly</li>
+    </ul>
+    ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
+    ${p("We're here if you need anything. Welcome aboard! 💚")}
   `)
-  const text = `Hey ${name || "there"}, welcome to Helpr! Complete your profile to get matched faster: ${SITE_URL}/profile`
+  const text = `Hey ${name || "there"}, welcome to Helpr! Post tasks, browse jobs, and connect with your community: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 

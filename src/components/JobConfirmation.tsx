@@ -53,7 +53,7 @@ export function JobConfirmation({
         <AlertTriangle className="w-4 h-4 text-primary" /> 24hr Check-in
       </h3>
       <p className="text-xs text-muted-foreground">
-        Job is in {hoursUntilJob < 24 ? "less than 24 hours" : `${Math.round(hoursUntilJob)} hours`}. Please confirm you're still available.
+        Job is in {hoursUntilJob < 24 ? "less than 24 hours" : `${Math.round(hoursUntilJob)} hours`}. {isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}
       </p>
 
       <div className="flex items-center gap-3 text-xs">
@@ -70,7 +70,7 @@ export function JobConfirmation({
       {!myConfirmed && (isOwner || isHelper) && (
         <Button size="sm" onClick={handleConfirm} disabled={confirming} className="w-full">
           <CheckCircle2 className="w-4 h-4 mr-1" />
-          {confirming ? "Confirming…" : "Confirm I'm Available"}
+          {confirming ? "Confirming…" : isOwner ? "Confirm Job Is On" : "Confirm I'm Available"}
         </Button>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
@@ -28,7 +28,6 @@ const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
@@ -38,7 +37,7 @@ const UserProfile = () => {
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
+  const [showReviews, setShowReviews] = useState(false);
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
 
@@ -238,14 +237,16 @@ const UserProfile = () => {
             const hasSelection = activeSection !== null && !isOwnProfile;
 
             const reviewBtn = (
-             <button
+              <button
                 key="reviews"
                 onClick={() => {
-                  setShowReviews(!showReviews);
-                  setShowPostedJobs(false);
-                  setShowWorkedJobs(false);
+                  if (stats.reviewCount > 0) {
+                    setShowReviews(!showReviews);
+                    setShowPostedJobs(false);
+                    setShowWorkedJobs(false);
+                  }
                 }}
-                className={`rounded-xl border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
               >
                 <div className="flex items-center justify-center gap-1">
                   <Star className="w-3.5 h-3.5 text-primary fill-primary" />
@@ -326,9 +327,9 @@ const UserProfile = () => {
           })()}
 
           {/* Reviews expanded inline */}
-          {showReviews && (
+          {showReviews && reviews.length > 0 && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {reviews.length > 0 ? reviews.map((r, i) => (
+              {reviews.map((r, i) => (
                 <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -344,13 +345,7 @@ const UserProfile = () => {
                   <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>
-              )) : (
-                <div className="rounded-xl border border-border bg-card p-6 text-center">
-                  <Star className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-foreground">No reviews yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">This user hasn't received any reviews yet.</p>
-                </div>
-              )}
+              ))}
             </div>
           )}
 

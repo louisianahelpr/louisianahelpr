@@ -399,7 +399,7 @@ const Activity = () => {
           const revieweeId = isHelper ? job.customer_id : (job.helper_id || "");
           if (revieweeId) {
             const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", revieweeId).single();
-            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: (prof?.full_name || "User").split(" ")[0] });
+            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: formatName(prof?.full_name) });
           }
         }
       } else {

@@ -1486,11 +1486,15 @@ const Activity = () => {
                             </>
                           )}
                           {app.status === "accepted" && app.job?.status === "completed" && (
-                            <Button size="sm" variant="outline" onClick={() => {
-                              setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
-                            }}>
-                              <Star className="w-4 h-4 mr-1" /> Review
-                            </Button>
+                            <>
+                              <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
+                              <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
+                              }}>
+                                <Star className="w-4 h-4 mr-1" /> Review
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>

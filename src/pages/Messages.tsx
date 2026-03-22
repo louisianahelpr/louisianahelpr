@@ -47,6 +47,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Chat presence
@@ -359,12 +360,17 @@ const Messages = () => {
                 </div>
               </div>
               {/* Community rules banner */}
-              <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 mb-3 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
-                <p className="text-xs text-accent-foreground">
-                  Keep all communication and payments on Helpr. Sharing contact info or taking business off-platform will result in a warning, then a permanent ban.
-                </p>
-              </div>
+              {!bannerDismissed && (
+                <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 mb-3 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
+                  <p className="text-xs text-accent-foreground flex-1">
+                    Keep all communication and payments on Helpr. Sharing contact info or taking business off-platform will result in a warning, then a permanent ban.
+                  </p>
+                  <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </div>
+              )}
 
               <div className="flex-1 overflow-y-auto space-y-3 py-4">
                 {messages.map((m) => (

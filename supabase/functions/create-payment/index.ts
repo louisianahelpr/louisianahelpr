@@ -290,7 +290,10 @@ serve(async (req) => {
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
-      if (job.status !== "completed") throw new Error("Job must be completed to tip");
+      const tippableStatuses = ["completed", "revision_requested", "in_progress"];
+      if (!tippableStatuses.includes(job.status) && !job.helper_completed_at && !job.poster_completed_at) {
+        throw new Error("Job must be completed to tip");
+      }
 
       let helperId: string;
       if (user.id === job.customer_id) {

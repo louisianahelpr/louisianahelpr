@@ -119,7 +119,7 @@ const FavoritesPanel = () => {
             <div className="space-y-3">
               {favorites.map(fav => {
                 const p = fav.profile;
-                const initials = (p?.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+                const initials = formatName(p?.full_name, "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
                 return (
                   <div
                     key={fav.id}

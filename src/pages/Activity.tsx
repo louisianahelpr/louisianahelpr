@@ -1011,7 +1011,7 @@ const Activity = () => {
                             <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} />
                             <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
                             {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
-                            <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={user.id} />
+                            
                             <JobCheckins jobId={job.id} userId={user.id} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
                           </div>
                         )}

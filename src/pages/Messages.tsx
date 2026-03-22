@@ -222,21 +222,23 @@ const Messages = () => {
     // Skip scanning for system-generated messages (location shares, photos)
     const isSystemMessage = content.startsWith("📍 Location:") || content.startsWith("📷 ");
 
-    // Scan for off-platform activity
-    const violations = scanMessage(content);
-    if (violations.length > 0) {
-      const violationDesc = violations.map((v) => v.label).join(", ");
-      if (!warningShown) {
-        setWarningShown(true);
-        toast.error(
-          "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
-          { duration: 8000 }
-        );
-        await logViolation(violationDesc);
-        return;
-      } else {
-        await logViolation(violationDesc);
-        return;
+    // Scan for off-platform activity (skip for location/photo messages)
+    if (!isSystemMessage) {
+      const violations = scanMessage(content);
+      if (violations.length > 0) {
+        const violationDesc = violations.map((v) => v.label).join(", ");
+        if (!warningShown) {
+          setWarningShown(true);
+          toast.error(
+            "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
+            { duration: 8000 }
+          );
+          await logViolation(violationDesc);
+          return;
+        } else {
+          await logViolation(violationDesc);
+          return;
+        }
       }
     }
 

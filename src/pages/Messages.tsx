@@ -340,18 +340,18 @@ const Messages = () => {
               )}
             </div>
           ) : (
-            <div className="flex flex-col" style={{ height: "calc(100vh - 10rem)" }}>
+            <div className="flex flex-col" style={{ height: "calc(100vh - 8rem)" }}>
               {/* Chat header with back button and user info */}
-              <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
-                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" onClick={() => setActiveConvo(null)}>
-                  <ArrowLeft className="w-4 h-4" />
+              <div className="flex items-center gap-3 p-3 -mx-4 border-b border-border mb-3 bg-card">
+                <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0" onClick={() => setActiveConvo(null)}>
+                  <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
+                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <span className="text-base font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 overflow-hidden">
                   <p className="font-semibold text-foreground text-sm truncate flex items-center gap-2">
-                    {activeConvo.otherUserName}
+                    <span className="truncate">{activeConvo.otherUserName}</span>
                     <OnlineIndicator isOnline={isOtherOnline} />
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{activeConvo.jobTitle}</p>

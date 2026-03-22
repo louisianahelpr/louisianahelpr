@@ -192,7 +192,7 @@ const Messages = () => {
           await createNotification({
             user_id: admin.user_id, title: "⛔ User permanently banned",
             message: `A user was auto-banned for repeated off-platform activity: ${violationDescription}`,
-            type: "warning", link: "/admin",
+            type: "warning", link: `/admin?tab=reports`,
           });
         }
       }
@@ -209,7 +209,7 @@ const Messages = () => {
           await createNotification({
             user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
             message: `A user attempted off-platform activity: ${violationDescription}`,
-            type: "warning", link: "/admin",
+            type: "warning", link: `/admin?tab=reports`,
           });
         }
       }

@@ -383,11 +383,6 @@ const Activity = () => {
   };
 
   const handleExpandJob = (jobId: string, job: Job) => {
-    // For completed jobs, only allow expand if tipped AND reviewed
-    if (job.status === "completed") {
-      const meta = completedJobMeta[jobId];
-      if (!meta || !meta.tipped || !meta.reviewed) return;
-    }
     const newId = expandedJobId === jobId ? null : jobId;
     setExpandedJobId(newId);
     if (newId && (job.status === "open" || job.status === "accepted")) {
@@ -882,9 +877,7 @@ const Activity = () => {
                           <span className="flex items-center gap-0.5 font-bold text-primary text-sm">
                             <DollarSign className="w-3.5 h-3.5" />{job.budget}
                           </span>
-                          {!(job.status === "completed" && (!completedJobMeta[job.id]?.tipped || !completedJobMeta[job.id]?.reviewed)) && (
-                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
-                          )}
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
                         </div>
                       </div>
 
@@ -992,22 +985,16 @@ const Activity = () => {
                         </div>
                       )}
 
-                      {/* Completed job actions — always visible */}
+                      {/* Status hint for completed */}
                       {job.status === "completed" && (() => {
                         const meta = completedJobMeta[job.id];
                         const hasTipped = meta?.tipped;
                         const hasReviewed = meta?.reviewed;
-                        const bothDone = hasTipped && hasReviewed;
-                        return !bothDone ? (
-                          <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-                            <div className="grid grid-cols-3 gap-2">
-                              <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => {
-                                setEnhancedTipJobId(job.id);
-                                setEnhancedTipHelperName("");
-                              }}><Gift className="w-4 h-4 mr-1" /> Tip</Button>
-                              <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => openReviewForPosted(job)}><Star className="w-4 h-4 mr-1" /> Review</Button>
-                              <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}><RotateCcw className="w-4 h-4 mr-1" /> Rebook</Button>
-                            </div>
+                        return (!hasTipped || !hasReviewed) ? (
+                          <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
+                            <span className="text-xs text-muted-foreground">
+                              {!hasTipped && !hasReviewed ? "Tap to tip & review" : !hasTipped ? "Tap to leave a tip" : "Tap to leave a review"}
+                            </span>
                           </div>
                         ) : null;
                       })()}
@@ -1141,19 +1128,36 @@ const Activity = () => {
                             {job.status === "cancelled" && (
                               <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                             )}
-                            {job.status === "completed" && (
-                              <div className="grid grid-cols-3 gap-2">
-                                <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/10 border-0 pointer-events-none">
-                                  <Gift className="w-4 h-4 mr-1" /> Tipped
-                                </Button>
-                                <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/15 border-0 pointer-events-none">
-                                  <Star className="w-4 h-4 mr-1" /> Reviewed
-                                </Button>
-                                <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                                  <RotateCcw className="w-4 h-4 mr-1" /> Rebook
-                                </Button>
-                              </div>
-                            )}
+                            {job.status === "completed" && (() => {
+                              const meta = completedJobMeta[job.id];
+                              const hasTipped = meta?.tipped;
+                              const hasReviewed = meta?.reviewed;
+                              return (
+                                <div className="grid grid-cols-3 gap-2">
+                                  {hasTipped ? (
+                                    <Button size="sm" className="w-full bg-primary/10 text-primary border-0" disabled>
+                                      <Gift className="w-4 h-4 mr-1" /> Tipped ✓
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => { setEnhancedTipJobId(job.id); setEnhancedTipHelperName(""); }}>
+                                      <Gift className="w-4 h-4 mr-1" /> Tip
+                                    </Button>
+                                  )}
+                                  {hasReviewed ? (
+                                    <Button size="sm" className="w-full bg-accent/15 text-accent-foreground border-0" disabled>
+                                      <Star className="w-4 h-4 mr-1" /> Reviewed ✓
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}>
+                                      <Star className="w-4 h-4 mr-1" /> Review
+                                    </Button>
+                                  )}
+                                  <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
+                                    <RotateCcw className="w-4 h-4 mr-1" /> Rebook
+                                  </Button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1324,6 +1328,59 @@ const Activity = () => {
                       </div>
                     )}
 
+                    {/* Accepted: Start Job + Message always visible */}
+                    {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
+                          ✓ You accepted this job
+                        </div>
+                        {startRequestedJobIds.has(app.job_id) ? (
+                          <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
+                            ⏳ Waiting for poster to confirm start
+                          </div>
+                        ) : (
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
+                          <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* In Progress / Revision: actions always visible */}
+                    {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
+                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
+                            <MessageSquare className="w-4 h-4 mr-1" /> Message
+                          </Button>
+                        </div>
+                        {app.job?.status === "revision_requested" && (
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => resolveRevision(app.job_id)}>
+                            <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Completed: photo proof + review always visible */}
+                    {app.status === "accepted" && app.job?.status === "completed" && (
+                      <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
+                        <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => {
+                          setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
+                        }}>
+                          <Star className="w-4 h-4 mr-1" /> Review Poster
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Expandable content */}
                     <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                       <div className="px-4 pb-4 space-y-3 border-t border-border/40">
@@ -1435,72 +1492,7 @@ const Activity = () => {
                           </div>
                         )}
 
-                        {/* Actions */}
-                        <div className="flex flex-col gap-1.5 pt-2">
-                          {app.status === "accepted" && app.job?.status === "accepted" && !(app.job as any)?.helper_confirmed_at && (
-                            <div className="flex flex-col gap-1.5">
-                              {(app.job as any)?.response_deadline && (
-                                <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
-                                  <Clock className="w-3 h-3 inline mr-1" />
-                                  Respond by {new Date((app.job as any).response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                              )}
-                              <Button size="sm" onClick={() => handleHelperResponse(app, true)}>
-                                <ThumbsUp className="w-4 h-4 mr-1" /> Accept
-                              </Button>
-                              <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
-                                <ThumbsDown className="w-4 h-4 mr-1" /> Decline
-                              </Button>
-                            </div>
-                          )}
-                          {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
-                            <div className="flex flex-col gap-1.5">
-                              <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
-                                ✓ You accepted this job
-                              </div>
-                              {startRequestedJobIds.has(app.job_id) ? (
-                                <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
-                                  ⏳ Waiting for poster to confirm start
-                                </div>
-                              ) : (
-                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
-                                </Button>
-                              )}
-                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
-                                <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
-                              </Button>
-                            </div>
-                          )}
-                          {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
-                            <div className="space-y-2">
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
-                                  <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
-                                </Button>
-                                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
-                                  <MessageSquare className="w-4 h-4 mr-1" /> Message
-                                </Button>
-                              </div>
-                              {app.job?.status === "revision_requested" && (
-                                <Button size="sm" variant="outline" className="w-full" onClick={() => resolveRevision(app.job_id)}>
-                                  <RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                          {app.status === "accepted" && app.job?.status === "completed" && (
-                            <>
-                              <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
-                              <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
-                              <Button size="sm" variant="outline" onClick={() => {
-                                setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
-                              }}>
-                                <Star className="w-4 h-4 mr-1" /> Review
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        {/* Actions handled by always-visible sections above */}
                       </div>
                     </div>
                   </div>

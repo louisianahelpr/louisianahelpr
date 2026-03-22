@@ -342,7 +342,7 @@ const Messages = () => {
               )}
             </div>
           ) : (
-            <div className="flex flex-col" style={{ height: "calc(100vh - 8rem)" }}>
+            <div className="flex flex-col h-[calc(100dvh-4rem)]">
               {/* Chat header with back button and user info */}
               <div className="flex items-center gap-3 p-3 -mx-4 -mt-0 border-b border-border mb-3 bg-card">
                 <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0" onClick={() => { setActiveConvo(null); navigate("/messages", { replace: true }); }}>

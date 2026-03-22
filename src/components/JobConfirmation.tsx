@@ -70,7 +70,7 @@ export function JobConfirmation({
       {!myConfirmed && (isOwner || isHelper) && (
         <Button size="sm" onClick={handleConfirm} disabled={confirming} className="w-full">
           <CheckCircle2 className="w-4 h-4 mr-1" />
-          {confirming ? "Confirming…" : "Confirm I'm Available"}
+          {confirming ? "Confirming…" : isOwner ? "Confirm Job Is On" : "Confirm I'm Available"}
         </Button>
       )}
     </div>

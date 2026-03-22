@@ -109,7 +109,7 @@ const AdminUsers = () => {
     } as any).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
-      toast.success(`${profile.full_name || "User"} approved!`);
+      toast.success(`${formatName(profile.full_name)} approved!`);
       await createNotification({
         user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",

@@ -959,7 +959,7 @@ const Activity = () => {
                               </div>
                             )}
                             {(job as any).helper_confirmed_at && !startRequestedJobIds.has(job.id) && (
-                              <span className="text-xs text-muted-foreground">Waiting for helpr to start or auto-starts on job date</span>
+                              <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to start or auto-starts on job date</span>
                             )}
                           </div>
                         )}

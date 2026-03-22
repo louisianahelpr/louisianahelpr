@@ -426,7 +426,7 @@ const Activity = () => {
   };
 
   const tryCancelJob = async (job: Job) => {
-    // Check if helper is already on the way or further along
+    // Block cancellation if helper is en route, arrived, working, or done
     const { data: tracking } = await supabase
       .from("job_tracking")
       .select("status")
@@ -434,9 +434,11 @@ const Activity = () => {
       .order("created_at", { ascending: false })
       .limit(1);
     const trackingStatus = (tracking as any[])?.[0]?.status;
-    const enRouteStatuses = ["on_the_way", "arrived", "working"];
-    const isEnRoute = trackingStatus && enRouteStatuses.includes(trackingStatus);
-    setCancelHelperEnRoute(!!isEnRoute);
+    const blockedStatuses = ["on_the_way", "arrived", "working", "done"];
+    if (trackingStatus && blockedStatuses.includes(trackingStatus)) {
+      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
+      return;
+    }
     setCancelDialogJob(job);
   };
 

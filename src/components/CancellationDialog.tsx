@@ -14,28 +14,24 @@ type CancellationDialogProps = {
   jobBudget: number;
   userId: string;
   hasHelper: boolean;
-  helperEnRoute?: boolean;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperEnRoute, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
-  // Check if cancellation is within 24 hours of the job date
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;
   const isVeryLateCancellation = hoursUntilJob < 2 && hoursUntilJob > 0;
 
-  // Tiered cancellation fee: 100% if en route, 50% <2h, 25% <24h, free 24h+
-  const cancellationFeePercent = helperEnRoute
-    ? 100
-    : hasHelper
-      ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
-      : 0;
+  // Tiered cancellation fee: free 24h+, 25% <24h, 50% <2h
+  const cancellationFeePercent = hasHelper
+    ? (isVeryLateCancellation ? 50 : isLateCancellation ? 25 : 0)
+    : 0;
   const cancellationFee = Math.round((jobBudget * cancellationFeePercent) / 100);
 
   const handleCancel = async () => {

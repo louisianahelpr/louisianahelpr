@@ -1466,63 +1466,69 @@ const Activity = () => {
             <DialogTitle className="font-display">Edit Job</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="editTitle">Title</Label>
-              <Input id="editTitle" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editDesc">Description</Label>
-              <Textarea id="editDesc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={editCategory} onValueChange={setEditCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editLoc">Location</Label>
-              <Input id="editLoc" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Date needed</Label>
-                <Input type="date" value={editDateNeeded} onChange={(e) => setEditDateNeeded(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Start time</Label>
-                <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Est. hours</Label>
-                <Input type="number" step="0.5" value={editEstimatedHours} onChange={(e) => setEditEstimatedHours(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Budget ($)</Label>
-                <Input
-                  type="number"
-                  value={editBudget}
-                  onChange={(e) => setEditBudget(e.target.value)}
-                  disabled={editJob?.payment_status === 'paid' || editJob?.payment_status === 'authorized'}
-                />
-                {(editJob?.payment_status === 'paid' || editJob?.payment_status === 'authorized') && (
-                  <p className="text-xs text-muted-foreground">Budget cannot be changed after payment.</p>
+          {(() => {
+            const hasHelper = !!editJob?.helper_id;
+            const isPaid = editJob?.payment_status === 'paid' || editJob?.payment_status === 'authorized';
+            const locked = hasHelper || isPaid;
+            return (
+              <>
+                {locked && (
+                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                    {hasHelper ? "Fields are locked because a helpr has been accepted." : "Budget is locked after payment."}
+                  </p>
                 )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Special requirements</Label>
-              <Textarea value={editSpecialReq} onChange={(e) => setEditSpecialReq(e.target.value)} rows={2} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editTitle">Title</Label>
+                  <Input id="editTitle" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required disabled={hasHelper} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editDesc">Description</Label>
+                  <Textarea id="editDesc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} disabled={hasHelper} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={editCategory} onValueChange={setEditCategory} disabled={hasHelper}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editLoc">Location</Label>
+                  <Input id="editLoc" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} disabled={hasHelper} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Date needed</Label>
+                    <Input type="date" value={editDateNeeded} onChange={(e) => setEditDateNeeded(e.target.value)} disabled={hasHelper} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Start time</Label>
+                    <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} disabled={hasHelper} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Est. hours</Label>
+                    <Input type="number" step="0.5" value={editEstimatedHours} onChange={(e) => setEditEstimatedHours(e.target.value)} disabled={hasHelper} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Budget ($)</Label>
+                    <Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} disabled={locked} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Special requirements</Label>
+                  <Textarea value={editSpecialReq} onChange={(e) => setEditSpecialReq(e.target.value)} rows={2} disabled={hasHelper} />
+                </div>
+              </>
+            );
+          })()}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditJob(null)}>Cancel</Button>
-            <Button onClick={saveEditJob} disabled={editSaving}>{editSaving ? "Saving…" : "Save changes"}</Button>
+            <Button onClick={saveEditJob} disabled={editSaving || !!editJob?.helper_id}>{editSaving ? "Saving…" : "Save changes"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

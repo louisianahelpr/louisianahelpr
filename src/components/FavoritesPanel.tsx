@@ -135,7 +135,7 @@ const FavoritesPanel = () => {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-foreground">{p?.full_name || "User"}</h3>
+                        <h3 className="font-semibold text-sm text-foreground">{formatName(p?.full_name)}</h3>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           {p?.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{p.location}</span>}
                           {fav.stats.reviewCount > 0 && (

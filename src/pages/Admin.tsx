@@ -124,6 +124,7 @@ const Admin = () => {
           {view === "disputes" && <AdminDisputes />}
           {view === "broadcasts" && <AdminBroadcasts />}
           {view === "notifications" && <AdminNotifications />}
+          {view === "reports" && <AdminReports />}
         </div>
       </div>
     );

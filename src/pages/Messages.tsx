@@ -291,7 +291,7 @@ const Messages = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className={`min-h-screen bg-background ${activeConvo ? '' : 'pb-20'}`}>
       {!activeConvo && <DashboardHeader />}
 
       <main className="container mx-auto px-4 py-6">

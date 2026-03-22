@@ -13,6 +13,11 @@ const AccountPending = () => {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { navigate("/login"); return; }
+      
+      // Check actual email verification from the session
+      const isVerified = !!session.user.email_confirmed_at;
+      setEmailVerified(isVerified);
+      
       const { data: profile } = await supabase
         .from("profiles")
         .select("approval_status, full_name")

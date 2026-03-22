@@ -65,17 +65,19 @@ export function useDashboardData() {
       );
 
       const now = new Date();
-      const enriched: EnrichedJob[] = rawJobs.map((j) => {
-        const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
-        return {
-          ...j,
-          posterName: nameMap.get(j.customer_id) || "User",
-          posterReviewCount: 0,
-          posterAvgRating: 0,
-          posterCompletedJobs: 0,
-          isBoosted,
-        };
-      });
+      const enriched: EnrichedJob[] = rawJobs
+        .filter((j) => !appliedJobIds.has(j.id))
+        .map((j) => {
+          const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
+          return {
+            ...j,
+            posterName: nameMap.get(j.customer_id) || "User",
+            posterReviewCount: 0,
+            posterAvgRating: 0,
+            posterCompletedJobs: 0,
+            isBoosted,
+          };
+        });
 
       // Build recommended jobs
       let recommendedJobs: EnrichedJob[] = [];

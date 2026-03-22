@@ -181,10 +181,14 @@ const Activity = () => {
       setPostedJobs(postedRes.data);
       const jobIds = postedRes.data.map(j => j.id);
       if (jobIds.length > 0) {
-        const { data: allApps } = await supabase.from("applications").select("job_id").in("job_id", jobIds);
+        const [allAppsRes, startCheckinsRes] = await Promise.all([
+          supabase.from("applications").select("job_id").in("job_id", jobIds),
+          supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
+        ]);
         const counts: Record<string, number> = {};
-        allApps?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
+        allAppsRes.data?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
         setApplicantCounts(counts);
+        setStartRequestedJobIds(new Set((startCheckinsRes.data || []).map(c => c.job_id)));
 
         // Fetch tip & review status for completed jobs
         const completedIds = postedRes.data.filter(j => j.status === "completed").map(j => j.id);

@@ -26,6 +26,11 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
     <header className="sticky top-0 z-40 glass border-b border-border/30">
       <div className="container mx-auto flex items-center justify-between h-14 px-4">
         <div className="flex items-center gap-2">
+          {showBack && (
+            <Button variant="ghost" size="icon" onClick={onBack || (() => navigate("/dashboard"))} className="rounded-xl h-9 w-9">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </Button>
+          )}
           {title ? (
             <span className="text-lg font-display font-bold text-foreground">{title}</span>
           ) : (
@@ -37,11 +42,6 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
                 Helpr
               </span>
             </Link>
-          )}
-          {showBack && (
-            <Button variant="ghost" size="icon" onClick={onBack || (() => navigate("/dashboard"))} className="rounded-xl h-9 w-9">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            </Button>
           )}
         </div>
         <div className="flex items-center gap-1">

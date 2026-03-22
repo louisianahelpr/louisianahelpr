@@ -547,6 +547,11 @@ const Signup = () => {
 
             <div className="space-y-2">
               <Label>Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                placeholder="e.g. Lawn mower, power tools, pressure washer"
+                value={toolsEquipment.join(", ")}
+                onChange={(e) => setToolsEquipment(e.target.value ? e.target.value.split(",").map(s => s.trimStart()) : [])}
+              />
               <div className="flex flex-wrap gap-1.5">
                 {["Basic hand tools", "Power tools", "Lawn mower", "Pressure washer", "Ladder", "Cleaning supplies", "Moving dolly / straps", "Paint supplies"].map((tool) => {
                   const isActive = toolsEquipment.includes(tool);
@@ -566,6 +571,7 @@ const Signup = () => {
                   );
                 })}
               </div>
+              <p className="text-xs text-muted-foreground">Type your own or tap common options above.</p>
             </div>
 
             <div className="space-y-2">

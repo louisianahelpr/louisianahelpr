@@ -1112,7 +1112,7 @@ const Activity = () => {
                                   </>
                                 )}
                                 <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4" /></Button>
-                                <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCancelDialogJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                <Button size="sm" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                               </>
                             )}
                             {job.status === "cancelled" && (

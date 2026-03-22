@@ -367,7 +367,7 @@ const Activity = () => {
       title: "📋 New job offer!",
       message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`,
       type: "info",
-      link: "/activity?tab=applied&filter=active",
+      link: "/activity?tab=applied&filter=offered",
     });
 
     toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);

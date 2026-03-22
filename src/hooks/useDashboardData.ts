@@ -55,25 +55,51 @@ export function useDashboardData() {
         return { allJobs: [] as EnrichedJob[], platformFee, helperAvailability, recommendedJobs: [] as EnrichedJob[], helprTier: null as string | null };
       }
 
-      // Phase 2: Enrich — only poster names (skip heavy reviews/completed counts)
+      // Phase 2: Enrich — poster names + real review data
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
 
-      const profilesRes = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
+      const [profilesRes, reviewsRes] = await Promise.all([
+        supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
+        supabase
+          .from("reviews")
+          .select("reviewee_id, rating")
+          .in("reviewee_id", posterIds),
+      ]);
 
+      // Build name map with "First L." format
       const nameMap = new Map(
-        profilesRes.data?.map((p) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []
+        profilesRes.data?.map((p) => {
+          const parts = (p.full_name || "User").trim().split(/\s+/);
+          const display = parts.length > 1
+            ? `${parts[0]} ${parts[parts.length - 1][0]}.`
+            : parts[0];
+          return [p.user_id, display];
+        }) || []
       );
+
+      // Build review stats map
+      const reviewStatsMap = new Map<string, { count: number; avg: number }>();
+      for (const r of reviewsRes.data ?? []) {
+        const existing = reviewStatsMap.get(r.reviewee_id);
+        if (existing) {
+          existing.count += 1;
+          existing.avg = (existing.avg * (existing.count - 1) + r.rating) / existing.count;
+        } else {
+          reviewStatsMap.set(r.reviewee_id, { count: 1, avg: r.rating });
+        }
+      }
 
       const now = new Date();
       const enriched: EnrichedJob[] = rawJobs
         .filter((j) => !appliedJobIds.has(j.id))
         .map((j) => {
           const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
+          const stats = reviewStatsMap.get(j.customer_id);
           return {
             ...j,
             posterName: nameMap.get(j.customer_id) || "User",
-            posterReviewCount: 0,
-            posterAvgRating: 0,
+            posterReviewCount: stats?.count ?? 0,
+            posterAvgRating: stats?.avg ?? 0,
             posterCompletedJobs: 0,
             isBoosted,
           };

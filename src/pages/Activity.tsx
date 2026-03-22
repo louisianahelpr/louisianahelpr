@@ -1377,9 +1377,15 @@ const Activity = () => {
                               <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
                                 ✓ You accepted this job
                               </div>
-                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
-                              </Button>
+                              {startRequestedJobIds.has(app.job_id) ? (
+                                <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
+                                  ⏳ Waiting for poster to confirm start
+                                </div>
+                              ) : (
+                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                                </Button>
+                              )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
                                 <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
                               </Button>

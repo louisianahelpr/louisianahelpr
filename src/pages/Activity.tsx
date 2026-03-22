@@ -1166,21 +1166,16 @@ const Activity = () => {
                     {app.job && (
                       <div className="px-4 py-3 space-y-2">
                         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-                          {/* Date */}
+                          {/* Date & Time */}
                           {app.job.special_requirements?.includes("[Flexible date]") ? (
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 shrink-0" /> Flexible date
+                              <Calendar className="w-3 h-3 shrink-0" /> Flexible date{app.job.special_requirements?.includes("[Flexible time]") ? " & time" : app.job.start_time && app.job.start_time !== "flexible" ? ` · ${new Date(`2000-01-01T${app.job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3 shrink-0" />
                               {new Date(app.job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                            </span>
-                          )}
-                          {/* Time */}
-                          {app.job.start_time && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 shrink-0" /> {app.job.start_time === "flexible" ? "Flexible" : new Date(`2000-01-01T${app.job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                              {app.job.special_requirements?.includes("[Flexible time]") ? " · Flexible time" : app.job.start_time && app.job.start_time !== "flexible" ? ` · ${new Date(`2000-01-01T${app.job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}
                             </span>
                           )}
                           {/* City, State */}

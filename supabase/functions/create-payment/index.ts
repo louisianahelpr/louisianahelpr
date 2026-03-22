@@ -180,7 +180,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Poster marked job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/activity?tab=applied&filter=active",
+          type: "info", link: "/activity?tab=applied&filter=in_progress",
         });
       }
       if (isHelper && !posterDone) {

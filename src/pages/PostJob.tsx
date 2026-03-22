@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -222,13 +222,29 @@ const PostJob = () => {
     setStep("checkout");
   };
 
+  const submittingRef = useRef(false);
+  const COOLDOWN_KEY = "helpr_last_job_submit";
+  const COOLDOWN_MS = 30_000; // 30 second cooldown
+
   const handleSubmit = async () => {
+    // Prevent double-click
+    if (submittingRef.current || saving) return;
+
+    // Cooldown check
+    const lastSubmit = localStorage.getItem(COOLDOWN_KEY);
+    if (lastSubmit && Date.now() - parseInt(lastSubmit) < COOLDOWN_MS) {
+      toast.error("Please wait before posting another job. You recently submitted one.");
+      return;
+    }
+
+    submittingRef.current = true;
     setSaving(true);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error("You must be logged in");
       setSaving(false);
+      submittingRef.current = false;
       return;
     }
 
@@ -270,8 +286,12 @@ const PostJob = () => {
     if (error || !jobData) {
       toast.error(error?.message || "Failed to create job");
       setSaving(false);
+      submittingRef.current = false;
       return;
     }
+
+    // Set cooldown timestamp immediately after successful insert
+    localStorage.setItem(COOLDOWN_KEY, Date.now().toString());
 
     if (imageFiles.length > 0) {
       setUploading(true);

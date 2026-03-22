@@ -405,13 +405,14 @@ Deno.serve(async (_req) => {
           html,
           text,
           purpose: 'transactional',
-          label: 'admin_daily_digest',
+          label: 'admin_weekly_digest',
           queued_at: now.toISOString(),
         },
       })
 
       results.adminDigest++
     }
+    } // end Monday check
   } catch (err) {
     results.errors.push(err.message)
     console.error('Engagement automation error:', err)

@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         title: "Job re-opened",
         message: `"${job.title}" was automatically re-opened because the helpr didn't start within 24 hours.`,
         type: "warning",
-        link: "/activity",
+        link: "/activity?tab=posted&filter=open",
       });
 
       // Notify the helper
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
           title: "Job expired",
           message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helprs.`,
           type: "warning",
-          link: "/activity",
+          link: "/activity?tab=applied&filter=rejected",
         });
       }
 

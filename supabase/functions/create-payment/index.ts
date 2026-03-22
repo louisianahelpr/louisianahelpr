@@ -180,7 +180,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Poster marked job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/activity",
+          type: "info", link: "/activity?tab=applied&filter=active",
         });
       }
       if (isHelper && !posterDone) {
@@ -188,7 +188,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Helper marked job complete",
           message: `The helper marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/activity",
+          type: "info", link: "/activity?tab=posted&filter=in_progress",
         });
       }
 
@@ -206,7 +206,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job completed!",
           message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
-          type: "payment", link: "/activity",
+          type: "payment", link: "/activity?tab=posted&filter=completed",
         });
       }
 
@@ -241,7 +241,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
-          type: "warning", link: "/activity",
+          type: "warning", link: "/activity?tab=applied&filter=active",
         });
       }
 
@@ -271,7 +271,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Revision completed",
         message: `The helper has addressed your revision request for "${job.title}".`,
-        type: "success", link: "/activity",
+        type: "success", link: "/activity?tab=posted&filter=in_progress",
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -408,7 +408,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved",
         message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
-        type: "info", link: "/activity",
+        type: "info", link: "/activity?tab=posted&filter=completed",
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -457,14 +457,14 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
         message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
-        type: "payment", link: "/activity",
+        type: "payment", link: "/activity?tab=posted&filter=cancelled",
       });
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
-          type: "info", link: "/activity",
+          type: "info", link: "/activity?tab=applied&filter=rejected",
         });
       }
 

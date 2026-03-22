@@ -77,11 +77,20 @@ type Tab = "posted" | "applied";
 const Activity = () => {
   usePageTitle("My Activity — Helpr");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: cachedUser } = useCurrentUser();
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("posted");
-  const [statusFilter, setStatusFilter] = useState<string>("open");
+  const [tab, setTab] = useState<Tab>(() => {
+    const paramTab = searchParams.get("tab");
+    return paramTab === "applied" ? "applied" : "posted";
+  });
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const paramFilter = searchParams.get("filter");
+    if (paramFilter) return paramFilter;
+    const paramTab = searchParams.get("tab");
+    return paramTab === "applied" ? "pending" : "open";
+  });
 
   // Posted jobs state
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);

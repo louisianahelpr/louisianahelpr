@@ -457,7 +457,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
         message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
-        type: "payment", link: "/activity",
+        type: "payment", link: "/activity?tab=posted&filter=cancelled",
       });
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({

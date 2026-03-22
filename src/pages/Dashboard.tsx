@@ -17,6 +17,7 @@ import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
+import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import JobCard from "@/components/dashboard/JobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import InviteBanner from "@/components/dashboard/InviteBanner";
@@ -110,6 +111,14 @@ const Dashboard = () => {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
+  const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
+  const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
+  const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("helpr_dismissed_jobs");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
   const [showGreeting, setShowGreeting] = useState(() => {
     const dismissed = localStorage.getItem("greeting_dismissed_at");
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;
@@ -136,6 +145,22 @@ const Dashboard = () => {
     }
     setConfirmApplyJobId(null);
   }, [user, confirmApplyJobId]);
+
+  const handleDismissRequest = useCallback((jobId: string) => {
+    setConfirmDismissJobId(jobId);
+  }, []);
+
+  const handleDismissConfirm = useCallback(() => {
+    if (!confirmDismissJobId) return;
+    setDismissedJobIds(prev => {
+      const next = new Set(prev);
+      next.add(confirmDismissJobId);
+      localStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
+      return next;
+    });
+    toast.success("Job removed from your feed.");
+    setConfirmDismissJobId(null);
+  }, [confirmDismissJobId]);
 
   if (loading) {
     return (
@@ -273,8 +298,8 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                {filters.nearbyJobs.slice(0, 3).map((job, i) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                {filters.nearbyJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
+                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                 ))}
               </div>
               {filters.nearbyJobs.length > 3 && (
@@ -304,8 +329,8 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                {recommendedJobs.slice(0, 3).map((job, i) => (
-                  <JobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                {recommendedJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
+                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                 ))}
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -472,9 +497,9 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="divide-y divide-border/30">
-                {filters.filteredJobs.map((job, i) => (
+                {filters.filteredJobs.filter(j => !dismissedJobIds.has(j.id)).map((job, i) => (
                   <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
-                    <JobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                   </div>
                 ))}
               </div>
@@ -520,6 +545,23 @@ const Dashboard = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleApplyConfirm}>Yes, Apply</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Not Interested?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDismissJob
+                ? <>Are you sure you want to remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see this job again.</>
+                : "Are you sure you want to remove this job from your feed?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep It</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDismissConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

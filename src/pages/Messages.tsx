@@ -219,6 +219,9 @@ const Messages = () => {
   const sendMessage = async (content: string) => {
     if (!content.trim() || !activeConvo || !userId) return;
 
+    // Skip scanning for system-generated messages (location shares, photos)
+    const isSystemMessage = content.startsWith("📍 Location:") || content.startsWith("📷 ");
+
     // Scan for off-platform activity
     const violations = scanMessage(content);
     if (violations.length > 0) {

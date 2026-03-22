@@ -570,7 +570,7 @@ const Activity = () => {
   const saveEditJob = async () => {
     if (!editJob) return;
     setEditSaving(true);
-    const isPaid = editJob.payment_status === 'paid' || editJob.payment_status === 'authorized';
+    const isPaid = editJob.payment_status === 'escrow' || editJob.payment_status === 'released';
     const updateData: any = {
       title: editTitle.trim(), description: editDescription.trim(), category: editCategory as any,
       location: editLocation.trim(), date_needed: editDateNeeded, start_time: editStartTime || null,

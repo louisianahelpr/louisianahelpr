@@ -101,6 +101,19 @@ export function JobTracking({
       });
     }
 
+    // Auto-transition job to in_progress if helper is on the way or beyond
+    const activeStatuses = ["on_the_way", "arrived", "working"];
+    if (activeStatuses.includes(newStatus)) {
+      const { data: job } = await supabase
+        .from("jobs")
+        .select("status")
+        .eq("id", jobId)
+        .single();
+      if (job && job.status === "accepted") {
+        await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+      }
+    }
+
     toast.success(`Status updated: ${STATUSES.find(s => s.key === newStatus)?.label}`);
     setUpdating(false);
     loadTracking();

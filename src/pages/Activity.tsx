@@ -597,6 +597,7 @@ const Activity = () => {
 
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
+    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
     { key: "active", label: "Active", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
     { key: "rejected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
@@ -608,8 +609,11 @@ const Activity = () => {
   const filteredAppliedApps = useMemo(() =>
     appliedApps.filter((a) => {
       if (statusFilter === "pending") return a.status === "pending" && a.job?.status !== "cancelled";
+      if (statusFilter === "offered") return a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
       if (statusFilter === "rejected") return a.status === "rejected" || a.job?.status === "cancelled";
-      if (statusFilter === "active") return a.status === "accepted" && ["accepted", "in_progress", "revision_requested", "disputed"].includes(a.job?.status || "");
+      if (statusFilter === "active") return a.status === "accepted" && (
+        ((a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) || ["in_progress", "revision_requested", "disputed"].includes(a.job?.status || ""))
+      );
       if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
       return false;
     }), [appliedApps, statusFilter]);

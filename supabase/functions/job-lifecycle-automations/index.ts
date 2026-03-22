@@ -149,6 +149,43 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 2b. AUTO-START ACCEPTED JOBS ON SCHEDULED DATE ──
+    // Jobs in "accepted" status where helper confirmed and date_needed is today or past
+    const { data: acceptedJobsToStart } = await supabase
+      .from('jobs')
+      .select('id, title, customer_id, helper_id')
+      .eq('status', 'accepted')
+      .not('helper_id', 'is', null)
+      .not('helper_confirmed_at', 'is', null)
+      .lte('date_needed', todayStr)
+
+    if (acceptedJobsToStart) {
+      for (const job of acceptedJobsToStart) {
+        await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', job.id)
+        
+        const notifications = [
+          {
+            user_id: job.customer_id,
+            title: 'Job is now in progress! 🚀',
+            message: `"${job.title}" has automatically started. Your helpr is on it!`,
+            type: 'info',
+            link: '/activity',
+          },
+        ]
+        if (job.helper_id) {
+          notifications.push({
+            user_id: job.helper_id,
+            title: 'Job started! 🚀',
+            message: `"${job.title}" is now in progress. Good luck!`,
+            type: 'info',
+            link: '/activity',
+          })
+        }
+        await supabase.from('notifications').insert(notifications)
+        results.autoStarted++
+      }
+    }
+
     // ── 3. AUTO-COMPLETE STALE JOBS ──
     // Jobs where both parties confirmed completion 48+ hours ago
     const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()

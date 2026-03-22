@@ -543,21 +543,25 @@ const Activity = () => {
       }
     }
 
-    // Log start request as a checkin so poster can see it
+    // Log start as a checkin
     await supabase.from("job_checkins").insert({
-      job_id: jobId, user_id: user.id, type: "start_request", note: "Helper requested to start the job",
+      job_id: jobId, user_id: user.id, type: "start_request", note: "Helper started the job",
     });
+
+    // Auto-transition job to in_progress
+    await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+
     // Notify poster
     if (job) {
       await createNotification({
         user_id: job.customer_id,
-        title: "🚀 Helpr ready to start!",
-        message: `Your helpr is ready to start "${job.title}". Please confirm to begin.`,
-        type: "info",
-        link: "/activity?tab=posted&filter=accepted",
+        title: "🚀 Job started!",
+        message: `Your helpr has started working on "${job.title}".`,
+        type: "success",
+        link: "/activity?tab=posted&filter=in_progress",
       });
     }
-    toast.success("Start request sent! Waiting for the poster to confirm.");
+    toast.success("Job started! You're now in progress.");
     loadData(user.id);
   };
 

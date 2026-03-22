@@ -486,15 +486,7 @@ const Activity = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
-        toast.success(`Job completed! Payment released.`);
-        const job = postedJobs.find(j => j.id === jobId) || appliedApps.find(a => a.job_id === jobId)?.job;
-        if (job && user) {
-          const revieweeId = isHelper ? job.customer_id : (job.helper_id || "");
-          if (revieweeId) {
-            const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", revieweeId).single();
-            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: formatName(prof?.full_name) });
-          }
-        }
+        toast.success(`Job completed! Payment released. You can leave a review or tip from the job details.`);
       } else {
         toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
       }

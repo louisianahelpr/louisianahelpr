@@ -150,6 +150,12 @@ const Admin = () => {
       icon: <ClipboardCheck className="w-5 h-5" />,
     },
     {
+      id: "reports", label: "Reports", description: "User & content reports",
+      icon: <AlertTriangle className="w-5 h-5" />,
+      badge: stats.openReports > 0 ? stats.openReports : undefined,
+      badgeColor: "bg-destructive/10 text-destructive",
+    },
+    {
       id: "broadcasts", label: "Broadcasts", description: "Send announcements to all users",
       icon: <Megaphone className="w-5 h-5" />,
     },

@@ -141,10 +141,13 @@ const Dashboard = () => {
       if (error.code === "23505") toast.error("You've already applied.");
       else toast.error(error.message);
     } else {
-      toast.success("Application sent!");
+      toast.success("Application sent! Track it in My Activity.", {
+        action: { label: "View", onClick: () => navigate("/activity") },
+      });
+      refresh();
     }
     setConfirmApplyJobId(null);
-  }, [user, confirmApplyJobId]);
+  }, [user, confirmApplyJobId, navigate, refresh]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

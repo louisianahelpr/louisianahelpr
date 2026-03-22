@@ -627,6 +627,27 @@ const Activity = () => {
       return false;
     }), [appliedApps, statusFilter]);
 
+  const appliedCounts = useMemo(() => {
+    const counts: Record<string, number> = { pending: 0, offered: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
+    appliedApps.forEach((a) => {
+      if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at) counts.offered++;
+      else if (a.status === "accepted" && (
+        (a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) || a.job?.status === "in_progress" || a.job?.status === "disputed"
+      )) counts.in_progress++;
+      else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
+      else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
+      else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;
+    });
+    return counts;
+  }, [appliedApps]);
+
+  const postedCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    postedJobs.forEach((j) => { counts[j.status] = (counts[j.status] || 0) + 1; });
+    return counts;
+  }, [postedJobs]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -648,6 +669,7 @@ const Activity = () => {
   ];
 
   const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
+  const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
     <div className="min-h-screen bg-background pb-20">

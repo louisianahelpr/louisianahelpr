@@ -743,8 +743,12 @@ const Activity = () => {
   }, [appliedApps]);
 
   const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    postedJobs.forEach((j) => { counts[j.status] = (counts[j.status] || 0) + 1; });
+    const counts: Record<string, number> = { open: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0 };
+    postedJobs.forEach((j) => {
+      if (j.status === "accepted" && !(j as any).helper_confirmed_at) counts.offered++;
+      else if (j.status === "accepted" && !!(j as any).helper_confirmed_at) counts.accepted++;
+      else counts[j.status] = (counts[j.status] || 0) + 1;
+    });
     return counts;
   }, [postedJobs]);
 

@@ -477,22 +477,22 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Transportation <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <div className="flex flex-wrap gap-1.5">
-                {["Car", "Truck / Van", "Bike", "Public Transit", "No vehicle"].map((opt) => {
+              <Label>Do you have reliable transportation? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex gap-2">
+                {["Yes", "No"].map((opt) => {
                   const isActive = transportation === opt;
                   return (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setTransportation(isActive ? "" : opt)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
                         isActive
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
                       }`}
                     >
-                      {isActive ? "✓ " : ""}{opt}
+                      {opt}
                     </button>
                   );
                 })}

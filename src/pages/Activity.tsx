@@ -691,7 +691,8 @@ const Activity = () => {
 
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "accepted", label: "Pending", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "revision_requested", label: "Revision", color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
@@ -709,7 +710,11 @@ const Activity = () => {
   ], []);
 
   const filteredPostedJobs = useMemo(() =>
-    postedJobs.filter((j) => j.status === statusFilter), [postedJobs, statusFilter]);
+    postedJobs.filter((j) => {
+      if (statusFilter === "offered") return j.status === "accepted" && !(j as any).helper_confirmed_at;
+      if (statusFilter === "accepted") return j.status === "accepted" && !!(j as any).helper_confirmed_at;
+      return j.status === statusFilter;
+    }), [postedJobs, statusFilter]);
 
   const filteredAppliedApps = useMemo(() =>
     appliedApps.filter((a) => {

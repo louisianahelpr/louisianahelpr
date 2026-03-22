@@ -1216,7 +1216,7 @@ const Activity = () => {
 
                         {/* Actions */}
                         <div className="flex flex-col gap-1.5 pt-2">
-                          {app.status === "accepted" && app.job?.status === "accepted" && (
+                          {app.status === "accepted" && app.job?.status === "accepted" && !(app.job as any)?.helper_confirmed_at && (
                             <div className="flex flex-col gap-1.5">
                               {(app.job as any)?.response_deadline && (
                                 <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
@@ -1229,6 +1229,19 @@ const Activity = () => {
                               </Button>
                               <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
                                 <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                              </Button>
+                            </div>
+                          )}
+                          {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
+                                ✓ You accepted this job
+                              </div>
+                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                                <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
                               </Button>
                             </div>
                           )}

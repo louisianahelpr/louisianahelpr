@@ -181,6 +181,12 @@ const Activity = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => {
         if (user) loadData(user.id);
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking" }, () => {
+        if (user) loadData(user.id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, () => {
+        if (user) loadData(user.id);
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins" }, () => {
         if (user) loadData(user.id);
       })

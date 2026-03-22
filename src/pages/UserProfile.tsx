@@ -154,9 +154,7 @@ const UserProfile = () => {
     );
   }
 
-  const displayName = (() => {
-    const parts = (profile.full_name || "User").trim().split(/\s+/);
-    return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+  const displayName = formatName(profile.full_name);
   })();
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: (profile as any).subscription_tier || null });

@@ -314,7 +314,7 @@ const MyJobs = () => {
       {deadlineDialogApp && (
         <ResponseDeadlineDialog
           open={!!deadlineDialogApp}
-          helperName={deadlineDialogApp.profiles?.full_name?.split(" ")[0] || "Helpr"}
+          helperName={formatName(deadlineDialogApp.profiles?.full_name, "Helpr")}
           onConfirm={confirmAcceptWithDeadline}
           onClose={() => setDeadlineDialogApp(null)}
         />

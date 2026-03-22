@@ -102,7 +102,7 @@ const Messages = () => {
       supabase.from("jobs").select("id, title").in("id", jobIds),
     ]);
 
-    const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+    const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
     const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
 
     const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => ({

@@ -4,6 +4,7 @@ import { createNotification } from "@/lib/notifications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Star, Gift, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [customTip, setCustomTip] = useState("");
 
   useEffect(() => {
     // Check if already reviewed
@@ -130,6 +132,34 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Enter your tip</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={customTip}
+                    onChange={(e) => setCustomTip(e.target.value)}
+                    min="1"
+                    className="pl-7 text-lg font-semibold h-12"
+                  />
+                </div>
+                <Button
+                  className="h-12 px-6"
+                  onClick={() => sendTip(parseFloat(customTip))}
+                  disabled={saving || !customTip || parseFloat(customTip) <= 0}
+                >
+                  {saving ? "..." : "Send"}
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">or quick pick</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
             <div className="flex gap-3 justify-center">
               {[5, 10, 20].map((amt) => (
                 <Button key={amt} variant="outline" size="lg" onClick={() => sendTip(amt)} disabled={saving} className="text-lg font-bold">

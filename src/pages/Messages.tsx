@@ -122,6 +122,7 @@ const Messages = () => {
 
   const openConvo = async (convo: Conversation) => {
     setActiveConvo(convo);
+    navigate("/messages?chat=1", { replace: true });
     const { data } = await supabase
       .from("messages")
       .select("*")

@@ -464,7 +464,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
-          type: "info", link: "/activity",
+          type: "info", link: "/activity?tab=applied&filter=rejected",
         });
       }
 

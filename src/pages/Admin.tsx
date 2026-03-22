@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
@@ -14,8 +14,9 @@ import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import AdminReports from "@/components/admin/AdminReports";
+import AdminSupport from "@/components/admin/AdminSupport";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -23,17 +24,18 @@ const Admin = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
   const [stats, setStats] = useState({
-    totalUsers: 0, pendingApprovals: 0, openReports: 0,
+    totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     pendingReviews: 0, disputedJobs: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes] = await Promise.all([
+    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
-      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
+      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
@@ -45,6 +47,7 @@ const Admin = () => {
       totalUsers: profilesRes.count || 0,
       pendingApprovals: pendingRes.count || 0,
       openReports: reportsRes.count || 0,
+      supportTickets: supportRes.count || 0,
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),
@@ -77,7 +80,8 @@ const Admin = () => {
 
   const viewLabels: Record<View, string> = {
     home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts", notifications: "Notifications", reports: "Reports",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+    notifications: "Notifications", reports: "Reports", support: "Support Tickets",
   };
 
   const header = (
@@ -125,6 +129,7 @@ const Admin = () => {
           {view === "broadcasts" && <AdminBroadcasts />}
           {view === "notifications" && <AdminNotifications />}
           {view === "reports" && <AdminReports />}
+          {view === "support" && <AdminSupport />}
         </div>
       </div>
     );
@@ -162,6 +167,12 @@ const Admin = () => {
     {
       id: "notifications", label: "Notifications", description: "Choose which alerts you receive",
       icon: <BellRing className="w-5 h-5" />,
+    },
+    {
+      id: "support", label: "Support Tickets", description: "Messages, suggestions & help requests",
+      icon: <Headphones className="w-5 h-5" />,
+      badge: stats.supportTickets > 0 ? stats.supportTickets : undefined,
+      badgeColor: "bg-accent/10 text-accent-foreground",
     },
     {
       id: "settings", label: "Settings", description: "Platform configuration",

@@ -111,11 +111,7 @@ const UserProfile = () => {
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
-        const nameMap = new Map(profilesRes2.data?.map(p => {
-          const parts = (p.full_name || "User").trim().split(/\s+/);
-          const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
-          return [p.user_id, display];
-        }) || []);
+        const nameMap = new Map(profilesRes2.data?.map(p => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map(j => [j.id, j.title]) || []);
         setReviews(reviewsRes.data.map(r => ({
           rating: r.rating, feedback: r.feedback, created_at: r.created_at,

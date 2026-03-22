@@ -208,10 +208,14 @@ const Activity = () => {
 
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];
-      const [jobsRes, violationsRes] = await Promise.all([
+      const [jobsRes, violationsRes, helperStartCheckins] = await Promise.all([
         supabase.from("jobs").select("*").in("id", jobIds),
         supabase.from("user_violations").select("job_id").eq("user_id", userId).eq("violation_type", "job_denial"),
+        supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
       ]);
+      // Merge helper's start requests into the shared set
+      (helperStartCheckins.data || []).forEach(c => startRequestedJobIds.add(c.job_id));
+      setStartRequestedJobIds(new Set(startRequestedJobIds));
       const jobs = jobsRes.data;
       const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
       const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];

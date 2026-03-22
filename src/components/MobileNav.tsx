@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -14,12 +16,55 @@ const rightItems = [
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const loadUnread = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("read", false);
+
+      setUnreadCount(count || 0);
+
+      // Subscribe to new messages
+      channel = supabase
+        .channel("unread-messages-nav")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+          () => {
+            // Re-fetch count on any change
+            supabase
+              .from("messages")
+              .select("*", { count: "exact", head: true })
+              .eq("receiver_id", user.id)
+              .eq("read", false)
+              .then(({ count }) => setUnreadCount(count || 0));
+          }
+        )
+        .subscribe();
+    };
+
+    loadUnread();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
 
   const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
   const renderItem = ({ path, icon: Icon, label }: { path: string; icon: any; label: string }) => {
     const active = location.pathname === path;
+    const showBadge = path === "/messages" && unreadCount > 0;
     return (
       <button
         key={path}
@@ -28,7 +73,14 @@ const MobileNav = () => {
           active ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
+        <div className="relative">
+          <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
+          {showBadge && (
+            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </div>
         <span className="font-medium">{label}</span>
         {active && (
           <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary transition-all duration-200" />

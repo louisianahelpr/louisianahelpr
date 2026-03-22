@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarHeart, Pause, Play, XCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";

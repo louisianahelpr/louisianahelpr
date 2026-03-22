@@ -946,8 +946,8 @@ const Activity = () => {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 flex-wrap">
                               {(job as any).helper_confirmed_at
-                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>
-                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
+                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>
+                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
                               }
                             </div>
                             {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (

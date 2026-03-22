@@ -117,7 +117,7 @@ function adminDigestEmail(stats: {
     </table>
     ${btn("Open Admin Dashboard", `${SITE_URL}/admin`)}
   `)
-  const text = `Helpr Daily Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
+  const text = `Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
   return { subject, html, text }
 }
 

@@ -286,8 +286,12 @@ const PostJob = () => {
     if (error || !jobData) {
       toast.error(error?.message || "Failed to create job");
       setSaving(false);
+      submittingRef.current = false;
       return;
     }
+
+    // Set cooldown timestamp immediately after successful insert
+    localStorage.setItem(COOLDOWN_KEY, Date.now().toString());
 
     if (imageFiles.length > 0) {
       setUploading(true);

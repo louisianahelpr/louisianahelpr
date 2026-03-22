@@ -1133,18 +1133,6 @@ const Activity = () => {
                         <h3 className={`font-bold text-[15px] leading-snug min-w-0 truncate ${(categoryColors[app.job?.category || "other"] || categoryColors.other).title}`}>
                           {app.job?.title || "Task"}
                         </h3>
-                        {!(app.status === "accepted" && app.job?.status === "completed") && (
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${
-                            app.status === "accepted" ? "bg-primary/10 text-primary"
-                            : app.status === "rejected" ? "bg-destructive/10 text-destructive"
-                            : "bg-secondary text-secondary-foreground"
-                          }`}>{app.status}</span>
-                        )}
-                        {app.job && app.job.status !== "completed" && (
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${statusBadge[app.job.status] || ""}`}>
-                            {app.job.status.replace(/_/g, " ")}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-3">
                         {app.job && (() => {

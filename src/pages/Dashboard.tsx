@@ -515,7 +515,7 @@ const Dashboard = () => {
 
       {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
 
-      <OnboardingTour />
+      <OnboardingTour profileCreatedAt={profile?.created_at} />
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
       <PushNotificationPrompt />
 

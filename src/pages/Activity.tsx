@@ -199,7 +199,7 @@ const Activity = () => {
       let posterNameMap = new Map<string, string>();
       if (posterIds.length > 0) {
         const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
-        posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
+        posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
       }
       setAppliedApps(appsRes.data.map((a) => {
         const job = jobMap.get(a.job_id) || null;

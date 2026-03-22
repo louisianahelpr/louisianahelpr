@@ -1501,7 +1501,15 @@ const Activity = () => {
               </div>
               <div className="space-y-2">
                 <Label>Budget ($)</Label>
-                <Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
+                <Input
+                  type="number"
+                  value={editBudget}
+                  onChange={(e) => setEditBudget(e.target.value)}
+                  disabled={editJob?.payment_status === 'paid' || editJob?.payment_status === 'authorized'}
+                />
+                {(editJob?.payment_status === 'paid' || editJob?.payment_status === 'authorized') && (
+                  <p className="text-xs text-muted-foreground">Budget cannot be changed after payment.</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">

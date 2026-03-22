@@ -112,7 +112,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-          Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once the person you referred completes their first job — whether they posted it or worked it — <strong>you both</strong> earn $5! The bonus is only awarded after a job is fully completed.
+          Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once the person you referred completes their first job — whether they posted it or worked it — <strong>you both</strong> earn $5! The bonus is only awarded after a job is fully completed. <strong>You must also have at least one completed job</strong> (as a poster or helpr) to be eligible for the referral bonus.
         </p>
 
       {/* Referral Code Card */}
@@ -202,6 +202,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             "Share your unique referral code with friends",
             "They enter it during sign-up — the code can only be used at registration",
             "Once the person you referred completes their first job — whether they posted it or worked it — you both earn $5",
+            "You must also have at least one completed job yourself to qualify for the bonus",
             "Cash out credits directly to your connected Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2.5">

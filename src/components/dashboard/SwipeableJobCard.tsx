@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Flag } from "lucide-react";
 import JobCard from "./JobCard";
 import type { EnrichedJob } from "./types";
 

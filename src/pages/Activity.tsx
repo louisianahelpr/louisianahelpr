@@ -1334,7 +1334,7 @@ const Activity = () => {
                               dateNeeded={app.job?.date_needed || ""}
                             />
                             <JobTracking jobId={app.job_id} helperId={user.id} isHelper={true} isOwner={false} />
-                            <AddonRequests jobId={app.job_id} isOwner={false} isHelper={true} userId={user.id} />
+                            
                             <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
                           </div>
                         )}

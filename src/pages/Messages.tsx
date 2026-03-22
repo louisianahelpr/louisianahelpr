@@ -352,7 +352,7 @@ const Messages = () => {
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-foreground text-sm truncate flex items-center gap-2">
                     {activeConvo.otherUserName}
-                    <OnlineIndicator userId={activeConvo.otherUserId} />
+                    <OnlineIndicator isOnline={isOtherOnline} />
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{activeConvo.jobTitle}</p>
                 </div>

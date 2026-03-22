@@ -65,9 +65,16 @@ const SwipeableJobCard = ({
   return (
     <div ref={containerRef} className="relative overflow-hidden rounded-2xl">
       <motion.div
-        className="absolute inset-0 flex items-center justify-end pr-6 rounded-2xl bg-destructive/10"
+        className="absolute inset-0 flex items-center justify-end gap-4 pr-4 rounded-2xl bg-destructive/10"
         style={{ opacity: backgroundOpacity }}
       >
+        <button
+          onClick={(e) => { e.stopPropagation(); animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); setHeld(false); onReport(job.id); }}
+          className="flex flex-col items-center gap-1"
+        >
+          <Flag className="w-5 h-5 text-destructive" />
+          <span className="text-[10px] font-semibold text-destructive">Report</span>
+        </button>
         <motion.div
           className="flex flex-col items-center gap-1"
           style={{ scale: iconScale }}

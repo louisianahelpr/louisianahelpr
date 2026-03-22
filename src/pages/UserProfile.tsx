@@ -325,7 +325,7 @@ const UserProfile = () => {
           })()}
 
           {/* Reviews expanded inline */}
-          {showReviews && reviews.length > 0 && (
+          {showReviews && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
               {reviews.map((r, i) => (
                 <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">

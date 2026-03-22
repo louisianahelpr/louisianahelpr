@@ -149,8 +149,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 2b. AUTO-START ACCEPTED JOBS ON SCHEDULED DATE ──
+    // ── 2b. NOTIFY POSTER TO CONFIRM START ON SCHEDULED DATE ──
     // Jobs in "accepted" status where helper confirmed and date_needed is today or past
+    // Instead of auto-starting, notify poster to confirm the job has started
     const { data: acceptedJobsToStart } = await supabase
       .from('jobs')
       .select('id, title, customer_id, helper_id')
@@ -161,27 +162,45 @@ Deno.serve(async (req) => {
 
     if (acceptedJobsToStart) {
       for (const job of acceptedJobsToStart) {
-        await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', job.id)
-        
-        const notifications = [
-          {
-            user_id: job.customer_id,
-            title: 'Job is now in progress! 🚀',
-            message: `"${job.title}" has automatically started. Your helpr is on it!`,
-            type: 'info',
-            link: '/activity?tab=posted&filter=in_progress',
-          },
-        ]
+        // Check if we already created a start_request checkin for this job (avoid duplicates)
+        const { data: existingCheckin } = await supabase
+          .from('job_checkins')
+          .select('id')
+          .eq('job_id', job.id)
+          .eq('type', 'start_request')
+          .limit(1)
+
+        if (existingCheckin && existingCheckin.length > 0) continue
+
+        // Create start request checkin
         if (job.helper_id) {
-          notifications.push({
+          await supabase.from('job_checkins').insert({
+            job_id: job.id,
             user_id: job.helper_id,
-            title: 'Job started! 🚀',
-            message: `"${job.title}" is now in progress. Good luck!`,
-            type: 'info',
-            link: '/activity?tab=applied&filter=in_progress',
+            type: 'start_request',
+            note: 'Auto-triggered: scheduled job date reached',
           })
         }
-        await supabase.from('notifications').insert(notifications)
+        
+        // Notify poster to confirm start
+        await supabase.from('notifications').insert({
+          user_id: job.customer_id,
+          title: '📅 Job day is here!',
+          message: `"${job.title}" is scheduled for today. Please confirm the job has started.`,
+          type: 'info',
+          link: '/activity?tab=posted&filter=accepted',
+        })
+
+        // Notify helper
+        if (job.helper_id) {
+          await supabase.from('notifications').insert({
+            user_id: job.helper_id,
+            title: '📅 Job day is here!',
+            message: `"${job.title}" is scheduled for today. Waiting for the poster to confirm start.`,
+            type: 'info',
+            link: '/activity?tab=applied&filter=accepted',
+          })
+        }
         results.autoStarted++
       }
     }

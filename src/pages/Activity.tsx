@@ -138,6 +138,7 @@ const Activity = () => {
   // Applied jobs state
   const [appliedApps, setAppliedApps] = useState<(Application & { job?: (Job & { revision_note?: string | null }) | null; posterName?: string })[]>([]);
   const [declinedJobIds, setDeclinedJobIds] = useState<Set<string>>(new Set());
+  const [startRequestedJobIds, setStartRequestedJobIds] = useState<Set<string>>(new Set());
 
   // Helper tip state (in applied tab)
   const [helperTipJobId, setHelperTipJobId] = useState<string | null>(null);
@@ -180,10 +181,14 @@ const Activity = () => {
       setPostedJobs(postedRes.data);
       const jobIds = postedRes.data.map(j => j.id);
       if (jobIds.length > 0) {
-        const { data: allApps } = await supabase.from("applications").select("job_id").in("job_id", jobIds);
+        const [allAppsRes, startCheckinsRes] = await Promise.all([
+          supabase.from("applications").select("job_id").in("job_id", jobIds),
+          supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
+        ]);
         const counts: Record<string, number> = {};
-        allApps?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
+        allAppsRes.data?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
         setApplicantCounts(counts);
+        setStartRequestedJobIds(new Set((startCheckinsRes.data || []).map(c => c.job_id)));
 
         // Fetch tip & review status for completed jobs
         const completedIds = postedRes.data.filter(j => j.status === "completed").map(j => j.id);
@@ -203,10 +208,14 @@ const Activity = () => {
 
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];
-      const [jobsRes, violationsRes] = await Promise.all([
+      const [jobsRes, violationsRes, helperStartCheckins] = await Promise.all([
         supabase.from("jobs").select("*").in("id", jobIds),
         supabase.from("user_violations").select("job_id").eq("user_id", userId).eq("violation_type", "job_denial"),
+        supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
       ]);
+      // Merge helper's start requests into the shared set
+      (helperStartCheckins.data || []).forEach(c => startRequestedJobIds.add(c.job_id));
+      setStartRequestedJobIds(new Set(startRequestedJobIds));
       const jobs = jobsRes.data;
       const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
       const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];
@@ -465,9 +474,44 @@ const Activity = () => {
   };
 
   const startJob = async (jobId: string) => {
+    if (!user) return;
+    // Log start request as a checkin so poster can see it
+    await supabase.from("job_checkins").insert({
+      job_id: jobId, user_id: user.id, type: "start_request", note: "Helper requested to start the job",
+    });
+    // Notify poster
+    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
+    if (job) {
+      await createNotification({
+        user_id: job.customer_id,
+        title: "🚀 Helpr ready to start!",
+        message: `Your helpr is ready to start "${job.title}". Please confirm to begin.`,
+        type: "info",
+        link: "/activity?tab=posted&filter=accepted",
+      });
+    }
+    toast.success("Start request sent! Waiting for the poster to confirm.");
+    loadData(user.id);
+  };
+
+  const confirmStartJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
-    if (error) toast.error("Failed to start job");
-    else { toast.success("Job started! You're now in progress."); if (user) loadData(user.id); }
+    if (error) toast.error("Failed to confirm start");
+    else {
+      // Notify helper
+      const job = postedJobs.find(j => j.id === jobId);
+      if (job?.helper_id) {
+        await createNotification({
+          user_id: job.helper_id,
+          title: "✅ Job started!",
+          message: `The poster confirmed "${job.title}" has started. You're now in progress!`,
+          type: "success",
+          link: "/activity?tab=applied&filter=in_progress",
+        });
+      }
+      toast.success("Job started! It's now in progress.");
+      if (user) loadData(user.id);
+    }
   };
 
   const sendTip = async (jobId: string, quickAmount?: number) => {
@@ -605,6 +649,7 @@ const Activity = () => {
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
     { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "revision", label: "Revision", color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
@@ -618,9 +663,8 @@ const Activity = () => {
     appliedApps.filter((a) => {
       if (statusFilter === "pending") return a.status === "pending" && a.job?.status !== "cancelled";
       if (statusFilter === "offered") return a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
-      if (statusFilter === "in_progress") return a.status === "accepted" && (
-        (a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) || a.job?.status === "in_progress" || a.job?.status === "disputed"
-      );
+      if (statusFilter === "accepted") return a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
+      if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
       if (statusFilter === "revision") return a.status === "accepted" && a.job?.status === "revision_requested";
       if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
       if (statusFilter === "not_selected") return a.status === "rejected" || a.job?.status === "cancelled";
@@ -628,13 +672,12 @@ const Activity = () => {
     }), [appliedApps, statusFilter]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, offered: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at) counts.offered++;
-      else if (a.status === "accepted" && (
-        (a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) || a.job?.status === "in_progress" || a.job?.status === "disputed"
-      )) counts.in_progress++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) counts.accepted++;
+      else if (a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed")) counts.in_progress++;
       else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
       else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
       else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;
@@ -806,11 +849,24 @@ const Activity = () => {
 
                         {/* Pending confirmation status for accepted jobs */}
                         {job.status === "accepted" && (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {(job as any).helper_confirmed_at
-                              ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed — waiting to start</span>
-                              : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
-                            }
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {(job as any).helper_confirmed_at
+                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>
+                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
+                              }
+                            </div>
+                            {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <span className="text-xs text-amber-600 font-medium">🚀 Helpr is ready to start</span>
+                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmStartJob(job.id)}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start
+                                </Button>
+                              </div>
+                            )}
+                            {(job as any).helper_confirmed_at && !startRequestedJobIds.has(job.id) && (
+                              <span className="text-xs text-muted-foreground">Waiting for helpr to start or auto-starts on job date</span>
+                            )}
                           </div>
                         )}
 
@@ -1321,9 +1377,15 @@ const Activity = () => {
                               <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
                                 ✓ You accepted this job
                               </div>
-                              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
-                              </Button>
+                              {startRequestedJobIds.has(app.job_id) ? (
+                                <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
+                                  ⏳ Waiting for poster to confirm start
+                                </div>
+                              ) : (
+                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                                </Button>
+                              )}
                               <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
                                 <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
                               </Button>

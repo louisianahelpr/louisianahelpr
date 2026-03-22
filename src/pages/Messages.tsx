@@ -192,7 +192,7 @@ const Messages = () => {
           await createNotification({
             user_id: admin.user_id, title: "⛔ User permanently banned",
             message: `A user was auto-banned for repeated off-platform activity: ${violationDescription}`,
-            type: "warning", link: "/admin",
+            type: "warning", link: `/admin?tab=reports`,
           });
         }
       }

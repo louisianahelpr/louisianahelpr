@@ -98,7 +98,22 @@ const ProfilePage = () => {
   const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
   const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
 
-  // Seed from cache for instant render
+  // Warnings & violations
+  type Violation = { id: string; violation_type: string; description: string | null; action_taken: string; created_at: string | null; job_id: string | null };
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [violationsLoading, setViolationsLoading] = useState(false);
+  const [violationsLoaded, setViolationsLoaded] = useState(false);
+
+  const loadViolations = async () => {
+    if (!user || violationsLoaded) return;
+    setViolationsLoading(true);
+    const { data } = await (supabase.from("user_violations" as any) as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setViolations(data || []);
+    setViolationsLoaded(true);
+    setViolationsLoading(false);
+  };
+
+
   useEffect(() => {
     if (cachedUser && !user) {
       setUser(cachedUser);

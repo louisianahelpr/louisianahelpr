@@ -548,6 +548,23 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Not Interested?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDismissJob
+                ? <>Are you sure you want to remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see this job again.</>
+                : "Are you sure you want to remove this job from your feed?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep It</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDismissConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </PullToRefreshWrapper>
   );

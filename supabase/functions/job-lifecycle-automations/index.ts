@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
             title: 'Job is now in progress! 🚀',
             message: `"${job.title}" has automatically started. Your helpr is on it!`,
             type: 'info',
-            link: '/activity',
+            link: '/activity?tab=posted&filter=in_progress',
           },
         ]
         if (job.helper_id) {

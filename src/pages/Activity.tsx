@@ -123,6 +123,7 @@ const Activity = () => {
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [completedJobMeta, setCompletedJobMeta] = useState<Record<string, { tipped: boolean; reviewed: boolean }>>({});
+  const [helperNames, setHelperNames] = useState<Record<string, string>>({});
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
@@ -212,6 +213,15 @@ const Activity = () => {
         allAppsRes.data?.forEach(a => { counts[a.job_id] = (counts[a.job_id] || 0) + 1; });
         setApplicantCounts(counts);
         setStartRequestedJobIds(new Set((startCheckinsRes.data || []).map(c => c.job_id)));
+
+        // Fetch helper names for assigned jobs
+        const helperIds = [...new Set(postedRes.data.filter(j => j.helper_id).map(j => j.helper_id!))];
+        if (helperIds.length > 0) {
+          const { data: helperProfiles } = await supabase.rpc("get_safe_profiles", { user_ids: helperIds });
+          const names: Record<string, string> = {};
+          helperProfiles?.forEach((p: any) => { names[p.user_id] = formatName(p.full_name, "Helpr"); });
+          setHelperNames(names);
+        }
 
         // Fetch tip & review status for completed jobs
         const completedIds = postedRes.data.filter(j => j.status === "completed").map(j => j.id);
@@ -936,20 +946,20 @@ const Activity = () => {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 flex-wrap">
                               {(job as any).helper_confirmed_at
-                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>
-                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for helpr to confirm</span>
+                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>
+                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
                               }
                             </div>
                             {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <span className="text-xs text-amber-600 font-medium">🚀 Helpr is ready to start</span>
+                                <span className="text-xs text-amber-600 font-medium">🚀 {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is ready to start</span>
                                 <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmStartJob(job.id)}>
                                   <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start
                                 </Button>
                               </div>
                             )}
                             {(job as any).helper_confirmed_at && !startRequestedJobIds.has(job.id) && (
-                              <span className="text-xs text-muted-foreground">Waiting for helpr to start or auto-starts on job date</span>
+                              <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to start or auto-starts on job date</span>
                             )}
                           </div>
                         )}
@@ -958,9 +968,9 @@ const Activity = () => {
                         {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                           <div className="flex items-center gap-2 flex-wrap">
                             {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
-                            {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Helpr confirmed</span>}
+                            {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
                             {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
-                            {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for helpr</span>}
+                            {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
                           </div>
                         )}
 

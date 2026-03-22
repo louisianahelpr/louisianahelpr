@@ -203,9 +203,15 @@ const Activity = () => {
 
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];
-      const { data: jobs } = await supabase.from("jobs").select("*").in("id", jobIds);
+      const [jobsRes, violationsRes] = await Promise.all([
+        supabase.from("jobs").select("*").in("id", jobIds),
+        supabase.from("user_violations").select("job_id").eq("user_id", userId).eq("violation_type", "job_denial"),
+      ]);
+      const jobs = jobsRes.data;
       const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
       const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];
+      const declined = new Set<string>((violationsRes.data || []).map((v: any) => v.job_id).filter(Boolean));
+      setDeclinedJobIds(declined);
       let posterNameMap = new Map<string, string>();
       if (posterIds.length > 0) {
         const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });

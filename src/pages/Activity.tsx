@@ -383,11 +383,6 @@ const Activity = () => {
   };
 
   const handleExpandJob = (jobId: string, job: Job) => {
-    // For completed jobs, only allow expand if tipped AND reviewed
-    if (job.status === "completed") {
-      const meta = completedJobMeta[jobId];
-      if (!meta || !meta.tipped || !meta.reviewed) return;
-    }
     const newId = expandedJobId === jobId ? null : jobId;
     setExpandedJobId(newId);
     if (newId && (job.status === "open" || job.status === "accepted")) {

@@ -469,7 +469,7 @@ const AdminUsers = () => {
                   </a>
                 ) : (
                   <div className="w-28 h-28 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-3xl font-medium flex-shrink-0">
-                    {(viewProfile.full_name || "?")[0]?.toUpperCase()}
+                    {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 space-y-2">

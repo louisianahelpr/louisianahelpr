@@ -1441,22 +1441,7 @@ const Activity = () => {
 
                         {/* Actions */}
                         <div className="flex flex-col gap-1.5 pt-2">
-                          {app.status === "accepted" && app.job?.status === "accepted" && !(app.job as any)?.helper_confirmed_at && (
-                            <div className="flex flex-col gap-1.5">
-                              {(app.job as any)?.response_deadline && (
-                                <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
-                                  <Clock className="w-3 h-3 inline mr-1" />
-                                  Respond by {new Date((app.job as any).response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                              )}
-                              <Button size="sm" onClick={() => handleHelperResponse(app, true)}>
-                                <ThumbsUp className="w-4 h-4 mr-1" /> Accept
-                              </Button>
-                              <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleHelperResponse(app, false)}>
-                                <ThumbsDown className="w-4 h-4 mr-1" /> Decline
-                              </Button>
-                            </div>
-                          )}
+                          {/* Accept/decline handled by always-visible buttons above */}
                           {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
                             <div className="flex flex-col gap-1.5">
                               <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">

@@ -119,7 +119,7 @@ const Signup = () => {
   const validateStep2 = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim() || bio.trim().length < 100) { toast.error("About you must be at least 100 characters"); return false; }
-    if (!location.trim()) { toast.error("Location is required"); return false; }
+    if (!location.trim()) { toast.error("City is required"); return false; }
     return true;
   };
 
@@ -417,8 +417,8 @@ const Signup = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">Location <span className="text-destructive">*</span></Label>
-              <Input id="location" placeholder="City, State" value={location} onChange={(e) => setLocation(e.target.value)} required />
+              <Label htmlFor="location">City <span className="text-destructive">*</span></Label>
+              <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span></Label>

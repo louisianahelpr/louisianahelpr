@@ -1128,19 +1128,36 @@ const Activity = () => {
                             {job.status === "cancelled" && (
                               <Button size="sm" variant="outline" onClick={() => repostJob(job.id)}><RotateCcw className="w-4 h-4 mr-1" /> Repost</Button>
                             )}
-                            {job.status === "completed" && (
-                              <div className="grid grid-cols-3 gap-2">
-                                <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/10 border-0 pointer-events-none">
-                                  <Gift className="w-4 h-4 mr-1" /> Tipped
-                                </Button>
-                                <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/15 border-0 pointer-events-none">
-                                  <Star className="w-4 h-4 mr-1" /> Reviewed
-                                </Button>
-                                <Button size="sm" className="w-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                                  <RotateCcw className="w-4 h-4 mr-1" /> Rebook
-                                </Button>
-                              </div>
-                            )}
+                            {job.status === "completed" && (() => {
+                              const meta = completedJobMeta[job.id];
+                              const hasTipped = meta?.tipped;
+                              const hasReviewed = meta?.reviewed;
+                              return (
+                                <div className="grid grid-cols-3 gap-2">
+                                  {hasTipped ? (
+                                    <Button size="sm" className="w-full bg-primary/10 text-primary border-0" disabled>
+                                      <Gift className="w-4 h-4 mr-1" /> Tipped ✓
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => { setEnhancedTipJobId(job.id); setEnhancedTipHelperName(""); }}>
+                                      <Gift className="w-4 h-4 mr-1" /> Tip
+                                    </Button>
+                                  )}
+                                  {hasReviewed ? (
+                                    <Button size="sm" className="w-full bg-accent/15 text-accent-foreground border-0" disabled>
+                                      <Star className="w-4 h-4 mr-1" /> Reviewed ✓
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => openReviewForPosted(job)}>
+                                      <Star className="w-4 h-4 mr-1" /> Review
+                                    </Button>
+                                  )}
+                                  <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
+                                    <RotateCcw className="w-4 h-4 mr-1" /> Rebook
+                                  </Button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

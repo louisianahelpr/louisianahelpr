@@ -112,6 +112,7 @@ const Activity = () => {
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
+  const [cancelHelperEnRoute, setCancelHelperEnRoute] = useState(false);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
@@ -433,11 +434,9 @@ const Activity = () => {
       .order("created_at", { ascending: false })
       .limit(1);
     const trackingStatus = (tracking as any[])?.[0]?.status;
-    const blockedStatuses = ["on_the_way", "arrived", "working"];
-    if (trackingStatus && blockedStatuses.includes(trackingStatus)) {
-      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
-      return;
-    }
+    const enRouteStatuses = ["on_the_way", "arrived", "working"];
+    const isEnRoute = trackingStatus && enRouteStatuses.includes(trackingStatus);
+    setCancelHelperEnRoute(!!isEnRoute);
     setCancelDialogJob(job);
   };
 
@@ -1643,8 +1642,9 @@ const Activity = () => {
           jobBudget={cancelDialogJob.budget}
           userId={user.id}
           hasHelper={!!cancelDialogJob.helper_id}
+          helperEnRoute={cancelHelperEnRoute}
           open={!!cancelDialogJob}
-          onClose={() => setCancelDialogJob(null)}
+          onClose={() => { setCancelDialogJob(null); setCancelHelperEnRoute(false); }}
           onCancelled={() => { if (user) loadData(user.id); }}
         />
       )}

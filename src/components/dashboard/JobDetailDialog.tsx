@@ -95,13 +95,17 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
             <span className="text-sm text-muted-foreground">
               Posted by <a href={`/user/${job.customer_id}`} className="font-medium text-primary hover:underline">{job.posterName}</a>
             </span>
-            {(job.posterReviewCount ?? 0) > 0 && (
-              <span className="flex items-center gap-0.5 text-sm">
-                <Star className="w-3.5 h-3.5 fill-accent text-accent" />
-                <span className="text-foreground font-medium">{job.posterAvgRating?.toFixed(1)}</span>
-                <span className="text-muted-foreground">({job.posterReviewCount})</span>
-              </span>
-            )}
+            <a href={`/user/${job.customer_id}`} className="flex items-center gap-0.5 text-sm hover:underline">
+              {(job.posterReviewCount ?? 0) > 0 ? (
+                <>
+                  <Star className="w-3.5 h-3.5 fill-accent text-accent" />
+                  <span className="text-foreground font-medium">{job.posterAvgRating?.toFixed(1)}</span>
+                  <span className="text-muted-foreground">({job.posterReviewCount})</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground italic text-xs">No reviews</span>
+              )}
+            </a>
             <HelperBadges badges={posterBadges} />
           </div>
 

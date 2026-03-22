@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, CheckCircle2, Clock, Mail } from "lucide-react";

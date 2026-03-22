@@ -214,6 +214,15 @@ const Activity = () => {
         setApplicantCounts(counts);
         setStartRequestedJobIds(new Set((startCheckinsRes.data || []).map(c => c.job_id)));
 
+        // Fetch helper names for assigned jobs
+        const helperIds = [...new Set(postedRes.data.filter(j => j.helper_id).map(j => j.helper_id!))];
+        if (helperIds.length > 0) {
+          const { data: helperProfiles } = await supabase.rpc("get_safe_profiles", { user_ids: helperIds });
+          const names: Record<string, string> = {};
+          helperProfiles?.forEach((p: any) => { names[p.user_id] = formatName(p.full_name, "Helpr"); });
+          setHelperNames(names);
+        }
+
         // Fetch tip & review status for completed jobs
         const completedIds = postedRes.data.filter(j => j.status === "completed").map(j => j.id);
         if (completedIds.length > 0) {

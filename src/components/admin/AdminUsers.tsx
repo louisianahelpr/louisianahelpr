@@ -972,6 +972,33 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Denied Account Dialog */}
+      <Dialog open={!!deleteProfile} onOpenChange={() => setDeleteProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" /> Delete Account
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete <strong className="text-foreground">{formatName(deleteProfile?.full_name)}</strong>'s account?
+            </p>
+            <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> This action is permanent and cannot be undone. All user data will be removed.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteProfile(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={deleteDeniedUser} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete Permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

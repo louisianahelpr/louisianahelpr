@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { X } from "lucide-react";
 import JobCard from "./JobCard";
 import type { EnrichedJob } from "./types";
@@ -41,7 +41,11 @@ const SwipeableJobCard = ({
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < SWIPE_THRESHOLD) {
+      // Snap back immediately, then show confirm dialog
+      animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
       onDismiss(job.id);
+    } else {
+      animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
     }
     setSwiping(false);
   };

@@ -183,6 +183,26 @@ const AdminUsers = () => {
     setDenying(false);
   };
 
+  const deleteDeniedUser = async () => {
+    if (!deleteProfile) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { userId: deleteProfile.user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${formatName(deleteProfile.full_name)}'s account has been deleted.`);
+      setDeleteProfile(null);
+      setViewProfile(null);
+      loadProfiles();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const [resending, setResending] = useState<string | null>(null);
 
   const resendDenialEmail = async (profile: Profile) => {

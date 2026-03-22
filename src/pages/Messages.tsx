@@ -239,7 +239,7 @@ const Messages = () => {
           await logViolation(violationDesc, content);
           return;
         } else {
-          await logViolation(violationDesc);
+          await logViolation(violationDesc, content);
           return;
         }
       }

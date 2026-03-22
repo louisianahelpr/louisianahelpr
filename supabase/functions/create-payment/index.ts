@@ -408,7 +408,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved",
         message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
-        type: "info", link: "/activity",
+        type: "info", link: "/activity?tab=posted&filter=completed",
       });
 
       return new Response(JSON.stringify({ success: true }), {

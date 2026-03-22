@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarHeart, Pause, Play, XCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export function MyRetainers({ userId, role }: { userId: string; role: string }) 
           .select("user_id, full_name")
           .in("user_id", uniqueIds);
         
-        const nameMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name || "Unknown"]));
+        const nameMap = new Map((profiles || []).map((p: any) => [p.user_id, formatName(p.full_name, "Unknown")]));
         
         const enriched = data.map((r: any) => ({
           ...r,

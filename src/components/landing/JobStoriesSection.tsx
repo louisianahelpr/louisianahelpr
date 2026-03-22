@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Camera, Star, Share2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -56,7 +57,7 @@ const JobStoriesSection = () => {
         supabase.from("reviews").select("job_id, rating, feedback").in("job_id", jobIds),
       ]);
 
-      const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, p.full_name || "Helpr"]) || []);
+      const nameMap = new Map(profilesRes.data?.map(p => [p.user_id, formatName(p.full_name, "Helpr")]) || []);
       const reviewMap = new Map(reviewsRes.data?.map(r => [r.job_id, r]) || []);
 
       setStories(withPhotos.slice(0, 3).map(j => {

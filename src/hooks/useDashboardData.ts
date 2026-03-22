@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,15 +67,8 @@ export function useDashboardData() {
           .in("reviewee_id", posterIds),
       ]);
 
-      // Build name map with "First L." format
       const nameMap = new Map(
-        profilesRes.data?.map((p) => {
-          const parts = (p.full_name || "User").trim().split(/\s+/);
-          const display = parts.length > 1
-            ? `${parts[0]} ${parts[parts.length - 1][0]}.`
-            : parts[0];
-          return [p.user_id, display];
-        }) || []
+        profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []
       );
 
       // Build review stats map

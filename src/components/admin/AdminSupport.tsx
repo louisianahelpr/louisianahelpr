@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, CheckCircle2, Clock, Mail } from "lucide-react";
@@ -61,7 +62,7 @@ const AdminSupport = () => {
       const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
       setTickets((data || []).map(r => ({
         ...r,
-        reporter_name: profileMap.get(r.reporter_id)?.full_name || "Unknown",
+        reporter_name: formatName(profileMap.get(r.reporter_id)?.full_name, "Unknown"),
         reporter_email: profileMap.get(r.reporter_id)?.email || "",
       })));
     } else {

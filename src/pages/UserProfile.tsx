@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,11 +111,7 @@ const UserProfile = () => {
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
-        const nameMap = new Map(profilesRes2.data?.map(p => {
-          const parts = (p.full_name || "User").trim().split(/\s+/);
-          const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
-          return [p.user_id, display];
-        }) || []);
+        const nameMap = new Map(profilesRes2.data?.map(p => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map(j => [j.id, j.title]) || []);
         setReviews(reviewsRes.data.map(r => ({
           rating: r.rating, feedback: r.feedback, created_at: r.created_at,
@@ -157,10 +154,7 @@ const UserProfile = () => {
     );
   }
 
-  const displayName = (() => {
-    const parts = (profile.full_name || "User").trim().split(/\s+/);
-    return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
-  })();
+  const displayName = formatName(profile.full_name);
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: (profile as any).subscription_tier || null });
   const isOwnProfile = currentUserId === userId;

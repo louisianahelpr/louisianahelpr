@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Heart, MapPin, Star, Briefcase, Clock } from "lucide-react";
@@ -118,7 +119,7 @@ const FavoritesPanel = () => {
             <div className="space-y-3">
               {favorites.map(fav => {
                 const p = fav.profile;
-                const initials = (p?.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+                const initials = formatName(p?.full_name, "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
                 return (
                   <div
                     key={fav.id}
@@ -134,7 +135,7 @@ const FavoritesPanel = () => {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-foreground">{p?.full_name || "User"}</h3>
+                        <h3 className="font-semibold text-sm text-foreground">{formatName(p?.full_name)}</h3>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           {p?.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{p.location}</span>}
                           {fav.stats.reviewCount > 0 && (
@@ -151,7 +152,7 @@ const FavoritesPanel = () => {
                         variant="ghost"
                         size="icon"
                         className="shrink-0 h-8 w-8"
-                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id, p?.full_name || "helpr"); }}
+                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id, formatName(p?.full_name, "helpr")); }}
                       >
                         <Heart className="w-4 h-4 fill-destructive text-destructive" />
                       </Button>

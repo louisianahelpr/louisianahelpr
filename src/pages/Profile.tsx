@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatName } from "@/lib/utils";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,7 @@ const ProfilePage = () => {
         supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
         supabase.from("jobs").select("id, title").in("id", jobIds),
       ]);
-      const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+      const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
       setReviews(data.map((r) => ({
         rating: r.rating,

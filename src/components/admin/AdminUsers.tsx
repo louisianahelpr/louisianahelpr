@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,7 +88,7 @@ const AdminUsers = () => {
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
       const { data: reviewerProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds);
-      const nameMap = new Map(reviewerProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+      const nameMap = new Map(reviewerProfiles?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       setProfileReviews(reviewsRes.data.map((r: any) => ({
         rating: r.rating, feedback: r.feedback, reviewer_name: nameMap.get(r.reviewer_id) || "User",
       })));
@@ -108,7 +109,7 @@ const AdminUsers = () => {
     } as any).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
-      toast.success(`${profile.full_name || "User"} approved!`);
+      toast.success(`${formatName(profile.full_name)} approved!`);
       await createNotification({
         user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",
@@ -158,7 +159,7 @@ const AdminUsers = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success(`${denyProfile.full_name || "User"} denied.`);
+      toast.success(`${formatName(denyProfile.full_name)} denied.`);
       await createNotification({
         user_id: denyProfile.user_id, title: "Account not approved",
         message: denyReason.trim()
@@ -400,12 +401,12 @@ const AdminUsers = () => {
                     <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium flex-shrink-0">
-                      {(p.full_name || "?")[0]?.toUpperCase()}
+                      {formatName(p.full_name, "?")[0]?.toUpperCase()}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="font-semibold text-foreground">{p.full_name || "—"}</p>
+                      <p className="font-semibold text-foreground">{formatName(p.full_name, "—")}</p>
                       {statusBadge(p)}
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -456,7 +457,7 @@ const AdminUsers = () => {
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">{viewProfile?.full_name || "User Profile"}</DialogTitle>
+            <DialogTitle className="font-display text-xl">{formatName(viewProfile?.full_name, "User Profile")}</DialogTitle>
           </DialogHeader>
           {viewProfile && (
             <div className="space-y-6">
@@ -468,12 +469,12 @@ const AdminUsers = () => {
                   </a>
                 ) : (
                   <div className="w-28 h-28 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-3xl font-medium flex-shrink-0">
-                    {(viewProfile.full_name || "?")[0]?.toUpperCase()}
+                    {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-bold text-foreground">{viewProfile.full_name || "—"}</h3>
+                    <h3 className="text-lg font-bold text-foreground">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
                     {viewProfile.role !== 'customer' && <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>}
                     {((viewProfile as any).application_count || 1) > 1 && (
@@ -811,7 +812,7 @@ const AdminUsers = () => {
       <Dialog open={!!denyProfile} onOpenChange={() => setDenyProfile(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display">Deny {denyProfile?.full_name || "User"}</DialogTitle>
+            <DialogTitle className="font-display">Deny {formatName(denyProfile?.full_name)}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Provide a reason for denying this application.</p>

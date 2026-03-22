@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Star, MapPin, Briefcase, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
@@ -90,7 +91,7 @@ const HelperSpotlightSection = () => {
 
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {helpers.map((h, i) => {
-            const initials = (h.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+            const initials = formatName(h.full_name, "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
             const badges = computeBadges({ avgRating: h.avgRating, reviewCount: h.reviewCount, completedJobs: h.completedJobs, helprTier: h.subscription_tier });
 
             return (
@@ -107,7 +108,7 @@ const HelperSpotlightSection = () => {
                     {initials}
                   </div>
                 )}
-                <h3 className="text-lg font-display font-semibold text-foreground mt-3">{h.full_name || "Helpr"}</h3>
+                <h3 className="text-lg font-display font-semibold text-foreground mt-3">{formatName(h.full_name, "Helpr")}</h3>
                 {h.location && (
                   <p className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
                     <MapPin className="w-3 h-3" /> {h.location}

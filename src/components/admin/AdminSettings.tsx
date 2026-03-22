@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +65,7 @@ const AdminSettings = () => {
         roles.map((r) => ({
           user_id: r.user_id,
           role_id: r.id,
-          name: profileMap.get(r.user_id)?.full_name || "—",
+          name: formatName(profileMap.get(r.user_id)?.full_name, "—"),
           email: (profileMap.get(r.user_id) as any)?.email || "—",
         }))
       );
@@ -117,7 +118,7 @@ const AdminSettings = () => {
       if (error.code === "23505") toast.error("User is already an admin");
       else toast.error(error.message);
     } else {
-      toast.success(`${profile.full_name || "User"} added as admin`);
+      toast.success(`${formatName(profile.full_name)} added as admin`);
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
     }
@@ -255,7 +256,7 @@ const AdminSettings = () => {
                 {searchResults.map((profile) => (
                   <div key={profile.id} className="rounded-lg border border-border bg-secondary/20 p-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground text-sm">{profile.full_name || "—"}</p>
+                      <p className="font-medium text-foreground text-sm">{formatName(profile.full_name, "—")}</p>
                       <p className="text-xs text-muted-foreground">{(profile as any).email || "—"}</p>
                       <Badge variant="secondary" className="text-xs capitalize mt-1">{profile.role}</Badge>
                     </div>

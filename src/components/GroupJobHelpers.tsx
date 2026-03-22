@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Users, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -37,7 +38,7 @@ export function GroupJobHelpers({
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", helperIds);
-      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "Helpr"]) || []);
+      const nameMap = new Map(profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) || []);
       setHelpers(
         (data as any[]).map((h: any) => ({
           ...h,

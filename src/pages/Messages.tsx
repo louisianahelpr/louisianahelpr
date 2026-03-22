@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,7 +102,7 @@ const Messages = () => {
       supabase.from("jobs").select("id, title").in("id", jobIds),
     ]);
 
-    const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+    const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
     const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
 
     const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => ({

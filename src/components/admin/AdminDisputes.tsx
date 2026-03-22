@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -43,7 +44,7 @@ const AdminDisputes = () => {
     if (userIds.length > 0) {
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
       const map: Record<string, string> = {};
-      profs?.forEach(p => { map[p.user_id] = p.full_name || "User"; });
+      profs?.forEach(p => { map[p.user_id] = formatName(p.full_name); });
       setProfiles(map);
     }
     setLoading(false);

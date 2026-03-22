@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -198,7 +199,7 @@ const Activity = () => {
       let posterNameMap = new Map<string, string>();
       if (posterIds.length > 0) {
         const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
-        posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, (p.full_name || "User").split(" ")[0]]) || []);
+        posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
       }
       setAppliedApps(appsRes.data.map((a) => {
         const job = jobMap.get(a.job_id) || null;
@@ -398,7 +399,7 @@ const Activity = () => {
           const revieweeId = isHelper ? job.customer_id : (job.helper_id || "");
           if (revieweeId) {
             const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", revieweeId).single();
-            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: (prof?.full_name || "User").split(" ")[0] });
+            setCompletionPromptJob({ job: job as Job, revieweeId, revieweeName: formatName(prof?.full_name) });
           }
         }
       } else {
@@ -507,7 +508,7 @@ const Activity = () => {
     // Poster reviewing helper
     if (!job.helper_id) return;
     const { data: helperProfile } = await supabase.from("profiles").select("full_name").eq("user_id", job.helper_id).single();
-    setReviewTarget({ id: job.helper_id, name: (helperProfile?.full_name || "Helpr").split(" ")[0] });
+    setReviewTarget({ id: job.helper_id, name: formatName(helperProfile?.full_name, "Helpr") });
     setReviewJob(job);
   };
 
@@ -957,7 +958,7 @@ const Activity = () => {
                           <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
-                                <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{(app.profiles?.full_name || "Helpr").split(" ")[0]}</a>
+                                <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>
                                 {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
                                 {app.reviewCount !== undefined && app.reviewCount > 0 && (
                                   <div className="flex items-center gap-1 mt-1">

@@ -23,8 +23,8 @@ export function useDashboardData() {
       if (!user) return null;
       const userId = user.id;
 
-      // Phase 1: jobs + settings + availability in parallel
-      const [openJobsRes, feeRes, availRes] = await Promise.all([
+      // Phase 1: jobs + settings + availability + user applications in parallel
+      const [openJobsRes, feeRes, availRes, appliedRes] = await Promise.all([
         supabase
           .from("jobs")
           .select("*")
@@ -39,7 +39,13 @@ export function useDashboardData() {
           .eq("helper_id", userId)
           .is("specific_date", null)
           .order("day_of_week"),
+        supabase
+          .from("applications")
+          .select("job_id")
+          .eq("helper_id", userId),
       ]);
+
+      const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
 
       const platformFee = feeRes.data?.platform_fee_percent ?? 15;
       const helperAvailability = availRes.data ?? [];

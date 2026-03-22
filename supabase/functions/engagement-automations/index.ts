@@ -345,8 +345,12 @@ Deno.serve(async (_req) => {
       results.reEngagement++
     }
 
-    // ─── 3. Admin Daily Digest ────────────────────────────────────
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+    // ─── 3. Admin Weekly Digest (Monday mornings only) ───────────
+    const dayOfWeek = now.getUTCDay() // 0=Sun, 1=Mon
+    if (dayOfWeek !== 1) {
+      console.log('Skipping admin digest — not Monday')
+    } else {
+    const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
     const [newUsersRes, newJobsRes, completedJobsRes, pendingRes, reportsRes, revenueRes, adminRolesRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),

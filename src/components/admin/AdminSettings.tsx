@@ -65,7 +65,7 @@ const AdminSettings = () => {
         roles.map((r) => ({
           user_id: r.user_id,
           role_id: r.id,
-          name: profileMap.get(r.user_id)?.full_name || "—",
+          name: formatName(profileMap.get(r.user_id)?.full_name, "—"),
           email: (profileMap.get(r.user_id) as any)?.email || "—",
         }))
       );

@@ -896,7 +896,7 @@ const Activity = () => {
                             );
                           })()}
                           {/* Applicant count */}
-                          {(applicantCounts[job.id] || 0) > 0 && (job.status === "open" || job.status === "accepted") && (
+                          {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
                             <span className="flex items-center gap-1 text-primary font-medium">
                               <Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}
                             </span>
@@ -946,7 +946,7 @@ const Activity = () => {
                       </div>
 
                       {/* Applicants button — always visible on card */}
-                      {(job.status === "open" || job.status === "accepted") && (
+                      {job.status === "open" && (
                         <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
                           <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => loadApplications(job)}>
                             <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}

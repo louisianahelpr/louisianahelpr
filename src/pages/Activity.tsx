@@ -138,6 +138,7 @@ const Activity = () => {
   // Applied jobs state
   const [appliedApps, setAppliedApps] = useState<(Application & { job?: (Job & { revision_note?: string | null }) | null; posterName?: string })[]>([]);
   const [declinedJobIds, setDeclinedJobIds] = useState<Set<string>>(new Set());
+  const [startRequestedJobIds, setStartRequestedJobIds] = useState<Set<string>>(new Set());
 
   // Helper tip state (in applied tab)
   const [helperTipJobId, setHelperTipJobId] = useState<string | null>(null);

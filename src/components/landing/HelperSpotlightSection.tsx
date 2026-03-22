@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
 import { Star, MapPin, Briefcase, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";

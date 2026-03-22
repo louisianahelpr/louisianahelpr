@@ -159,7 +159,7 @@ const AdminUsers = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success(`${denyProfile.full_name || "User"} denied.`);
+      toast.success(`${formatName(denyProfile.full_name)} denied.`);
       await createNotification({
         user_id: denyProfile.user_id, title: "Account not approved",
         message: denyReason.trim()

@@ -237,16 +237,14 @@ const UserProfile = () => {
             const hasSelection = activeSection !== null && !isOwnProfile;
 
             const reviewBtn = (
-              <button
+             <button
                 key="reviews"
                 onClick={() => {
-                  if (stats.reviewCount > 0) {
-                    setShowReviews(!showReviews);
-                    setShowPostedJobs(false);
-                    setShowWorkedJobs(false);
-                  }
+                  setShowReviews(!showReviews);
+                  setShowPostedJobs(false);
+                  setShowWorkedJobs(false);
                 }}
-                className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                className={`rounded-xl border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
               >
                 <div className="flex items-center justify-center gap-1">
                   <Star className="w-3.5 h-3.5 text-primary fill-primary" />

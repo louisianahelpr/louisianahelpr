@@ -111,6 +111,14 @@ const Dashboard = () => {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
+  const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
+  const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
+  const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("helpr_dismissed_jobs");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
   const [showGreeting, setShowGreeting] = useState(() => {
     const dismissed = localStorage.getItem("greeting_dismissed_at");
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;

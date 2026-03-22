@@ -134,7 +134,7 @@ const AdminReviews = () => {
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-lg font-bold text-muted-foreground">
-                      {(profile.full_name || "?")[0].toUpperCase()}
+                      {formatName(profile.full_name, "?")[0].toUpperCase()}
                     </span>
                   )}
                 </div>

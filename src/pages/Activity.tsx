@@ -486,12 +486,23 @@ const Activity = () => {
 
   const startJob = async (jobId: string) => {
     if (!user) return;
+    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
+    
+    // GPS proximity check for helper
+    if (job) {
+      const proximity = await checkProximity((job as any).latitude, (job as any).longitude);
+      if (!proximity.allowed) {
+        const miles = ((proximity.distance || 0) / 5280).toFixed(1);
+        toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
+        return;
+      }
+    }
+
     // Log start request as a checkin so poster can see it
     await supabase.from("job_checkins").insert({
       job_id: jobId, user_id: user.id, type: "start_request", note: "Helper requested to start the job",
     });
     // Notify poster
-    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
     if (job) {
       await createNotification({
         user_id: job.customer_id,

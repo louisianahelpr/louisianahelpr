@@ -214,9 +214,10 @@ const Activity = () => {
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     if (accept) {
-      await supabase.from("jobs").update({ status: "in_progress", response_deadline: null } as any).eq("id", app.job_id);
+      // Keep as "accepted" — will move to "in_progress" on job date or manual start
+      await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
-      toast.success("Job accepted! You can now message the poster.");
+      toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       loadData(user.id);
     } else {
       // Track denial as violation

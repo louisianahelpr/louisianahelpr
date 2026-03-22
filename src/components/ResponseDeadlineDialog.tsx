@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Clock, MessageSquare } from "lucide-react";
 
 type Props = {
   open: boolean;
   helperName: string;
-  onConfirm: (deadlineHours: number) => void;
+  onConfirm: (deadlineHours: number, message?: string) => void;
   onClose: () => void;
 };
 
@@ -23,6 +24,12 @@ const deadlineOptions = [
 
 export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }: Props) => {
   const [hours, setHours] = useState("24");
+  const [message, setMessage] = useState("");
+
+  const handleConfirm = () => {
+    onConfirm(parseInt(hours), message.trim() || undefined);
+    setMessage("");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -52,6 +59,22 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
               If they don't respond in time, the job will be reopened automatically.
             </p>
           </div>
+
+          {/* Optional message with offer */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <MessageSquare className="w-4 h-4" />
+              Include a message <span className="text-muted-foreground font-normal">(optional)</span>
+            </div>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={`Say something to ${helperName}…`}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
           <div className="rounded-lg bg-muted/50 border border-border p-3">
             <p className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helprs who decline jobs repeatedly will face escalating consequences:
@@ -66,7 +89,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onConfirm(parseInt(hours))}>
+          <Button onClick={handleConfirm}>
             Send Offer
           </Button>
         </DialogFooter>

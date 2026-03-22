@@ -502,7 +502,7 @@ const Dashboard = () => {
               <div className="divide-y divide-border/30">
                 {filters.filteredJobs.filter(j => !dismissedJobIds.has(j.id)).map((job, i) => (
                   <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
-                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
                   </div>
                 ))}
               </div>

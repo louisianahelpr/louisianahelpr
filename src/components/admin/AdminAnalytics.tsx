@@ -549,7 +549,7 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
           <div key={u.id} className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm">{u.full_name || "—"}</p>
+                <p className="font-semibold text-foreground text-sm">{formatName(u.full_name, "—")}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
                   {u.email && <span>{u.email}</span>}
                   {u.location && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{u.location}</span>}

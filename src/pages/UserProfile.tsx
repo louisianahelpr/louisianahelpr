@@ -109,7 +109,11 @@ const UserProfile = () => {
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
-        const nameMap = new Map(profilesRes2.data?.map(p => [p.user_id, p.full_name || "User"]) || []);
+        const nameMap = new Map(profilesRes2.data?.map(p => {
+          const parts = (p.full_name || "User").trim().split(/\s+/);
+          const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+          return [p.user_id, display];
+        }) || []);
         const jobMap = new Map(jobsRes.data?.map(j => [j.id, j.title]) || []);
         setReviews(reviewsRes.data.map(r => ({
           rating: r.rating, feedback: r.feedback, created_at: r.created_at,
@@ -152,6 +156,10 @@ const UserProfile = () => {
     );
   }
 
+  const displayName = (() => {
+    const parts = (profile.full_name || "User").trim().split(/\s+/);
+    return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+  })();
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: (profile as any).subscription_tier || null });
   const isOwnProfile = currentUserId === userId;
@@ -178,7 +186,7 @@ const UserProfile = () => {
               </div>
             )}
             <div>
-              <h1 className="text-xl font-display font-bold text-foreground">{profile.full_name || "User"}</h1>
+              <h1 className="text-xl font-display font-bold text-foreground">{displayName}</h1>
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
                 <div className="flex items-center justify-center gap-3 mt-1.5 text-xs text-muted-foreground">

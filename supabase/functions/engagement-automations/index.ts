@@ -100,7 +100,7 @@ function adminDigestEmail(stats: {
   openReports: number
   revenue: number
 }) {
-  const subject = `Helpr Daily Digest — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  const subject = `Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
   const stat = (label: string, value: string | number) =>
     `<tr><td style="padding:8px 0;font-size:15px;color:hsl(160,6%,50%);border-bottom:1px solid hsl(150,12%,92%)">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:hsl(160,10%,12%);text-align:right;border-bottom:1px solid hsl(150,12%,92%)">${value}</td></tr>`
 

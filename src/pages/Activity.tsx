@@ -434,11 +434,9 @@ const Activity = () => {
       .order("created_at", { ascending: false })
       .limit(1);
     const trackingStatus = (tracking as any[])?.[0]?.status;
-    const blockedStatuses = ["on_the_way", "arrived", "working"];
-    if (trackingStatus && blockedStatuses.includes(trackingStatus)) {
-      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
-      return;
-    }
+    const enRouteStatuses = ["on_the_way", "arrived", "working"];
+    const isEnRoute = trackingStatus && enRouteStatuses.includes(trackingStatus);
+    setCancelHelperEnRoute(!!isEnRoute);
     setCancelDialogJob(job);
   };
 

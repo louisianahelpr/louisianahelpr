@@ -13,6 +13,7 @@ import AdminReviews from "@/components/admin/AdminReviews";
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
+import AdminReports from "@/components/admin/AdminReports";
 
 type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications";
 

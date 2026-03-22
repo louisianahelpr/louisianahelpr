@@ -240,13 +240,11 @@ const UserProfile = () => {
               <button
                 key="reviews"
                 onClick={() => {
-                  if (stats.reviewCount > 0) {
-                    setShowReviews(!showReviews);
-                    setShowPostedJobs(false);
-                    setShowWorkedJobs(false);
-                  }
+                  setShowReviews(!showReviews);
+                  setShowPostedJobs(false);
+                  setShowWorkedJobs(false);
                 }}
-                className={`rounded-xl border bg-card p-3 text-center transition-all ${stats.reviewCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+                className={`rounded-xl border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
               >
                 <div className="flex items-center justify-center gap-1">
                   <Star className="w-3.5 h-3.5 text-primary fill-primary" />
@@ -327,9 +325,9 @@ const UserProfile = () => {
           })()}
 
           {/* Reviews expanded inline */}
-          {showReviews && reviews.length > 0 && (
+          {showReviews && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {reviews.map((r, i) => (
+              {reviews.length > 0 ? reviews.map((r, i) => (
                 <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -345,7 +343,12 @@ const UserProfile = () => {
                   <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-border bg-card p-6 text-center">
+                  <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No reviews yet</p>
+                </div>
+              )}
             </div>
           )}
 

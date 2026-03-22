@@ -4,6 +4,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { checkProximity } from "@/lib/locationUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -423,15 +424,27 @@ const Activity = () => {
   const completeJob = async (jobId: string) => {
     setCompletingJobId(jobId);
     try {
+      // GPS proximity check for helpers
+      const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user?.id);
+      if (isHelper) {
+        const job = appliedApps.find(a => a.job_id === jobId)?.job;
+        if (job) {
+          const proximity = await checkProximity((job as any).latitude, (job as any).longitude);
+          if (!proximity.allowed) {
+            const miles = ((proximity.distance || 0) / 5280).toFixed(1);
+            toast.error(`You must be within 500ft of the job site to mark complete. You're ~${miles} miles away.`, { duration: 6000 });
+            return;
+          }
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
         toast.success(`Job completed! Payment released.`);
-        // Trigger completion prompts (review + tip)
         const job = postedJobs.find(j => j.id === jobId) || appliedApps.find(a => a.job_id === jobId)?.job;
         if (job && user) {
-          const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user.id);
           const revieweeId = isHelper ? job.customer_id : (job.helper_id || "");
           if (revieweeId) {
             const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", revieweeId).single();
@@ -485,12 +498,23 @@ const Activity = () => {
 
   const startJob = async (jobId: string) => {
     if (!user) return;
+    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
+    
+    // GPS proximity check for helper
+    if (job) {
+      const proximity = await checkProximity((job as any).latitude, (job as any).longitude);
+      if (!proximity.allowed) {
+        const miles = ((proximity.distance || 0) / 5280).toFixed(1);
+        toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
+        return;
+      }
+    }
+
     // Log start request as a checkin so poster can see it
     await supabase.from("job_checkins").insert({
       job_id: jobId, user_id: user.id, type: "start_request", note: "Helper requested to start the job",
     });
     // Notify poster
-    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
     if (job) {
       await createNotification({
         user_id: job.customer_id,

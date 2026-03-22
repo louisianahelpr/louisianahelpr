@@ -16,10 +16,10 @@ const PaymentSuccess = () => {
       // Retrieve the checkout session's payment intent and store it, then mark in_progress
       (async () => {
         try {
-          // Mark payment as authorized since Stripe checkout succeeded
+          // Mark payment as escrow since Stripe checkout succeeded
           await supabase
             .from("jobs")
-            .update({ payment_status: "authorized" })
+            .update({ payment_status: "escrow" })
             .eq("id", jobId);
         } catch (e) {
           console.error("Post-payment update error:", e);

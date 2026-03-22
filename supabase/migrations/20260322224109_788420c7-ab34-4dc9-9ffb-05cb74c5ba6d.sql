@@ -1,0 +1,1 @@
+UPDATE jobs SET status = 'open' WHERE id = '1add857f-e6f2-4729-ba08-f0a1129a46bf' AND helper_id IS NULL;

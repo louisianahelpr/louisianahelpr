@@ -146,6 +146,22 @@ const Dashboard = () => {
     setConfirmApplyJobId(null);
   }, [user, confirmApplyJobId]);
 
+  const handleDismissRequest = useCallback((jobId: string) => {
+    setConfirmDismissJobId(jobId);
+  }, []);
+
+  const handleDismissConfirm = useCallback(() => {
+    if (!confirmDismissJobId) return;
+    setDismissedJobIds(prev => {
+      const next = new Set(prev);
+      next.add(confirmDismissJobId);
+      localStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
+      return next;
+    });
+    toast.success("Job removed from your feed.");
+    setConfirmDismissJobId(null);
+  }, [confirmDismissJobId]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">

@@ -112,7 +112,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-          Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once the person you referred completes their first job — whether they posted it or worked it — <strong>you both</strong> earn $5! The bonus is only awarded after a job is fully completed.
+          Invite friends to Helpr — they must enter your code <strong>during sign-up</strong> (it can't be added later). Once the person you referred completes their first job — whether they posted it or worked it — <strong>you both</strong> earn $5! The bonus is only awarded after a job is fully completed. <strong>You must also have at least one completed job</strong> (as a poster or helpr) to be eligible for the referral bonus.
         </p>
 
       {/* Referral Code Card */}

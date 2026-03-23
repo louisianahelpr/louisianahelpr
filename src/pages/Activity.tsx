@@ -1124,7 +1124,7 @@ const Activity = () => {
                                   <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setDisputeJob(job)}>Dispute</Button>
                                   <Button size="sm" className="w-full bg-destructive/15 text-destructive hover:bg-destructive/25 border-0" onClick={() => setNoShowJobId(job.id)}>No-Show</Button>
                                 </div>
-                                <Button size="sm" className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => tryCancelJob(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                                
                               </div>
                             )}
                             {job.status === "revision_requested" && (

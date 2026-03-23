@@ -125,6 +125,8 @@ export function PayoutSetupForm() {
       setResetting(false);
     }
   };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" /> Loading payout info…
@@ -137,7 +139,6 @@ export function PayoutSetupForm() {
 
   return (
     <div className="space-y-4">
-      {/* Not connected at all */}
       {!status?.connected && (
         <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
           <div className="flex items-start gap-3">
@@ -152,7 +153,6 @@ export function PayoutSetupForm() {
         </div>
       )}
 
-      {/* Needs more info */}
       {needsMoreInfo && (
         <div className="rounded-lg bg-accent/50 border border-accent p-4">
           <div className="flex items-start gap-3">
@@ -167,20 +167,25 @@ export function PayoutSetupForm() {
         </div>
       )}
 
-      {/* Setup / Complete setup button */}
       {!isFullyOnboarded && (
-        <Button onClick={handleOnboard} disabled={onboarding} className="w-full">
-          {onboarding ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
-          ) : needsMoreInfo ? (
-            <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
-          ) : (
-            <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+        <>
+          <Button onClick={handleOnboard} disabled={onboarding} className="w-full">
+            {onboarding ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
+            ) : needsMoreInfo ? (
+              <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
+            ) : (
+              <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+            )}
+          </Button>
+          {status?.connected && (
+            <Button variant="ghost" size="sm" onClick={handleReset} disabled={resetting} className="w-full text-xs text-muted-foreground">
+              {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having issues? Reset & start fresh"}
+            </Button>
           )}
-        </Button>
+        </>
       )}
 
-      {/* Existing methods */}
       {methods.length > 0 && (
         <div className="space-y-2">
           {methods.map((m) => (
@@ -226,7 +231,6 @@ export function PayoutSetupForm() {
         </div>
       )}
 
-      {/* Manage via Stripe dashboard */}
       {isFullyOnboarded && (
         <>
           <Button variant="outline" onClick={handleManageDashboard} className="w-full">

@@ -25,13 +25,13 @@ export function PayoutSetupForm() {
   const [formMode, setFormMode] = useState<FormMode>("none");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
 
   // Bank form
   const [routingNumber, setRoutingNumber] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
   const [accountHolderName, setAccountHolderName] = useState("");
-  const [ssnLast4, setSsnLast4] = useState("");
 
   useEffect(() => {
     loadMethods();

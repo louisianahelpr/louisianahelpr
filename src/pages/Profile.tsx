@@ -228,6 +228,39 @@ const ProfilePage = () => {
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
+  // Check Stripe Connect status for helpers
+  useEffect(() => {
+    if (profile?.role === "helper" && profile?.approval_status === "approved" && !stripeConnectStatus) {
+      checkStripeConnect();
+    }
+  }, [profile]);
+
+  const checkStripeConnect = async () => {
+    setStripeConnectLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
+      if (error) throw error;
+      setStripeConnectStatus(data);
+    } catch {
+      setStripeConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
+    } finally {
+      setStripeConnectLoading(false);
+    }
+  };
+
+  const startStripeOnboarding = async () => {
+    setStripeOnboarding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "onboard" } });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start payout setup");
+    } finally {
+      setStripeOnboarding(false);
+    }
+  };
+
   const loadEarnings = async () => {
     if (!user) return;
     setEarningsLoading(true);

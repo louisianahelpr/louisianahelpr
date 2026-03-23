@@ -29,6 +29,7 @@ export function PayoutSetupForm() {
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [onboarding, setOnboarding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -106,6 +107,25 @@ export function PayoutSetupForm() {
     }
   };
 
+  const handleReset = async () => {
+    if (!confirm("This will delete your current Stripe account and create a fresh one. Continue?")) return;
+    setResetting(true);
+    try {
+      const returnUrl = window.location.href;
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "reset", return_url: returnUrl },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reset account");
+      setResetting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
@@ -119,7 +139,6 @@ export function PayoutSetupForm() {
 
   return (
     <div className="space-y-4">
-      {/* Not connected at all */}
       {!status?.connected && (
         <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
           <div className="flex items-start gap-3">
@@ -134,7 +153,6 @@ export function PayoutSetupForm() {
         </div>
       )}
 
-      {/* Needs more info */}
       {needsMoreInfo && (
         <div className="rounded-lg bg-accent/50 border border-accent p-4">
           <div className="flex items-start gap-3">
@@ -149,20 +167,25 @@ export function PayoutSetupForm() {
         </div>
       )}
 
-      {/* Setup / Complete setup button */}
       {!isFullyOnboarded && (
-        <Button onClick={handleOnboard} disabled={onboarding} className="w-full">
-          {onboarding ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
-          ) : needsMoreInfo ? (
-            <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
-          ) : (
-            <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+        <>
+          <Button onClick={handleOnboard} disabled={onboarding} className="w-full">
+            {onboarding ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
+            ) : needsMoreInfo ? (
+              <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
+            ) : (
+              <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+            )}
+          </Button>
+          {status?.connected && (
+            <Button variant="ghost" size="sm" onClick={handleReset} disabled={resetting} className="w-full text-xs text-muted-foreground">
+              {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having issues? Reset & start fresh"}
+            </Button>
           )}
-        </Button>
+        </>
       )}
 
-      {/* Existing methods */}
       {methods.length > 0 && (
         <div className="space-y-2">
           {methods.map((m) => (
@@ -208,7 +231,6 @@ export function PayoutSetupForm() {
         </div>
       )}
 
-      {/* Manage via Stripe dashboard */}
       {isFullyOnboarded && (
         <>
           <Button variant="outline" onClick={handleManageDashboard} className="w-full">

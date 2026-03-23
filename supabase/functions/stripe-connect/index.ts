@@ -105,7 +105,8 @@ serve(async (req) => {
 
     // ─── CREATE CUSTOM ACCOUNT (no redirect needed) ───
     if (action === "onboard") {
-      const { accountId } = await getOrCreateAccount();
+      const { ssn_last_4 } = body;
+      const { accountId } = await getOrCreateAccount(ssn_last_4);
 
       return new Response(JSON.stringify({ success: true, account_id: accountId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

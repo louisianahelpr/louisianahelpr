@@ -121,6 +121,14 @@ export function JobCheckins({
 
       // For SOS, notify all admins immediately
       if (type === "sos") {
+        // Fetch job title for a meaningful admin alert
+        const { data: jobData } = await supabase
+          .from("jobs")
+          .select("title")
+          .eq("id", jobId)
+          .single();
+        const jobTitle = jobData?.title || "Unknown";
+
         const { data: admins } = await supabase
           .from("user_roles")
           .select("user_id")
@@ -130,7 +138,7 @@ export function JobCheckins({
           const notifications = admins.map((admin) => ({
             user_id: admin.user_id,
             title: "🚨 SOS Emergency Alert",
-            message: `A user triggered an SOS emergency button on job "${jobId}". Immediate attention required.`,
+            message: `A user triggered an SOS emergency button on job "${jobTitle}". Immediate attention required.`,
             type: "warning",
             link: `/activity`,
           }));

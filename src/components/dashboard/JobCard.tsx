@@ -179,15 +179,12 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           )}
 
           {/* Special requirements */}
-          {(() => {
-            const cleaned = job.special_requirements?.replace(/\[Flexible date\]/g, "").replace(/\[Flexible time\]/g, "").replace(/\s*\|\s*/g, " ").trim();
-            return cleaned ? (
+          {job.special_requirements?.trim() ? (
               <div className="rounded-lg bg-secondary/30 p-2.5">
                 <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                <p className="text-sm text-foreground">{cleaned}</p>
+                <p className="text-sm text-foreground">{job.special_requirements}</p>
               </div>
-            ) : null;
-          })()}
+          ) : null}
 
           {/* Recurring info */}
           {job.is_recurring && (

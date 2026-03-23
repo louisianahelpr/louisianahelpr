@@ -278,6 +278,25 @@ export function PayoutSetupForm() {
                 inputMode="numeric"
               />
             </div>
+            <div>
+              <Label htmlFor="ssn-last4" className="text-xs">Last 4 of SSN</Label>
+              <Input
+                id="ssn-last4"
+                value={ssnLast4}
+                onChange={(e) => setSsnLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="Last 4 digits"
+                inputMode="numeric"
+                maxLength={4}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification</p>
+              <Input
+                id="confirm-account"
+                value={confirmAccountNumber}
+                onChange={(e) => setConfirmAccountNumber(e.target.value.replace(/\D/g, ""))}
+                placeholder="Re-enter account number"
+                inputMode="numeric"
+              />
+            </div>
           </div>
 
           <Button onClick={handleAddBank} disabled={saving} className="w-full">

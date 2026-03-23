@@ -98,6 +98,11 @@ serve(async (req) => {
           .from("profiles")
           .update({ stripe_account_id: accountId })
           .eq("user_id", user.id);
+      } else if (ssnLast4) {
+        // Account exists but SSN provided — update it
+        await stripe.accounts.update(accountId, {
+          individual: { ssn_last_4: ssnLast4 },
+        });
       }
 
       return { accountId, profile };

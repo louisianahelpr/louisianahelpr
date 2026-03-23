@@ -29,6 +29,7 @@ export function PayoutSetupForm() {
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [onboarding, setOnboarding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     loadData();

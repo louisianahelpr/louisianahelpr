@@ -233,6 +233,43 @@ serve(async (req) => {
       }
     }
 
+    // ─── RESET: Delete old account and create fresh Express one ───
+    if (action === "reset") {
+      const { return_url } = body;
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile?.stripe_account_id) {
+        try {
+          await stripe.accounts.del(profile.stripe_account_id);
+        } catch (e) {
+          console.log("Could not delete old account:", e.message);
+        }
+      }
+
+      await supabaseAdmin
+        .from("profiles")
+        .update({ stripe_account_id: null })
+        .eq("user_id", user.id);
+
+      const { accountId } = await getOrCreateAccount();
+
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        type: "account_onboarding",
+      });
+
+      return new Response(JSON.stringify({ success: true, url: accountLink.url, account_id: accountId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // ─── UPDATE ONBOARDING: Return new Account Link for incomplete accounts ───
     if (action === "update_onboarding") {
       const { return_url } = body;

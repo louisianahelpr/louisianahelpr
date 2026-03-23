@@ -251,11 +251,16 @@ serve(async (req) => {
       const externalAccounts = await stripe.accounts.listExternalAccounts(profile.stripe_account_id, { limit: 1 });
       const hasPayoutMethod = externalAccounts.data.length > 0;
 
+      // Get capability status
+      const transfersCapability = account.capabilities?.transfers;
+
       return new Response(JSON.stringify({
         connected: true,
         details_submitted: hasPayoutMethod,
         payouts_enabled: hasPayoutMethod && (account.payouts_enabled ?? false),
         charges_enabled: account.charges_enabled,
+        transfers_status: transfersCapability || "inactive",
+        requirements: account.requirements?.currently_due || [],
         account_id: account.id,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

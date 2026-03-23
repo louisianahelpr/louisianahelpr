@@ -439,7 +439,7 @@ serve(async (req) => {
       // Cancel the payment intent (refund)
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
-        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
+        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
         paymentIntentId = session.payment_intent;
       }
       if (paymentIntentId) {
@@ -503,7 +503,7 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): 
 
   if (!paymentIntentId && job.stripe_session_id) {
     try {
-      const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
+      const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
       paymentIntentId = session.payment_intent;
       if (paymentIntentId) {
         await supabaseAdmin.from("jobs").update({

@@ -282,7 +282,7 @@ export function PayoutSetupForm() {
             {saving ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Adding…</>
             ) : (
-              <><Plus className="w-4 h-4 mr-2" /> Add bank account</>
+              <><Plus className="w-4 h-4 mr-2" /> {editingMethodId ? "Update bank account" : "Add bank account"}</>
             )}
           </Button>
 

@@ -117,7 +117,7 @@ export function JobCheckins({
       type,
       latitude: loc?.lat || null,
       longitude: loc?.lng || null,
-      note: note.trim() || null,
+      note: (overrideNote ?? note).trim() || null,
     });
     if (error) {
       toast.error("Failed to record check-in");

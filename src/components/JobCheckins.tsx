@@ -89,7 +89,7 @@ export function JobCheckins({
     });
   };
 
-  const doCheckin = async (type: "check_in" | "check_out" | "sos") => {
+  const doCheckin = async (type: "check_in" | "check_out" | "sos", overrideNote?: string) => {
     setLoading(true);
     const loc = await getLocation();
 

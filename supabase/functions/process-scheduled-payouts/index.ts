@@ -36,13 +36,15 @@ serve(async (req) => {
     if (error) throw error;
 
     let processed = 0;
+    const results: any[] = [];
+
     for (const job of (jobs || [])) {
       if (!job.helper_id) continue;
 
       const helperPayout = job.budget - (job.platform_fee_amount || 0);
       if (helperPayout <= 0) continue;
 
-      // Get helper's connected Stripe account
+      // ── Step 1: Get helper's connected Stripe account ──
       const { data: helperProfile } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
@@ -57,15 +59,18 @@ serve(async (req) => {
           message: `Your payout of $${helperPayout.toFixed(2)} for "${job.title}" is waiting. Set up your payout account in your profile.`,
           type: "warning", link: "/profile?tab=payment",
         });
+        results.push({ job_id: job.id, status: "no_connect_account" });
         continue;
       }
 
-      // Ensure payment is captured before transferring
+      // ── Step 2: Resolve payment intent ID ──
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
         try {
           const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-          paymentIntentId = session.payment_intent?.id || session.payment_intent;
+          paymentIntentId = typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id;
           if (paymentIntentId) {
             await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
           }
@@ -76,22 +81,47 @@ serve(async (req) => {
 
       if (!paymentIntentId) {
         console.error(`No payment intent for job ${job.id}, cannot process payout`);
+        results.push({ job_id: job.id, status: "no_pi" });
         continue;
       }
 
-      // Capture if still held
+      // ── Step 3: Verify charge is captured (succeeded) BEFORE transferring ──
+      let piStatus: string;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        piStatus = pi.status;
+
         if (pi.status === "requires_capture") {
+          // Attempt capture
           await stripe.paymentIntents.capture(paymentIntentId);
           console.log(`Captured payment ${paymentIntentId} for job ${job.id}`);
+          piStatus = "succeeded";
+        }
+
+        if (piStatus !== "succeeded") {
+          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${piStatus}" — CANNOT transfer funds. Aborting payout.`);
+          results.push({ job_id: job.id, status: `pi_not_succeeded_${piStatus}`, skipped: true });
+          // Notify admin about stuck payout
+          const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+          if (adminRoles) {
+            for (const admin of adminRoles) {
+              await supabaseAdmin.from("notifications").insert({
+                user_id: admin.user_id,
+                title: "⚠️ Payout blocked — charge not captured",
+                message: `Job ${job.id} ("${job.title}") payout cannot proceed. Payment intent ${paymentIntentId} status: ${piStatus}. Customer was never charged.`,
+                type: "warning", link: "/admin",
+              });
+            }
+          }
+          continue;
         }
       } catch (e) {
-        console.error(`Failed to capture payment for job ${job.id}:`, e);
+        console.error(`Failed to verify/capture payment for job ${job.id}:`, e);
+        results.push({ job_id: job.id, status: "capture_error", error: e.message });
         continue;
       }
 
-      // Transfer to helper
+      // ── Step 4: Transfer to helper (charge is confirmed captured) ──
       try {
         const transferParams: any = {
           amount: Math.round(helperPayout * 100),
@@ -100,18 +130,20 @@ serve(async (req) => {
           metadata: { job_id: job.id, helper_id: job.helper_id, scheduled_payout: "true" },
         };
 
-        // Link to source charge
+        // Link to source charge for clean reporting
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           if (pi.latest_charge) {
-            transferParams.source_transaction = pi.latest_charge;
+            transferParams.source_transaction = typeof pi.latest_charge === "string"
+              ? pi.latest_charge
+              : pi.latest_charge.id;
           }
         } catch (e) {
           console.warn("Could not link charge:", e);
         }
 
         await stripe.transfers.create(transferParams);
-        console.log(`Scheduled payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id}`);
+        console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id}`);
 
         await supabaseAdmin.from("jobs").update({
           payment_status: "released",
@@ -125,8 +157,10 @@ serve(async (req) => {
         });
 
         processed++;
+        results.push({ job_id: job.id, status: "transferred", amount: helperPayout });
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
+        results.push({ job_id: job.id, status: "transfer_failed", error: e.message });
         // Notify admin
         const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
         if (adminRoles) {
@@ -143,7 +177,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, processed }),
+      JSON.stringify({ success: true, processed, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {

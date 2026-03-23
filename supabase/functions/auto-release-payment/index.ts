@@ -36,14 +36,18 @@ serve(async (req) => {
     if (error) throw error;
 
     let released = 0;
+    const results: any[] = [];
+
     for (const job of (jobs || [])) {
-      // Capture the held payment
+      // ── Step 1: Resolve payment intent ID ──
       let paymentIntentId = job.stripe_payment_intent_id;
 
       if (!paymentIntentId && job.stripe_session_id) {
         try {
           const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
-          paymentIntentId = session.payment_intent;
+          paymentIntentId = typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id;
           if (paymentIntentId) {
             await supabaseAdmin.from("jobs").update({
               stripe_payment_intent_id: paymentIntentId,
@@ -54,19 +58,42 @@ serve(async (req) => {
         }
       }
 
-      if (paymentIntentId) {
-        try {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi.status === "requires_capture") {
-            await stripe.paymentIntents.capture(paymentIntentId);
-            console.log(`Auto-captured payment ${paymentIntentId} for job ${job.id}`);
-          }
-        } catch (e) {
-          console.error(`Failed to capture payment for job ${job.id}:`, e);
-        }
+      if (!paymentIntentId) {
+        console.error(`No payment intent for job ${job.id} — cannot auto-release without captured payment`);
+        results.push({ job_id: job.id, status: "skipped_no_pi" });
+        continue;
       }
 
-      // Schedule payout for 24 hours later instead of immediate transfer
+      // ── Step 2: Capture the held payment ──
+      let captured = false;
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.status === "requires_capture") {
+          await stripe.paymentIntents.capture(paymentIntentId);
+          console.log(`Auto-captured payment ${paymentIntentId} for job ${job.id}`);
+          captured = true;
+        } else if (pi.status === "succeeded") {
+          // Already captured (e.g. by Stripe auto-capture or webhook)
+          captured = true;
+        } else {
+          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot proceed`);
+          results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
+          continue;
+        }
+      } catch (e) {
+        console.error(`Failed to capture payment for job ${job.id}:`, e);
+        results.push({ job_id: job.id, status: "capture_failed", error: e.message });
+        continue;
+      }
+
+      // ── Step 3: Verify capture succeeded before scheduling payout ──
+      if (!captured) {
+        console.error(`Capture not confirmed for job ${job.id} — aborting payout scheduling`);
+        results.push({ job_id: job.id, status: "capture_unconfirmed" });
+        continue;
+      }
+
+      // ── Step 4: Only now schedule the payout ──
       const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       await supabaseAdmin
@@ -92,10 +119,11 @@ serve(async (req) => {
         });
       }
       released++;
+      results.push({ job_id: job.id, status: "released", paymentIntentId });
     }
 
     return new Response(
-      JSON.stringify({ success: true, released }),
+      JSON.stringify({ success: true, released, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {

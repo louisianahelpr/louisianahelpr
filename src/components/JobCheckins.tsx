@@ -213,7 +213,7 @@ export function JobCheckins({
             <Button
               size="sm"
               variant="destructive"
-              onClick={() => doCheckin("sos")}
+              onClick={() => setSosOpen(true)}
               disabled={loading}
             >
               <AlertOctagon className="w-4 h-4 mr-1" /> SOS
@@ -221,6 +221,43 @@ export function JobCheckins({
           </div>
         </div>
       )}
+
+      {/* SOS Confirmation Dialog */}
+      <AlertDialog open={sosOpen} onOpenChange={(open) => { setSosOpen(open); if (!open) setSosMessage(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertOctagon className="w-5 h-5" /> Send SOS Emergency Alert
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately notify all admins about an emergency. Please describe what's happening.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            value={sosMessage}
+            onChange={(e) => setSosMessage(e.target.value)}
+            placeholder="Describe the emergency situation… (required)"
+            className="min-h-[80px]"
+            maxLength={500}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!sosMessage.trim() || loading}
+              onClick={async (e) => {
+                e.preventDefault();
+                setNote(sosMessage.trim());
+                await doCheckin("sos");
+                setSosOpen(false);
+                setSosMessage("");
+              }}
+            >
+              <AlertOctagon className="w-4 h-4 mr-1" /> Send SOS
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {checkins.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-border">

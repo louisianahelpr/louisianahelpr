@@ -119,8 +119,32 @@ export function JobCheckins({
       setNote("");
       loadCheckins();
 
-      // For SOS, also send a notification
+      // For SOS, notify all admins immediately
       if (type === "sos") {
+        // Fetch job title for a meaningful admin alert
+        const { data: jobData } = await supabase
+          .from("jobs")
+          .select("title")
+          .eq("id", jobId)
+          .single();
+        const jobTitle = jobData?.title || "Unknown";
+
+        const { data: admins } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
+
+        if (admins && admins.length > 0) {
+          const notifications = admins.map((admin) => ({
+            user_id: admin.user_id,
+            title: "🚨 SOS Emergency Alert",
+            message: `A user triggered an SOS emergency button on job "${jobTitle}". Immediate attention required.`,
+            type: "warning",
+            link: `/activity`,
+          }));
+          await supabase.from("notifications").insert(notifications);
+        }
+
         toast.info("Emergency contacts and admin have been notified.");
       }
     }

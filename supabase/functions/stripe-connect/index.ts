@@ -103,6 +103,10 @@ serve(async (req) => {
         refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
         return_url: return_url || "https://louisianahelpr.lovable.app/profile",
         type: "account_onboarding",
+        collection_options: {
+          fields: "currently_due",
+          future_requirements: "omit",
+        },
       });
 
       return new Response(JSON.stringify({ success: true, url: accountLink.url, account_id: accountId }), {

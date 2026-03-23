@@ -96,6 +96,17 @@ serve(async (req) => {
           if (error) logStep("ERROR updating profile", { error: error.message });
           else logStep("Profile updated with tier", { email: customerEmail, tier });
         }
+
+        // Store payment intent for escrow jobs
+        const jobId = (session.metadata as any)?.job_id;
+        if (jobId && session.payment_intent) {
+          const { error: jobError } = await supabase.from("jobs").update({
+            stripe_payment_intent_id: session.payment_intent as string,
+          }).eq("id", jobId);
+          if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
+          else logStep("Stored payment_intent on job", { jobId, pi: session.payment_intent });
+        }
+
         break;
       }
 

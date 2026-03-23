@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  BanknoteIcon, CreditCard, CheckCircle, AlertCircle, Loader2, Trash2, Plus, Building2,
+  BanknoteIcon, CreditCard, CheckCircle, AlertCircle, Loader2, Trash2, Plus, Building2, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 

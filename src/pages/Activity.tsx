@@ -149,6 +149,7 @@ const Activity = () => {
   const [helperTipAmount, setHelperTipAmount] = useState("");
   const [helperTipping, setHelperTipping] = useState(false);
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
+  const [helperReviewedJobIds, setHelperReviewedJobIds] = useState<Set<string>>(new Set());
 
   // Seed from cache for instant render
   useEffect(() => {
@@ -242,14 +243,16 @@ const Activity = () => {
 
     if (appsRes.data && appsRes.data.length > 0) {
       const jobIds = [...new Set(appsRes.data.map((a) => a.job_id))];
-      const [jobsRes, violationsRes, helperStartCheckins] = await Promise.all([
+      const [jobsRes, violationsRes, helperStartCheckins, helperReviewsRes] = await Promise.all([
         supabase.from("jobs").select("*").in("id", jobIds),
         supabase.from("user_violations").select("job_id").eq("user_id", userId).eq("violation_type", "job_denial"),
         supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
+        supabase.from("reviews").select("job_id").eq("reviewer_id", userId).in("job_id", jobIds),
       ]);
       // Merge helper's start requests into the shared set
       (helperStartCheckins.data || []).forEach(c => startRequestedJobIds.add(c.job_id));
       setStartRequestedJobIds(new Set(startRequestedJobIds));
+      setHelperReviewedJobIds(new Set((helperReviewsRes.data || []).map(r => r.job_id)));
       const jobs = jobsRes.data;
       const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
       const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];
@@ -1384,11 +1387,17 @@ const Activity = () => {
                       <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                         <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => user && loadData(user.id)} />
                         <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => user && loadData(user.id)} />
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => {
-                          setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
-                        }}>
-                          <Star className="w-4 h-4 mr-1" /> Review Poster
-                        </Button>
+                        {helperReviewedJobIds.has(app.job_id) ? (
+                          <Button size="sm" variant="outline" className="w-full" disabled>
+                            <Star className="w-4 h-4 mr-1" /> Reviewed ✓
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => {
+                            setHelperReviewJob({ jobId: app.job_id, posterId: app.job!.customer_id, posterName: app.posterName || "Poster" });
+                          }}>
+                            <Star className="w-4 h-4 mr-1" /> Review Poster
+                          </Button>
+                        )}
                       </div>
                     )}
 

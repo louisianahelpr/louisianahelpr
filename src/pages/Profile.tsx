@@ -545,33 +545,21 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 </div>
               </div>
 
-              {/* Stripe Connect Banner for users without payout account */}
+              {/* Payout Banner for users without payout account */}
               {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
                 <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">
-                        {!stripeConnectStatus.connected ? "Set up your payout account" : !stripeConnectStatus.details_submitted ? "Complete your payout setup" : "Payout verification in progress"}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">Set up your payout account</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {!stripeConnectStatus.connected
-                          ? "You need to connect a bank account before you can accept jobs and receive payments."
-                          : !stripeConnectStatus.details_submitted
-                          ? "Your payout account setup is incomplete. Please finish it to receive payments."
-                          : "Your account is being verified. This usually takes 1–2 business days."}
+                        Add a bank account in Payment Settings to accept jobs and receive payments.
                       </p>
                     </div>
                   </div>
-                  {(!stripeConnectStatus.connected || !stripeConnectStatus.details_submitted) && (
-                    <Button onClick={startStripeOnboarding} disabled={stripeOnboarding} className="w-full" size="sm">
-                      {stripeOnboarding ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up…</>
-                      ) : (
-                        <><CreditCard className="w-4 h-4 mr-2" /> {stripeConnectStatus.connected ? "Complete setup" : "Connect payout account"}</>
-                      )}
-                    </Button>
-                  )}
+                  <Button onClick={() => setTab("payment")} className="w-full" size="sm">
+                    <CreditCard className="w-4 h-4 mr-2" /> Go to Payment Settings
+                  </Button>
                 </div>
               )}
 

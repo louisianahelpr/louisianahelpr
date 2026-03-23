@@ -459,18 +459,16 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
 
-      // Cancel the payment intent (refund)
+      // Refund the captured payment
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-        paymentIntentId = session.payment_intent;
+        paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
       }
       if (paymentIntentId) {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi.status === "requires_capture") {
-            await stripe.paymentIntents.cancel(paymentIntentId);
-          } else if (pi.status === "succeeded") {
+          if (pi.status === "succeeded") {
             await stripe.refunds.create({ payment_intent: paymentIntentId });
           }
         } catch (e) {

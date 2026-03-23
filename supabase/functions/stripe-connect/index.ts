@@ -38,7 +38,7 @@ serve(async (req) => {
     const { action } = body;
 
     // Helper: get or create Custom Connect account
-    const getOrCreateAccount = async () => {
+    const getOrCreateAccount = async (ssnLast4?: string) => {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")

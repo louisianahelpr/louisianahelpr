@@ -123,7 +123,7 @@ export function PayoutSetupForm() {
     setAccountNumber("");
     setConfirmAccountNumber("");
     setAccountHolderName("");
-    setSsnLast4("");
+    setEditingMethodId(null);
   };
 
   if (loading) {

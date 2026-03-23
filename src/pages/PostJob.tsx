@@ -268,11 +268,7 @@ const PostJob = () => {
       start_time: startTime === "flexible" ? null : (startTime || null),
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       budget: parseFloat(budget),
-      special_requirements: [
-        specialRequirements.trim(),
-        dateNeeded === "flexible" ? "[Flexible date]" : "",
-        startTime === "flexible" ? "[Flexible time]" : "",
-      ].filter(Boolean).join(" | ") || null,
+      special_requirements: specialRequirements.trim() || null,
       is_recurring: isRecurring,
       recurrence_interval: isRecurring ? recurrenceInterval : null,
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,

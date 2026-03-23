@@ -106,6 +106,16 @@ serve(async (req) => {
     // ─── CREATE CUSTOM ACCOUNT (no redirect needed) ───
     if (action === "onboard") {
       const { accountId } = await getOrCreateAccount();
+
+      // If SSN last 4 provided and account already existed, update it
+      if (ssn_last_4) {
+        try {
+          await stripe.accounts.update(accountId, {
+            individual: { ssn_last_4 },
+          });
+        } catch (_) { /* may already be set */ }
+      }
+
       return new Response(JSON.stringify({ success: true, account_id: accountId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

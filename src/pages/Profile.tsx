@@ -228,9 +228,9 @@ const ProfilePage = () => {
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
-  // Check Stripe Connect status for helpers
+  // Check Stripe Connect status for all users
   useEffect(() => {
-    if (profile?.role === "helper" && profile?.approval_status === "approved" && !stripeConnectStatus) {
+    if (profile?.approval_status === "approved" && !stripeConnectStatus) {
       checkStripeConnect();
     }
   }, [profile]);
@@ -545,8 +545,8 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 </div>
               </div>
 
-              {/* Stripe Connect Banner for helpers without payout account */}
-              {role === "helper" && profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
+              {/* Stripe Connect Banner for users without payout account */}
+              {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
                 <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />

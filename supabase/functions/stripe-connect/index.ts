@@ -78,6 +78,7 @@ serve(async (req) => {
             phone: profile?.phone || undefined,
             dob,
             address: city ? { city, state, country: "US" } : undefined,
+            ssn_last_4: ssn_last_4 || undefined,
           },
           capabilities: {
             transfers: { requested: true },
@@ -85,6 +86,9 @@ serve(async (req) => {
           tos_acceptance: {
             date: Math.floor(Date.now() / 1000),
             ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0",
+          },
+          settings: {
+            payouts: { schedule: { interval: "manual" } },
           },
           metadata: { user_id: user.id },
         });

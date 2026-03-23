@@ -161,9 +161,25 @@ serve(async (req) => {
 
       if (bothDone) {
         // Capture the held payment
-        const paymentIntentId = await captureEscrowPayment(stripe, supabaseAdmin, job);
+        const captureResult = await captureEscrowPayment(stripe, supabaseAdmin, job);
 
-        // Schedule payout for 24 hours later instead of immediate transfer
+        if (captureResult.status === "expired") {
+          // Authorization expired — cannot charge the customer
+          await handleExpiredEscrow(supabaseAdmin, job);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Payment authorization has expired. The poster has been notified to re-submit payment.",
+            expired: true,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 402,
+          });
+        }
+
+        if (captureResult.status === "failed" || !captureResult.paymentIntentId) {
+          throw new Error(`Payment capture failed: ${captureResult.error}. Payout blocked.`);
+        }
+
+        // Charge confirmed captured — schedule payout
         const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         updateFields.payout_scheduled_at = payoutTime;
         updateFields.status = "completed";

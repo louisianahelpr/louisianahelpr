@@ -53,6 +53,7 @@ serve(async (req) => {
         const account = await stripe.accounts.create({
           type: "express",
           email: user.email,
+          business_type: "individual",
           capabilities: {
             transfers: { requested: true },
           },

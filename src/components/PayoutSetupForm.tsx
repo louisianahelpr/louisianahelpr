@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  BanknoteIcon, CreditCard, CheckCircle, AlertCircle, Loader2, Trash2, Plus, Building2,
+  BanknoteIcon, CreditCard, CheckCircle, AlertCircle, Loader2, Trash2, Plus, Building2, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,13 +25,13 @@ export function PayoutSetupForm() {
   const [formMode, setFormMode] = useState<FormMode>("none");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
 
   // Bank form
   const [routingNumber, setRoutingNumber] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
   const [accountHolderName, setAccountHolderName] = useState("");
-  const [ssnLast4, setSsnLast4] = useState("");
 
   useEffect(() => {
     loadMethods();
@@ -53,16 +53,12 @@ export function PayoutSetupForm() {
   };
 
   const handleAddBank = async () => {
-    if (!routingNumber || !accountNumber || !accountHolderName || !ssnLast4) {
+    if (!routingNumber || !accountNumber || !accountHolderName) {
       toast.error("Please fill in all fields");
       return;
     }
     if (routingNumber.length !== 9) {
       toast.error("Routing number must be 9 digits");
-      return;
-    }
-    if (ssnLast4.length !== 4) {
-      toast.error("Please enter the last 4 digits of your SSN");
       return;
     }
     if (accountNumber !== confirmAccountNumber) {
@@ -72,10 +68,17 @@ export function PayoutSetupForm() {
 
     setSaving(true);
     try {
-      // First ensure account exists with SSN
+      // Ensure account exists
       await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard", ssn_last_4: ssnLast4 },
+        body: { action: "onboard" },
       });
+
+      // If editing, delete the old method first
+      if (editingMethodId) {
+        await supabase.functions.invoke("stripe-connect", {
+          body: { action: "delete_payout_method", method_id: editingMethodId },
+        });
+      }
 
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: {
@@ -120,7 +123,7 @@ export function PayoutSetupForm() {
     setAccountNumber("");
     setConfirmAccountNumber("");
     setAccountHolderName("");
-    setSsnLast4("");
+    setEditingMethodId(null);
   };
 
   if (loading) {
@@ -161,19 +164,32 @@ export function PayoutSetupForm() {
                   )}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteMethod(m.id)}
-                disabled={deleting === m.id}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                {deleting === m.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingMethodId(m.id);
+                    setFormMode(m.type === "bank_account" ? "bank" : "card");
+                  }}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteMethod(m.id)}
+                  disabled={deleting === m.id}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  {deleting === m.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -213,7 +229,7 @@ export function PayoutSetupForm() {
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" /> Add Bank Account
+              <Building2 className="w-4 h-4 text-primary" /> {editingMethodId ? "Edit Bank Account" : "Add Bank Account"}
             </h3>
             <Button variant="ghost" size="sm" onClick={resetForm} className="text-xs text-muted-foreground">
               Cancel
@@ -260,26 +276,13 @@ export function PayoutSetupForm() {
                 inputMode="numeric"
               />
             </div>
-            <div>
-              <Label htmlFor="ssn-last4" className="text-xs">Last 4 digits of SSN</Label>
-              <Input
-                id="ssn-last4"
-                value={ssnLast4}
-                onChange={(e) => setSsnLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
-                inputMode="numeric"
-                maxLength={4}
-                type="password"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Required by Stripe to verify your identity and enable payouts.</p>
-            </div>
           </div>
 
           <Button onClick={handleAddBank} disabled={saving} className="w-full">
             {saving ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Adding…</>
             ) : (
-              <><Plus className="w-4 h-4 mr-2" /> Add bank account</>
+              <><Plus className="w-4 h-4 mr-2" /> {editingMethodId ? "Update bank account" : "Add bank account"}</>
             )}
           </Button>
 

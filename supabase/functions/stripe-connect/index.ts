@@ -196,8 +196,9 @@ serve(async (req) => {
       });
     }
 
-    // ─── DASHBOARD: Generate Express login link ───
+    // ─── DASHBOARD: Manage payout account ───
     if (action === "dashboard") {
+      const { return_url } = body;
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
@@ -206,12 +207,26 @@ serve(async (req) => {
 
       if (!profile?.stripe_account_id) throw new Error("No account connected");
 
-      const loginLink = await stripe.accounts.createLoginLink(profile.stripe_account_id);
+      const account = await stripe.accounts.retrieve(profile.stripe_account_id);
 
-      return new Response(JSON.stringify({ url: loginLink.url }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      if (account.type === "express") {
+        const loginLink = await stripe.accounts.createLoginLink(profile.stripe_account_id);
+        return new Response(JSON.stringify({ url: loginLink.url }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      } else {
+        const accountLink = await stripe.accountLinks.create({
+          account: profile.stripe_account_id,
+          refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
+          return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+          type: "account_onboarding",
+        });
+        return new Response(JSON.stringify({ url: accountLink.url }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
     }
 
     // ─── UPDATE ONBOARDING: Return new Account Link for incomplete accounts ───

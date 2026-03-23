@@ -371,11 +371,15 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
+      // With immediate capture, we need to refund instead of cancel
       if (job.stripe_payment_intent_id) {
         try {
-          await stripe.paymentIntents.cancel(job.stripe_payment_intent_id);
+          const pi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          if (pi.status === "succeeded") {
+            await stripe.refunds.create({ payment_intent: job.stripe_payment_intent_id });
+          }
         } catch (e) {
-          console.error("Failed to cancel payment intent:", e);
+          console.error("Failed to refund payment:", e);
         }
       }
 

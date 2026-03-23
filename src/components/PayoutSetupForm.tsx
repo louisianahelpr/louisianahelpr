@@ -120,6 +120,7 @@ export function PayoutSetupForm() {
     setAccountNumber("");
     setConfirmAccountNumber("");
     setAccountHolderName("");
+    setSsnLast4("");
   };
 
   if (loading) {

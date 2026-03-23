@@ -78,7 +78,7 @@ serve(async (req) => {
             phone: profile?.phone || undefined,
             dob,
             address: city ? { city, state, country: "US" } : undefined,
-            
+            ssn_last_4: ssnLast4 || undefined,
           },
           capabilities: {
             transfers: { requested: true },

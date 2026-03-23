@@ -78,13 +78,7 @@ export function PayoutSetupForm() {
         body: { action: "onboard", ssn_last_4: ssnLast4 },
       });
 
-      // If editing, delete the old method first
-      if (editingMethodId) {
-        await supabase.functions.invoke("stripe-connect", {
-          body: { action: "delete_payout_method", method_id: editingMethodId },
-        });
-      }
-
+      // Add new bank first (so it becomes default), then delete old one
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: {
           action: "add_bank",
@@ -93,6 +87,13 @@ export function PayoutSetupForm() {
           account_holder_name: accountHolderName,
         },
       });
+
+      if (editingMethodId) {
+        // Now that the new bank is the default, we can delete the old one
+        await supabase.functions.invoke("stripe-connect", {
+          body: { action: "delete_payout_method", method_id: editingMethodId },
+        });
+      }
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success(`Bank account ending in ${data.bank_last4} added!`);
@@ -106,6 +107,10 @@ export function PayoutSetupForm() {
   };
 
   const handleDeleteMethod = async (methodId: string) => {
+    if (methods.length <= 1) {
+      toast.error("You must have at least one payout method. Use the edit button to replace it.");
+      return;
+    }
     setDeleting(methodId);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {

@@ -898,17 +898,11 @@ const Activity = () => {
                       <div className="px-4 py-3 space-y-2">
                         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
                           {/* Date & Time */}
-                          {job.special_requirements?.includes("[Flexible date]") ? (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 shrink-0" /> Flexible date{job.special_requirements?.includes("[Flexible time]") ? " & time" : job.start_time && job.start_time !== "flexible" ? ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 shrink-0" />
-                              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                              {job.special_requirements?.includes("[Flexible time]") ? " · Flexible time" : job.start_time && job.start_time !== "flexible" ? ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ""}
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 shrink-0" />
+                            {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {!job.start_time ? " · Flexible time" : ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
+                          </span>
                           {/* City, State */}
                           {(() => {
                             const cityState = getCityState(job.location);

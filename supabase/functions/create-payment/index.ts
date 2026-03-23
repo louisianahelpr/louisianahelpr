@@ -406,12 +406,22 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
 
       // Capture payment
-      const paymentIntentId = await captureEscrowPayment(stripe, supabaseAdmin, job);
+      const captureResult = await captureEscrowPayment(stripe, supabaseAdmin, job);
+
+      if (captureResult.status === "expired") {
+        await handleExpiredEscrow(supabaseAdmin, job);
+        return new Response(JSON.stringify({
+          success: false, error: "Payment authorization expired. Customer notified to re-pay.", expired: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 402 });
+      }
+      if (captureResult.status === "failed" || !captureResult.paymentIntentId) {
+        throw new Error(`Capture failed: ${captureResult.error}`);
+      }
 
       // Transfer to helpr
       const helperPayout = job.budget - (job.platform_fee_amount || 0);
       if (job.helper_id && helperPayout > 0) {
-        await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, paymentIntentId, job.id);
+        await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
       }
 
       await supabaseAdmin.from("jobs").update({

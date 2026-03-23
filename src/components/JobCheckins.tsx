@@ -59,6 +59,8 @@ export function JobCheckins({
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [sosMessage, setSosMessage] = useState("");
 
   useEffect(() => {
     loadCheckins();

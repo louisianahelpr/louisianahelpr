@@ -1638,8 +1638,9 @@ const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | null; u
   const handleSubscribe = async (tier: string) => {
     setLoadingCheckout(tier);
     try {
+      const billing_cycle = billingInterval === "lifetime" ? "one_time" : billingInterval;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, interval: billingInterval, ...(billingInterval === "monthly" ? { billing_day: billingDay } : {}) },
+        body: { tier, billing_cycle, ...(billing_cycle === "monthly" ? { billing_day: billingDay } : {}) },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

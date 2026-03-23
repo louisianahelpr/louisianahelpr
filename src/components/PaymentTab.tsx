@@ -234,7 +234,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
     }
   };
 
-  const isHelper = role === "helper";
+  const isHelper = true; // All accounts have access to the same features
 
   return (
     <div className="space-y-6">

@@ -35,7 +35,7 @@ serve(async (req) => {
     });
 
     const body = await req.json();
-    const { action } = body;
+    const { action, ssn_last_4 } = body;
 
     // Helper: get or create Custom Connect account
     const getOrCreateAccount = async () => {
@@ -78,6 +78,7 @@ serve(async (req) => {
             phone: profile?.phone || undefined,
             dob,
             address: city ? { city, state, country: "US" } : undefined,
+            ssn_last_4: ssn_last_4 || undefined,
           },
           capabilities: {
             transfers: { requested: true },
@@ -85,6 +86,9 @@ serve(async (req) => {
           tos_acceptance: {
             date: Math.floor(Date.now() / 1000),
             ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0",
+          },
+          settings: {
+            payouts: { schedule: { interval: "manual" } },
           },
           metadata: { user_id: user.id },
         });
@@ -102,6 +106,16 @@ serve(async (req) => {
     // ─── CREATE CUSTOM ACCOUNT (no redirect needed) ───
     if (action === "onboard") {
       const { accountId } = await getOrCreateAccount();
+
+      // If SSN last 4 provided and account already existed, update it
+      if (ssn_last_4) {
+        try {
+          await stripe.accounts.update(accountId, {
+            individual: { ssn_last_4 },
+          });
+        } catch (_) { /* may already be set */ }
+      }
+
       return new Response(JSON.stringify({ success: true, account_id: accountId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -237,11 +251,16 @@ serve(async (req) => {
       const externalAccounts = await stripe.accounts.listExternalAccounts(profile.stripe_account_id, { limit: 1 });
       const hasPayoutMethod = externalAccounts.data.length > 0;
 
+      // Get capability status
+      const transfersCapability = account.capabilities?.transfers;
+
       return new Response(JSON.stringify({
         connected: true,
         details_submitted: hasPayoutMethod,
         payouts_enabled: hasPayoutMethod && (account.payouts_enabled ?? false),
         charges_enabled: account.charges_enabled,
+        transfers_status: transfersCapability || "inactive",
+        requirements: account.requirements?.currently_due || [],
         account_id: account.id,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

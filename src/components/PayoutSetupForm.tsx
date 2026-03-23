@@ -31,6 +31,7 @@ export function PayoutSetupForm() {
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
   const [accountHolderName, setAccountHolderName] = useState("");
+  const [ssnLast4, setSsnLast4] = useState("");
 
   useEffect(() => {
     loadMethods();
@@ -52,12 +53,16 @@ export function PayoutSetupForm() {
   };
 
   const handleAddBank = async () => {
-    if (!routingNumber || !accountNumber || !accountHolderName) {
+    if (!routingNumber || !accountNumber || !accountHolderName || !ssnLast4) {
       toast.error("Please fill in all fields");
       return;
     }
     if (routingNumber.length !== 9) {
       toast.error("Routing number must be 9 digits");
+      return;
+    }
+    if (ssnLast4.length !== 4) {
+      toast.error("Please enter the last 4 digits of your SSN");
       return;
     }
     if (accountNumber !== confirmAccountNumber) {
@@ -67,6 +72,11 @@ export function PayoutSetupForm() {
 
     setSaving(true);
     try {
+      // First ensure account exists with SSN
+      await supabase.functions.invoke("stripe-connect", {
+        body: { action: "onboard", ssn_last_4: ssnLast4 },
+      });
+
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: {
           action: "add_bank",
@@ -110,6 +120,7 @@ export function PayoutSetupForm() {
     setAccountNumber("");
     setConfirmAccountNumber("");
     setAccountHolderName("");
+    setSsnLast4("");
   };
 
   if (loading) {
@@ -248,6 +259,19 @@ export function PayoutSetupForm() {
                 placeholder="Re-enter account number"
                 inputMode="numeric"
               />
+            </div>
+            <div>
+              <Label htmlFor="ssn-last4" className="text-xs">Last 4 digits of SSN</Label>
+              <Input
+                id="ssn-last4"
+                value={ssnLast4}
+                onChange={(e) => setSsnLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="••••"
+                inputMode="numeric"
+                maxLength={4}
+                type="password"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Required by Stripe to verify your identity and enable payouts.</p>
             </div>
           </div>
 

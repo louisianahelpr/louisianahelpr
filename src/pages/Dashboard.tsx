@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";

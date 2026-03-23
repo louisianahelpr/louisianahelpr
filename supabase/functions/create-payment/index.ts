@@ -404,18 +404,16 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
 
-      // Capture payment
-      const captureResult = await captureEscrowPayment(stripe, supabaseAdmin, job);
-
-      if (captureResult.status === "expired") {
-        await handleExpiredEscrow(supabaseAdmin, job);
-        return new Response(JSON.stringify({
-          success: false, error: "Payment authorization expired. Customer notified to re-pay.", expired: true,
-        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 402 });
+      // Verify payment is captured (immediate capture — should already be succeeded)
+      let paymentIntentId = job.stripe_payment_intent_id;
+      if (!paymentIntentId && job.stripe_session_id) {
+        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+        paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
       }
-      if (captureResult.status === "failed" || !captureResult.paymentIntentId) {
-        throw new Error(`Capture failed: ${captureResult.error}`);
-      }
+      if (!paymentIntentId) throw new Error("No payment intent found for this job");
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (pi.status !== "succeeded") throw new Error(`Payment not captured (status: ${pi.status})`);
+      const captureResult = { paymentIntentId };
 
       // Transfer to helpr
       const helperPayout = job.budget - (job.platform_fee_amount || 0);

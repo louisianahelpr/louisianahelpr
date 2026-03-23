@@ -103,7 +103,8 @@ export function JobTracking({
 
     // Auto-transition job status based on tracking
     if (newStatus === "done") {
-      await supabase.from("jobs").update({ status: "completed", helper_completed_at: new Date().toISOString() } as any).eq("id", jobId);
+      // Only mark helper's side as complete — the dual-confirm payment flow handles the rest
+      await supabase.from("jobs").update({ helper_completed_at: new Date().toISOString() } as any).eq("id", jobId);
     } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
       const { data: job } = await supabase
         .from("jobs")

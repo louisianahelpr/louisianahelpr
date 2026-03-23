@@ -111,15 +111,15 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       <div className="px-4 py-3 space-y-2">
         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
           {/* Date & Time */}
-          {job.special_requirements?.includes("[Flexible date]") ? (
+          {!job.start_time && !job.date_needed ? (
             <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 shrink-0" /> Flexible date{job.special_requirements?.includes("[Flexible time]") ? " & time" : formattedTime ? ` · ${formattedTime}` : ""}
+              <Calendar className="w-3 h-3 shrink-0" /> Flexible date & time
             </span>
           ) : (
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3 shrink-0" />
               {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-              {job.special_requirements?.includes("[Flexible time]") ? " · Flexible time" : formattedTime ? ` · ${formattedTime}` : ""}
+              {!job.start_time ? " · Flexible time" : formattedTime ? ` · ${formattedTime}` : ""}
             </span>
           )}
           {/* City, State */}

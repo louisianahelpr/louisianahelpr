@@ -1355,7 +1355,7 @@ const Activity = () => {
                           </Button>
                         )}
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
-                          <MessageSquare className="w-4 h-4 mr-1" /> Message Poster
+                          <MessageSquare className="w-4 h-4 mr-1" /> Message
                         </Button>
                       </div>
                     )}

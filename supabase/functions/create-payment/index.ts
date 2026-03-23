@@ -97,7 +97,6 @@ serve(async (req) => {
         line_items: lineItems,
         mode: "payment",
         payment_intent_data: {
-          capture_method: "manual",
           metadata: {
             job_id: jobId,
             customer_id: user.id,

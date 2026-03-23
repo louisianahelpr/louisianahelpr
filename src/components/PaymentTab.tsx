@@ -417,78 +417,16 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
         </div>
       )}
 
-      {/* Stripe Connect Section */}
+      {/* Payout Account — in-app setup */}
       {isHelper && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
             <BanknoteIcon className="w-5 h-5 text-primary" /> Payout Account
           </h2>
           <p className="text-sm text-muted-foreground">
-            Connect your bank account to receive automatic payouts when jobs are completed.
+            Add your bank account or debit card to receive automatic payouts when jobs are completed.
           </p>
-
-          {loadingConnect ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" /> Checking account status…
-            </div>
-          ) : !connectStatus?.connected ? (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Payout account not connected</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      You won't receive automatic payouts until you connect your bank account.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <Button onClick={startOnboarding} disabled={onboarding} className="w-full">
-                {onboarding ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up…</> : <><BanknoteIcon className="w-4 h-4 mr-2" /> Connect payout account</>}
-              </Button>
-            </div>
-          ) : !connectStatus.details_submitted ? (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-accent/10 border border-accent/20 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Setup incomplete</p>
-                    <p className="text-xs text-muted-foreground mt-1">Please complete the setup to receive payouts.</p>
-                  </div>
-                </div>
-              </div>
-              <Button onClick={startOnboarding} disabled={onboarding} className="w-full">
-                {onboarding ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading…</> : "Complete setup"}
-              </Button>
-            </div>
-          ) : !connectStatus.payouts_enabled ? (
-            <div className="rounded-lg bg-accent/10 border border-accent/20 p-4">
-              <div className="flex items-start gap-3">
-                <Loader2 className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5 animate-spin" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Verification in progress</p>
-                  <p className="text-xs text-muted-foreground mt-1">Usually takes 1–2 business days.</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Payout account active</p>
-                    <p className="text-xs text-muted-foreground mt-1">Ready to receive automatic payouts.</p>
-                  </div>
-                </div>
-              </div>
-              <Button variant="outline" onClick={openDashboard} disabled={openingDashboard} className="w-full">
-                {openingDashboard ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening…</> : <><ExternalLink className="w-4 h-4 mr-2" /> View Stripe dashboard</>}
-              </Button>
-            </div>
-          )}
+          <PayoutSetupForm />
         </div>
       )}
 

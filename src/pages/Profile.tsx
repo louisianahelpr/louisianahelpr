@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { formatName } from "@/lib/utils";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -1563,10 +1563,10 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
 );
 
 
-const LegalCard = ({ icon, title, children, variant }: { icon: React.ReactNode; title: string; children: React.ReactNode; variant?: "warning" }) => {
+const LegalCard = forwardRef<HTMLDivElement, { icon: React.ReactNode; title: string; children: React.ReactNode; variant?: "warning" }>(({ icon, title, children, variant }, ref) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className={`rounded-xl border p-4 transition-colors ${variant === "warning" ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}>
+    <div ref={ref} className={`rounded-xl border p-4 transition-colors ${variant === "warning" ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}>
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-2 text-left">
         <span className="flex items-center gap-2 font-display font-semibold text-foreground text-sm">
           {icon} {title}
@@ -1576,7 +1576,8 @@ const LegalCard = ({ icon, title, children, variant }: { icon: React.ReactNode; 
       {open && <div className="text-sm text-muted-foreground space-y-1.5 mt-3 pt-3 border-t border-border/50">{children}</div>}
     </div>
   );
-};
+});
+LegalCard.displayName = "LegalCard";
 
 const tierConfig = [
   {

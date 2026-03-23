@@ -272,6 +272,7 @@ export function PayoutSetupForm() {
                 type="password"
               />
               <p className="text-[10px] text-muted-foreground mt-1">Required by Stripe to verify your identity and enable payouts.</p>
+            </div>
           </div>
 
           <Button onClick={handleAddBank} disabled={saving} className="w-full">

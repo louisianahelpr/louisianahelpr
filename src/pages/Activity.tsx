@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";

@@ -35,7 +35,7 @@ serve(async (req) => {
     });
 
     const body = await req.json();
-    const { action, ssn_last_4 } = body;
+    const { action } = body;
 
     // Helper: get or create Custom Connect account
     const getOrCreateAccount = async () => {

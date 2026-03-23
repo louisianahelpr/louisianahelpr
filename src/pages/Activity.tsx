@@ -149,6 +149,7 @@ const Activity = () => {
   const [helperTipAmount, setHelperTipAmount] = useState("");
   const [helperTipping, setHelperTipping] = useState(false);
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
+  const [helperReviewedJobIds, setHelperReviewedJobIds] = useState<Set<string>>(new Set());
 
   // Seed from cache for instant render
   useEffect(() => {

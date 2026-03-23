@@ -42,18 +42,42 @@ serve(async (req) => {
       // Check if helper already has a Stripe Connect account
       const { data: profile } = await supabaseAdmin
         .from("profiles")
-        .select("stripe_account_id")
+        .select("stripe_account_id, full_name, phone, date_of_birth, location")
         .eq("user_id", user.id)
         .single();
 
       let accountId = profile?.stripe_account_id;
 
       if (!accountId) {
-        // Create a new Stripe Connect Express account
+        // Parse name
+        const nameParts = (profile?.full_name || "").trim().split(/\s+/);
+        const firstName = nameParts[0] || undefined;
+        const lastName = nameParts.slice(1).join(" ") || undefined;
+
+        // Parse DOB
+        let dob: { day: number; month: number; year: number } | undefined;
+        if (profile?.date_of_birth) {
+          const d = new Date(profile.date_of_birth);
+          dob = { day: d.getUTCDate(), month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
+        }
+
+        // Parse city/state from location (e.g. "Baton Rouge, LA")
+        const locParts = (profile?.location || "").split(",").map((s: string) => s.trim());
+        const city = locParts[0] || undefined;
+        const state = locParts[1] || undefined;
+
         const account = await stripe.accounts.create({
           type: "express",
           email: user.email,
           business_type: "individual",
+          individual: {
+            first_name: firstName,
+            last_name: lastName,
+            email: user.email,
+            phone: profile?.phone || undefined,
+            dob,
+            address: city ? { city, state, country: "US" } : undefined,
+          },
           capabilities: {
             transfers: { requested: true },
           },

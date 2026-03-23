@@ -75,7 +75,7 @@ export function PayoutSetupForm() {
     try {
       // Ensure account exists with SSN for verification
       await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard", ssn_last_4: ssnLast4 },
+        body: { action: "onboard", full_ssn: ssn },
       });
 
       // Add new bank first (so it becomes default), then delete old one

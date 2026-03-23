@@ -72,6 +72,11 @@ export function PayoutSetupForm() {
 
     setSaving(true);
     try {
+      // First ensure account exists with SSN
+      await supabase.functions.invoke("stripe-connect", {
+        body: { action: "onboard", ssn_last_4: ssnLast4 },
+      });
+
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: {
           action: "add_bank",

@@ -25,32 +25,14 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
   const [searchParams] = useSearchParams();
   const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const [loadingConnect, setLoadingConnect] = useState(true);
-  const [onboarding, setOnboarding] = useState(false);
-  const [openingDashboard, setOpeningDashboard] = useState(false);
-
-  // Subscription state
-  const [currentTier, setCurrentTier] = useState<SubscriptionTier>(null);
-  const [subEnd, setSubEnd] = useState<string | null>(null);
-  const [subLoading, setSubLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
-  const [billingDay, setBillingDay] = useState<number | null>(null);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
   useEffect(() => {
     checkConnectStatus();
-    checkSubscription();
     const connectParam = searchParams.get("connect");
     if (connectParam === "success") {
-      toast.success("Stripe account setup in progress. Checking status...");
+      toast.success("Payout account setup in progress. Checking status...");
     } else if (connectParam === "refresh") {
-      toast.info("Please complete your Stripe setup to receive payouts.");
-    }
-    const proParam = searchParams.get("pro");
-    if (proParam === "success") {
-      toast.success("Welcome! 🎉 Your subscription is now active.");
-      checkSubscription();
+      toast.info("Please complete your payout setup to receive payouts.");
     }
   }, []);
 
@@ -67,91 +49,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
     }
   };
 
-  const checkSubscription = async () => {
-    setSubLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("check-pro-subscription");
-      if (error) throw error;
-      setCurrentTier(data?.tier || null);
-      setSubEnd(data?.subscription_end || null);
-    } catch (err) {
-      console.error("Failed to check subscription:", err);
-    } finally {
-      setSubLoading(false);
-    }
-  };
-
-  const startOnboarding = async () => {
-    setOnboarding(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "onboard" } });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start setup");
-    } finally {
-      setOnboarding(false);
-    }
-  };
-
-  const openDashboard = async () => {
-    setOpeningDashboard(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "dashboard" } });
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to open dashboard");
-    } finally {
-      setOpeningDashboard(false);
-    }
-  };
-
-  const handleCheckout = async (tier: string) => {
-    setCheckoutLoading(tier);
-    try {
-      const body: any = { tier, billing_cycle: billingCycle };
-      if (billingCycle !== "one_time" && billingDay) body.billing_day = billingDay;
-      const { data, error } = await supabase.functions.invoke("create-pro-checkout", { body });
-      if (error) throw error;
-      if (data?.error) { toast.error(data.error); return; }
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start checkout");
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    setCancelLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("cancel-pro-subscription");
-      if (error) throw error;
-      if (data?.error) { toast.error(data.error); return; }
-      toast.success(`Subscription will cancel at the end of your billing period.`);
-      checkSubscription();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to cancel subscription");
-    } finally {
-      setCancelLoading(false);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to open portal");
-    } finally {
-      setPortalLoading(false);
-    }
-  };
-
-  const isHelper = true; // All accounts have access to the same features
+  const isHelper = true;
 
   return (
     <div className="space-y-8">

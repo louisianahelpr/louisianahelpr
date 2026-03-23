@@ -71,12 +71,14 @@ export function PayoutSetupForm() {
 
   const handleManageDashboard = async () => {
     try {
+      const returnUrl = window.location.href;
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "dashboard" },
+        body: { action: "dashboard", return_url: returnUrl },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to open dashboard");

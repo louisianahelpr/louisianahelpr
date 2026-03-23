@@ -68,19 +68,56 @@ serve(async (req) => {
       let captured = false;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (pi.status === "canceled") {
+          // Authorization expired (Stripe cancels after 7 days)
+          console.error(`Payment ${paymentIntentId} for job ${job.id} — authorization EXPIRED`);
+          await supabaseAdmin.from("jobs").update({ payment_status: "requires_repayment" }).eq("id", job.id);
+          // Notify customer
+          await supabaseAdmin.from("notifications").insert({
+            user_id: job.customer_id,
+            title: "⚠️ Payment authorization expired",
+            message: `The payment hold for "${job.title}" expired (7-day limit). Please re-submit payment so the helpr can be paid.`,
+            type: "warning", link: `/activity?tab=posted&filter=in_progress`,
+          });
+          if (job.helper_id) {
+            await supabaseAdmin.from("notifications").insert({
+              user_id: job.helper_id,
+              title: "⏳ Payout delayed — awaiting re-payment",
+              message: `The payment hold for "${job.title}" expired. The poster has been asked to re-submit payment.`,
+              type: "warning", link: `/activity?tab=applied&filter=in_progress`,
+            });
+          }
+          results.push({ job_id: job.id, status: "expired", paymentIntentId });
+          continue;
+        }
+
         if (pi.status === "requires_capture") {
           await stripe.paymentIntents.capture(paymentIntentId);
           console.log(`Auto-captured payment ${paymentIntentId} for job ${job.id}`);
           captured = true;
         } else if (pi.status === "succeeded") {
-          // Already captured (e.g. by Stripe auto-capture or webhook)
           captured = true;
         } else {
           console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot proceed`);
           results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
           continue;
         }
-      } catch (e) {
+      } catch (e: any) {
+        // Catch expired authorization errors during capture attempt
+        const code = e?.code || e?.raw?.code || "";
+        if (code === "payment_intent_unexpected_state" || String(e?.message).includes("expired")) {
+          console.error(`Capture failed — authorization expired for job ${job.id}`);
+          await supabaseAdmin.from("jobs").update({ payment_status: "requires_repayment" }).eq("id", job.id);
+          await supabaseAdmin.from("notifications").insert({
+            user_id: job.customer_id,
+            title: "⚠️ Payment authorization expired",
+            message: `The payment hold for "${job.title}" expired. Please re-submit payment.`,
+            type: "warning", link: `/activity?tab=posted&filter=in_progress`,
+          });
+          results.push({ job_id: job.id, status: "expired_during_capture" });
+          continue;
+        }
         console.error(`Failed to capture payment for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "capture_failed", error: e.message });
         continue;

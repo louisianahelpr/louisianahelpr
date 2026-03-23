@@ -107,7 +107,24 @@ export function PayoutSetupForm() {
     }
   };
 
-  if (loading) {
+  const handleReset = async () => {
+    if (!confirm("This will delete your current Stripe account and create a fresh one. Continue?")) return;
+    setResetting(true);
+    try {
+      const returnUrl = window.location.href;
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "reset", return_url: returnUrl },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reset account");
+      setResetting(false);
+    }
+  };
     return (
       <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" /> Loading payout info…

@@ -73,9 +73,9 @@ export function PayoutSetupForm() {
 
     setSaving(true);
     try {
-      // Ensure account exists
+      // Ensure account exists with SSN for verification
       await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
+        body: { action: "onboard", ssn_last_4: ssnLast4 },
       });
 
       // If editing, delete the old method first

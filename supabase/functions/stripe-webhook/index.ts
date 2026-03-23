@@ -104,11 +104,20 @@ serve(async (req) => {
           : (session.payment_intent as any)?.id;
 
         if (jobId && piId) {
-          const { error: jobError } = await supabase.from("jobs").update({
-            stripe_payment_intent_id: piId,
-          }).eq("id", jobId);
+          const isRepay = (session.metadata as any)?.repay === "true";
+          const updateData: any = { stripe_payment_intent_id: piId };
+
+          // If this is a re-payment after expired escrow, the charge is immediate
+          // (not manual capture), so schedule the payout right away
+          if (isRepay) {
+            updateData.payment_status = "payout_pending";
+            updateData.payout_scheduled_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+            logStep("Re-payment completed, scheduling payout", { jobId, pi: piId });
+          }
+
+          const { error: jobError } = await supabase.from("jobs").update(updateData).eq("id", jobId);
           if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
-          else logStep("Stored payment_intent on job", { jobId, pi: piId });
+          else logStep("Stored payment_intent on job", { jobId, pi: piId, repay: isRepay });
         } else if (jobId) {
           logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });
         }

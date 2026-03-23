@@ -270,9 +270,17 @@ const Activity = () => {
     setLoading(false);
   };
 
+  const { checkHelperStripeConnect, checking: checkingStripe } = useStripeConnectCheck();
+
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     if (accept) {
+      // Block if helper has no connected payout account
+      const stripeCheck = await checkHelperStripeConnect();
+      if (!stripeCheck.ok) {
+        toast.error(stripeCheck.reason);
+        return;
+      }
       // Keep as "accepted" — will move to "in_progress" on job date or manual start
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);

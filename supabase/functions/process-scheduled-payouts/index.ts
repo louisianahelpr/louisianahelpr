@@ -60,6 +60,37 @@ serve(async (req) => {
         continue;
       }
 
+      // Ensure payment is captured before transferring
+      let paymentIntentId = job.stripe_payment_intent_id;
+      if (!paymentIntentId && job.stripe_session_id) {
+        try {
+          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+          paymentIntentId = session.payment_intent?.id || session.payment_intent;
+          if (paymentIntentId) {
+            await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+          }
+        } catch (e) {
+          console.warn("Could not retrieve session:", e);
+        }
+      }
+
+      if (!paymentIntentId) {
+        console.error(`No payment intent for job ${job.id}, cannot process payout`);
+        continue;
+      }
+
+      // Capture if still held
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.status === "requires_capture") {
+          await stripe.paymentIntents.capture(paymentIntentId);
+          console.log(`Captured payment ${paymentIntentId} for job ${job.id}`);
+        }
+      } catch (e) {
+        console.error(`Failed to capture payment for job ${job.id}:`, e);
+        continue;
+      }
+
       // Transfer to helper
       try {
         const transferParams: any = {
@@ -70,24 +101,13 @@ serve(async (req) => {
         };
 
         // Link to source charge
-        let paymentIntentId = job.stripe_payment_intent_id;
-        if (!paymentIntentId && job.stripe_session_id) {
-          try {
-            const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
-            paymentIntentId = session.payment_intent;
-          } catch (e) {
-            console.warn("Could not retrieve session:", e);
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (pi.latest_charge) {
+            transferParams.source_transaction = pi.latest_charge;
           }
-        }
-        if (paymentIntentId) {
-          try {
-            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-            if (pi.latest_charge) {
-              transferParams.source_transaction = pi.latest_charge;
-            }
-          } catch (e) {
-            console.warn("Could not link charge:", e);
-          }
+        } catch (e) {
+          console.warn("Could not link charge:", e);
         }
 
         await stripe.transfers.create(transferParams);

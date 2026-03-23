@@ -612,23 +612,30 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 </button>
               </div>
 
-              {/* Vertical menu */}
-              <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
-                {menuItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => setTab(item.key)}
-                    className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      {item.icon}
+              {/* Grouped vertical menu */}
+              <div className="space-y-4">
+                {menuGroups.map((group) => (
+                  <div key={group.title}>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">{group.title}</p>
+                    <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                      {group.items.map((item) => (
+                        <button
+                          key={item.key}
+                          onClick={() => setTab(item.key)}
+                          className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            {item.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                            <p className="text-xs text-muted-foreground">{item.desc}</p>
+                          </div>
+                          <ChevronRightIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </button>
+                      ))}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                    <ChevronRightIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-                  </button>
+                  </div>
                 ))}
               </div>
 

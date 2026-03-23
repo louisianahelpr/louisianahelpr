@@ -50,6 +50,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);
       if (error) throw error;
 
+      // Auto-void/refund the held Stripe payment
+      try {
+        await supabase.functions.invoke("void-cancelled-payments", { body: {} });
+      } catch (voidErr) {
+        console.warn("Auto-void failed, will be cleaned up by scheduled job:", voidErr);
+      }
+
       // Track cancellation with helpr assigned — 2 warnings then permanent ban on 3rd
       if (hasHelper) {
         const { data: existing } = await (supabase.from("user_violations" as any) as any)

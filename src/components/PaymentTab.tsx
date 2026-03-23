@@ -290,12 +290,12 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                     <p className="text-sm font-medium text-foreground">Preferred billing date</p>
                     <p className="text-xs text-muted-foreground">Choose which day of the month you'd like to be billed.</p>
                   </div>
-                  <Select value={billingDay?.toString() ?? ""} onValueChange={(v) => setBillingDay(v ? Number(v) : null)}>
+                  <Select value={billingDay?.toString() ?? "auto"} onValueChange={(v) => setBillingDay(v === "auto" ? null : Number(v))}>
                     <SelectTrigger className="w-[100px]">
                       <SelectValue placeholder="Auto" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Auto</SelectItem>
+                      <SelectItem value="auto">Auto</SelectItem>
                       {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                         <SelectItem key={d} value={d.toString()}>
                           {d === 1 ? "1st" : d === 2 ? "2nd" : d === 3 ? "3rd" : `${d}th`}

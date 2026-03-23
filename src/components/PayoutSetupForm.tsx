@@ -53,12 +53,16 @@ export function PayoutSetupForm() {
   };
 
   const handleAddBank = async () => {
-    if (!routingNumber || !accountNumber || !accountHolderName) {
+    if (!routingNumber || !accountNumber || !accountHolderName || !ssnLast4) {
       toast.error("Please fill in all fields");
       return;
     }
     if (routingNumber.length !== 9) {
       toast.error("Routing number must be 9 digits");
+      return;
+    }
+    if (ssnLast4.length !== 4) {
+      toast.error("Please enter the last 4 digits of your SSN");
       return;
     }
     if (accountNumber !== confirmAccountNumber) {

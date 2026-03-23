@@ -252,6 +252,7 @@ const Activity = () => {
       // Merge helper's start requests into the shared set
       (helperStartCheckins.data || []).forEach(c => startRequestedJobIds.add(c.job_id));
       setStartRequestedJobIds(new Set(startRequestedJobIds));
+      setHelperReviewedJobIds(new Set((helperReviewsRes.data || []).map(r => r.job_id)));
       const jobs = jobsRes.data;
       const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
       const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];

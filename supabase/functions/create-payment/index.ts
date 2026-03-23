@@ -173,7 +173,12 @@ serve(async (req) => {
         updateFields.status = "in_progress";
       }
 
-      await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId);
+      const { error: updateError } = await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId);
+      if (updateError) {
+        console.error("Failed to update job:", updateError);
+        throw new Error("Failed to update job status: " + updateError.message);
+      }
+      console.log("Job updated successfully:", jobId, updateFields);
 
       const helperPayout = job.budget - (job.platform_fee_amount || 0);
 

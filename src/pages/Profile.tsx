@@ -57,6 +57,9 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
+  const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
+  const [stripeOnboarding, setStripeOnboarding] = useState(false);
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);

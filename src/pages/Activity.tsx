@@ -1366,6 +1366,7 @@ const Activity = () => {
                     {/* In Progress / Revision: actions always visible */}
                     {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
                       <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
                         <div className="grid grid-cols-2 gap-2">
                           <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
                             <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}

@@ -120,53 +120,7 @@ serve(async (req) => {
       });
     }
 
-    // ─── REPAY: Customer re-pays after expired escrow authorization ───
-    if (action === "repay_escrow") {
-      const { jobId } = body;
-      if (!jobId) throw new Error("Missing jobId");
-
-      const { data: job, error: jobError } = await supabaseAdmin
-        .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
-      if (job.customer_id !== user.id) throw new Error("Not authorized");
-      if (job.payment_status !== "requires_repayment") throw new Error("This job does not require re-payment");
-
-      const lineItems: any[] = [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Re-payment: ${job.title}`,
-              description: `Re-payment for completed job — original escrow authorization expired.`,
-            },
-            unit_amount: Math.round(job.budget * 100),
-          },
-          quantity: 1,
-        },
-      ];
-
-      // Re-payment uses immediate capture (not manual) since the job is already done
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        customer_email: customerId ? undefined : user.email,
-        line_items: lineItems,
-        mode: "payment",
-        success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}&repay=true`,
-        cancel_url: `${req.headers.get("origin")}/activity`,
-        metadata: { job_id: jobId, customer_id: user.id, repay: "true" },
-      });
-
-      // Update job with new session (PI will be stored by webhook)
-      await supabaseAdmin.from("jobs").update({
-        stripe_session_id: session.id,
-        stripe_payment_intent_id: null, // Will be set by webhook
-        payment_status: "repayment_pending",
-      }).eq("id", jobId);
-
-      return new Response(JSON.stringify({ url: session.url }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
-      });
-    }
+    // (repay_escrow action removed — immediate capture eliminates expiry risk)
 
     // ─── RELEASE: Both parties confirm → capture + transfer ───
     if (action === "release") {

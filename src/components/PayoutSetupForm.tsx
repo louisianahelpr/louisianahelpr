@@ -107,6 +107,10 @@ export function PayoutSetupForm() {
   };
 
   const handleDeleteMethod = async (methodId: string) => {
+    if (methods.length <= 1) {
+      toast.error("You must have at least one payout method. Use the edit button to replace it.");
+      return;
+    }
     setDeleting(methodId);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {

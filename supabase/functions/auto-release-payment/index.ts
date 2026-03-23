@@ -44,7 +44,7 @@ serve(async (req) => {
 
       if (!paymentIntentId && job.stripe_session_id) {
         try {
-          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
+          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
           paymentIntentId = typeof session.payment_intent === "string"
             ? session.payment_intent
             : session.payment_intent?.id;
@@ -59,78 +59,27 @@ serve(async (req) => {
       }
 
       if (!paymentIntentId) {
-        console.error(`No payment intent for job ${job.id} — cannot auto-release without captured payment`);
+        console.error(`No payment intent for job ${job.id} — cannot auto-release`);
         results.push({ job_id: job.id, status: "skipped_no_pi" });
         continue;
       }
 
-      // ── Step 2: Capture the held payment ──
-      let captured = false;
+      // ── Step 2: Verify charge is captured (immediate capture — should be succeeded) ──
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-        if (pi.status === "canceled") {
-          // Authorization expired (Stripe cancels after 7 days)
-          console.error(`Payment ${paymentIntentId} for job ${job.id} — authorization EXPIRED`);
-          await supabaseAdmin.from("jobs").update({ payment_status: "requires_repayment" }).eq("id", job.id);
-          // Notify customer
-          await supabaseAdmin.from("notifications").insert({
-            user_id: job.customer_id,
-            title: "⚠️ Payment authorization expired",
-            message: `The payment hold for "${job.title}" expired (7-day limit). Please re-submit payment so the helpr can be paid.`,
-            type: "warning", link: `/activity?tab=posted&filter=in_progress`,
-          });
-          if (job.helper_id) {
-            await supabaseAdmin.from("notifications").insert({
-              user_id: job.helper_id,
-              title: "⏳ Payout delayed — awaiting re-payment",
-              message: `The payment hold for "${job.title}" expired. The poster has been asked to re-submit payment.`,
-              type: "warning", link: `/activity?tab=applied&filter=in_progress`,
-            });
-          }
-          results.push({ job_id: job.id, status: "expired", paymentIntentId });
-          continue;
-        }
-
-        if (pi.status === "requires_capture") {
-          await stripe.paymentIntents.capture(paymentIntentId);
-          console.log(`Auto-captured payment ${paymentIntentId} for job ${job.id}`);
-          captured = true;
-        } else if (pi.status === "succeeded") {
-          captured = true;
-        } else {
-          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot proceed`);
+        if (pi.status !== "succeeded") {
+          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot auto-release`);
           results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
           continue;
         }
       } catch (e: any) {
-        // Catch expired authorization errors during capture attempt
-        const code = e?.code || e?.raw?.code || "";
-        if (code === "payment_intent_unexpected_state" || String(e?.message).includes("expired")) {
-          console.error(`Capture failed — authorization expired for job ${job.id}`);
-          await supabaseAdmin.from("jobs").update({ payment_status: "requires_repayment" }).eq("id", job.id);
-          await supabaseAdmin.from("notifications").insert({
-            user_id: job.customer_id,
-            title: "⚠️ Payment authorization expired",
-            message: `The payment hold for "${job.title}" expired. Please re-submit payment.`,
-            type: "warning", link: `/activity?tab=posted&filter=in_progress`,
-          });
-          results.push({ job_id: job.id, status: "expired_during_capture" });
-          continue;
-        }
-        console.error(`Failed to capture payment for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "capture_failed", error: e.message });
+        console.error(`Failed to verify payment for job ${job.id}:`, e);
+        results.push({ job_id: job.id, status: "verify_failed", error: e.message });
         continue;
       }
 
-      // ── Step 3: Verify capture succeeded before scheduling payout ──
-      if (!captured) {
-        console.error(`Capture not confirmed for job ${job.id} — aborting payout scheduling`);
-        results.push({ job_id: job.id, status: "capture_unconfirmed" });
-        continue;
-      }
-
-      // ── Step 4: Only now schedule the payout ──
+      // ── Step 3: Schedule the payout ──
       const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       await supabaseAdmin
@@ -151,7 +100,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job auto-completed",
-          message: `"${job.title}" was automatically marked complete after 72 hours. Payment has been captured and the helpr will be paid in 24 hours.`,
+          message: `"${job.title}" was automatically marked complete after 72 hours. The helpr will be paid in 24 hours.`,
           type: "info", link: "/activity?tab=posted&filter=completed",
         });
       }

@@ -164,19 +164,32 @@ export function PayoutSetupForm() {
                   )}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteMethod(m.id)}
-                disabled={deleting === m.id}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                {deleting === m.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingMethodId(m.id);
+                    setFormMode(m.type === "bank_account" ? "bank" : "card");
+                  }}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteMethod(m.id)}
+                  disabled={deleting === m.id}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  {deleting === m.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           ))}
         </div>

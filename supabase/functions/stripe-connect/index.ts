@@ -37,8 +37,8 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // Helper: get or create Custom Connect account
-    const getOrCreateAccount = async (ssnLast4?: string, fullSsn?: string) => {
+    // Helper: get or create Connect account
+    const getOrCreateAccount = async () => {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")
@@ -58,28 +58,8 @@ serve(async (req) => {
           dob = { day: d.getUTCDate(), month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
         }
 
-        const locParts = (profile?.location || "").split(",").map((s: string) => s.trim());
-        const city = locParts[0] || undefined;
-        const state = locParts[1] || undefined;
-
-        const individualData: any = {
-          first_name: firstName,
-          last_name: lastName,
-          email: user.email,
-          phone: profile?.phone || undefined,
-          dob,
-          address: city ? { city, state, country: "US" } : undefined,
-        };
-
-        // Prefer full SSN over last 4 for verification
-        if (fullSsn) {
-          individualData.id_number = fullSsn;
-        } else if (ssnLast4) {
-          individualData.ssn_last_4 = ssnLast4;
-        }
-
         const account = await stripe.accounts.create({
-          type: "custom",
+          type: "express",
           country: "US",
           email: user.email,
           business_type: "individual",
@@ -87,13 +67,15 @@ serve(async (req) => {
             mcc: "7299",
             product_description: "Local task and errand services",
           },
-          individual: individualData,
+          individual: {
+            first_name: firstName,
+            last_name: lastName,
+            email: user.email,
+            phone: profile?.phone || undefined,
+            dob,
+          },
           capabilities: {
             transfers: { requested: true },
-          },
-          tos_acceptance: {
-            date: Math.floor(Date.now() / 1000),
-            ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0",
           },
           settings: {
             payouts: { schedule: { interval: "manual" } },
@@ -106,84 +88,24 @@ serve(async (req) => {
           .from("profiles")
           .update({ stripe_account_id: accountId })
           .eq("user_id", user.id);
-      } else {
-        // Account exists — update SSN if provided
-        const updateData: any = {};
-        if (fullSsn) {
-          updateData.id_number = fullSsn;
-        } else if (ssnLast4) {
-          updateData.ssn_last_4 = ssnLast4;
-        }
-        if (Object.keys(updateData).length > 0) {
-          await stripe.accounts.update(accountId, { individual: updateData });
-        }
       }
 
       return { accountId, profile };
     };
 
-    // ─── CREATE CUSTOM ACCOUNT (no redirect needed) ───
+    // ─── ONBOARD: Create account + return Account Link URL ───
     if (action === "onboard") {
-      const { ssn_last_4, full_ssn } = body;
-      const { accountId } = await getOrCreateAccount(ssn_last_4, full_ssn);
-
-      return new Response(JSON.stringify({ success: true, account_id: accountId }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // ─── ADD BANK ACCOUNT ───
-    if (action === "add_bank") {
-      const { routing_number, account_number, account_holder_name } = body;
-      if (!routing_number || !account_number || !account_holder_name) {
-        throw new Error("Missing bank account details");
-      }
-
+      const { return_url } = body;
       const { accountId } = await getOrCreateAccount();
 
-      // Create external bank account and set as default
-      const bankAccount = await stripe.accounts.createExternalAccount(accountId, {
-        external_account: {
-          object: "bank_account",
-          country: "US",
-          currency: "usd",
-          routing_number,
-          account_number,
-          account_holder_name,
-          account_holder_type: "individual",
-        } as any,
-        default_for_currency: true,
-      } as any);
-
-      return new Response(JSON.stringify({
-        success: true,
-        bank_last4: (bankAccount as any).last4,
-        bank_name: (bankAccount as any).bank_name,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // ─── ADD DEBIT CARD ───
-    if (action === "add_card") {
-      const { token: cardToken } = body;
-      if (!cardToken) {
-        throw new Error("Missing card token");
-      }
-
-      const { accountId } = await getOrCreateAccount();
-
-      const card = await stripe.accounts.createExternalAccount(accountId, {
-        external_account: cardToken,
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        type: "account_onboarding",
       });
 
-      return new Response(JSON.stringify({
-        success: true,
-        card_last4: (card as any).last4,
-        card_brand: (card as any).brand,
-      }), {
+      return new Response(JSON.stringify({ success: true, url: accountLink.url, account_id: accountId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -208,7 +130,7 @@ serve(async (req) => {
 
       const methods = accounts.data.map((m: any) => ({
         id: m.id,
-        type: m.object, // "bank_account" or "card"
+        type: m.object,
         last4: m.last4,
         bank_name: m.bank_name || null,
         brand: m.brand || null,
@@ -258,18 +180,12 @@ serve(async (req) => {
       }
 
       const account = await stripe.accounts.retrieve(profile.stripe_account_id);
-
-      // Check if they have at least one external account
-      const externalAccounts = await stripe.accounts.listExternalAccounts(profile.stripe_account_id, { limit: 1 });
-      const hasPayoutMethod = externalAccounts.data.length > 0;
-
-      // Get capability status
       const transfersCapability = account.capabilities?.transfers;
 
       return new Response(JSON.stringify({
         connected: true,
-        details_submitted: hasPayoutMethod,
-        payouts_enabled: hasPayoutMethod && (account.payouts_enabled ?? false),
+        details_submitted: account.details_submitted ?? false,
+        payouts_enabled: account.payouts_enabled ?? false,
         charges_enabled: account.charges_enabled,
         transfers_status: transfersCapability || "inactive",
         requirements: account.requirements?.currently_due || [],
@@ -280,7 +196,7 @@ serve(async (req) => {
       });
     }
 
-    // ─── DASHBOARD (for Custom accounts, just return status) ───
+    // ─── DASHBOARD: Generate Express login link ───
     if (action === "dashboard") {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
@@ -290,8 +206,33 @@ serve(async (req) => {
 
       if (!profile?.stripe_account_id) throw new Error("No account connected");
 
-      // Custom accounts don't have Express login links; return to payment tab
-      return new Response(JSON.stringify({ url: null, message: "Manage your payout methods in Payment Settings." }), {
+      const loginLink = await stripe.accounts.createLoginLink(profile.stripe_account_id);
+
+      return new Response(JSON.stringify({ url: loginLink.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // ─── UPDATE ONBOARDING: Return new Account Link for incomplete accounts ───
+    if (action === "update_onboarding") {
+      const { return_url } = body;
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile?.stripe_account_id) throw new Error("No account connected");
+
+      const accountLink = await stripe.accountLinks.create({
+        account: profile.stripe_account_id,
+        refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        type: "account_onboarding",
+      });
+
+      return new Response(JSON.stringify({ url: accountLink.url }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });

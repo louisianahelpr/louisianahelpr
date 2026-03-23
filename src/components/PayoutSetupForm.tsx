@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  BanknoteIcon, CreditCard, CheckCircle, AlertCircle, Loader2, Trash2, Plus, Building2, Pencil,
+  CheckCircle, AlertCircle, Loader2, Trash2, Building2, CreditCard, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,98 +15,77 @@ type PayoutMethod = {
   default_for_currency: boolean;
 };
 
-type FormMode = "none" | "bank" | "card";
+type AccountStatus = {
+  connected: boolean;
+  details_submitted: boolean;
+  payouts_enabled: boolean;
+  transfers_status: string;
+  requirements: string[];
+};
 
 export function PayoutSetupForm() {
   const [methods, setMethods] = useState<PayoutMethod[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formMode, setFormMode] = useState<FormMode>("none");
-  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<AccountStatus | null>(null);
+  const [onboarding, setOnboarding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
-
-  // Bank form
-  const [routingNumber, setRoutingNumber] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
-  const [accountHolderName, setAccountHolderName] = useState("");
-  const [ssn, setSsn] = useState("");
 
   useEffect(() => {
-    loadMethods();
+    loadData();
   }, []);
 
-  const loadMethods = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "list_payout_methods" },
-      });
-      if (error) throw error;
-      setMethods(data?.methods || []);
+      const [methodsRes, statusRes] = await Promise.all([
+        supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } }),
+        supabase.functions.invoke("stripe-connect", { body: { action: "status" } }),
+      ]);
+      if (!methodsRes.error) setMethods(methodsRes.data?.methods || []);
+      if (!statusRes.error) setStatus(statusRes.data || null);
     } catch (err: any) {
-      console.error("Failed to load payout methods:", err);
+      console.error("Failed to load payout data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddBank = async () => {
-    if (!routingNumber || !accountNumber || !accountHolderName || !ssn) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    if (ssn.length !== 9) {
-      toast.error("Please enter your full 9-digit SSN");
-      return;
-    }
-    if (routingNumber.length !== 9) {
-      toast.error("Routing number must be 9 digits");
-      return;
-    }
-    if (accountNumber !== confirmAccountNumber) {
-      toast.error("Account numbers don't match");
-      return;
-    }
-
-    setSaving(true);
+  const handleOnboard = async () => {
+    setOnboarding(true);
     try {
-      // Ensure account exists with SSN for verification
-      await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard", full_ssn: ssn },
-      });
-
-      // Add new bank first (so it becomes default), then delete old one
+      const returnUrl = window.location.href;
+      const action = status?.connected && !status?.details_submitted ? "update_onboarding" : "onboard";
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: {
-          action: "add_bank",
-          routing_number: routingNumber,
-          account_number: accountNumber,
-          account_holder_name: accountHolderName,
-        },
+        body: { action, return_url: returnUrl },
       });
-
-      if (editingMethodId) {
-        // Now that the new bank is the default, we can delete the old one
-        await supabase.functions.invoke("stripe-connect", {
-          body: { action: "delete_payout_method", method_id: editingMethodId },
-        });
-      }
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Bank account ending in ${data.bank_last4} added!`);
-      resetForm();
-      loadMethods();
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to add bank account");
-    } finally {
-      setSaving(false);
+      toast.error(err.message || "Failed to start onboarding");
+      setOnboarding(false);
+    }
+  };
+
+  const handleManageDashboard = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "dashboard" },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to open dashboard");
     }
   };
 
   const handleDeleteMethod = async (methodId: string) => {
     if (methods.length <= 1) {
-      toast.error("You must have at least one payout method. Use the edit button to replace it.");
+      toast.error("You must have at least one payout method. Use Stripe dashboard to update it.");
       return;
     }
     setDeleting(methodId);
@@ -119,7 +96,7 @@ export function PayoutSetupForm() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success("Payout method removed");
-      loadMethods();
+      loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to remove method");
     } finally {
@@ -127,26 +104,62 @@ export function PayoutSetupForm() {
     }
   };
 
-  const resetForm = () => {
-    setFormMode("none");
-    setRoutingNumber("");
-    setAccountNumber("");
-    setConfirmAccountNumber("");
-    setAccountHolderName("");
-    setSsn("");
-    setEditingMethodId(null);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" /> Loading payout methods…
+        <Loader2 className="w-4 h-4 animate-spin" /> Loading payout info…
       </div>
     );
   }
 
+  const isFullyOnboarded = status?.connected && status?.details_submitted && status?.payouts_enabled;
+  const needsMoreInfo = status?.connected && (!status?.details_submitted || (status?.requirements?.length ?? 0) > 0);
+
   return (
     <div className="space-y-4">
+      {/* Not connected at all */}
+      {!status?.connected && (
+        <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">No payout account connected</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Set up your payout account through Stripe to receive payments for completed jobs.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Needs more info */}
+      {needsMoreInfo && (
+        <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Verification incomplete</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Stripe needs more information to enable payouts. Click below to complete your setup.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Setup / Complete setup button */}
+      {!isFullyOnboarded && (
+        <Button onClick={handleOnboard} disabled={onboarding} className="w-full">
+          {onboarding ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
+          ) : needsMoreInfo ? (
+            <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
+          ) : (
+            <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+          )}
+        </Button>
+      )}
+
       {/* Existing methods */}
       {methods.length > 0 && (
         <div className="space-y-2">
@@ -175,180 +188,39 @@ export function PayoutSetupForm() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setEditingMethodId(m.id);
-                    setFormMode(m.type === "bank_account" ? "bank" : "card");
-                  }}
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteMethod(m.id)}
-                  disabled={deleting === m.id}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  {deleting === m.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteMethod(m.id)}
+                disabled={deleting === m.id}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                {deleting === m.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+              </Button>
             </div>
           ))}
         </div>
       )}
 
-      {/* No methods prompt */}
-      {methods.length === 0 && formMode === "none" && (
-        <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-foreground">No payout method connected</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Add a bank account or debit card to receive payouts for completed jobs.
+      {/* Manage via Stripe dashboard */}
+      {isFullyOnboarded && (
+        <>
+          <Button variant="outline" onClick={handleManageDashboard} className="w-full">
+            <ExternalLink className="w-4 h-4 mr-2" /> Manage payouts on Stripe
+          </Button>
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                Payouts will be automatically sent to your default method when jobs are completed.
               </p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Add method buttons */}
-      {formMode === "none" && (
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => setFormMode("bank")} className="h-auto py-3 flex-col gap-1">
-            <Building2 className="w-5 h-5 text-primary" />
-            <span className="text-xs">Bank Account</span>
-          </Button>
-          <Button variant="outline" onClick={() => setFormMode("card")} className="h-auto py-3 flex-col gap-1">
-            <CreditCard className="w-5 h-5 text-primary" />
-            <span className="text-xs">Debit Card</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Bank Account Form */}
-      {formMode === "bank" && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" /> {editingMethodId ? "Edit Bank Account" : "Add Bank Account"}
-            </h3>
-            <Button variant="ghost" size="sm" onClick={resetForm} className="text-xs text-muted-foreground">
-              Cancel
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="holder-name" className="text-xs">Account holder name</Label>
-              <Input
-                id="holder-name"
-                value={accountHolderName}
-                onChange={(e) => setAccountHolderName(e.target.value)}
-                placeholder="Full legal name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="routing" className="text-xs">Routing number</Label>
-              <Input
-                id="routing"
-                value={routingNumber}
-                onChange={(e) => setRoutingNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                placeholder="9-digit routing number"
-                inputMode="numeric"
-              />
-            </div>
-            <div>
-              <Label htmlFor="account" className="text-xs">Account number</Label>
-              <Input
-                id="account"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
-                placeholder="Account number"
-                inputMode="numeric"
-              />
-            </div>
-            <div>
-              <Label htmlFor="confirm-account" className="text-xs">Confirm account number</Label>
-              <Input
-                id="confirm-account"
-                value={confirmAccountNumber}
-                onChange={(e) => setConfirmAccountNumber(e.target.value.replace(/\D/g, ""))}
-                placeholder="Re-enter account number"
-                inputMode="numeric"
-              />
-            </div>
-            <div>
-              <Label htmlFor="ssn" className="text-xs">Social Security Number</Label>
-              <Input
-                id="ssn"
-                type="password"
-                value={ssn}
-                onChange={(e) => setSsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                placeholder="9-digit SSN"
-                inputMode="numeric"
-                maxLength={9}
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification. Sent securely and never stored on our servers.</p>
-            </div>
-          </div>
-
-          <Button onClick={handleAddBank} disabled={saving} className="w-full">
-            {saving ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Adding…</>
-            ) : (
-              <><Plus className="w-4 h-4 mr-2" /> {editingMethodId ? "Update bank account" : "Add bank account"}</>
-            )}
-          </Button>
-
-          <p className="text-[11px] text-muted-foreground text-center">
-            Your banking info is sent directly to Stripe and never stored on our servers.
-          </p>
-        </div>
-      )}
-
-      {/* Debit Card Form — placeholder since tokenization requires Stripe.js */}
-      {formMode === "card" && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-primary" /> Add Debit Card
-            </h3>
-            <Button variant="ghost" size="sm" onClick={resetForm} className="text-xs text-muted-foreground">
-              Cancel
-            </Button>
-          </div>
-          <div className="rounded-lg bg-secondary/30 p-4 text-center space-y-2">
-            <CreditCard className="w-8 h-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">
-              Debit card payouts coming soon! For now, please add a bank account.
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => setFormMode("bank")} className="w-full">
-            Add bank account instead
-          </Button>
-        </div>
-      )}
-
-      {/* Success state */}
-      {methods.length > 0 && (
-        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-primary shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              Payouts will be automatically sent to your default method when jobs are completed.
-            </p>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

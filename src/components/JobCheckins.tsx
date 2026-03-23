@@ -247,8 +247,8 @@ export function JobCheckins({
               disabled={!sosMessage.trim() || loading}
               onClick={async (e) => {
                 e.preventDefault();
-                setNote(sosMessage.trim());
-                await doCheckin("sos");
+                await doCheckin("sos", sosMessage.trim());
+                setSosOpen(false);
                 setSosOpen(false);
                 setSosMessage("");
               }}

@@ -32,7 +32,7 @@ export function PayoutSetupForm() {
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
   const [accountHolderName, setAccountHolderName] = useState("");
-  const [ssnLast4, setSsnLast4] = useState("");
+  const [ssn, setSsn] = useState("");
 
   useEffect(() => {
     loadMethods();
@@ -54,12 +54,12 @@ export function PayoutSetupForm() {
   };
 
   const handleAddBank = async () => {
-    if (!routingNumber || !accountNumber || !accountHolderName || !ssnLast4) {
+    if (!routingNumber || !accountNumber || !accountHolderName || !ssn) {
       toast.error("Please fill in all fields");
       return;
     }
-    if (ssnLast4.length !== 4) {
-      toast.error("Please enter the last 4 digits of your SSN");
+    if (ssn.length !== 9) {
+      toast.error("Please enter your full 9-digit SSN");
       return;
     }
     if (routingNumber.length !== 9) {
@@ -75,7 +75,7 @@ export function PayoutSetupForm() {
     try {
       // Ensure account exists with SSN for verification
       await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard", ssn_last_4: ssnLast4 },
+        body: { action: "onboard", full_ssn: ssn },
       });
 
       // Add new bank first (so it becomes default), then delete old one
@@ -133,7 +133,7 @@ export function PayoutSetupForm() {
     setAccountNumber("");
     setConfirmAccountNumber("");
     setAccountHolderName("");
-    setSsnLast4("");
+    setSsn("");
     setEditingMethodId(null);
   };
 
@@ -288,16 +288,17 @@ export function PayoutSetupForm() {
               />
             </div>
             <div>
-              <Label htmlFor="ssn-last4" className="text-xs">Last 4 of SSN</Label>
+              <Label htmlFor="ssn" className="text-xs">Social Security Number</Label>
               <Input
-                id="ssn-last4"
-                value={ssnLast4}
-                onChange={(e) => setSsnLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="Last 4 digits"
+                id="ssn"
+                type="password"
+                value={ssn}
+                onChange={(e) => setSsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                placeholder="9-digit SSN"
                 inputMode="numeric"
-                maxLength={4}
+                maxLength={9}
               />
-              <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification. Sent securely and never stored on our servers.</p>
             </div>
           </div>
 

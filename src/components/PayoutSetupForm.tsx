@@ -288,16 +288,17 @@ export function PayoutSetupForm() {
               />
             </div>
             <div>
-              <Label htmlFor="ssn-last4" className="text-xs">Last 4 of SSN</Label>
+              <Label htmlFor="ssn" className="text-xs">Social Security Number</Label>
               <Input
-                id="ssn-last4"
-                value={ssnLast4}
-                onChange={(e) => setSsnLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="Last 4 digits"
+                id="ssn"
+                type="password"
+                value={ssn}
+                onChange={(e) => setSsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                placeholder="9-digit SSN"
                 inputMode="numeric"
-                maxLength={4}
+                maxLength={9}
               />
-              <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification. Sent securely and never stored on our servers.</p>
             </div>
           </div>
 

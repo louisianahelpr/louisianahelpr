@@ -68,8 +68,13 @@ serve(async (req) => {
 
         const account = await stripe.accounts.create({
           type: "express",
+          country: "US",
           email: user.email,
           business_type: "individual",
+          business_profile: {
+            mcc: "7299", // Miscellaneous personal services
+            product_description: "Local task and errand services",
+          },
           individual: {
             first_name: firstName,
             last_name: lastName,
@@ -80,6 +85,11 @@ serve(async (req) => {
           },
           capabilities: {
             transfers: { requested: true },
+          },
+          settings: {
+            payouts: {
+              schedule: { interval: "manual" },
+            },
           },
           metadata: { user_id: user.id },
         });

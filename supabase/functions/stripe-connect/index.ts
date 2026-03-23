@@ -38,7 +38,7 @@ serve(async (req) => {
     const { action } = body;
 
     // Helper: get or create Custom Connect account
-    const getOrCreateAccount = async (ssnLast4?: string) => {
+    const getOrCreateAccount = async (ssnLast4?: string, fullSsn?: string) => {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")
@@ -62,6 +62,22 @@ serve(async (req) => {
         const city = locParts[0] || undefined;
         const state = locParts[1] || undefined;
 
+        const individualData: any = {
+          first_name: firstName,
+          last_name: lastName,
+          email: user.email,
+          phone: profile?.phone || undefined,
+          dob,
+          address: city ? { city, state, country: "US" } : undefined,
+        };
+
+        // Prefer full SSN over last 4 for verification
+        if (fullSsn) {
+          individualData.id_number = fullSsn;
+        } else if (ssnLast4) {
+          individualData.ssn_last_4 = ssnLast4;
+        }
+
         const account = await stripe.accounts.create({
           type: "custom",
           country: "US",
@@ -71,15 +87,7 @@ serve(async (req) => {
             mcc: "7299",
             product_description: "Local task and errand services",
           },
-          individual: {
-            first_name: firstName,
-            last_name: lastName,
-            email: user.email,
-            phone: profile?.phone || undefined,
-            dob,
-            address: city ? { city, state, country: "US" } : undefined,
-            ssn_last_4: ssnLast4 || undefined,
-          },
+          individual: individualData,
           capabilities: {
             transfers: { requested: true },
           },
@@ -98,11 +106,17 @@ serve(async (req) => {
           .from("profiles")
           .update({ stripe_account_id: accountId })
           .eq("user_id", user.id);
-      } else if (ssnLast4) {
-        // Account exists but SSN provided — update it
-        await stripe.accounts.update(accountId, {
-          individual: { ssn_last_4: ssnLast4 },
-        });
+      } else {
+        // Account exists — update SSN if provided
+        const updateData: any = {};
+        if (fullSsn) {
+          updateData.id_number = fullSsn;
+        } else if (ssnLast4) {
+          updateData.ssn_last_4 = ssnLast4;
+        }
+        if (Object.keys(updateData).length > 0) {
+          await stripe.accounts.update(accountId, { individual: updateData });
+        }
       }
 
       return { accountId, profile };

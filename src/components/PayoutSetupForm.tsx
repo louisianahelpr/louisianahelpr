@@ -32,7 +32,7 @@ export function PayoutSetupForm() {
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
   const [accountHolderName, setAccountHolderName] = useState("");
-  const [ssnLast4, setSsnLast4] = useState("");
+  const [ssn, setSsn] = useState("");
 
   useEffect(() => {
     loadMethods();

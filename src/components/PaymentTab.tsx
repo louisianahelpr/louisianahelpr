@@ -295,7 +295,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
                       <SelectValue placeholder="Auto" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Auto</SelectItem>
+                      <SelectItem value="auto">Auto</SelectItem>
                       {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                         <SelectItem key={d} value={d.toString()}>
                           {d === 1 ? "1st" : d === 2 ? "2nd" : d === 3 ? "3rd" : `${d}th`}

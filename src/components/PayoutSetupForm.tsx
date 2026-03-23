@@ -134,9 +134,9 @@ export function PayoutSetupForm() {
 
       {/* Needs more info */}
       {needsMoreInfo && (
-        <div className="rounded-lg bg-warning/10 border border-warning/20 p-4">
+        <div className="rounded-lg bg-accent/50 border border-accent p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-foreground">Verification incomplete</p>
               <p className="text-xs text-muted-foreground mt-1">

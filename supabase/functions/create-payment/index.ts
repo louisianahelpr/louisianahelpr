@@ -161,26 +161,24 @@ serve(async (req) => {
       const bothDone = posterDone && helperDone;
 
       if (bothDone) {
-        // Capture the held payment
-        const captureResult = await captureEscrowPayment(stripe, supabaseAdmin, job);
-
-        if (captureResult.status === "expired") {
-          // Authorization expired — cannot charge the customer
-          await handleExpiredEscrow(supabaseAdmin, job);
-          return new Response(JSON.stringify({
-            success: false,
-            error: "Payment authorization has expired. The poster has been notified to re-submit payment.",
-            expired: true,
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 402,
-          });
+        // Payment was already captured at checkout (immediate capture).
+        // Verify the charge succeeded before scheduling payout.
+        let paymentIntentId = job.stripe_payment_intent_id;
+        if (!paymentIntentId && job.stripe_session_id) {
+          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+          paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+          if (paymentIntentId) {
+            await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+          }
+        }
+        if (paymentIntentId) {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (pi.status !== "succeeded") {
+            throw new Error(`Payment not captured (status: ${pi.status}). Cannot release payout.`);
+          }
         }
 
-        if (captureResult.status === "failed" || !captureResult.paymentIntentId) {
-          throw new Error(`Payment capture failed: ${captureResult.error}. Payout blocked.`);
-        }
-
-        // Charge confirmed captured — schedule payout
+        // Charge confirmed — schedule payout
         const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         updateFields.payout_scheduled_at = payoutTime;
         updateFields.status = "completed";

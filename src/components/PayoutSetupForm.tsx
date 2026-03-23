@@ -53,16 +53,12 @@ export function PayoutSetupForm() {
   };
 
   const handleAddBank = async () => {
-    if (!routingNumber || !accountNumber || !accountHolderName || !ssnLast4) {
+    if (!routingNumber || !accountNumber || !accountHolderName) {
       toast.error("Please fill in all fields");
       return;
     }
     if (routingNumber.length !== 9) {
       toast.error("Routing number must be 9 digits");
-      return;
-    }
-    if (ssnLast4.length !== 4) {
-      toast.error("Please enter the last 4 digits of your SSN");
       return;
     }
     if (accountNumber !== confirmAccountNumber) {
@@ -72,10 +68,17 @@ export function PayoutSetupForm() {
 
     setSaving(true);
     try {
-      // First ensure account exists with SSN
+      // Ensure account exists
       await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard", ssn_last_4: ssnLast4 },
+        body: { action: "onboard" },
       });
+
+      // If editing, delete the old method first
+      if (editingMethodId) {
+        await supabase.functions.invoke("stripe-connect", {
+          body: { action: "delete_payout_method", method_id: editingMethodId },
+        });
+      }
 
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: {

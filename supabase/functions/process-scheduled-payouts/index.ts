@@ -25,7 +25,6 @@ serve(async (req) => {
   try {
     const now = new Date().toISOString();
 
-    // Find jobs where payout is scheduled and due
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
       .select("id, title, helper_id, customer_id, budget, platform_fee_amount, stripe_session_id, stripe_payment_intent_id, status")
@@ -85,67 +84,20 @@ serve(async (req) => {
         continue;
       }
 
-      // ── Step 3: Verify charge is captured (succeeded) BEFORE transferring ──
-      let piStatus: string;
+      // ── Step 3: Verify charge is captured (immediate capture — should be succeeded) ──
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-        piStatus = pi.status;
 
-        // Detect expired authorization
-        if (pi.status === "canceled") {
-          console.error(`Payment ${paymentIntentId} for job ${job.id} — authorization EXPIRED`);
-          await supabaseAdmin.from("jobs").update({ payment_status: "requires_repayment" }).eq("id", job.id);
-          await supabaseAdmin.from("notifications").insert({
-            user_id: job.customer_id,
-            title: "⚠️ Payment authorization expired",
-            message: `The payment hold for "${job.title}" expired (7-day limit). Please re-submit payment so the helpr can be paid.`,
-            type: "warning", link: `/activity?tab=posted&filter=in_progress`,
-          });
-          if (job.helper_id) {
-            await supabaseAdmin.from("notifications").insert({
-              user_id: job.helper_id,
-              title: "⏳ Payout delayed — awaiting re-payment",
-              message: `The payment hold for "${job.title}" expired. The poster has been asked to re-submit payment.`,
-              type: "warning", link: `/activity?tab=applied&filter=in_progress`,
-            });
-          }
-          results.push({ job_id: job.id, status: "expired", paymentIntentId });
-          continue;
-        }
-
-        if (pi.status === "requires_capture") {
-          try {
-            await stripe.paymentIntents.capture(paymentIntentId);
-            console.log(`Captured payment ${paymentIntentId} for job ${job.id}`);
-            piStatus = "succeeded";
-          } catch (captureErr: any) {
-            const code = captureErr?.code || captureErr?.raw?.code || "";
-            if (code === "payment_intent_unexpected_state" || String(captureErr?.message).includes("expired")) {
-              console.error(`Capture failed — authorization expired for job ${job.id}`);
-              await supabaseAdmin.from("jobs").update({ payment_status: "requires_repayment" }).eq("id", job.id);
-              await supabaseAdmin.from("notifications").insert({
-                user_id: job.customer_id,
-                title: "⚠️ Payment authorization expired",
-                message: `The payment hold for "${job.title}" expired. Please re-submit payment.`,
-                type: "warning", link: `/activity?tab=posted&filter=in_progress`,
-              });
-              results.push({ job_id: job.id, status: "expired_during_capture" });
-              continue;
-            }
-            throw captureErr;
-          }
-        }
-
-        if (piStatus !== "succeeded") {
-          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${piStatus}" — CANNOT transfer funds. Aborting payout.`);
-          results.push({ job_id: job.id, status: `pi_not_succeeded_${piStatus}`, skipped: true });
+        if (pi.status !== "succeeded") {
+          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
+          results.push({ job_id: job.id, status: `pi_not_succeeded_${pi.status}`, skipped: true });
           const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
           if (adminRoles) {
             for (const admin of adminRoles) {
               await supabaseAdmin.from("notifications").insert({
                 user_id: admin.user_id,
                 title: "⚠️ Payout blocked — charge not captured",
-                message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${piStatus}.`,
+                message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
                 type: "warning", link: "/admin",
               });
             }
@@ -153,8 +105,8 @@ serve(async (req) => {
           continue;
         }
       } catch (e: any) {
-        console.error(`Failed to verify/capture payment for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "capture_error", error: e.message });
+        console.error(`Failed to verify payment for job ${job.id}:`, e);
+        results.push({ job_id: job.id, status: "verify_error", error: e.message });
         continue;
       }
 
@@ -198,7 +150,6 @@ serve(async (req) => {
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "transfer_failed", error: e.message });
-        // Notify admin
         const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
         if (adminRoles) {
           for (const admin of adminRoles) {

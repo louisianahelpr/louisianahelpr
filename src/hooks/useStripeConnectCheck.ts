@@ -24,9 +24,8 @@ export function useStripeConnectCheck() {
       if (!status.details_submitted) {
         return { ok: false, reason: "Your payout account setup is incomplete. Go to Profile → Payment Settings to finish it." };
       }
-      if (!status.payouts_enabled) {
-        return { ok: false, reason: "Your payout account is still being verified. Please wait 1–2 business days before accepting jobs." };
-      }
+      // Allow applying as long as a payout method is on file.
+      // Stripe may still be verifying the account, but that shouldn't block job applications.
       return { ok: true };
     } catch {
       return { ok: false, reason: "Unable to verify your payout account. Please try again." };

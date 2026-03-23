@@ -57,6 +57,9 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
+  const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
+  const [stripeOnboarding, setStripeOnboarding] = useState(false);
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
@@ -224,6 +227,39 @@ const ProfilePage = () => {
     if (tab === "reviews") loadReviews();
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
+
+  // Check Stripe Connect status for helpers
+  useEffect(() => {
+    if (profile?.role === "helper" && profile?.approval_status === "approved" && !stripeConnectStatus) {
+      checkStripeConnect();
+    }
+  }, [profile]);
+
+  const checkStripeConnect = async () => {
+    setStripeConnectLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
+      if (error) throw error;
+      setStripeConnectStatus(data);
+    } catch {
+      setStripeConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
+    } finally {
+      setStripeConnectLoading(false);
+    }
+  };
+
+  const startStripeOnboarding = async () => {
+    setStripeOnboarding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "onboard" } });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start payout setup");
+    } finally {
+      setStripeOnboarding(false);
+    }
+  };
 
   const loadEarnings = async () => {
     if (!user) return;
@@ -508,6 +544,36 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                   )}
                 </div>
               </div>
+
+              {/* Stripe Connect Banner for helpers without payout account */}
+              {role === "helper" && profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
+                <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        {!stripeConnectStatus.connected ? "Set up your payout account" : !stripeConnectStatus.details_submitted ? "Complete your payout setup" : "Payout verification in progress"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {!stripeConnectStatus.connected
+                          ? "You need to connect a bank account before you can accept jobs and receive payments."
+                          : !stripeConnectStatus.details_submitted
+                          ? "Your payout account setup is incomplete. Please finish it to receive payments."
+                          : "Your account is being verified. This usually takes 1–2 business days."}
+                      </p>
+                    </div>
+                  </div>
+                  {(!stripeConnectStatus.connected || !stripeConnectStatus.details_submitted) && (
+                    <Button onClick={startStripeOnboarding} disabled={stripeOnboarding} className="w-full" size="sm">
+                      {stripeOnboarding ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up…</>
+                      ) : (
+                        <><CreditCard className="w-4 h-4 mr-2" /> {stripeConnectStatus.connected ? "Complete setup" : "Connect payout account"}</>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Quick stats */}
               <div className="grid grid-cols-4 gap-2">

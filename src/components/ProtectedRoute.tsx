@@ -21,8 +21,8 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     return <Navigate to="/login" replace />;
   }
 
-  // Banned users
-  if (profile?.ban_status === "banned") {
+  // Banned users (temp or permanent)
+  if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
     return <Navigate to="/login" replace />;
   }
 

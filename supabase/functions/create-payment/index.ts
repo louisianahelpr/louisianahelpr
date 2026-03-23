@@ -504,7 +504,9 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): 
   if (!paymentIntentId && job.stripe_session_id) {
     try {
       const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-      paymentIntentId = session.payment_intent;
+      paymentIntentId = typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id;
       if (paymentIntentId) {
         await supabaseAdmin.from("jobs").update({
           stripe_payment_intent_id: paymentIntentId,
@@ -525,9 +527,20 @@ async function captureEscrowPayment(stripe: any, supabaseAdmin: any, job: any): 
     if (pi.status === "requires_capture") {
       await stripe.paymentIntents.capture(paymentIntentId);
       console.log(`Captured payment ${paymentIntentId} for job ${job.id} — $${(job.budget || 0).toFixed(2)} total, $${(job.platform_fee_amount || 0).toFixed(2)} platform fee`);
+    } else if (pi.status === "succeeded") {
+      console.log(`Payment ${paymentIntentId} already captured (succeeded)`);
     } else {
-      console.log(`Payment ${paymentIntentId} status is ${pi.status}, no capture needed`);
+      // Payment is in an unexpected state — do NOT allow payout
+      console.error(`Payment ${paymentIntentId} status is "${pi.status}" — cannot proceed with payout`);
+      throw new Error(`Payment charge is not captured (status: ${pi.status}). Cannot release funds.`);
     }
+
+    // Final verification: re-check status is succeeded after capture
+    const verified = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (verified.status !== "succeeded") {
+      throw new Error(`Payment capture verification failed. Status: ${verified.status}. Payout blocked.`);
+    }
+
     return paymentIntentId;
   } catch (e) {
     console.error(`Failed to capture payment for job ${job.id}:`, e);

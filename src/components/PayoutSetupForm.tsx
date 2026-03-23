@@ -229,7 +229,7 @@ export function PayoutSetupForm() {
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" /> Add Bank Account
+              <Building2 className="w-4 h-4 text-primary" /> {editingMethodId ? "Edit Bank Account" : "Add Bank Account"}
             </h3>
             <Button variant="ghost" size="sm" onClick={resetForm} className="text-xs text-muted-foreground">
               Cancel

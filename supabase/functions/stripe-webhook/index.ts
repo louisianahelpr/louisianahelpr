@@ -97,14 +97,20 @@ serve(async (req) => {
           else logStep("Profile updated with tier", { email: customerEmail, tier });
         }
 
-        // Store payment intent for escrow jobs
+        // Store payment intent ID on the job immediately at checkout completion
         const jobId = (session.metadata as any)?.job_id;
-        if (jobId && session.payment_intent) {
+        const piId = typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent as any)?.id;
+
+        if (jobId && piId) {
           const { error: jobError } = await supabase.from("jobs").update({
-            stripe_payment_intent_id: session.payment_intent as string,
+            stripe_payment_intent_id: piId,
           }).eq("id", jobId);
           if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
-          else logStep("Stored payment_intent on job", { jobId, pi: session.payment_intent });
+          else logStep("Stored payment_intent on job", { jobId, pi: piId });
+        } else if (jobId) {
+          logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });
         }
 
         break;

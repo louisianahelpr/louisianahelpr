@@ -2,8 +2,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { MapPin, LogIn, LogOut, AlertOctagon, Shield } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Checkin = {
   id: string;
@@ -48,6 +59,8 @@ export function JobCheckins({
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [sosMessage, setSosMessage] = useState("");
 
   useEffect(() => {
     loadCheckins();
@@ -76,7 +89,7 @@ export function JobCheckins({
     });
   };
 
-  const doCheckin = async (type: "check_in" | "check_out" | "sos") => {
+  const doCheckin = async (type: "check_in" | "check_out" | "sos", overrideNote?: string) => {
     setLoading(true);
     const loc = await getLocation();
 
@@ -104,7 +117,7 @@ export function JobCheckins({
       type,
       latitude: loc?.lat || null,
       longitude: loc?.lng || null,
-      note: note.trim() || null,
+      note: (overrideNote ?? note).trim() || null,
     });
     if (error) {
       toast.error("Failed to record check-in");
@@ -200,7 +213,7 @@ export function JobCheckins({
             <Button
               size="sm"
               variant="destructive"
-              onClick={() => doCheckin("sos")}
+              onClick={() => setSosOpen(true)}
               disabled={loading}
             >
               <AlertOctagon className="w-4 h-4 mr-1" /> SOS
@@ -208,6 +221,43 @@ export function JobCheckins({
           </div>
         </div>
       )}
+
+      {/* SOS Confirmation Dialog */}
+      <AlertDialog open={sosOpen} onOpenChange={(open) => { setSosOpen(open); if (!open) setSosMessage(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertOctagon className="w-5 h-5" /> Send SOS Emergency Alert
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately notify all admins about an emergency. Please describe what's happening.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            value={sosMessage}
+            onChange={(e) => setSosMessage(e.target.value)}
+            placeholder="Describe the emergency situation… (required)"
+            className="min-h-[80px]"
+            maxLength={500}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!sosMessage.trim() || loading}
+              onClick={async (e) => {
+                e.preventDefault();
+                await doCheckin("sos", sosMessage.trim());
+                setSosOpen(false);
+                setSosOpen(false);
+                setSosMessage("");
+              }}
+            >
+              <AlertOctagon className="w-4 h-4 mr-1" /> Send SOS
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {checkins.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-border">

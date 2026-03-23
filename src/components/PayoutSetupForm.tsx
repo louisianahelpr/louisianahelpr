@@ -262,11 +262,6 @@ export function PayoutSetupForm() {
           <p className="text-[11px] text-muted-foreground text-center">
             Your banking info is sent directly to Stripe and never stored on our servers.
           </p>
-          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2">
-            <p className="text-[11px] text-amber-700 dark:text-amber-400 text-center">
-              🧪 <strong>Test mode:</strong> Use routing <code className="bg-secondary/50 px-1 rounded">110000000</code> and account <code className="bg-secondary/50 px-1 rounded">000123456789</code>
-            </p>
-          </div>
         </div>
       )}
 

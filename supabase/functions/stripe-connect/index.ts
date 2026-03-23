@@ -128,7 +128,7 @@ serve(async (req) => {
 
       const { accountId } = await getOrCreateAccount();
 
-      // Create external bank account
+      // Create external bank account and set as default
       const bankAccount = await stripe.accounts.createExternalAccount(accountId, {
         external_account: {
           object: "bank_account",
@@ -139,7 +139,8 @@ serve(async (req) => {
           account_holder_name,
           account_holder_type: "individual",
         } as any,
-      });
+        default_for_currency: true,
+      } as any);
 
       return new Response(JSON.stringify({
         success: true,

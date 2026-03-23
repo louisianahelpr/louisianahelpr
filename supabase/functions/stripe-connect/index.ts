@@ -38,7 +38,7 @@ serve(async (req) => {
     const { action } = body;
 
     // Helper: get or create Custom Connect account
-    const getOrCreateAccount = async () => {
+    const getOrCreateAccount = async (ssnLast4?: string) => {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")
@@ -78,7 +78,7 @@ serve(async (req) => {
             phone: profile?.phone || undefined,
             dob,
             address: city ? { city, state, country: "US" } : undefined,
-            
+            ssn_last_4: ssnLast4 || undefined,
           },
           capabilities: {
             transfers: { requested: true },
@@ -98,6 +98,11 @@ serve(async (req) => {
           .from("profiles")
           .update({ stripe_account_id: accountId })
           .eq("user_id", user.id);
+      } else if (ssnLast4) {
+        // Account exists but SSN provided — update it
+        await stripe.accounts.update(accountId, {
+          individual: { ssn_last_4: ssnLast4 },
+        });
       }
 
       return { accountId, profile };
@@ -105,7 +110,8 @@ serve(async (req) => {
 
     // ─── CREATE CUSTOM ACCOUNT (no redirect needed) ───
     if (action === "onboard") {
-      const { accountId } = await getOrCreateAccount();
+      const { ssn_last_4 } = body;
+      const { accountId } = await getOrCreateAccount(ssn_last_4);
 
       return new Response(JSON.stringify({ success: true, account_id: accountId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

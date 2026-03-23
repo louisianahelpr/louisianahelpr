@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
@@ -269,9 +270,17 @@ const Activity = () => {
     setLoading(false);
   };
 
+  const { checkHelperStripeConnect, checking: checkingStripe } = useStripeConnectCheck();
+
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     if (accept) {
+      // Block if helper has no connected payout account
+      const stripeCheck = await checkHelperStripeConnect();
+      if (!stripeCheck.ok) {
+        toast.error(stripeCheck.reason);
+        return;
+      }
       // Keep as "accepted" — will move to "in_progress" on job date or manual start
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
@@ -397,6 +406,18 @@ const Activity = () => {
 
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
     if (!deadlineDialogApp || !selectedJob || !user) return;
+
+    // Verify the helper being accepted has a connected payout account
+    const { data: helperProfile } = await supabase
+      .from("profiles")
+      .select("stripe_account_id")
+      .eq("user_id", deadlineDialogApp.helper_id)
+      .single();
+    if (!helperProfile?.stripe_account_id) {
+      toast.error("This helpr hasn't set up their payout account yet. They need to complete their payment setup before they can be accepted.");
+      return;
+    }
+
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
     await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
     await supabase.from("jobs").update({

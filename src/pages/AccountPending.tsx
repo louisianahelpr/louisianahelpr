@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut, MailCheck, MailX } from "lucide-react";
+import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const AccountPending = () => {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { navigate("/login"); return; }
       
-      // Check actual email verification from the session
       const isVerified = !!session.user.email_confirmed_at;
       setEmailVerified(isVerified);
+      setUserEmail(session.user.email || "");
       
       const { data: profile } = await supabase
         .from("profiles")
@@ -30,10 +33,28 @@ const AccountPending = () => {
     };
     check();
 
-    // Poll every 30s to auto-redirect when approved
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
   }, [navigate]);
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: userEmail,
+      });
+      if (error) {
+        toast.error("Failed to resend verification email. Please try again.");
+      } else {
+        toast.success("Verification email sent! Check your inbox.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setResending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -57,6 +78,22 @@ const AccountPending = () => {
                 : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by our team."}
             </p>
           </div>
+
+          {!emailVerified && userEmail && (
+            <Button
+              onClick={handleResendVerification}
+              disabled={resending}
+              variant="outline"
+              className="w-full gap-2"
+            >
+              {resending ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <MailCheck className="w-4 h-4" />
+              )}
+              Resend verification email
+            </Button>
+          )}
 
           <div className="border-t border-border pt-6 space-y-4">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">What's happening?</h2>

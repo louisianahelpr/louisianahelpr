@@ -135,8 +135,21 @@ const Dashboard = () => {
     setConfirmApplyJobId(jobId);
   }, [user, allJobs, navigate]);
 
+  const { checkHelperStripeConnect } = useStripeConnectCheck();
+
   const handleApplyConfirm = useCallback(async () => {
     if (!user || !confirmApplyJobId) return;
+
+    // Block helpers without a connected payout account from applying
+    if (profile?.role === "helper") {
+      const stripeCheck = await checkHelperStripeConnect();
+      if (!stripeCheck.ok) {
+        toast.error(stripeCheck.reason);
+        setConfirmApplyJobId(null);
+        return;
+      }
+    }
+
     const { error } = await supabase.from("applications").insert({ job_id: confirmApplyJobId, helper_id: user.id, message: "I'd like to help with this task!" });
     if (error) {
       if (error.code === "23505") toast.error("You've already applied.");
@@ -148,7 +161,7 @@ const Dashboard = () => {
       refresh();
     }
     setConfirmApplyJobId(null);
-  }, [user, confirmApplyJobId, navigate, refresh]);
+  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

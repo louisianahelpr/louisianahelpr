@@ -293,13 +293,6 @@ export function PayoutSetupForm() {
                 maxLength={4}
               />
               <p className="text-[11px] text-muted-foreground mt-1">Required by Stripe for identity verification</p>
-              <Input
-                id="confirm-account"
-                value={confirmAccountNumber}
-                onChange={(e) => setConfirmAccountNumber(e.target.value.replace(/\D/g, ""))}
-                placeholder="Re-enter account number"
-                inputMode="numeric"
-              />
             </div>
           </div>
 

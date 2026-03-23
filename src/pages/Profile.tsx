@@ -228,9 +228,9 @@ const ProfilePage = () => {
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
-  // Check Stripe Connect status for helpers
+  // Check Stripe Connect status for all users
   useEffect(() => {
-    if (profile?.role === "helper" && profile?.approval_status === "approved" && !stripeConnectStatus) {
+    if (profile?.approval_status === "approved" && !stripeConnectStatus) {
       checkStripeConnect();
     }
   }, [profile]);

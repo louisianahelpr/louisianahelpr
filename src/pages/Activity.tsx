@@ -585,6 +585,7 @@ const Activity = () => {
         if (now < scheduledTime) {
           const timeStr = scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
           toast.error(`This job is scheduled to start at ${timeStr}. You can't start before the scheduled time.`, { duration: 5000 });
+          setStartJobLoading(null);
           return;
         }
       }

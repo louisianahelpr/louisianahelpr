@@ -622,6 +622,7 @@ const Activity = () => {
     }
     toast.success("Job started! You're now in progress.");
     loadData(user.id);
+    setStartJobLoading(null);
   };
 
   const confirmStartJob = async (jobId: string) => {

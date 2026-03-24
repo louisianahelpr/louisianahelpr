@@ -641,10 +641,11 @@ const Activity = () => {
   };
 
   const markOnTheWay = async (jobId: string) => {
-    if (!user) return;
+    if (!user || onTheWayLoading) return;
+    setOnTheWayLoading(jobId);
     const now = new Date().toISOString();
     const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: now } as any).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); return; }
+    if (error) { toast.error("Failed to update"); setOnTheWayLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
       await createNotification({
@@ -657,6 +658,7 @@ const Activity = () => {
     }
     toast.success("You're on your way! The poster has been notified.");
     loadData(user.id);
+    setOnTheWayLoading(null);
   };
 
   const markArrived = async (jobId: string) => {

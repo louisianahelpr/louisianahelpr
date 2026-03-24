@@ -649,6 +649,7 @@ export type Database = {
           helper_id: string | null
           helpers_needed: number | null
           id: string
+          is_flexible_schedule: boolean
           is_group_job: boolean | null
           is_recurring: boolean | null
           is_urgent: boolean | null
@@ -710,6 +711,7 @@ export type Database = {
           helper_id?: string | null
           helpers_needed?: number | null
           id?: string
+          is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           is_urgent?: boolean | null
@@ -771,6 +773,7 @@ export type Database = {
           helper_id?: string | null
           helpers_needed?: number | null
           id?: string
+          is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           is_urgent?: boolean | null

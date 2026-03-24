@@ -45,6 +45,7 @@ const Messages = () => {
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllConvos, setShowAllConvos] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -77,13 +78,16 @@ const Messages = () => {
     init();
   }, []);
 
+  const CONVO_LIMIT = 50;
+
   const loadConversations = async (uid: string) => {
     setLoading(true);
     const { data: msgs } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 
@@ -317,7 +321,7 @@ const Messages = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {conversations.map((c) => (
+                  {(showAllConvos ? conversations : conversations.slice(0, CONVO_LIMIT)).map((c) => (
                     <button
                       key={`${c.jobId}_${c.otherUserId}`}
                       onClick={() => openConvo(c)}
@@ -342,6 +346,11 @@ const Messages = () => {
                       </div>
                     </button>
                   ))}
+                  {!showAllConvos && conversations.length > CONVO_LIMIT && (
+                    <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-sm text-primary font-medium hover:underline">
+                      Show all {conversations.length} conversations
+                    </button>
+                  )}
                 </div>
               )}
             </div>

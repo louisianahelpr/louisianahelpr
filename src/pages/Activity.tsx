@@ -115,6 +115,10 @@ const Activity = () => {
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
   const [cancelHelperEnRoute, setCancelHelperEnRoute] = useState(false);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
+  // Loading states for action buttons
+  const [onTheWayLoading, setOnTheWayLoading] = useState<string | null>(null);
+  const [arrivedLoading, setArrivedLoading] = useState<string | null>(null);
+  const [startJobLoading, setStartJobLoading] = useState<string | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
@@ -554,7 +558,8 @@ const Activity = () => {
   };
 
   const startJob = async (jobId: string) => {
-    if (!user) return;
+    if (!user || startJobLoading) return;
+    setStartJobLoading(jobId);
     const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
     
     // Time-based start restriction
@@ -568,6 +573,7 @@ const Activity = () => {
       // Block starting before the job date (both flexible and fixed)
       if (jobDate && today < jobDate) {
         toast.error(`This job is scheduled for ${new Date(jobDate + "T00:00").toLocaleDateString()}. You can't start it before that date.`, { duration: 5000 });
+        setStartJobLoading(null);
         return;
       }
 
@@ -579,6 +585,7 @@ const Activity = () => {
         if (now < scheduledTime) {
           const timeStr = scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
           toast.error(`This job is scheduled to start at ${timeStr}. You can't start before the scheduled time.`, { duration: 5000 });
+          setStartJobLoading(null);
           return;
         }
       }
@@ -590,6 +597,7 @@ const Activity = () => {
       if (!proximity.allowed) {
         const miles = ((proximity.distance || 0) / 5280).toFixed(1);
         toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
+        setStartJobLoading(null);
         return;
       }
     }
@@ -614,6 +622,7 @@ const Activity = () => {
     }
     toast.success("Job started! You're now in progress.");
     loadData(user.id);
+    setStartJobLoading(null);
   };
 
   const confirmStartJob = async (jobId: string) => {
@@ -637,10 +646,11 @@ const Activity = () => {
   };
 
   const markOnTheWay = async (jobId: string) => {
-    if (!user) return;
+    if (!user || onTheWayLoading) return;
+    setOnTheWayLoading(jobId);
     const now = new Date().toISOString();
     const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: now } as any).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); return; }
+    if (error) { toast.error("Failed to update"); setOnTheWayLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
       await createNotification({
@@ -653,17 +663,19 @@ const Activity = () => {
     }
     toast.success("You're on your way! The poster has been notified.");
     loadData(user.id);
+    setOnTheWayLoading(null);
   };
 
   const markArrived = async (jobId: string) => {
-    if (!user) return;
+    if (!user || arrivedLoading) return;
+    setArrivedLoading(jobId);
     const now = new Date().toISOString();
     // Mark arrived and auto-transition to in_progress
     const { error } = await supabase.from("jobs").update({
       helper_arrived_at: now,
       status: "in_progress",
     } as any).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); return; }
+    if (error) { toast.error("Failed to update"); setArrivedLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
       await createNotification({
@@ -676,6 +688,7 @@ const Activity = () => {
     }
     toast.success("You've arrived! Job is now in progress.");
     loadData(user.id);
+    setArrivedLoading(null);
   };
 
   const sendTip = async (jobId: string, quickAmount?: number) => {
@@ -1461,13 +1474,13 @@ const Activity = () => {
                         )}
                         {/* Action buttons */}
                         {!(app.job as any)?.helper_on_the_way_at && (
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => markOnTheWay(app.job_id)}>
-                            <NavigationIcon className="w-4 h-4 mr-1" /> On My Way
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => markOnTheWay(app.job_id)} disabled={onTheWayLoading === app.job_id}>
+                            <NavigationIcon className="w-4 h-4 mr-1" /> {onTheWayLoading === app.job_id ? "Updating…" : "On My Way"}
                           </Button>
                         )}
                         {(app.job as any)?.helper_on_the_way_at && !(app.job as any)?.helper_arrived_at && (
-                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => markArrived(app.job_id)}>
-                            <MapPin className="w-4 h-4 mr-1" /> I've Arrived
+                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => markArrived(app.job_id)} disabled={arrivedLoading === app.job_id}>
+                            <MapPin className="w-4 h-4 mr-1" /> {arrivedLoading === app.job_id ? "Updating…" : "I've Arrived"}
                           </Button>
                         )}
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
@@ -1496,8 +1509,8 @@ const Activity = () => {
                         )}
                         {/* Start job checkin if not yet started */}
                         {!startRequestedJobIds.has(app.job_id) && (
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                            <Rocket className="w-4 h-4 mr-1" /> Start Job
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)} disabled={startJobLoading === app.job_id}>
+                            <Rocket className="w-4 h-4 mr-1" /> {startJobLoading === app.job_id ? "Starting…" : "Start Job"}
                           </Button>
                         )}
                         {startRequestedJobIds.has(app.job_id) && (

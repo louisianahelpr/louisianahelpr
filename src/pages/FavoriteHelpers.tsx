@@ -49,7 +49,7 @@ const FavoriteHelpers = () => {
     const { data: favs } = await supabase
       .from("favorite_helpers")
       .select("id, helper_id")
-      .eq("customer_id", session.user.id);
+      .eq("customer_id", userId);
 
     if (!favs || favs.length === 0) {
       setFavorites([]);

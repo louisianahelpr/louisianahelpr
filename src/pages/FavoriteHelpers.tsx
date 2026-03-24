@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Heart, MapPin, Star, Briefcase, Clock } from "lucide-react";
 import { toast } from "sonner";

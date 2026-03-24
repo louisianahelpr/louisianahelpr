@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
-  Rocket, Clock, ChevronDown, Calendar, Timer, Zap,
+  Rocket, Clock, ChevronDown, Calendar, Timer, Zap, Navigation as NavigationIcon,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { JobBoostDialog } from "@/components/JobBoostDialog";
@@ -636,6 +636,48 @@ const Activity = () => {
     }
   };
 
+  const markOnTheWay = async (jobId: string) => {
+    if (!user) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: now } as any).eq("id", jobId);
+    if (error) { toast.error("Failed to update"); return; }
+    const job = appliedApps.find(a => a.job_id === jobId)?.job;
+    if (job) {
+      await createNotification({
+        user_id: job.customer_id,
+        title: "🚗 Helpr is on the way!",
+        message: `Your helpr is headed to "${job.title}".`,
+        type: "info",
+        link: "/activity?tab=posted&filter=accepted",
+      });
+    }
+    toast.success("You're on your way! The poster has been notified.");
+    loadData(user.id);
+  };
+
+  const markArrived = async (jobId: string) => {
+    if (!user) return;
+    const now = new Date().toISOString();
+    // Mark arrived and auto-transition to in_progress
+    const { error } = await supabase.from("jobs").update({
+      helper_arrived_at: now,
+      status: "in_progress",
+    } as any).eq("id", jobId);
+    if (error) { toast.error("Failed to update"); return; }
+    const job = appliedApps.find(a => a.job_id === jobId)?.job;
+    if (job) {
+      await createNotification({
+        user_id: job.customer_id,
+        title: "📍 Helpr has arrived!",
+        message: `Your helpr has arrived for "${job.title}". The job is now in progress.`,
+        type: "success",
+        link: "/activity?tab=posted&filter=in_progress",
+      });
+    }
+    toast.success("You've arrived! Job is now in progress.");
+    loadData(user.id);
+  };
+
   const sendTip = async (jobId: string, quickAmount?: number) => {
     const amount = quickAmount || parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }
@@ -977,16 +1019,46 @@ const Activity = () => {
                                 : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
                               }
                             </div>
-                            {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <span className="text-xs text-amber-600 font-medium">🚀 {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is ready to start</span>
-                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmStartJob(job.id)}>
-                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start
-                                </Button>
+                            {/* On the way / arrived timestamps for poster */}
+                            {(job as any).helper_confirmed_at && (
+                              <div className="space-y-1.5">
+                                {(job as any).helper_on_the_way_at ? (
+                                  <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
+                                    <NavigationIcon className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is on the way</span>
+                                    <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to head out</span>
+                                )}
+                                {(job as any).helper_arrived_at && (
+                                  <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} has arrived</span>
+                                    <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                )}
                               </div>
                             )}
-                            {(job as any).helper_confirmed_at && !startRequestedJobIds.has(job.id) && (
-                              <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to start or auto-starts on job date</span>
+                          </div>
+                        )}
+
+                        {/* On the way / arrived timestamps for poster on in_progress */}
+                        {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).helper_on_the_way_at || (job as any).helper_arrived_at) && (
+                          <div className="space-y-1">
+                            {(job as any).helper_on_the_way_at && (
+                              <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                                <NavigationIcon className="w-3 h-3 shrink-0" />
+                                <span>{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} was on the way</span>
+                                <span className="ml-auto text-[10px]">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                            )}
+                            {(job as any).helper_arrived_at && (
+                              <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span>{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} arrived</span>
+                                <span className="ml-auto text-[10px]">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
                             )}
                           </div>
                         )}
@@ -1366,19 +1438,36 @@ const Activity = () => {
                       </div>
                     )}
 
-                    {/* Accepted: Start Job + Message always visible */}
+                    {/* Accepted: On My Way / Arrived + Message always visible */}
                     {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
                       <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                         <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
                           ✓ You accepted this job
                         </div>
-                        {startRequestedJobIds.has(app.job_id) ? (
-                          <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
-                            ⏳ Waiting for poster to confirm start
+                        {/* On the way / arrived timestamps */}
+                        {(app.job as any)?.helper_on_the_way_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
+                            <NavigationIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">On the way</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((app.job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                        ) : (
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                        )}
+                        {(app.job as any)?.helper_arrived_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">Arrived</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((app.job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                        {/* Action buttons */}
+                        {!(app.job as any)?.helper_on_the_way_at && (
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => markOnTheWay(app.job_id)}>
+                            <NavigationIcon className="w-4 h-4 mr-1" /> On My Way
+                          </Button>
+                        )}
+                        {(app.job as any)?.helper_on_the_way_at && !(app.job as any)?.helper_arrived_at && (
+                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => markArrived(app.job_id)}>
+                            <MapPin className="w-4 h-4 mr-1" /> I've Arrived
                           </Button>
                         )}
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>
@@ -1390,6 +1479,32 @@ const Activity = () => {
                     {/* In Progress / Revision: actions always visible */}
                     {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
                       <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        {/* Show arrival timestamps if available */}
+                        {(app.job as any)?.helper_on_the_way_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                            <NavigationIcon className="w-3 h-3 shrink-0" />
+                            <span>On the way</span>
+                            <span className="ml-auto text-[10px]">{new Date((app.job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                        {(app.job as any)?.helper_arrived_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span>Arrived</span>
+                            <span className="ml-auto text-[10px]">{new Date((app.job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                        {/* Start job checkin if not yet started */}
+                        {!startRequestedJobIds.has(app.job_id) && (
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                            <Rocket className="w-4 h-4 mr-1" /> Start Job
+                          </Button>
+                        )}
+                        {startRequestedJobIds.has(app.job_id) && (
+                          <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
+                            🚀 Job started
+                          </div>
+                        )}
                         <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
                         <div className="grid grid-cols-2 gap-2">
                           <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>

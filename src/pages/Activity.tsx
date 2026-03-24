@@ -1418,19 +1418,36 @@ const Activity = () => {
                       </div>
                     )}
 
-                    {/* Accepted: Start Job + Message always visible */}
+                    {/* Accepted: On My Way / Arrived + Message always visible */}
                     {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
                       <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                         <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
                           ✓ You accepted this job
                         </div>
-                        {startRequestedJobIds.has(app.job_id) ? (
-                          <div className="text-xs text-center px-2 py-1.5 rounded bg-amber-500/10 text-amber-600 font-medium">
-                            ⏳ Waiting for poster to confirm start
+                        {/* On the way / arrived timestamps */}
+                        {(app.job as any)?.helper_on_the_way_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
+                            <NavigationIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">On the way</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((app.job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                        ) : (
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Start Job
+                        )}
+                        {(app.job as any)?.helper_arrived_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">Arrived</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((app.job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                        {/* Action buttons */}
+                        {!(app.job as any)?.helper_on_the_way_at && (
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => markOnTheWay(app.job_id)}>
+                            <NavigationIcon className="w-4 h-4 mr-1" /> On My Way
+                          </Button>
+                        )}
+                        {(app.job as any)?.helper_on_the_way_at && !(app.job as any)?.helper_arrived_at && (
+                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => markArrived(app.job_id)}>
+                            <MapPin className="w-4 h-4 mr-1" /> I've Arrived
                           </Button>
                         )}
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>

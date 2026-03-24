@@ -77,13 +77,16 @@ const Messages = () => {
     init();
   }, []);
 
+  const CONVO_LIMIT = 50;
+
   const loadConversations = async (uid: string) => {
     setLoading(true);
     const { data: msgs } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 

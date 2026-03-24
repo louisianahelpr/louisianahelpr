@@ -45,6 +45,7 @@ const Messages = () => {
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllConvos, setShowAllConvos] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);

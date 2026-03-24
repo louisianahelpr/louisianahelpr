@@ -49,10 +49,12 @@ const Jobs = () => {
 
   useEffect(() => {
     const fetchJobs = async () => {
+      const today = new Date().toISOString().split("T")[0];
       const { data } = await supabase
         .from("jobs")
         .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
         .eq("status", "open")
+        .gte("date_needed", today)
         .order("created_at", { ascending: false })
         .limit(50);
       setJobs(data || []);

@@ -16,9 +16,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const today = new Date().toISOString().split("T")[0];
 
-    // Find accepted jobs where updated_at is older than 24h (meaning they were accepted 24h+ ago but never started)
-    const { data: expiredJobs, error: fetchError } = await supabase
+    // 1. Expire accepted jobs that were accepted 24h+ ago but never started
+    const { data: staleAccepted, error: fetchError } = await supabase
       .from("jobs")
       .select("id, title, customer_id, helper_id")
       .eq("status", "accepted")
@@ -26,16 +27,9 @@ Deno.serve(async (req) => {
 
     if (fetchError) throw fetchError;
 
-    if (!expiredJobs || expiredJobs.length === 0) {
-      return new Response(JSON.stringify({ message: "No expired jobs found", count: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     let expiredCount = 0;
 
-    for (const job of expiredJobs) {
-      // Reset job to open, remove helper
+    for (const job of staleAccepted || []) {
       const { error: updateError } = await supabase
         .from("jobs")
         .update({ status: "open", helper_id: null })
@@ -46,14 +40,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Reject the accepted application
       await supabase
         .from("applications")
         .update({ status: "rejected" })
         .eq("job_id", job.id)
         .eq("status", "accepted");
 
-      // Notify the customer
       await supabase.from("notifications").insert({
         user_id: job.customer_id,
         title: "Job re-opened",
@@ -62,7 +54,6 @@ Deno.serve(async (req) => {
         link: "/activity?tab=posted&filter=open",
       });
 
-      // Notify the helper
       if (job.helper_id) {
         await supabase.from("notifications").insert({
           user_id: job.helper_id,
@@ -76,8 +67,49 @@ Deno.serve(async (req) => {
       expiredCount++;
     }
 
+    // 2. Auto-cancel open jobs whose date_needed has passed
+    const { data: pastDateJobs, error: pastError } = await supabase
+      .from("jobs")
+      .select("id, title, customer_id")
+      .eq("status", "open")
+      .lt("date_needed", today);
+
+    if (pastError) throw pastError;
+
+    let cancelledCount = 0;
+
+    for (const job of pastDateJobs || []) {
+      const { error: cancelError } = await supabase
+        .from("jobs")
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancellation_reason: "Job date passed with no helper assigned",
+        })
+        .eq("id", job.id);
+
+      if (cancelError) {
+        console.error(`Failed to cancel past-date job ${job.id}:`, cancelError);
+        continue;
+      }
+
+      await supabase.from("notifications").insert({
+        user_id: job.customer_id,
+        title: "Job auto-cancelled",
+        message: `"${job.title}" was automatically cancelled because the scheduled date passed without a helpr being assigned. You can repost anytime.`,
+        type: "warning",
+        link: "/post-job",
+      });
+
+      cancelledCount++;
+    }
+
     return new Response(
-      JSON.stringify({ message: `Expired ${expiredCount} jobs`, count: expiredCount }),
+      JSON.stringify({
+        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-date open jobs`,
+        expiredCount,
+        cancelledCount,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

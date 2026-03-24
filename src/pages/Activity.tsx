@@ -597,6 +597,7 @@ const Activity = () => {
       if (!proximity.allowed) {
         const miles = ((proximity.distance || 0) / 5280).toFixed(1);
         toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
+        setStartJobLoading(null);
         return;
       }
     }

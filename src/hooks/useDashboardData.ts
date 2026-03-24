@@ -154,7 +154,7 @@ export function useDashboardData() {
     loading,
     helprTier: proData ?? data?.helprTier ?? null,
     allJobs: data?.allJobs ?? [],
-    platformFee: data?.platformFee ?? 2,
+    platformFee: data?.platformFee ?? 0,
     helperAvailability: data?.helperAvailability ?? [],
     recommendedJobs: data?.recommendedJobs ?? [],
     refresh,

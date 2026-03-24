@@ -63,7 +63,7 @@ const PostJob = () => {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
-  const [platformFee, setPlatformFee] = useState(2);
+  const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 

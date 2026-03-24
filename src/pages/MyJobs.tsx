@@ -89,17 +89,8 @@ const MyJobs = () => {
   const confirmAcceptWithDeadline = async (deadlineHours: number) => {
     if (!deadlineDialogApp || !selectedJob) return;
 
-    // Verify the helper being accepted has a connected payout account
-    // (Check is done from poster's perspective — we verify via the helper's profile)
-    const { data: helperProfile } = await supabase
-      .from("profiles")
-      .select("stripe_account_id")
-      .eq("user_id", deadlineDialogApp.helper_id)
-      .single();
-    if (!helperProfile?.stripe_account_id) {
-      toast.error("This helpr hasn't set up their payout account yet. They need to complete their payment setup before they can be accepted.");
-      return;
-    }
+    // Payout account verification is handled at payout time by process-scheduled-payouts
+    // Removed direct profiles query which was blocked by RLS for non-admin posters
 
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
     await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);

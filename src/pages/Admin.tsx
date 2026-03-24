@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
@@ -23,6 +24,7 @@ const Admin = () => {
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
@@ -40,7 +42,7 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
       supabase.from("reviews").select("id", { count: "exact", head: true }),
-      supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed").range(0, 999),
+      supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed"),
     ]);
     const feeRows = feesRes.data || [];
     setStats({
@@ -51,7 +53,7 @@ const Admin = () => {
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),
-      totalFees: feeRows.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
+      totalFees: feeRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
       pendingReviews: reviewsRes.count || 0,
       disputedJobs: disputesRes.count || 0,
     });
@@ -98,11 +100,26 @@ const Admin = () => {
           </Link>
           <span className="text-[10px] font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
+        <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
           <LogOut className="w-4 h-4" />
         </Button>
       </div>
     </header>
+  );
+
+  const logoutDialog = (
+    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Log out?</AlertDialogTitle>
+          <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 
   const subHeader = view !== "home" && (
@@ -118,6 +135,7 @@ const Admin = () => {
     return (
       <div className="min-h-screen bg-background">
         {header}
+        {logoutDialog}
         {subHeader}
         <div className="container mx-auto px-4 py-4">
           {view === "analytics" && <AdminAnalytics />}
@@ -183,6 +201,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       {header}
+      {logoutDialog}
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Welcome */}
         <div>
@@ -247,7 +266,7 @@ const Admin = () => {
             { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => setView("people") },
             { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => setView("jobs") },
             { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => setView("analytics") },
-            { label: "Platform Fees", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(0)}`, icon: DollarSign, onClick: () => setView("analytics") },
+            { label: "Platform Revenue", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(2)}`, icon: DollarSign, onClick: () => setView("analytics") },
           ].map((card) => (
             <button
               key={card.label}

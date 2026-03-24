@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";

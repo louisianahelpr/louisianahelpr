@@ -1043,6 +1043,26 @@ const Activity = () => {
                           </div>
                         )}
 
+                        {/* On the way / arrived timestamps for poster on in_progress */}
+                        {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).helper_on_the_way_at || (job as any).helper_arrived_at) && (
+                          <div className="space-y-1">
+                            {(job as any).helper_on_the_way_at && (
+                              <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                                <NavigationIcon className="w-3 h-3 shrink-0" />
+                                <span>{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} was on the way</span>
+                                <span className="ml-auto text-[10px]">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                            )}
+                            {(job as any).helper_arrived_at && (
+                              <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span>{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} arrived</span>
+                                <span className="ml-auto text-[10px]">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* Completion confirmation status */}
                         {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                           <div className="flex items-center gap-2 flex-wrap">

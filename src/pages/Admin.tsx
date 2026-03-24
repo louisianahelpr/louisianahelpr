@@ -107,6 +107,21 @@ const Admin = () => {
     </header>
   );
 
+  const logoutDialog = (
+    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Log out?</AlertDialogTitle>
+          <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   const subHeader = view !== "home" && (
     <div className="container mx-auto px-4 pt-4 pb-2 flex items-center gap-2">
       <Button variant="ghost" size="icon" onClick={() => setView("home")} className="rounded-xl h-9 w-9">

@@ -31,8 +31,14 @@ const MobileNav = () => {
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .eq("read", false);
-
       setUnreadCount(count || 0);
+
+      const { count: notifCount } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      setUnreadNotifCount(notifCount || 0);
 
       // Subscribe to new messages
       channel = supabase
@@ -41,13 +47,24 @@ const MobileNav = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
           () => {
-            // Re-fetch count on any change
             supabase
               .from("messages")
               .select("*", { count: "exact", head: true })
               .eq("receiver_id", user.id)
               .eq("read", false)
               .then(({ count }) => setUnreadCount(count || 0));
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          () => {
+            supabase
+              .from("notifications")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("read", false)
+              .then(({ count }) => setUnreadNotifCount(count || 0));
           }
         )
         .subscribe();

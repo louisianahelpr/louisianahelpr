@@ -557,6 +557,33 @@ const Activity = () => {
     if (!user) return;
     const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
     
+    // Time-based start restriction
+    if (job) {
+      const isFlexible = !!(job as any).is_flexible_schedule;
+      const jobDate = job.date_needed;
+      const jobTime = job.start_time;
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+
+      // Block starting before the job date (both flexible and fixed)
+      if (jobDate && today < jobDate) {
+        toast.error(`This job is scheduled for ${new Date(jobDate + "T00:00").toLocaleDateString()}. You can't start it before that date.`, { duration: 5000 });
+        return;
+      }
+
+      // For non-flexible jobs with a set time, block starting before that time
+      if (!isFlexible && jobTime && today === jobDate) {
+        const [h, m] = jobTime.split(":").map(Number);
+        const scheduledTime = new Date(now);
+        scheduledTime.setHours(h, m, 0, 0);
+        if (now < scheduledTime) {
+          const timeStr = scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          toast.error(`This job is scheduled to start at ${timeStr}. You can't start before the scheduled time.`, { duration: 5000 });
+          return;
+        }
+      }
+    }
+
     // GPS proximity check for helper
     if (job) {
       const proximity = await checkProximity((job as any).latitude, (job as any).longitude);

@@ -251,12 +251,21 @@ const PostJob = () => {
 
     let photoUrls: string[] = [];
 
-    // Calculate expiry date
+    // Calculate expiry: use date_needed + start_time as the precise expiry
     let expiresAt: string | null = null;
+    if (startTime && dateNeeded) {
+      expiresAt = new Date(`${dateNeeded}T${startTime}`).toISOString();
+    } else if (dateNeeded) {
+      // If no start_time, expire at end of the scheduled day
+      expiresAt = new Date(`${dateNeeded}T23:59:59`).toISOString();
+    }
+    // If a listing duration was also set, use the earlier of the two
     if (jobDuration !== "none") {
-      const expiry = new Date();
-      expiry.setDate(expiry.getDate() + parseInt(jobDuration));
-      expiresAt = expiry.toISOString();
+      const durationExpiry = new Date();
+      durationExpiry.setDate(durationExpiry.getDate() + parseInt(jobDuration));
+      if (!expiresAt || durationExpiry < new Date(expiresAt)) {
+        expiresAt = durationExpiry.toISOString();
+      }
     }
 
     const { data: jobData, error } = await supabase.from("jobs").insert({

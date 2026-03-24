@@ -1024,7 +1024,7 @@ const Activity = () => {
                               <div className="space-y-1.5">
                                 {(job as any).helper_on_the_way_at ? (
                                   <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
-                                    <Navigation className="w-3.5 h-3.5 shrink-0" />
+                                    <NavigationIcon className="w-3.5 h-3.5 shrink-0" />
                                     <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is on the way</span>
                                     <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                   </div>

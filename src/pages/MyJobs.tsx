@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
+import { createNotification } from "@/lib/notifications";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";

@@ -36,18 +36,15 @@ interface FavoriteHelper {
 const FavoriteHelpers = () => {
   usePageTitle("Favorite Helpers — Helpr");
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [favorites, setFavorites] = useState<FavoriteHelper[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadFavorites();
-  }, []);
+    if (user) loadFavorites(user.id);
+  }, [user]);
 
-  const loadFavorites = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
-    setCurrentUserId(session.user.id);
+  const loadFavorites = async (userId: string) => {
 
     const { data: favs } = await supabase
       .from("favorite_helpers")

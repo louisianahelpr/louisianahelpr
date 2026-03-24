@@ -115,6 +115,10 @@ const Activity = () => {
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
   const [cancelHelperEnRoute, setCancelHelperEnRoute] = useState(false);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
+  // Loading states for action buttons
+  const [onTheWayLoading, setOnTheWayLoading] = useState<string | null>(null);
+  const [arrivedLoading, setArrivedLoading] = useState<string | null>(null);
+  const [startJobLoading, setStartJobLoading] = useState<string | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   // Revision request
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);

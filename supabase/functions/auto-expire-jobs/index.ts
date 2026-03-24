@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    const now = new Date().toISOString();
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const today = new Date().toISOString().split("T")[0];
 
@@ -67,36 +68,52 @@ Deno.serve(async (req) => {
       expiredCount++;
     }
 
-    // 2. Auto-cancel open jobs whose date_needed has passed
-    const { data: pastDateJobs, error: pastError } = await supabase
+    // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past
+    const { data: expiredByTime, error: expTimeErr } = await supabase
       .from("jobs")
       .select("id, title, customer_id")
       .eq("status", "open")
+      .not("expires_at", "is", null)
+      .lt("expires_at", now);
+
+    if (expTimeErr) throw expTimeErr;
+
+    const { data: expiredByDate, error: expDateErr } = await supabase
+      .from("jobs")
+      .select("id, title, customer_id")
+      .eq("status", "open")
+      .is("expires_at", null)
       .lt("date_needed", today);
 
-    if (pastError) throw pastError;
+    if (expDateErr) throw expDateErr;
 
+    // Merge and deduplicate
+    const allExpired = [...(expiredByTime || []), ...(expiredByDate || [])];
+    const seen = new Set<string>();
     let cancelledCount = 0;
 
-    for (const job of pastDateJobs || []) {
+    for (const job of allExpired) {
+      if (seen.has(job.id)) continue;
+      seen.add(job.id);
+
       const { error: cancelError } = await supabase
         .from("jobs")
         .update({
           status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-          cancellation_reason: "Job date passed with no helper assigned",
+          cancelled_at: now,
+          cancellation_reason: "Job listing expired — scheduled time passed with no helper assigned",
         })
         .eq("id", job.id);
 
       if (cancelError) {
-        console.error(`Failed to cancel past-date job ${job.id}:`, cancelError);
+        console.error(`Failed to cancel expired job ${job.id}:`, cancelError);
         continue;
       }
 
       await supabase.from("notifications").insert({
         user_id: job.customer_id,
         title: "Job auto-cancelled",
-        message: `"${job.title}" was automatically cancelled because the scheduled date passed without a helpr being assigned. You can repost anytime.`,
+        message: `"${job.title}" was automatically cancelled because the scheduled time passed without a helpr being assigned. You can repost anytime.`,
         type: "warning",
         link: "/post-job",
       });
@@ -106,7 +123,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-date open jobs`,
+        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs`,
         expiredCount,
         cancelledCount,
       }),

@@ -662,14 +662,15 @@ const Activity = () => {
   };
 
   const markArrived = async (jobId: string) => {
-    if (!user) return;
+    if (!user || arrivedLoading) return;
+    setArrivedLoading(jobId);
     const now = new Date().toISOString();
     // Mark arrived and auto-transition to in_progress
     const { error } = await supabase.from("jobs").update({
       helper_arrived_at: now,
       status: "in_progress",
     } as any).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); return; }
+    if (error) { toast.error("Failed to update"); setArrivedLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
       await createNotification({
@@ -682,6 +683,7 @@ const Activity = () => {
     }
     toast.success("You've arrived! Job is now in progress.");
     loadData(user.id);
+    setArrivedLoading(null);
   };
 
   const sendTip = async (jobId: string, quickAmount?: number) => {

@@ -766,12 +766,12 @@ const PostJob = () => {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 text-primary shrink-0" />
-                      <span>{dateNeeded === "flexible" ? "Flexible date" : new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      <span>{new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}{isFlexibleSchedule ? " (flexible)" : ""}</span>
                     </div>
                     {startTime && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="w-4 h-4 text-primary shrink-0" />
-                        <span>{startTime === "flexible" ? "Flexible time" : startTime}</span>
+                        <span>{startTime}{isFlexibleSchedule ? " (flexible)" : ""}</span>
                       </div>
                     )}
                     {estimatedHours && (

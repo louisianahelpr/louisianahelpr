@@ -28,6 +28,8 @@ const Signup = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Step 2 fields
   const [bio, setBio] = useState("");

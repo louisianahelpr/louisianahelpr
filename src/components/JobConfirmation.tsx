@@ -45,6 +45,21 @@ export function JobConfirmation({
       toast.error("Failed to confirm");
     } else {
       toast.success("Confirmed! You're committed to this job.");
+      // Notify the other party
+      const { data: job } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
+      if (job) {
+        const recipientId = isOwner ? job.helper_id : job.customer_id;
+        if (recipientId) {
+          const { createNotification } = await import("@/lib/notifications");
+          await createNotification({
+            user_id: recipientId,
+            title: isOwner ? "Poster confirmed the job!" : "Helpr confirmed the job!",
+            message: `${isOwner ? "The poster" : "The helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
+            type: "info",
+            link: `/activity?tab=${isOwner ? "applied" : "posted"}&filter=offered`,
+          });
+        }
+      }
     }
     setConfirming(false);
     setShowConfirmDialog(false);
@@ -72,6 +87,9 @@ export function JobConfirmation({
               ? "Please confirm this job is still on so the helpr knows you're ready."
               : "Please confirm you'll work this job so the poster knows you're committed."
             : `Job is in ${urgencyText}. ${isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}`}
+        </p>
+        <p className="text-[10px] text-muted-foreground italic">
+          This is a reminder — if you don't confirm, the job is still scheduled as planned. However, not confirming may signal to the other party that you're uncertain, and repeated no-shows or last-minute cancellations can result in warnings or account restrictions.
         </p>
         <p className="text-[10px] text-muted-foreground">
           Scheduled: {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}

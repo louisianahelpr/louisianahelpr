@@ -33,7 +33,7 @@ export function useDashboardData() {
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(0, 199),
-        supabase.from("platform_settings").select("platform_fee_percent").limit(1).single(),
+        supabase.from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle(),
         supabase
           .from("helper_availability")
           .select("day_of_week, is_available, start_time, end_time")

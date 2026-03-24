@@ -85,8 +85,8 @@ export function JobConfirmation({
           {isAccepted
             ? isOwner
               ? "Please confirm this job is still on so the helpr knows you're ready."
-              : "Please confirm you'll work this job so the poster knows you're committed."}
-            {!isAccepted && `Job is in ${urgencyText}. ${isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}`}
+              : "Please confirm you'll work this job so the poster knows you're committed."
+            : `Job is in ${urgencyText}. ${isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}`}
         </p>
         <p className="text-[10px] text-muted-foreground italic">
           This is a reminder — if you don't confirm, the job is still scheduled as planned. However, not confirming may signal to the other party that you're uncertain, and repeated no-shows or last-minute cancellations can result in warnings or account restrictions.

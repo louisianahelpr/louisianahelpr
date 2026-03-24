@@ -42,7 +42,7 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
       supabase.from("reviews").select("id", { count: "exact", head: true }),
-      supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed").range(0, 999),
+      supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed"),
     ]);
     const feeRows = feesRes.data || [];
     setStats({

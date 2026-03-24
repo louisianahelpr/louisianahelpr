@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, Gift, RotateCcw,
   Star, MessageSquare, Users, Pencil, ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw,
-  Rocket, Clock, ChevronDown, Calendar, Timer, Zap,
+  Rocket, Clock, ChevronDown, Calendar, Timer, Zap, Navigation as NavigationIcon,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { JobBoostDialog } from "@/components/JobBoostDialog";

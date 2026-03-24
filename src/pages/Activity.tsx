@@ -1459,6 +1459,32 @@ const Activity = () => {
                     {/* In Progress / Revision: actions always visible */}
                     {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
                       <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        {/* Show arrival timestamps if available */}
+                        {(app.job as any)?.helper_on_the_way_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                            <NavigationIcon className="w-3 h-3 shrink-0" />
+                            <span>On the way</span>
+                            <span className="ml-auto text-[10px]">{new Date((app.job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                        {(app.job as any)?.helper_arrived_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span>Arrived</span>
+                            <span className="ml-auto text-[10px]">{new Date((app.job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                        {/* Start job checkin if not yet started */}
+                        {!startRequestedJobIds.has(app.job_id) && (
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
+                            <Rocket className="w-4 h-4 mr-1" /> Start Job
+                          </Button>
+                        )}
+                        {startRequestedJobIds.has(app.job_id) && (
+                          <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">
+                            🚀 Job started
+                          </div>
+                        )}
                         <JobCheckins jobId={app.job_id} userId={user.id} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
                         <div className="grid grid-cols-2 gap-2">
                           <Button size="sm" className="w-full" onClick={() => completeJob(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>

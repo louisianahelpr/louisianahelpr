@@ -201,6 +201,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       {header}
+      {logoutDialog}
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Welcome */}
         <div>

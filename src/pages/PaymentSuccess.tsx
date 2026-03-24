@@ -6,6 +6,7 @@ import { CheckCircle, ShieldCheck } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PaymentSuccess = () => {
+  usePageTitle("Payment Authorized — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get("job_id");

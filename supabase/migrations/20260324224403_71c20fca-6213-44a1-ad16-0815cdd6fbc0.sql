@@ -1,0 +1,1 @@
+ALTER TABLE public.jobs ADD COLUMN is_flexible_schedule boolean NOT NULL DEFAULT false;

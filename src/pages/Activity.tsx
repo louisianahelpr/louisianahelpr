@@ -1637,6 +1637,7 @@ const Activity = () => {
                               posterConfirmedAt={(app.job as any)?.poster_confirmed_at}
                               helperConfirmedAt={(app.job as any)?.helper_confirmed_at}
                               dateNeeded={app.job?.date_needed || ""}
+                              jobStatus={app.job?.status}
                             />
                             <JobTracking jobId={app.job_id} helperId={user.id} isHelper={true} isOwner={false} />
                             

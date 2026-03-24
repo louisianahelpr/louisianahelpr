@@ -558,7 +558,8 @@ const Activity = () => {
   };
 
   const startJob = async (jobId: string) => {
-    if (!user) return;
+    if (!user || startJobLoading) return;
+    setStartJobLoading(jobId);
     const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
     
     // Time-based start restriction

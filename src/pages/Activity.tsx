@@ -1509,8 +1509,8 @@ const Activity = () => {
                         )}
                         {/* Start job checkin if not yet started */}
                         {!startRequestedJobIds.has(app.job_id) && (
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)}>
-                            <Rocket className="w-4 h-4 mr-1" /> Start Job
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => startJob(app.job_id)} disabled={startJobLoading === app.job_id}>
+                            <Rocket className="w-4 h-4 mr-1" /> {startJobLoading === app.job_id ? "Starting…" : "Start Job"}
                           </Button>
                         )}
                         {startRequestedJobIds.has(app.job_id) && (

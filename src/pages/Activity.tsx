@@ -636,6 +636,48 @@ const Activity = () => {
     }
   };
 
+  const markOnTheWay = async (jobId: string) => {
+    if (!user) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: now } as any).eq("id", jobId);
+    if (error) { toast.error("Failed to update"); return; }
+    const job = appliedApps.find(a => a.job_id === jobId)?.job;
+    if (job) {
+      await createNotification({
+        user_id: job.customer_id,
+        title: "🚗 Helpr is on the way!",
+        message: `Your helpr is headed to "${job.title}".`,
+        type: "info",
+        link: "/activity?tab=posted&filter=accepted",
+      });
+    }
+    toast.success("You're on your way! The poster has been notified.");
+    loadData(user.id);
+  };
+
+  const markArrived = async (jobId: string) => {
+    if (!user) return;
+    const now = new Date().toISOString();
+    // Mark arrived and auto-transition to in_progress
+    const { error } = await supabase.from("jobs").update({
+      helper_arrived_at: now,
+      status: "in_progress",
+    } as any).eq("id", jobId);
+    if (error) { toast.error("Failed to update"); return; }
+    const job = appliedApps.find(a => a.job_id === jobId)?.job;
+    if (job) {
+      await createNotification({
+        user_id: job.customer_id,
+        title: "📍 Helpr has arrived!",
+        message: `Your helpr has arrived for "${job.title}". The job is now in progress.`,
+        type: "success",
+        link: "/activity?tab=posted&filter=in_progress",
+      });
+    }
+    toast.success("You've arrived! Job is now in progress.");
+    loadData(user.id);
+  };
+
   const sendTip = async (jobId: string, quickAmount?: number) => {
     const amount = quickAmount || parseFloat(tipAmount);
     if (isNaN(amount) || amount <= 0) { toast.error("Enter a valid amount"); return; }

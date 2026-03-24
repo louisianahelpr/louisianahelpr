@@ -48,7 +48,7 @@ export function useDashboardData() {
 
       const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
 
-      const platformFee = feeRes.data?.platform_fee_percent ?? 15;
+      const platformFee = feeRes.data?.platform_fee_percent ?? 2;
       const helperAvailability = availRes.data ?? [];
       const rawJobs = openJobsRes.data ?? [];
 

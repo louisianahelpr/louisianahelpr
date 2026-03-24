@@ -45,6 +45,21 @@ export function JobConfirmation({
       toast.error("Failed to confirm");
     } else {
       toast.success("Confirmed! You're committed to this job.");
+      // Notify the other party
+      const { data: job } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
+      if (job) {
+        const recipientId = isOwner ? job.helper_id : job.customer_id;
+        if (recipientId) {
+          const { createNotification } = await import("@/lib/notifications");
+          await createNotification({
+            user_id: recipientId,
+            title: isOwner ? "Poster confirmed the job!" : "Helpr confirmed the job!",
+            message: `${isOwner ? "The poster" : "The helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
+            type: "info",
+            link: `/activity?tab=${isOwner ? "applied" : "posted"}&filter=offered`,
+          });
+        }
+      }
     }
     setConfirming(false);
     setShowConfirmDialog(false);

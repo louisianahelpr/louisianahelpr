@@ -38,7 +38,7 @@ const AdminSettings = () => {
       .from("platform_settings")
       .select("*")
       .limit(1)
-      .single();
+      .maybeSingle();
     if (data) {
       setFeePercent(String(data.platform_fee_percent));
       setSettingsId(data.id);

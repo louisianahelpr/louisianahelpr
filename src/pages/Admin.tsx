@@ -100,7 +100,7 @@ const Admin = () => {
           </Link>
           <span className="text-[10px] font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
+        <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
           <LogOut className="w-4 h-4" />
         </Button>
       </div>

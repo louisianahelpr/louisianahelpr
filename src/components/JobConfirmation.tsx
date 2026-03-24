@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { CheckCircle2, Clock, AlertTriangle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export function JobConfirmation({
@@ -11,6 +12,7 @@ export function JobConfirmation({
   posterConfirmedAt,
   helperConfirmedAt,
   dateNeeded,
+  jobStatus,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -18,15 +20,19 @@ export function JobConfirmation({
   posterConfirmedAt: string | null;
   helperConfirmedAt: string | null;
   dateNeeded: string;
+  jobStatus?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const jobDate = new Date(dateNeeded + "T00:00");
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-  const showConfirmation = hoursUntilJob <= 48 && hoursUntilJob > 0;
 
-  if (!showConfirmation) return null;
+  // Show on accepted jobs always, or within 48hrs for in_progress
+  const isAccepted = jobStatus === "accepted";
+  const showForInProgress = hoursUntilJob <= 48 && hoursUntilJob > 0;
+  if (!isAccepted && !showForInProgress) return null;
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -38,41 +44,104 @@ export function JobConfirmation({
     if (error) {
       toast.error("Failed to confirm");
     } else {
-      toast.success("Confirmed! See you there.");
+      toast.success("Confirmed! You're committed to this job.");
     }
     setConfirming(false);
+    setShowConfirmDialog(false);
   };
 
   const myConfirmed = isOwner ? posterConfirmedAt : helperConfirmedAt;
   const otherConfirmed = isOwner ? helperConfirmedAt : posterConfirmedAt;
   const otherLabel = isOwner ? "Helpr" : "Poster";
 
-  return (
-    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-        <AlertTriangle className="w-4 h-4 text-primary" /> 24hr Check-in
-      </h3>
-      <p className="text-xs text-muted-foreground">
-        Job is in {hoursUntilJob < 24 ? "less than 24 hours" : `${Math.round(hoursUntilJob)} hours`}. {isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}
-      </p>
+  const urgencyText = hoursUntilJob <= 0
+    ? "Job date has passed"
+    : hoursUntilJob < 24
+    ? "less than 24 hours"
+    : `${Math.round(hoursUntilJob)} hours`;
 
-      <div className="flex items-center gap-3 text-xs">
-        <span className={`flex items-center gap-1 ${myConfirmed ? "text-primary" : "text-muted-foreground"}`}>
-          {myConfirmed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-          You: {myConfirmed ? "Confirmed" : "Not confirmed"}
-        </span>
-        <span className={`flex items-center gap-1 ${otherConfirmed ? "text-primary" : "text-muted-foreground"}`}>
-          {otherConfirmed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-          {otherLabel}: {otherConfirmed ? "Confirmed" : "Not confirmed"}
-        </span>
+  return (
+    <>
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-primary" /> Job Confirmation
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {isAccepted
+            ? isOwner
+              ? "Please confirm this job is still on so the helpr knows you're ready."
+              : "Please confirm you'll work this job so the poster knows you're committed."
+            : `Job is in ${urgencyText}. ${isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}`}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          Scheduled: {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+          {hoursUntilJob > 0 && ` · ${urgencyText} away`}
+        </p>
+
+        <div className="flex items-center gap-3 text-xs">
+          <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${myConfirmed ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+            {myConfirmed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+            You: {myConfirmed ? "Confirmed ✓" : "Not confirmed"}
+          </span>
+          <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${otherConfirmed ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+            {otherConfirmed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+            {otherLabel}: {otherConfirmed ? "Confirmed ✓" : "Not confirmed"}
+          </span>
+        </div>
+
+        {myConfirmed && (
+          <p className="text-[10px] text-primary flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3" />
+            Confirmed at {new Date(myConfirmed).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
+
+        {!myConfirmed && (isOwner || isHelper) && (
+          <Button size="sm" onClick={() => setShowConfirmDialog(true)} className="w-full">
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            {isOwner ? "Confirm Job Is On" : "Confirm I'll Work This Job"}
+          </Button>
+        )}
       </div>
 
-      {!myConfirmed && (isOwner || isHelper) && (
-        <Button size="sm" onClick={handleConfirm} disabled={confirming} className="w-full">
-          <CheckCircle2 className="w-4 h-4 mr-1" />
-          {confirming ? "Confirming…" : isOwner ? "Confirm Job Is On" : "Confirm I'm Available"}
-        </Button>
-      )}
-    </div>
+      {/* Confirmation popup */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              {isOwner ? "Confirm This Job" : "Confirm You'll Work This Job"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {isOwner
+                ? "By confirming, you're letting the helpr know this job is still on and you'll be ready on the scheduled date."
+                : "By confirming, you're committing to show up and complete this job on the scheduled date."}
+            </p>
+            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+              <p className="text-xs text-muted-foreground">📅 Scheduled for</p>
+              <p className="text-sm font-medium text-foreground">
+                {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </p>
+            </div>
+            {!isOwner && (
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                <p className="text-xs text-amber-700 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Declining after confirming may result in a warning or ban.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowConfirmDialog(false)}>Cancel</Button>
+            <Button onClick={handleConfirm} disabled={confirming}>
+              {confirming ? "Confirming…" : "Yes, I Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

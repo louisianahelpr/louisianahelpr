@@ -58,7 +58,7 @@ serve(async (req) => {
 
       if (!paymentIntentId) {
         // No payment was ever made — just update status
-        await supabaseAdmin.from("jobs").update({ payment_status: "voided" }).eq("id", job.id);
+        await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
         results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: true });
         continue;
       }

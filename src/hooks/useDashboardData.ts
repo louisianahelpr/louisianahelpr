@@ -48,7 +48,7 @@ export function useDashboardData() {
 
       const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
 
-      const platformFee = feeRes.data?.platform_fee_percent ?? 2;
+      const platformFee = feeRes.data?.platform_fee_percent ?? 0;
       const helperAvailability = availRes.data ?? [];
       const rawJobs = openJobsRes.data ?? [];
 
@@ -154,7 +154,7 @@ export function useDashboardData() {
     loading,
     helprTier: proData ?? data?.helprTier ?? null,
     allJobs: data?.allJobs ?? [],
-    platformFee: data?.platformFee ?? 2,
+    platformFee: data?.platformFee ?? 0,
     helperAvailability: data?.helperAvailability ?? [],
     recommendedJobs: data?.recommendedJobs ?? [],
     refresh,

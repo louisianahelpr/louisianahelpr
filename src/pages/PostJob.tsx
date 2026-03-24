@@ -63,7 +63,7 @@ const PostJob = () => {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
-  const [platformFee, setPlatformFee] = useState(2);
+  const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -354,7 +354,7 @@ const PostJob = () => {
 
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
-  const feeAmount = budgetNum * (platformFee / 100);
+  const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
   const feeTax = feeAmount * 0.085;
   const totalCharge = budgetNum + urgentFeeNum + feeTax;
   const helperEarns = budgetNum - feeAmount;

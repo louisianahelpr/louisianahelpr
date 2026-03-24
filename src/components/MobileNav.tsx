@@ -84,9 +84,10 @@ const MobileNav = () => {
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
-  const renderItem = ({ path, icon: Icon, label }: { path: string; icon: any; label: string }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
     const active = location.pathname === path;
-    const showBadge = path === "/messages" && unreadCount > 0;
+    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? unreadNotifCount : 0;
+    const showBadge = badgeCount > 0;
     return (
       <button
         key={path}

@@ -63,7 +63,10 @@ const Jobs = () => {
     fetchJobs();
   }, []);
 
+  const now = new Date();
   const filtered = jobs.filter((job) => {
+    // Hide jobs that have expired in real-time (between fetches)
+    if (job.expires_at && new Date(job.expires_at) <= now) return false;
     const matchesSearch =
       !search ||
       job.title.toLowerCase().includes(search.toLowerCase()) ||

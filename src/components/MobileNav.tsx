@@ -17,6 +17,7 @@ const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;

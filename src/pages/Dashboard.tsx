@@ -111,6 +111,7 @@ const Dashboard = () => {
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
+  const [applyLoading, setApplyLoading] = useState(false);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
@@ -138,13 +139,15 @@ const Dashboard = () => {
   const { checkHelperStripeConnect } = useStripeConnectCheck();
 
   const handleApplyConfirm = useCallback(async () => {
-    if (!user || !confirmApplyJobId) return;
+    if (!user || !confirmApplyJobId || applyLoading) return;
+    setApplyLoading(true);
 
     // Block users without a connected payout account from applying
     const stripeCheck = await checkHelperStripeConnect();
     if (!stripeCheck.ok) {
       toast.error(stripeCheck.reason);
       setConfirmApplyJobId(null);
+      setApplyLoading(false);
       return;
     }
 
@@ -159,7 +162,8 @@ const Dashboard = () => {
       refresh();
     }
     setConfirmApplyJobId(null);
-  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect]);
+    setApplyLoading(false);
+  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
@@ -558,8 +562,10 @@ const Dashboard = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApplyConfirm}>Yes, Apply</AlertDialogAction>
+            <AlertDialogCancel disabled={applyLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApplyConfirm} disabled={applyLoading}>
+              {applyLoading ? "Applying…" : "Yes, Apply"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/activity", icon: ClipboardList, label: "Activity" },
+  { path: "/activity", icon: ClipboardList, label: "Activity", badgeKey: "activity" as const },
 ];
 
 const rightItems = [
-  { path: "/messages", icon: MessageSquare, label: "Messages" },
+  { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
@@ -17,6 +17,7 @@ const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -30,8 +31,14 @@ const MobileNav = () => {
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .eq("read", false);
-
       setUnreadCount(count || 0);
+
+      const { count: notifCount } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      setUnreadNotifCount(notifCount || 0);
 
       // Subscribe to new messages
       channel = supabase
@@ -40,13 +47,24 @@ const MobileNav = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
           () => {
-            // Re-fetch count on any change
             supabase
               .from("messages")
               .select("*", { count: "exact", head: true })
               .eq("receiver_id", user.id)
               .eq("read", false)
               .then(({ count }) => setUnreadCount(count || 0));
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          () => {
+            supabase
+              .from("notifications")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("read", false)
+              .then(({ count }) => setUnreadNotifCount(count || 0));
           }
         )
         .subscribe();
@@ -66,9 +84,10 @@ const MobileNav = () => {
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
-  const renderItem = ({ path, icon: Icon, label }: { path: string; icon: any; label: string }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
     const active = location.pathname === path;
-    const showBadge = path === "/messages" && unreadCount > 0;
+    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? unreadNotifCount : 0;
+    const showBadge = badgeCount > 0;
     return (
       <button
         key={path}
@@ -81,7 +100,7 @@ const MobileNav = () => {
           <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
           {showBadge && (
             <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {badgeCount > 9 ? "9+" : badgeCount}
             </span>
           )}
         </div>

@@ -24,6 +24,7 @@ const Admin = () => {
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,

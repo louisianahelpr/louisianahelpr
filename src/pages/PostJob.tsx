@@ -212,8 +212,8 @@ const PostJob = () => {
     if (!city.trim()) { toast.error("City is required"); return; }
     if (!addrState.trim()) { toast.error("State is required"); return; }
     if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
-    if (!dateNeeded) { toast.error("Date needed is required — pick a date or select 'Flexible date'"); return; }
-    if (!startTime) { toast.error("Start time is required — pick a time or select 'Flexible time'"); return; }
+    if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
     if (!specialRequirements.trim()) { toast.error("Special requirements is required"); return; }
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }

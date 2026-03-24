@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/activity", icon: ClipboardList, label: "Activity" },
+  { path: "/activity", icon: ClipboardList, label: "Activity", badgeKey: "activity" as const },
 ];
 
 const rightItems = [
-  { path: "/messages", icon: MessageSquare, label: "Messages" },
+  { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: User, label: "Profile" },
 ];
 

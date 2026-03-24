@@ -1019,16 +1019,26 @@ const Activity = () => {
                                 : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
                               }
                             </div>
-                            {(job as any).helper_confirmed_at && startRequestedJobIds.has(job.id) && (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <span className="text-xs text-amber-600 font-medium">🚀 {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is ready to start</span>
-                                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmStartJob(job.id)}>
-                                  <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start
-                                </Button>
+                            {/* On the way / arrived timestamps for poster */}
+                            {(job as any).helper_confirmed_at && (
+                              <div className="space-y-1.5">
+                                {(job as any).helper_on_the_way_at ? (
+                                  <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
+                                    <Navigation className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is on the way</span>
+                                    <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to head out</span>
+                                )}
+                                {(job as any).helper_arrived_at && (
+                                  <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} has arrived</span>
+                                    <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            {(job as any).helper_confirmed_at && !startRequestedJobIds.has(job.id) && (
-                              <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to start or auto-starts on job date</span>
                             )}
                           </div>
                         )}

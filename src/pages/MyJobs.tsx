@@ -84,23 +84,29 @@ const MyJobs = () => {
     setDeadlineDialogApp(app);
   };
 
-  const { checkHelperStripeConnect } = useStripeConnectCheck();
-
   const confirmAcceptWithDeadline = async (deadlineHours: number) => {
-    if (!deadlineDialogApp || !selectedJob) return;
+    if (!deadlineDialogApp || !selectedJob || !user) return;
 
     // Payout account verification is handled at payout time by process-scheduled-payouts
-    // Removed direct profiles query which was blocked by RLS for non-admin posters
 
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
     await supabase.from("applications").update({ status: "accepted" }).eq("id", deadlineDialogApp.id);
     await supabase.from("jobs").update({
-      status: "in_progress",
+      status: "accepted",
       helper_id: deadlineDialogApp.helper_id,
       response_deadline: deadline,
     } as any).eq("id", selectedJob.id);
-    await supabase.from("applications").update({ status: "rejected" }).eq("job_id", selectedJob.id).neq("id", deadlineDialogApp.id);
-    toast.success(`Helpr accepted! They have ${deadlineHours}h to confirm.`);
+
+    // Notify helper about the offer
+    await createNotification({
+      user_id: deadlineDialogApp.helper_id,
+      title: "📋 New job offer!",
+      message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`,
+      type: "info",
+      link: "/activity?tab=applied&filter=offered",
+    });
+
+    toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
     loadJobs();
     setSelectedJob(null);

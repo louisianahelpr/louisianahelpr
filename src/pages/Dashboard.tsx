@@ -139,13 +139,15 @@ const Dashboard = () => {
   const { checkHelperStripeConnect } = useStripeConnectCheck();
 
   const handleApplyConfirm = useCallback(async () => {
-    if (!user || !confirmApplyJobId) return;
+    if (!user || !confirmApplyJobId || applyLoading) return;
+    setApplyLoading(true);
 
     // Block users without a connected payout account from applying
     const stripeCheck = await checkHelperStripeConnect();
     if (!stripeCheck.ok) {
       toast.error(stripeCheck.reason);
       setConfirmApplyJobId(null);
+      setApplyLoading(false);
       return;
     }
 
@@ -160,7 +162,8 @@ const Dashboard = () => {
       refresh();
     }
     setConfirmApplyJobId(null);
-  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect]);
+    setApplyLoading(false);
+  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

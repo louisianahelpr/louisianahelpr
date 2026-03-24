@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Heart, Users, Star, HandHeart, Sparkles, ArrowLeft, Gift, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const values = [
@@ -54,17 +56,23 @@ const thankYouMessages = [
 const Community = () => {
   usePageTitle("Community — Helpr");
 
+  const { user } = useCurrentUser();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-3">
-          <Link to="/" className="text-xl font-display font-bold text-primary">Helpr</Link>
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/"><ArrowLeft className="w-4 h-4" /></Link>
-          </Button>
-        </div>
-      </header>
+      {user ? (
+        <DashboardHeader showBack />
+      ) : (
+        <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+          <div className="container mx-auto flex items-center h-16 px-4 gap-3">
+            <Link to="/" className="text-xl font-display font-bold text-primary">Helpr</Link>
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/"><ArrowLeft className="w-4 h-4" /></Link>
+            </Button>
+          </div>
+        </header>
+      )}
 
       {/* Hero */}
       <section className="py-16 px-4 bg-gradient-to-b from-primary/8 to-background">

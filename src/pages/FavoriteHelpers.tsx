@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Heart, MapPin, Star, Briefcase, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -35,23 +36,20 @@ interface FavoriteHelper {
 const FavoriteHelpers = () => {
   usePageTitle("Favorite Helpers — Helpr");
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [favorites, setFavorites] = useState<FavoriteHelper[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadFavorites();
-  }, []);
+    if (user) loadFavorites(user.id);
+  }, [user]);
 
-  const loadFavorites = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
-    setCurrentUserId(session.user.id);
+  const loadFavorites = async (userId: string) => {
 
     const { data: favs } = await supabase
       .from("favorite_helpers")
       .select("id, helper_id")
-      .eq("customer_id", session.user.id);
+      .eq("customer_id", userId);
 
     if (!favs || favs.length === 0) {
       setFavorites([]);

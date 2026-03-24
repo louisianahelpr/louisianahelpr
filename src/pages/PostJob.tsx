@@ -824,11 +824,24 @@ const PostJob = () => {
                       <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
                     </div>
                   )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
+                    <span className="font-medium text-muted-foreground">−${feeAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">LA sales tax on fee (8.5%)</span>
+                    <span className="font-medium text-muted-foreground">${feeTax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Helpr earns</span>
+                    <span>${helperEarns.toFixed(2)}</span>
+                  </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">You pay</span>
                     <span className="text-xl font-bold text-foreground">${(budgetNum + urgentFeeNum).toFixed(2)}</span>
                   </div>
+                  <p className="text-[10px] text-muted-foreground">Tax is collected by Stripe at checkout. The platform fee and tax are deducted from the payout.</p>
                 </div>
               </div>
 

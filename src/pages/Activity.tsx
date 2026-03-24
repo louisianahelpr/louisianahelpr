@@ -1474,13 +1474,13 @@ const Activity = () => {
                         )}
                         {/* Action buttons */}
                         {!(app.job as any)?.helper_on_the_way_at && (
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => markOnTheWay(app.job_id)}>
-                            <NavigationIcon className="w-4 h-4 mr-1" /> On My Way
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => markOnTheWay(app.job_id)} disabled={onTheWayLoading === app.job_id}>
+                            <NavigationIcon className="w-4 h-4 mr-1" /> {onTheWayLoading === app.job_id ? "Updating…" : "On My Way"}
                           </Button>
                         )}
                         {(app.job as any)?.helper_on_the_way_at && !(app.job as any)?.helper_arrived_at && (
-                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => markArrived(app.job_id)}>
-                            <MapPin className="w-4 h-4 mr-1" /> I've Arrived
+                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => markArrived(app.job_id)} disabled={arrivedLoading === app.job_id}>
+                            <MapPin className="w-4 h-4 mr-1" /> {arrivedLoading === app.job_id ? "Updating…" : "I've Arrived"}
                           </Button>
                         )}
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}>

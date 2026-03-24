@@ -533,46 +533,22 @@ const PostJob = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
-                    {dateNeeded === "flexible" ? (
-                      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-primary bg-primary/5 text-sm text-primary font-medium">
-                        <Calendar className="w-4 h-4" /> Flexible date
-                      </div>
-                    ) : (
-                      <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setDateNeeded(dateNeeded === "flexible" ? "" : "flexible")}
-                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                        dateNeeded === "flexible"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      }`}
-                    >
-                      {dateNeeded === "flexible" ? "✕ Pick a date instead" : "📅 Flexible date"}
-                    </button>
+                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
-                    {startTime === "flexible" ? (
-                      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-primary bg-primary/5 text-sm text-primary font-medium">
-                        <Clock className="w-4 h-4" /> Flexible time
-                      </div>
-                    ) : (
-                      <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setStartTime(startTime === "flexible" ? "" : "flexible")}
-                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                        startTime === "flexible"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      }`}
-                    >
-                      {startTime === "flexible" ? "✕ Pick a time instead" : "🕐 Flexible time"}
-                    </button>
+                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
                   </div>
+                </div>
+                <div className="flex items-center gap-3 px-1">
+                  <Checkbox
+                    id="flexible"
+                    checked={isFlexibleSchedule}
+                    onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
+                  />
+                  <label htmlFor="flexible" className="text-sm text-muted-foreground cursor-pointer">
+                    <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
+                  </label>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

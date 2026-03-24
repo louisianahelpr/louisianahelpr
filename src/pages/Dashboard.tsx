@@ -562,8 +562,10 @@ const Dashboard = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApplyConfirm}>Yes, Apply</AlertDialogAction>
+            <AlertDialogCancel disabled={applyLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApplyConfirm} disabled={applyLoading}>
+              {applyLoading ? "Applying…" : "Yes, Apply"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

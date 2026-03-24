@@ -100,7 +100,7 @@ const MobileNav = () => {
           <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
           {showBadge && (
             <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {badgeCount > 9 ? "9+" : badgeCount}
             </span>
           )}
         </div>

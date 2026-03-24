@@ -308,8 +308,12 @@ const Messages = () => {
                   ))}
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground">No messages yet. Apply to a task to start chatting!</p>
+                <div className="text-center py-16 space-y-3">
+                  <MessageSquare className="w-12 h-12 text-muted-foreground/30 mx-auto" />
+                  <p className="font-medium text-foreground">No messages yet</p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    Once you apply to a task or someone applies to yours, your conversations will show up here.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">

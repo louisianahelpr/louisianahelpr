@@ -225,7 +225,6 @@ const ProfilePage = () => {
     if (tab === "earnings") loadEarnings();
     if (tab === "schedule") loadSchedule();
     if (tab === "reviews") loadReviews();
-    if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
   // Check Stripe Connect status for all users

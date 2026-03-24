@@ -111,6 +111,7 @@ const Dashboard = () => {
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
+  const [applyLoading, setApplyLoading] = useState(false);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;

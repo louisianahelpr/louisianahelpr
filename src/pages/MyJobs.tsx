@@ -85,7 +85,7 @@ const MyJobs = () => {
   };
 
   const confirmAcceptWithDeadline = async (deadlineHours: number) => {
-    if (!deadlineDialogApp || !selectedJob || !user) return;
+    if (!deadlineDialogApp || !selectedJob || !currentUserId) return;
 
     // Payout account verification is handled at payout time by process-scheduled-payouts
 

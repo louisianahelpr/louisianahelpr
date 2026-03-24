@@ -644,9 +644,11 @@ export type Database = {
           estimated_hours: number | null
           expires_at: string | null
           flag_reasons: string[] | null
+          helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_id: string | null
+          helper_on_the_way_at: string | null
           helpers_needed: number | null
           id: string
           is_flexible_schedule: boolean
@@ -706,9 +708,11 @@ export type Database = {
           estimated_hours?: number | null
           expires_at?: string | null
           flag_reasons?: string[] | null
+          helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
+          helper_on_the_way_at?: string | null
           helpers_needed?: number | null
           id?: string
           is_flexible_schedule?: boolean
@@ -768,9 +772,11 @@ export type Database = {
           estimated_hours?: number | null
           expires_at?: string | null
           flag_reasons?: string[] | null
+          helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_id?: string | null
+          helper_on_the_way_at?: string | null
           helpers_needed?: number | null
           id?: string
           is_flexible_schedule?: boolean

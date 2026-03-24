@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, ShieldCheck } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();

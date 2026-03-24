@@ -573,6 +573,7 @@ const Activity = () => {
       // Block starting before the job date (both flexible and fixed)
       if (jobDate && today < jobDate) {
         toast.error(`This job is scheduled for ${new Date(jobDate + "T00:00").toLocaleDateString()}. You can't start it before that date.`, { duration: 5000 });
+        setStartJobLoading(null);
         return;
       }
 

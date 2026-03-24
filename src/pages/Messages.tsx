@@ -321,7 +321,7 @@ const Messages = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {conversations.map((c) => (
+                  {(showAllConvos ? conversations : conversations.slice(0, CONVO_LIMIT)).map((c) => (
                     <button
                       key={`${c.jobId}_${c.otherUserId}`}
                       onClick={() => openConvo(c)}
@@ -346,6 +346,11 @@ const Messages = () => {
                       </div>
                     </button>
                   ))}
+                  {!showAllConvos && conversations.length > CONVO_LIMIT && (
+                    <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-sm text-primary font-medium hover:underline">
+                      Show all {conversations.length} conversations
+                    </button>
+                  )}
                 </div>
               )}
             </div>

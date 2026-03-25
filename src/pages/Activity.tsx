@@ -37,19 +37,14 @@ import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import { DisputeDialog } from "@/components/DisputeDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
-
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
-type Application = Database["public"]["Tables"]["applications"]["Row"];
-
-const categoryLabels: Record<string, string> = {
-  cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
-  handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", other: "Other",
-};
-const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
+import { ActivityDialogs } from "@/components/activity/ActivityDialogs";
+import { EditJobDialog } from "@/components/activity/EditJobDialog";
+import {
+  type Job, type Application, type Tab, type EnrichedApplication, type AppliedApp,
+  categoryLabels, categories, categoryColors, statusBadge,
+} from "@/components/activity/activityConstants";
 
 const categoryColors: Record<string, { badge: string; title: string }> = {
   cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700" },

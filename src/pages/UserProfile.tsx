@@ -364,7 +364,12 @@ const UserProfile = () => {
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-border bg-card p-6 text-center">
+                  <Hammer className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No completed jobs yet</p>
+                </div>
+              )}
             </div>
           )}
 

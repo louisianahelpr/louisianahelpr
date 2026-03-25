@@ -5,7 +5,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
@@ -48,11 +64,13 @@ const Messages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllConvos, setShowAllConvos] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [deleteConvoConfirm, setDeleteConvoConfirm] = useState<Conversation | null>(null);
+  const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -300,6 +318,35 @@ const Messages = () => {
     if (error) toast.error("Failed to send message");
   };
 
+  const deleteConversation = async (convo: Conversation) => {
+    if (!userId) return;
+    // Delete all messages in this conversation for this user pair + job
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("job_id", convo.jobId)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`);
+
+    if (error) {
+      toast.error("Failed to delete conversation");
+    } else {
+      setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
+      toast.success("Conversation deleted");
+    }
+    setDeleteConvoConfirm(null);
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    const { error } = await supabase.from("messages").delete().eq("id", messageId);
+    if (error) {
+      toast.error("Failed to delete message");
+    } else {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      toast.success("Message deleted");
+    }
+    setDeleteMessageConfirm(null);
+  };
+
   const renderMessageContent = (content: string) => {
     // Photo message
     if (content.startsWith("📷 ")) {
@@ -362,29 +409,48 @@ const Messages = () => {
               ) : (
                 <div className="space-y-2">
                   {(showAllConvos ? conversations : conversations.slice(0, CONVO_LIMIT)).map((c) => (
-                    <button
+                    <div
                       key={`${c.jobId}_${c.otherUserId}`}
-                      onClick={() => openConvo(c)}
-                      className="w-full text-left p-4 rounded-xl border border-border bg-card hover:shadow-md transition-shadow"
+                      className="w-full text-left p-4 rounded-xl border border-border bg-card hover:shadow-md transition-shadow flex items-center gap-2"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-foreground truncate">{c.otherUserName}</p>
-                            {c.unread > 0 && (
-                              <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                                {c.unread}
-                              </span>
-                            )}
+                      <button
+                        onClick={() => openConvo(c)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-foreground truncate">{c.otherUserName}</p>
+                              {c.unread > 0 && (
+                                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                                  {c.unread}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
+                            <p className="text-sm text-muted-foreground truncate mt-1">{c.lastMessage}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
-                          <p className="text-sm text-muted-foreground truncate mt-1">{c.lastMessage}</p>
+                          <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                            {new Date(c.lastAt).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                          {new Date(c.lastAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </button>
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
+                            <Flag className="w-4 h-4 mr-2" /> Report user
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   ))}
                   {!showAllConvos && conversations.length > CONVO_LIMIT && (
                     <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-sm text-primary font-medium hover:underline">
@@ -449,14 +515,27 @@ const Messages = () => {
                         </span>
                         <ReadReceipt read={m.read} sentByMe={m.sender_id === userId} />
                       </div>
-                      {m.sender_id !== userId && (
-                        <button
-                          onClick={() => setReportTarget({ type: "message", id: m.id })}
-                          className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        >
-                          <Flag className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      {/* Action buttons on hover */}
+                      <div className={`absolute ${m.sender_id === userId ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
+                        {m.sender_id !== userId && (
+                          <button
+                            onClick={() => setReportTarget({ type: "message", id: m.id })}
+                            className="text-muted-foreground hover:text-destructive p-1"
+                            title="Report"
+                          >
+                            <Flag className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {m.sender_id === userId && (
+                          <button
+                            onClick={() => setDeleteMessageConfirm(m.id)}
+                            className="text-muted-foreground hover:text-destructive p-1"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -489,6 +568,42 @@ const Messages = () => {
           reportedId={reportTarget.id}
         />
       )}
+
+      {/* Delete conversation confirmation */}
+      <AlertDialog open={!!deleteConvoConfirm} onOpenChange={() => setDeleteConvoConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all messages in this conversation with {deleteConvoConfirm?.otherUserName}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete message confirmation */}
+      <AlertDialog open={!!deleteMessageConfirm} onOpenChange={() => setDeleteMessageConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This message will be permanently deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

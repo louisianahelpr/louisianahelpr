@@ -286,7 +286,8 @@ const Admin = () => {
     home: "Dashboard", analytics: "Analytics", reviews: "Reviews", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
     notifications: "Notifications", reports: "Reports", support: "Support",
-    referrals: "Referrals", subscriptions: "Subscriptions",
+    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
+    audit: "Audit Log", health: "Health", export: "Export",
   };
 
   const renderContent = () => {

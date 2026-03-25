@@ -333,9 +333,9 @@ const UserProfile = () => {
           )}
 
           {/* Posted Jobs expanded inline */}
-          {showPostedJobs && postedJobs.length > 0 && (
+          {showPostedJobs && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {postedJobs.map((job) => (
+              {postedJobs.length > 0 ? postedJobs.map((job) => (
                 <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
@@ -346,7 +346,12 @@ const UserProfile = () => {
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-border bg-card p-6 text-center">
+                  <ClipboardList className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No posted jobs yet</p>
+                </div>
+              )}
             </div>
           )}
 

@@ -1,33 +1,39 @@
-import { useEffect, useState, forwardRef } from "react";
+import { useEffect, useState } from "react";
 import { formatName } from "@/lib/utils";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, LogOut,
-  ChevronLeft, ChevronRight, MapPin, Clock, Calendar, Filter,
-  CreditCard, Shield, FileText, ExternalLink, Mail, Lock, ImagePlus, X, Upload,
-  User as UserIcon, Star, Edit, History, CalendarDays, Gavel, ChevronRight as ChevronRightIcon,
-  LifeBuoy, RotateCcw, Crown, CheckCircle, Loader2, Heart, Users, HelpCircle, CalendarHeart, Bell,
-  MessageSquarePlus, Lightbulb, AlertTriangle, Send, CheckCircle2, Ban, XCircle, Scale, Timer,
-  Camera,
+  ArrowLeft, DollarSign, LogOut, MapPin, Clock,
+  CreditCard, Shield, FileText, ExternalLink, Mail, Lock, Upload, X,
+  Star, Edit, CalendarDays, Gavel,
+  ChevronRight as ChevronRightIcon,
+  HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
+  Briefcase,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
-import { HelperAvailability } from "@/components/HelperAvailability";
 import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-
 import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+
+// Extracted tab components
+import { SupportInline } from "@/components/profile/SupportInline";
+import { SubscriptionTab } from "@/components/profile/SubscriptionTab";
+import { LegalTab } from "@/components/profile/LegalTab";
+import { EarningsTab } from "@/components/profile/EarningsTab";
+import { ScheduleTab } from "@/components/profile/ScheduleTab";
+import { ReviewsTab } from "@/components/profile/ReviewsTab";
+import { WarningsTab } from "@/components/profile/WarningsTab";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -42,9 +48,6 @@ const statusColors: Record<string, string> = {
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-destructive/10 text-destructive",
 };
-
-type HistoryTab = "all" | "posted" | "worked";
-type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 
 const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
@@ -90,8 +93,6 @@ const ProfilePage = () => {
   const [schedulePostedJobs, setSchedulePostedJobs] = useState<Job[]>([]);
   const [scheduleAssignedJobs, setScheduleAssignedJobs] = useState<Job[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Inline job lists on landing
@@ -116,9 +117,7 @@ const ProfilePage = () => {
     setViolationsLoading(false);
   };
 
-  // Load violations when tab changes
   useEffect(() => { if (tab === "warnings") loadViolations(); }, [tab]);
-
 
   useEffect(() => {
     if (cachedUser && !user) {
@@ -219,7 +218,6 @@ const ProfilePage = () => {
     setReviewsLoading(false);
   };
 
-  // Load tab data on demand
   useEffect(() => {
     if (!user) return;
     if (tab === "earnings") loadEarnings();
@@ -227,7 +225,6 @@ const ProfilePage = () => {
     if (tab === "reviews") loadReviews();
   }, [tab, user]);
 
-  // Check Stripe Connect status for all users
   useEffect(() => {
     if (profile?.approval_status === "approved" && !stripeConnectStatus) {
       checkStripeConnect();
@@ -369,133 +366,7 @@ const ProfilePage = () => {
 
   const role = profile?.role || "customer";
   const initials = (profile?.full_name || user?.email || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-
-  // Earnings calculations
-  const completedJobs = earningsJobs.filter((j) => j.status === "completed");
-  const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
-  const totalEarnings = completedJobs.reduce((sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)), 0);
-  const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
-
-  // Schedule calculations
-  const allScheduleJobs = [...schedulePostedJobs, ...scheduleAssignedJobs];
-  const jobsByDate = new Map<string, Job[]>();
-  allScheduleJobs.forEach((j) => {
-    const key = j.date_needed;
-    if (!jobsByDate.has(key)) jobsByDate.set(key, []);
-    jobsByDate.get(key)!.push(j);
-  });
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split("T")[0];
-  const days: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) days.push(null);
-  for (let i = 1; i <= daysInMonth; i++) days.push(i);
-  const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  const selectedJobs = selectedDate ? (jobsByDate.get(selectedDate) || []) : [];
-  const upcomingJobs = allScheduleJobs.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
-
-type SupportCategory = "message" | "suggestion" | "report" | "help";
-
-const supportCategories: { key: SupportCategory; label: string; icon: React.ReactNode; description: string }[] = [
-  { key: "message", label: "Message Admin", icon: <MessageSquarePlus className="w-5 h-5" />, description: "Send a direct message to the admin team" },
-  { key: "suggestion", label: "Suggestion", icon: <Lightbulb className="w-5 h-5" />, description: "Share an idea to improve the platform" },
-  { key: "report", label: "Report Issue", icon: <AlertTriangle className="w-5 h-5" />, description: "Report a bug, problem, or concern" },
-  { key: "help", label: "Get Help", icon: <HelpCircle className="w-5 h-5" />, description: "Ask a question or request assistance" },
-];
-
-function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void }) {
-  const [category, setCategory] = useState<SupportCategory | null>(null);
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId || !category || !message.trim()) return;
-    setSending(true);
-    const labels: Record<SupportCategory, string> = { message: "Admin Message", suggestion: "Suggestion", report: "Issue Report", help: "Help Request" };
-    const { error } = await supabase.from("reports").insert({
-      reporter_id: userId,
-      reported_type: "support",
-      reported_id: userId,
-      reason: `[${labels[category]}] ${subject.trim() || "No subject"}`,
-      description: message.trim(),
-    });
-    setSending(false);
-    if (error) { toast.error("Failed to send. Please try again."); }
-    else { setSent(true); toast.success("Message sent to admin!"); }
-  };
-
-  const reset = () => { setCategory(null); setSubject(""); setMessage(""); setSent(false); };
-
-  if (sent) {
-    return (
-      <div className="text-center space-y-4 py-8">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-8 h-8 text-primary" />
-        </div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Message Sent!</h1>
-        <p className="text-muted-foreground">Our team will review your message and get back to you soon.</p>
-        <Button variant="outline" onClick={reset}>Send Another</Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
-          </h1>
-          <p className="text-sm text-muted-foreground">Message admin, share suggestions, or report issues</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {supportCategories.map((c) => (
-          <button
-            key={c.key}
-            onClick={() => setCategory(c.key)}
-            className={`rounded-xl border p-4 text-left transition-all ${
-              category === c.key
-                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "border-border bg-card hover:border-primary/40"
-            }`}
-          >
-            <div className={`mb-2 ${category === c.key ? "text-primary" : "text-muted-foreground"}`}>
-              {c.icon}
-            </div>
-            <p className="font-medium text-sm text-foreground">{c.label}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
-          </button>
-        ))}
-      </div>
-
-      {category && (
-        <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="support-subject" className="text-xs">Subject (optional)</Label>
-            <Input id="support-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Brief summary…" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="support-message" className="text-xs">Your message *</Label>
-            <Textarea id="support-message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Describe in detail…" rows={5} required />
-          </div>
-          <Button type="submit" className="w-full" disabled={sending || !message.trim()}>
-            {sending ? "Sending…" : <><Send className="w-4 h-4 mr-2" /> Send Message</>}
-          </Button>
-        </form>
-      )}
-    </div>
-  );
-}
+  const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)), 0);
 
   const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] }[] = [
     {
@@ -555,7 +426,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 </div>
               </div>
 
-              {/* Payout Banner for users without payout account */}
+              {/* Payout Banner */}
               {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
                 <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
                   <div className="flex items-start gap-3">
@@ -575,34 +446,22 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
 
               {/* Quick stats */}
               <div className="grid grid-cols-4 gap-2">
-                <button
-                  onClick={() => setTab("reviews")}
-                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
-                >
+                <button onClick={() => setTab("reviews")} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
                   <div className="flex items-center justify-center gap-1">
                     <Star className="w-3.5 h-3.5 text-primary fill-primary" />
                     <p className="text-lg font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
                   </div>
                   <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
-                <button
-                  onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }}
-                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
-                >
+                <button onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
                   <p className="text-lg font-bold text-foreground">{postedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Posted</p>
                 </button>
-                <button
-                  onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }}
-                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
-                >
+                <button onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
                   <p className="text-lg font-bold text-foreground">{completedCount}</p>
                   <p className="text-[10px] text-muted-foreground">Completed</p>
                 </button>
-                <button
-                  onClick={() => { loadEarnings(); setTab("earnings"); }}
-                  className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all"
-                >
+                <button onClick={() => { loadEarnings(); setTab("earnings"); }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
                   <div className="flex items-center justify-center gap-1">
                     <DollarSign className="w-3.5 h-3.5 text-primary" />
                     <p className="text-lg font-bold text-foreground">{totalEarned > 0 ? `${totalEarned.toFixed(0)}` : "—"}</p>
@@ -675,13 +534,7 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                       ) : (
                         <Camera className="w-6 h-6 text-white" />
                       )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarUpload}
-                        disabled={avatarUploading}
-                      />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
                     </label>
                   </div>
                   <p className="text-xs text-muted-foreground">Tap to change profile picture</p>
@@ -741,11 +594,8 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                     <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" /> Portfolio & Documents
                     </h2>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Work samples, certifications, resume — up to 10 files
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Work samples, certifications, resume — up to 10 files</p>
                   </div>
-
                   <div className="flex flex-wrap gap-3">
                     {(profile?.portfolio_urls as string[] || []).map((url, i) => {
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
@@ -777,7 +627,6 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                         </div>
                       );
                     })}
-
                     <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
                       <Upload className="w-5 h-5 text-muted-foreground" />
                       <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
@@ -824,183 +673,15 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
             </div>
           )}
 
-          {/* EARNINGS TAB */}
+          {/* EXTRACTED TAB COMPONENTS */}
           {tab === "earnings" && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
-              </div>
-              {earningsLoading ? (
-                <p className="text-muted-foreground">Loading…</p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl border border-border bg-card p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">Total</span>
-                        <TrendingUp className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="text-xl font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{completedJobs.length} jobs</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">Tips</span>
-                        <Gift className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="text-xl font-bold text-foreground">${totalTips.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{tips.length} tips</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">Active</span>
-                        <Briefcase className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="text-xl font-bold text-foreground">{inProgressJobs.length}</p>
-                      <p className="text-xs text-muted-foreground mt-1">in progress</p>
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
-                    {earningsJobs.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">No jobs yet.</p>
-                        <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {earningsJobs.map((job) => {
-                          const payout = job.status === "completed" ? job.budget - (job.platform_fee_amount || 0) : null;
-                          const jobTips = tips.filter((t) => t.job_id === job.id);
-                          const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
-                          return (
-                            <div key={job.id} className="rounded-xl border border-border bg-card p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">{job.location} · {new Date(job.date_needed).toLocaleDateString()}</p>
-                                </div>
-                                <div className="text-right">
-                                  {payout !== null && <p className="font-bold text-foreground text-sm">${payout.toFixed(2)}</p>}
-                                  {tipTotal > 0 && <p className="text-xs text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
-                                  {job.status === "in_progress" && <p className="text-xs text-muted-foreground">${job.budget} budget</p>}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
+            <EarningsTab earningsJobs={earningsJobs} tips={tips} loading={earningsLoading} onBack={() => setTab("landing")} />
           )}
 
-          {/* SCHEDULE TAB (includes availability) */}
-          {tab === "schedule" && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                  <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
-                  <p className="text-muted-foreground text-sm">Your calendar, upcoming jobs & working hours</p>
-                </div>
-              </div>
-
-              {/* Calendar */}
-              {scheduleLoading ? (
-                <p className="text-muted-foreground">Loading…</p>
-              ) : (
-                <>
-                  <div className="rounded-xl border border-border bg-card p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}><ChevronLeft className="w-4 h-4" /></Button>
-                      <h2 className="font-display font-semibold text-foreground text-sm">
-                        {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                      </h2>
-                      <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}><ChevronRight className="w-4 h-4" /></Button>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1 mb-1">
-                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                        <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {days.map((day, i) => {
-                        if (day === null) return <div key={`e-${i}`} />;
-                        const dateStr = getDateStr(day);
-                        const hasJobs = jobsByDate.has(dateStr);
-                        const isToday = dateStr === today;
-                        const isSelected = dateStr === selectedDate;
-                        return (
-                          <button
-                            key={day}
-                            onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                            className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
-                              isSelected ? "bg-primary text-primary-foreground" :
-                              isToday ? "bg-primary/10 text-primary font-bold" :
-                              "hover:bg-secondary text-foreground"
-                            }`}
-                          >
-                            {day}
-                            {hasJobs && (
-                              <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {selectedDate && (
-                    <div className="space-y-3">
-                      <h3 className="font-display font-semibold text-foreground text-sm">
-                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-                      </h3>
-                      {selectedJobs.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
-                      ) : (
-                        selectedJobs.map((job) => (
-                          <ScheduleCard key={job.id} job={job} isPosted={schedulePostedJobs.some((j) => j.id === job.id)} />
-                        ))
-                      )}
-                    </div>
-                  )}
-
-                  {!selectedDate && (
-                    <div className="space-y-3">
-                      <h3 className="font-display font-semibold text-foreground text-sm">Upcoming</h3>
-                      {upcomingJobs.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No upcoming jobs.</p>
-                      ) : (
-                        upcomingJobs.map((job) => (
-                          <ScheduleCard key={job.id} job={job} isPosted={schedulePostedJobs.some((j) => j.id === job.id)} />
-                        ))
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Availability section */}
-              <div className="border-t border-border pt-6">
-                <h2 className="text-lg font-display font-bold text-foreground mb-1">Working Hours</h2>
-                <p className="text-muted-foreground text-xs mb-4">Set your weekly availability so customers know when you're free</p>
-                {user && <HelperAvailability userId={user.id} />}
-              </div>
-            </div>
+          {tab === "schedule" && user && (
+            <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
           )}
 
-          {/* PAYMENT TAB */}
           {tab === "payment" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -1009,21 +690,14 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
                 </button>
                 <h1 className="text-2xl font-display font-bold text-foreground">Payment Settings</h1>
               </div>
-              <PaymentTab
-                role={role}
-                earningsJobs={earningsJobs}
-                totalEarnings={totalEarnings}
-              />
+              <PaymentTab role={role} earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
             </div>
           )}
 
-          {/* SUBSCRIPTION TAB */}
           {tab === "subscription" && (
             <SubscriptionTab profile={profile} user={user} onBack={() => setTab("landing")} />
           )}
 
-
-          {/* POSTED JOBS TAB */}
           {tab === "posted_jobs" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -1062,7 +736,6 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
             </div>
           )}
 
-          {/* COMPLETED JOBS TAB */}
           {tab === "completed_jobs" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -1099,8 +772,6 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
             </div>
           )}
 
-
-          {/* SUPPORT TAB */}
           {tab === "support" && (
             <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
           )}
@@ -1179,65 +850,10 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
             </div>
           )}
 
-          {/* REVIEWS TAB */}
           {tab === "reviews" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                  <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
-                  <p className="text-muted-foreground text-sm">
-                    {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
-                  </p>
-                </div>
-              </div>
-
-              {reviewsLoading ? (
-                <p className="text-sm text-muted-foreground">Loading reviews...</p>
-              ) : reviews.length === 0 ? (
-                <div className="text-center py-12">
-                  <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground">No reviews yet. Complete jobs to receive reviews!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {reviews.map((review, i) => (
-                    <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-0.5">
-                            {Array.from({ length: 5 }).map((_, s) => (
-                              <Star
-                                key={s}
-                                className={`w-3.5 h-3.5 ${s < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm font-semibold text-foreground">{review.rating}/5</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </span>
-                      </div>
-                      {review.feedback && (
-                        <p className="text-sm text-foreground">{review.feedback}</p>
-                      )}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>By <span className="font-medium text-foreground">{review.reviewerName}</span></span>
-                        <span>·</span>
-                        <span>{review.jobTitle}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ReviewsTab reviews={reviews} loading={reviewsLoading} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
           )}
 
-
-          {/* REFERRAL TAB */}
           {tab === "referral" && user && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -1250,541 +866,15 @@ function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void
             </div>
           )}
 
-          {/* LEGAL TAB */}
           {tab === "legal" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
-              </div>
-
-              {/* Quick Links */}
-              <div className="flex flex-wrap gap-2">
-                <Link to="/rules" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
-                  <FileText className="w-3.5 h-3.5" /> Full Platform Rules
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-                <Link to="/terms" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors">
-                  Terms of Service <ExternalLink className="w-3 h-3" />
-                </Link>
-                <Link to="/privacy" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors">
-                  Privacy Policy <ExternalLink className="w-3 h-3" />
-                </Link>
-              </div>
-
-              {/* Platform Rules Section */}
-              <div>
-                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Platform Rules</h2>
-                <div className="space-y-2">
-                  <LegalCard icon={<FileText className="w-4 h-4 text-primary" />} title="Terms of Service">
-                    <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account and all activity under it.</p>
-                    <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helpr, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
-                    <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, or any conduct that violates the rights of others.</p>
-                    <p><strong className="text-foreground">Account Termination:</strong> Helpr reserves the right to suspend or terminate accounts that violate these terms.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Privacy Policy">
-                    <p><strong className="text-foreground">Data Collection:</strong> We collect information you provide (name, email, location) and usage data to improve the platform.</p>
-                    <p><strong className="text-foreground">Data Usage:</strong> Your data is used to match you with tasks, process payments, and communicate important updates.</p>
-                    <p><strong className="text-foreground">Data Sharing:</strong> We share limited information (first name, reviews) with other users. Payment data is handled securely by Stripe. We never sell your personal information.</p>
-                    <p><strong className="text-foreground">Data Retention:</strong> Your data is retained while your account is active. You can request deletion by contacting support.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Community Guidelines">
-                    <p><strong className="text-foreground">Respect:</strong> Treat all users with respect and professionalism.</p>
-                    <p><strong className="text-foreground">Honesty:</strong> Provide accurate information in your profile and job descriptions.</p>
-                    <p><strong className="text-foreground">Safety:</strong> Never share personal information like home addresses or financial details through messages.</p>
-                    <p><strong className="text-foreground">Reporting:</strong> Report any suspicious or inappropriate behavior using the report feature.</p>
-                  </LegalCard>
-                </div>
-              </div>
-
-              {/* Payments & Fees Section */}
-              <div>
-                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payments & Fees</h2>
-                <div className="space-y-2">
-                  <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Payment & Refund Policy">
-                    <p><strong className="text-foreground">Escrow System:</strong> All payments are held in escrow until both parties confirm the job is complete.</p>
-                    <p><strong className="text-foreground">Platform Fee:</strong> Helpr charges a platform fee on each transaction. The fee percentage is visible before payment.</p>
-                    <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released.</p>
-                    <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions before approving completion.</p>
-                    <p><strong className="text-foreground">Disputes:</strong> If you have a payment dispute, contact support.</p>
-                  </LegalCard>
-                  <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Platform Fees">
-                    <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helpr's payout.</p>
-                    <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
-                    <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
-                    <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helpr — no platform fee on tips.</p>
-                  </LegalCard>
-                  <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Job Budget Limits">
-                    <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
-                    <p><strong className="text-foreground">Maximum:</strong> $5,000 per job.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Crown className="w-4 h-4 text-primary" />} title="Subscription Tiers">
-                    <p><strong className="text-foreground">Basic ⭐ ($5/mo):</strong> Standard access with basic features.</p>
-                    <p><strong className="text-foreground">Pro 🔥 ($10/mo):</strong> Priority job access and enhanced visibility.</p>
-                    <p><strong className="text-foreground">Elite 💎 ($15/mo):</strong> Top-tier access with maximum visibility and early job access.</p>
-                    <p><strong className="text-foreground">Annual Plans:</strong> Available at ~10x monthly rate (save ~17%).</p>
-                    <p><strong className="text-foreground">Billing:</strong> One-time, monthly (choose billing day 1st–28th), or annual.</p>
-                  </LegalCard>
-                </div>
-              </div>
-
-              {/* Cancellations & Strikes Section */}
-              <div>
-                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cancellations & Strikes</h2>
-                <div className="space-y-2">
-                  <LegalCard icon={<XCircle className="w-4 h-4 text-destructive" />} title="Cancellation Policy" variant="warning">
-                    <p><strong className="text-foreground">Free Cancellation:</strong> Cancel 24+ hours before the job at no charge.</p>
-                    <p><strong className="text-foreground">Late Cancellation (&lt;24h):</strong> 25% cancellation fee applied.</p>
-                    <p><strong className="text-foreground">Very Late Cancellation (&lt;2h):</strong> 50% cancellation fee applied.</p>
-                  </LegalCard>
-                  <LegalCard icon={<AlertTriangle className="w-4 h-4 text-destructive" />} title="Cancellation Strikes (Posters)" variant="warning">
-                    <p className="mb-1">Cancelling a job <strong className="text-foreground">after a helpr has been selected</strong> triggers escalating penalties:</p>
-                    <p>• <strong className="text-accent">1st cancellation:</strong> Written warning (Strike 1/2)</p>
-                    <p>• <strong className="text-accent">2nd cancellation:</strong> Final warning (Strike 2/2)</p>
-                    <p>• <strong className="text-destructive">3rd cancellation:</strong> Permanent account ban</p>
-                    <p className="italic text-xs mt-1">Cancelling jobs with no helpr assigned does not count toward strikes.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="Job Denial Strikes (Helprs)" variant="warning">
-                    <p className="mb-1">Declining a job <strong className="text-foreground">after being selected</strong> triggers escalating penalties:</p>
-                    <p>• <strong className="text-accent">1st decline:</strong> Written warning (Strike 1/2)</p>
-                    <p>• <strong className="text-accent">2nd decline:</strong> Final warning (Strike 2/2)</p>
-                    <p>• <strong className="text-destructive">3rd decline:</strong> Permanent account ban</p>
-                    <p className="italic text-xs mt-1">Withdrawing your application before being selected does not count.</p>
-                  </LegalCard>
-                </div>
-              </div>
-
-              {/* Safety & Enforcement Section */}
-              <div>
-                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Safety & Enforcement</h2>
-                <div className="space-y-2">
-                  <LegalCard icon={<Ban className="w-4 h-4 text-destructive" />} title="No-Show Policy" variant="warning">
-                    <p>If a helpr accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Shield className="w-4 h-4 text-destructive" />} title="Immediate Ban Offenses" variant="warning">
-                    <p className="mb-1">These skip all warnings and result in an immediate permanent ban:</p>
-                    <p>• <strong className="text-foreground">No-show</strong> — accepting a job and not showing up</p>
-                    <p>• <strong className="text-foreground">Fraud</strong> — fake profiles, falsified photos, or payment manipulation</p>
-                    <p>• <strong className="text-foreground">Harassment or threats</strong> — abusive language, intimidation, or safety threats</p>
-                    <p>• <strong className="text-foreground">Off-platform payments</strong> — arranging payment outside of Helpr</p>
-                    <p>• <strong className="text-foreground">Identity fraud</strong> — using someone else's identity or fake ID</p>
-                    <p>• <strong className="text-foreground">Dispute abuse</strong> — filing false disputes to avoid paying</p>
-                  </LegalCard>
-                  <LegalCard icon={<AlertTriangle className="w-4 h-4 text-accent" />} title="Repeat Offender Policy">
-                    <p><strong className="text-foreground">1st violation:</strong> Written warning via email and in-app notification.</p>
-                    <p><strong className="text-foreground">2nd violation:</strong> 7-day account suspension.</p>
-                    <p><strong className="text-foreground">3rd violation:</strong> Permanent ban from the platform.</p>
-                    <p className="italic text-xs mt-1">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
-                  </LegalCard>
-                  <LegalCard icon={<AlertTriangle className="w-4 h-4 text-destructive" />} title="User Report Policy" variant="warning">
-                    <p className="mb-1">If other users report your account for misconduct:</p>
-                    <p>• <strong className="text-accent">2 reports:</strong> Account suspension while admins review.</p>
-                    <p>• <strong className="text-destructive">3rd report:</strong> Permanent ban from the platform.</p>
-                    <p className="italic text-xs mt-1">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
-                  </LegalCard>
-                </div>
-              </div>
-
-              {/* Job Rules Section */}
-              <div>
-                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Job Rules</h2>
-                <div className="space-y-2">
-                  <LegalCard icon={<Clock className="w-4 h-4 text-primary" />} title="Job Editing Restrictions">
-                    <p><strong className="text-foreground">Before helpr selected:</strong> You can freely edit job details.</p>
-                    <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
-                    <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
-                    <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
-                    <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
-                  </LegalCard>
-                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
-                    <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>
-                    <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
-                    <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster).</p>
-                  </LegalCard>
-                  <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Safety & Verification">
-                    <p><strong className="text-foreground">Age Verification:</strong> All users must be 18+ to use Helpr.</p>
-                    <p><strong className="text-foreground">ID Verification:</strong> Helpers must upload a valid government-issued ID.</p>
-                    <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location.</p>
-                    <p><strong className="text-foreground">Minimum Duration:</strong> Jobs cannot be marked complete until at least 30 minutes have passed.</p>
-                    <p><strong className="text-foreground">Photo Proof:</strong> Before and after photos are required for completion.</p>
-                    <p><strong className="text-foreground">Chat Safety:</strong> Messages are scanned for off-platform payment attempts.</p>
-                  </LegalCard>
-                </div>
-              </div>
-            </div>
+            <LegalTab onBack={() => setTab("landing")} />
           )}
 
-          {/* WARNINGS & STRIKES TAB */}
           {tab === "warnings" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-lg font-display font-bold text-foreground">Warnings & Strikes</h1>
-              </div>
-
-              {violationsLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : violations.length === 0 ? (
-                <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-7 h-7 text-green-600" />
-                  </div>
-                  <h2 className="text-base font-display font-bold text-foreground">Clean record!</h2>
-                  <p className="text-sm text-muted-foreground">You have no warnings or strikes on your account. Keep up the great work.</p>
-                </div>
-              ) : (
-                <>
-                  {/* Summary cards */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {(() => {
-                      const warnings = violations.filter(v => v.action_taken === "warning").length;
-                      const suspensions = violations.filter(v => v.action_taken === "suspension" || v.action_taken === "temporary_ban").length;
-                      const bans = violations.filter(v => v.action_taken === "permanent_ban").length;
-                      return (
-                        <>
-                          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
-                            <p className="text-2xl font-bold text-amber-600">{warnings}</p>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Warnings</p>
-                          </div>
-                          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 text-center">
-                            <p className="text-2xl font-bold text-orange-600">{suspensions}</p>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Suspensions</p>
-                          </div>
-                          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-center">
-                            <p className="text-2xl font-bold text-destructive">{bans}</p>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Bans</p>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Strike progress */}
-                  {(() => {
-                    const strikeCount = violations.length;
-                    return (
-                      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-foreground">Strike Progress</span>
-                          <span className={`text-xs font-bold ${strikeCount >= 3 ? "text-destructive" : strikeCount >= 2 ? "text-orange-600" : "text-amber-600"}`}>
-                            {strikeCount}/3
-                          </span>
-                        </div>
-                        <div className="flex gap-1.5">
-                          {[1, 2, 3].map(i => (
-                            <div
-                              key={i}
-                              className={`h-2 flex-1 rounded-full transition-colors ${
-                                i <= strikeCount
-                                  ? i === 3 ? "bg-destructive" : i === 2 ? "bg-orange-500" : "bg-amber-500"
-                                  : "bg-muted"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {strikeCount === 0 ? "No strikes — you're in good standing."
-                            : strikeCount === 1 ? "1 strike — this is your first warning."
-                            : strikeCount === 2 ? "2 strikes — one more violation may result in a permanent ban."
-                            : "3+ strikes — your account may be permanently banned."}
-                        </p>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Violation history */}
-                  <div className="space-y-2">
-                    <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">History</h2>
-                    {violations.map((v) => (
-                      <div key={v.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
-                              v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
-                              : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-orange-500/10 text-orange-600"
-                              : "bg-amber-500/10 text-amber-600"
-                            }`}>
-                              {v.action_taken.replace(/_/g, " ")}
-                            </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary text-secondary-foreground shrink-0">
-                              {v.violation_type.replace(/_/g, " ")}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                            {v.created_at ? new Date(v.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
-                          </span>
-                        </div>
-                        {v.description && (
-                          <p className="text-sm text-muted-foreground leading-relaxed">{v.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+            <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
           )}
         </div>
       </main>
-    </div>
-  );
-};
-
-const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
-  <div className={`rounded-xl border p-3 ${
-    job.status === "open" ? "bg-primary/10 text-primary border-primary/20" :
-    job.status === "in_progress" || job.status === "accepted" ? "bg-accent/20 text-accent-foreground border-accent/30" :
-    "border-border bg-card"
-  }`}>
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex-1">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <h4 className="font-semibold text-sm">{job.title}</h4>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 font-medium">{isPosted ? "Posted" : "Assigned"}</span>
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-          <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
-          {job.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.start_time}</span>}
-        </div>
-      </div>
-      <span className="text-xs font-medium capitalize">{job.status.replace("_", " ")}</span>
-    </div>
-  </div>
-);
-
-
-const LegalCard = forwardRef<HTMLDivElement, { icon: React.ReactNode; title: string; children: React.ReactNode; variant?: "warning" }>(({ icon, title, children, variant }, ref) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div ref={ref} className={`rounded-xl border p-4 transition-colors ${variant === "warning" ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-2 text-left">
-        <span className="flex items-center gap-2 font-display font-semibold text-foreground text-sm">
-          {icon} {title}
-        </span>
-        <ChevronRightIcon className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
-      </button>
-      {open && <div className="text-sm text-muted-foreground space-y-1.5 mt-3 pt-3 border-t border-border/50">{children}</div>}
-    </div>
-  );
-});
-LegalCard.displayName = "LegalCard";
-
-const tierConfig = [
-  {
-    id: "basic",
-    name: "Basic",
-    badge: "⭐",
-    monthly: "$5/mo",
-    annual: "$50/yr",
-    lifetime: "$5",
-    monthlySave: null,
-    annualSave: "Save 17%",
-    features: ["Helpr Badge", "Search Priority", "5-min Early Job Access"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    badge: "🔥",
-    monthly: "$10/mo",
-    annual: "$100/yr",
-    lifetime: "$10",
-    monthlySave: null,
-    annualSave: "Save 17%",
-    features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "Weekly Reports", "10-min Early Access"],
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    badge: "💎",
-    monthly: "$15/mo",
-    annual: "$150/yr",
-    lifetime: "$15",
-    monthlySave: null,
-    annualSave: "Save 17%",
-    features: ["Everything in Pro", "Landing Page Spotlight", "Auto-Match Jobs", "Priority Dispute Resolution", "20-min Early Access"],
-  },
-];
-
-const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
-  const [loadingPortal, setLoadingPortal] = useState(false);
-  const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "lifetime">("lifetime");
-  const [billingDay, setBillingDay] = useState<number>(1);
-  const currentTier = profile?.subscription_tier || null;
-
-  const handleManageSubscription = async () => {
-    setLoadingPortal(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to open subscription portal");
-    } finally {
-      setLoadingPortal(false);
-    }
-  };
-
-  const handleSubscribe = async (tier: string) => {
-    setLoadingCheckout(tier);
-    try {
-      const billing_cycle = billingInterval === "lifetime" ? "one_time" : billingInterval;
-      const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, billing_cycle, ...(billing_cycle === "monthly" ? { billing_day: billingDay } : {}) },
-      });
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start checkout");
-    } finally {
-      setLoadingCheckout(null);
-    }
-  };
-
-  const getPrice = (tier: typeof tierConfig[0]) => {
-    if (billingInterval === "annual") return tier.annual;
-    if (billingInterval === "lifetime") return tier.lifetime;
-    return tier.monthly;
-  };
-
-  const getSaveBadge = (tier: typeof tierConfig[0]) => {
-    if (billingInterval === "annual") return tier.annualSave;
-    if (billingInterval === "lifetime") return "Best value";
-    return null;
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
-      </div>
-
-      {currentTier && (
-        <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-primary" />
-              <span className="font-bold text-foreground capitalize">{currentTier} Plan</span>
-            </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">Active</span>
-          </div>
-          <Button
-            onClick={handleManageSubscription}
-            disabled={loadingPortal}
-            variant="outline"
-            className="w-full"
-          >
-            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Manage Subscription
-          </Button>
-        </div>
-      )}
-
-      {!currentTier && (
-        <p className="text-sm text-muted-foreground">You're on the free plan. Upgrade to unlock premium features and get more jobs.</p>
-      )}
-
-      {/* Billing Interval Toggle */}
-      <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-muted">
-        {([
-          { key: "lifetime", label: "One-Time" },
-          { key: "monthly", label: "Monthly" },
-          { key: "annual", label: "Annual" },
-        ] as const).map((opt) => (
-          <button
-            key={opt.key}
-            onClick={() => setBillingInterval(opt.key)}
-            className={`flex-1 text-sm font-medium py-2 px-3 rounded-lg transition-all ${
-              billingInterval === opt.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {billingInterval === "monthly" && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <label className="text-sm font-medium text-foreground">Billing day of the month</label>
-          <select
-            value={billingDay}
-            onChange={(e) => setBillingDay(Number(e.target.value))}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-          >
-            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-              <option key={day} value={day}>
-                {day === 1 ? "1st" : day === 2 ? "2nd" : day === 3 ? "3rd" : `${day}th`}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">You'll be charged on this day each month</p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {tierConfig.map((tier) => {
-          const isActive = currentTier?.toLowerCase() === tier.id;
-          const saveBadge = getSaveBadge(tier);
-          return (
-            <div
-              key={tier.id}
-              className={`rounded-2xl border p-5 space-y-3 ${isActive ? "border-primary bg-primary/5" : "border-border bg-card"}`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-foreground">{tier.badge} {tier.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-primary">{getPrice(tier)}</p>
-                    {saveBadge && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        {saveBadge}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {isActive && (
-                  <span className="flex items-center gap-1 text-xs text-primary font-medium">
-                    <CheckCircle className="w-4 h-4" /> Current
-                  </span>
-                )}
-              </div>
-              <ul className="space-y-1.5">
-                {tier.features.map((f) => (
-                  <li key={f} className="text-xs text-muted-foreground flex items-start gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {!isActive && (
-                <Button
-                  onClick={() => currentTier ? handleManageSubscription() : handleSubscribe(tier.id)}
-                  disabled={loadingCheckout === tier.id || loadingPortal}
-                  className="w-full"
-                  variant="outline"
-                >
-                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  {currentTier ? "Change Plan" : billingInterval === "lifetime" ? "Buy Now" : "Subscribe"}
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 };

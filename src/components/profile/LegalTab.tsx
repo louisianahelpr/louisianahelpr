@@ -75,7 +75,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payments & Fees</h2>
         <div className="space-y-2">
           <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Payment & Refund Policy">
-            <p><strong className="text-foreground">Escrow System:</strong> All payments are held in escrow until both parties confirm the job is complete.</p>
+            <p><strong className="text-foreground">Secure Payments:</strong> Payments are charged upfront via Stripe. The helpr is paid only after both parties confirm the job is complete. Refunds are issued for cancelled jobs.</p>
             <p><strong className="text-foreground">Platform Fee:</strong> Helpr charges a platform fee on each transaction. The fee percentage is visible before payment.</p>
             <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released.</p>
             <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions before approving completion.</p>

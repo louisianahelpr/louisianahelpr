@@ -86,7 +86,9 @@ serve(async (req) => {
         .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
         .eq("id", job.id);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
+      const feeAmt = job.platform_fee_amount || 0;
+      const feeTax = feeAmt * 0.085;
+      const helperPayout = job.budget - feeAmt - feeTax + (job.urgent_fee ?? 0);
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

@@ -421,7 +421,9 @@ serve(async (req) => {
       const captureResult = { paymentIntentId };
 
       // Transfer to helpr
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
+      const feeAmt = job.platform_fee_amount || 0;
+      const feeTax = feeAmt * 0.085;
+      const helperPayout = job.budget - feeAmt - feeTax + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
         await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
       }

@@ -40,7 +40,9 @@ serve(async (req) => {
     for (const job of (jobs || [])) {
       if (!job.helper_id) continue;
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
+      const feeAmt = job.platform_fee_amount || 0;
+      const feeTax = feeAmt * 0.085;
+      const helperPayout = job.budget - feeAmt - feeTax + (job.urgent_fee ?? 0);
       if (helperPayout <= 0) continue;
 
       // ── Step 1: Get helper's connected Stripe account ──

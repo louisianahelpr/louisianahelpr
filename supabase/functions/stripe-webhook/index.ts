@@ -81,8 +81,20 @@ serve(async (req) => {
           const productId = subscription.items.data[0]?.price.product as string;
           tier = PRODUCT_TO_TIER[productId] || null;
         } else if (session.mode === "payment") {
-          // One-time payment — get tier from session metadata
+          // One-time payment — check session metadata first, then line items
           tier = (session.metadata as any)?.tier || null;
+          if (!tier) {
+            // Fallback: retrieve line items and match product to tier
+            try {
+              const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+              const productId = lineItems.data[0]?.price?.product as string;
+              if (productId) {
+                tier = PRODUCT_TO_TIER[productId] || null;
+              }
+            } catch (e) {
+              logStep("Could not retrieve line items for one-time payment", { error: String(e) });
+            }
+          }
         }
 
         logStep("Checkout completed", { email: customerEmail, tier, mode: session.mode });

@@ -23,6 +23,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
+  // Calculate fee for display only — server recalculates authoritatively on submit
   const jobDateTime = new Date(jobDate + "T00:00:00");
   const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   const isLateCancellation = hoursUntilJob < 24 && hoursUntilJob > 0;

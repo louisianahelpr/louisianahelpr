@@ -50,7 +50,7 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
           </div>
           <div className="flex items-center gap-1">
             {isAdmin && (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-xl h-9 w-9">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-xl h-9 w-9" aria-label="Admin panel">
                 <Shield className="w-4 h-4 text-destructive" />
               </Button>
             )}

@@ -53,7 +53,7 @@ const UserProfile = () => {
       setCurrentUserId(session?.user?.id || null);
 
       // All independent queries in parallel
-      const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes, appsRes] = await Promise.all([
+      const [profileRes, reviewsRes, completedRes, postedRes, workedRes, appsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),

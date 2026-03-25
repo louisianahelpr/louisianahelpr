@@ -101,7 +101,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job auto-completed",
-          message: `"${job.title}" was automatically marked complete after 72 hours. The helpr will be paid in 24 hours.`,
+          message: `"${job.title}" was automatically marked complete after 48 hours. The helpr will be paid in 24 hours.`,
           type: "info", link: "/activity?tab=posted&filter=completed",
         });
       }

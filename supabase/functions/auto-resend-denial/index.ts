@@ -90,10 +90,10 @@ Deno.serve(async (req) => {
 
     const { data: profiles, error: fetchErr } = await supabase
       .from('profiles')
-      .select('id, user_id, full_name, email, denial_email_count, denial_reason')
+      .select('id, user_id, full_name, email, denial_email_count, denial_reason, last_denial_email_at')
       .eq('approval_status', 'denied')
       .lt('denial_email_count', 3)
-      .lt('last_denial_email_at', threeDaysAgo)
+      .or(`last_denial_email_at.is.null,last_denial_email_at.lt.${threeDaysAgo}`)
 
     if (fetchErr) {
       console.error('Failed to fetch denied profiles:', fetchErr)

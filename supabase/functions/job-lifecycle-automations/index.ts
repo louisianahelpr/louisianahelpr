@@ -219,9 +219,15 @@ Deno.serve(async (req) => {
 
     if (staleJobs) {
       for (const job of staleJobs) {
+        // Schedule payout so process-scheduled-payouts picks it up
+        const payoutTime = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
         await supabase
           .from('jobs')
-          .update({ status: 'completed' })
+          .update({
+            status: 'completed',
+            payment_status: 'payout_pending',
+            payout_scheduled_at: payoutTime,
+          })
           .eq('id', job.id)
 
         const notifs = [
@@ -237,7 +243,7 @@ Deno.serve(async (req) => {
           notifs.push({
             user_id: job.helper_id,
             title: 'Job auto-completed ✅',
-            message: `"${job.title}" has been automatically marked complete. Payment is being processed.`,
+            message: `"${job.title}" has been automatically marked complete. Payment will be transferred in 24 hours.`,
             type: 'payment',
             link: '/earnings',
           })

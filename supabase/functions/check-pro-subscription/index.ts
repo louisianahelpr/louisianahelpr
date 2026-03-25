@@ -16,6 +16,10 @@ const PRODUCT_TO_TIER: Record<string, string> = {
   "prod_U8rTux09RGNWWd": "basic",
   "prod_U8rTiOIcITvnIT": "pro",
   "prod_U8rT5zWKWe29By": "elite",
+  // One-time month pass
+  "prod_U8rTPMHf6IQnGE": "basic",
+  "prod_U8rThLQr2jThoM": "pro",
+  "prod_U8rT0f4UtNPrrs": "elite",
 };
 
 serve(async (req) => {
@@ -23,7 +27,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
+  const supabaseAuth = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
+  const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
@@ -33,7 +42,7 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
     if (userError) throw new Error(userError.message);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated");
@@ -62,7 +71,7 @@ serve(async (req) => {
       const tier = PRODUCT_TO_TIER[productId];
       if (tier) {
         // Sync tier to profile
-        await supabaseClient.from("profiles").update({ subscription_tier: tier }).eq("email", user.email);
+        await supabaseAdmin.from("profiles").update({ subscription_tier: tier }).eq("email", user.email);
         
         return new Response(JSON.stringify({
           subscribed: true,
@@ -76,7 +85,7 @@ serve(async (req) => {
     }
 
     // No active sub — clear tier from profile
-    await supabaseClient.from("profiles").update({ subscription_tier: null }).eq("email", user.email);
+    await supabaseAdmin.from("profiles").update({ subscription_tier: null }).eq("email", user.email);
 
     return new Response(JSON.stringify({ subscribed: false, tier: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -515,14 +515,27 @@ const Messages = () => {
                         </span>
                         <ReadReceipt read={m.read} sentByMe={m.sender_id === userId} />
                       </div>
-                      {m.sender_id !== userId && (
-                        <button
-                          onClick={() => setReportTarget({ type: "message", id: m.id })}
-                          className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        >
-                          <Flag className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      {/* Action buttons on hover */}
+                      <div className={`absolute ${m.sender_id === userId ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
+                        {m.sender_id !== userId && (
+                          <button
+                            onClick={() => setReportTarget({ type: "message", id: m.id })}
+                            className="text-muted-foreground hover:text-destructive p-1"
+                            title="Report"
+                          >
+                            <Flag className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {m.sender_id === userId && (
+                          <button
+                            onClick={() => setDeleteMessageConfirm(m.id)}
+                            className="text-muted-foreground hover:text-destructive p-1"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

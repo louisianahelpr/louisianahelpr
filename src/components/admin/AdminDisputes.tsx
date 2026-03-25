@@ -45,9 +45,13 @@ const AdminDisputes = () => {
     if (userIds.length > 0) {
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
       const map: Record<string, string> = {};
+      const tMap: Record<string, string | null> = {};
       profs?.forEach(p => {
         map[p.user_id] = formatName(p.full_name);
-        tierMap[p.user_id] = p.subscription_tier;
+        tMap[p.user_id] = p.subscription_tier;
+      });
+      setProfiles(map);
+      setTiers(tMap);
       });
       setProfiles(map);
     }

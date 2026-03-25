@@ -30,7 +30,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Activity = lazy(() => import("./pages/Activity"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Support = lazy(() => import("./pages/Support"));
-const FavoriteHelpers = lazy(() => import("./pages/FavoriteHelpers"));
+
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Community = lazy(() => import("./pages/Community"));

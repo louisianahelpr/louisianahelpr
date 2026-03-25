@@ -26,7 +26,7 @@ const tierConfig = [
     badge: "🔥",
     monthly: "$10/mo",
     annual: "$100/yr",
-    lifetime: "$10",
+    lifetime: "$10 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "Weekly Reports", "10-min Early Access"],

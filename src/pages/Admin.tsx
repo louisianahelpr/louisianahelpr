@@ -302,7 +302,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top nav bar with menu trigger */}
-      <DashboardHeader title="Admin" />
+      <DashboardHeader title="Admin" onMenuClick={() => setSidebarOpen(true)} />
 
 
 

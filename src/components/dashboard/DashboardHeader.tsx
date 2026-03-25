@@ -58,6 +58,11 @@ const DashboardHeader = ({ showBack, onBack, title, onMenuClick }: DashboardHead
             
             <ThemeToggle />
             <NotificationPanel />
+            {onMenuClick && (
+              <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Open menu">
+                <Menu className="w-4 h-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">
               <LogOut className="w-4 h-4" />
             </Button>

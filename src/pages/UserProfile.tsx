@@ -38,7 +38,7 @@ const UserProfile = () => {
   const [workedJobs, setWorkedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isFavorited, setIsFavorited] = useState(false);
+  
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);

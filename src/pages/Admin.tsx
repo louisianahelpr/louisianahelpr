@@ -54,6 +54,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { id: "people", label: "Users", icon: Users },
       { id: "jobs", label: "Jobs", icon: Briefcase },
+      { id: "fraud", label: "Fraud", icon: ShieldAlert },
       { id: "disputes", label: "Disputes", icon: ShieldAlert },
       { id: "reports", label: "Reports", icon: AlertTriangle },
       { id: "support", label: "Support", icon: Headphones },

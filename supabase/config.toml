@@ -25,3 +25,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.pro-customer-portal]
     verify_jwt = false
+  [functions.weekly-helper-report]
+    verify_jwt = false

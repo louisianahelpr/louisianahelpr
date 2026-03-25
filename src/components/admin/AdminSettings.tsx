@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { ShieldCheck, Trash2, Plus, Search, UserPlus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { logAdminAction } from "@/lib/adminAudit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

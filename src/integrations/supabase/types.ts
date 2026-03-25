@@ -1017,6 +1017,7 @@ export type Database = {
           role: string
           skills: string | null
           stripe_account_id: string | null
+          subscription_expires_at: string | null
           subscription_tier: string | null
           tools_equipment: string | null
           transportation: string | null
@@ -1056,6 +1057,7 @@ export type Database = {
           role?: string
           skills?: string | null
           stripe_account_id?: string | null
+          subscription_expires_at?: string | null
           subscription_tier?: string | null
           tools_equipment?: string | null
           transportation?: string | null
@@ -1095,6 +1097,7 @@ export type Database = {
           role?: string
           skills?: string | null
           stripe_account_id?: string | null
+          subscription_expires_at?: string | null
           subscription_tier?: string | null
           tools_equipment?: string | null
           transportation?: string | null

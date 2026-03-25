@@ -17,6 +17,13 @@ const PRODUCT_TO_TIER: Record<string, string> = {
   "prod_U8rT0f4UtNPrrs": "elite",
 };
 
+// One-time pass product IDs (to set 30-day expiry)
+const ONE_TIME_PRODUCTS = new Set([
+  "prod_U8rTPMHf6IQnGE",
+  "prod_U8rThLQr2jThoM",
+  "prod_U8rT0f4UtNPrrs",
+]);
+
 const logStep = (step: string, details?: any) => {
   const d = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${d}`);
@@ -44,7 +51,6 @@ serve(async (req) => {
   const body = await req.text();
   let event: Stripe.Event;
 
-  // Verify webhook signature if secret is configured
   if (webhookSecret) {
     const sig = req.headers.get("stripe-signature");
     if (!sig) {
@@ -58,7 +64,6 @@ serve(async (req) => {
       return new Response("Invalid signature", { status: 400 });
     }
   } else {
-    // No webhook secret configured - parse body directly (dev mode)
     event = JSON.parse(body) as Stripe.Event;
     logStep("WARNING: No STRIPE_WEBHOOK_SECRET set, skipping signature verification");
   }
@@ -73,43 +78,75 @@ serve(async (req) => {
         if (!customerEmail) { logStep("No email on checkout session"); break; }
 
         let tier: string | null = null;
+        let isOneTimePass = false;
+        let subscriptionEnd: string | null = null;
 
         if (session.mode === "subscription") {
-          // Get subscription details to determine tier
           const subscriptionId = session.subscription as string;
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const productId = subscription.items.data[0]?.price.product as string;
           tier = PRODUCT_TO_TIER[productId] || null;
+          subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
         } else if (session.mode === "payment") {
           // One-time payment — check session metadata first, then line items
           tier = (session.metadata as any)?.tier || null;
+          let matchedProductId: string | null = null;
+
           if (!tier) {
-            // Fallback: retrieve line items and match product to tier
             try {
               const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
               const productId = lineItems.data[0]?.price?.product as string;
               if (productId) {
                 tier = PRODUCT_TO_TIER[productId] || null;
+                matchedProductId = productId;
               }
             } catch (e) {
-              logStep("Could not retrieve line items for one-time payment", { error: String(e) });
+              logStep("Could not retrieve line items", { error: String(e) });
             }
+          }
+
+          // Check if this is a one-time pass product
+          if (!matchedProductId && tier) {
+            // Try to find the product from line items
+            try {
+              const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+              matchedProductId = lineItems.data[0]?.price?.product as string || null;
+            } catch (_) {}
+          }
+
+          if (matchedProductId && ONE_TIME_PRODUCTS.has(matchedProductId)) {
+            isOneTimePass = true;
+          }
+
+          // Also check billing_cycle metadata from create-pro-checkout
+          if ((session.metadata as any)?.billing_cycle === "one_time") {
+            isOneTimePass = true;
+          }
+
+          if (isOneTimePass) {
+            // Set 30-day expiry for one-time passes
+            subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
           }
         }
 
-        logStep("Checkout completed", { email: customerEmail, tier, mode: session.mode });
+        logStep("Checkout completed", { email: customerEmail, tier, mode: session.mode, isOneTimePass });
 
         if (tier) {
+          const updateData: any = { subscription_tier: tier };
+          if (subscriptionEnd) {
+            updateData.subscription_expires_at = subscriptionEnd;
+          }
+
           const { error } = await supabase
             .from("profiles")
-            .update({ subscription_tier: tier })
+            .update(updateData)
             .eq("email", customerEmail);
 
           if (error) logStep("ERROR updating profile", { error: error.message });
-          else logStep("Profile updated with tier", { email: customerEmail, tier });
+          else logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
         }
 
-        // Store payment intent ID on the job immediately at checkout completion
+        // Store payment intent ID on the job
         const jobId = (session.metadata as any)?.job_id;
         const piId = typeof session.payment_intent === "string"
           ? session.payment_intent
@@ -119,8 +156,6 @@ serve(async (req) => {
           const isRepay = (session.metadata as any)?.repay === "true";
           const updateData: any = { stripe_payment_intent_id: piId };
 
-          // If this is a re-payment after expired escrow, the charge is immediate
-          // (not manual capture), so schedule the payout right away
           if (isRepay) {
             updateData.payment_status = "payout_pending";
             updateData.payout_scheduled_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -147,11 +182,12 @@ serve(async (req) => {
         if (subscription.status === "active") {
           const productId = subscription.items.data[0]?.price.product as string;
           const tier = PRODUCT_TO_TIER[productId] || null;
+          const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
           logStep("Subscription updated to active", { email, tier });
 
           const { error } = await supabase
             .from("profiles")
-            .update({ subscription_tier: tier })
+            .update({ subscription_tier: tier, subscription_expires_at: expiresAt })
             .eq("email", email);
 
           if (error) logStep("ERROR updating profile", { error: error.message });
@@ -160,7 +196,7 @@ serve(async (req) => {
 
           const { error } = await supabase
             .from("profiles")
-            .update({ subscription_tier: null })
+            .update({ subscription_tier: null, subscription_expires_at: null })
             .eq("email", email);
 
           if (error) logStep("ERROR clearing tier", { error: error.message });
@@ -179,7 +215,7 @@ serve(async (req) => {
 
         const { error } = await supabase
           .from("profiles")
-          .update({ subscription_tier: null })
+          .update({ subscription_tier: null, subscription_expires_at: null })
           .eq("email", email);
 
         if (error) logStep("ERROR clearing tier", { error: error.message });

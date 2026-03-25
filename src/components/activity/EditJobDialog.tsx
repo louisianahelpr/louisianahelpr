@@ -114,9 +114,23 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={saving || hasHelper}>{saving ? "Saving…" : "Save changes"}</Button>
+          <Button onClick={handleSaveClick} disabled={saving || hasHelper}>{saving ? "Saving…" : "Save changes"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm Changes</AlertDialogTitle>
+          <AlertDialogDescription>Are you sure you want to save these changes to your job?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

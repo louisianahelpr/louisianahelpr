@@ -76,7 +76,7 @@ const MobileNav = () => {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;

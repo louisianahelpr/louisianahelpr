@@ -344,6 +344,7 @@ const ProfilePage = () => {
     setAvatarUploading(false);
   };
 
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   if (loading) {

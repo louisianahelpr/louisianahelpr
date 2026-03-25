@@ -374,8 +374,24 @@ const Activity = () => {
       return true;
     }), [postedJobs, statusFilter, searchLower]);
 
-  const filteredAppliedApps = useMemo(() =>
-    appliedApps.filter((a) => {
+  const filteredAppliedApps = useMemo(() => {
+    const query = searchLower;
+    return appliedApps.filter((a) => {
+      let statusMatch = false;
+      if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
+      else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
+      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
+      else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
+      else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
+      else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
+      if (!statusMatch) return false;
+      if (query && a.job) {
+        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || a.job.location.toLowerCase().includes(query);
+      }
+      return true;
+    });
+  }, [appliedApps, statusFilter, searchLower]);
       if (statusFilter === "pending") return a.status === "pending" && a.job?.status !== "cancelled";
       if (statusFilter === "offered") return a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
       if (statusFilter === "accepted") return a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;

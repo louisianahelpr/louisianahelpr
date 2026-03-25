@@ -113,7 +113,7 @@ serve(async (req) => {
         stripe_session_id: session.id,
         payment_status: "escrow",
         platform_fee_percent: feePercent,
-        platform_fee_amount: totalDeduction,
+        platform_fee_amount: feeAmount,
       }).eq("id", jobId);
 
       return new Response(JSON.stringify({ url: session.url }), {

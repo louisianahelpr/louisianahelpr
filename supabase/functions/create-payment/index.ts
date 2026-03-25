@@ -74,7 +74,7 @@ serve(async (req) => {
             currency: "usd",
             product_data: {
               name: `Helpr Task: ${job.title}`,
-              description: `Escrow payment — funds are held until the job is complete.`,
+              description: `Secure payment — funds are charged now and released to the helpr once both parties confirm completion.`,
             },
             unit_amount: Math.round(job.budget * 100),
           },

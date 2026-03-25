@@ -64,8 +64,8 @@ serve(async (req) => {
       return new Response("Invalid signature", { status: 400 });
     }
   } else {
-    event = JSON.parse(body) as Stripe.Event;
-    logStep("WARNING: No STRIPE_WEBHOOK_SECRET set, skipping signature verification");
+    logStep("ERROR: STRIPE_WEBHOOK_SECRET not configured — rejecting request");
+    return new Response("Webhook secret not configured", { status: 500 });
   }
 
   logStep("Event received", { type: event.type, id: event.id });

@@ -491,9 +491,6 @@ const ProfilePage = () => {
                     <p className="text-lg font-bold text-foreground">{(totalJobEarnings + totalTipEarnings) > 0 ? `$${(totalJobEarnings + totalTipEarnings).toFixed(2)}` : "—"}</p>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Earnings</p>
-                  {totalTipEarnings > 0 && (
-                    <p className="text-[10px] text-primary mt-0.5">+${totalTipEarnings.toFixed(2)} tips</p>
-                  )}
                 </button>
               </div>
 

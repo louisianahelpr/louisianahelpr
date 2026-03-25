@@ -90,7 +90,10 @@ const AdminSettings = () => {
       .eq("id", settingsId);
     setSaving(false);
     if (error) toast.error(error.message);
-    else toast.success("Platform fee updated!");
+    else {
+      toast.success("Platform fee updated!");
+      await logAdminAction("update_settings", "platform_settings", settingsId, { platform_fee_percent: value });
+    }
   };
 
   const searchUsers = async () => {

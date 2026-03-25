@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, ShieldCheck } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -8,37 +6,6 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 const PaymentSuccess = () => {
   usePageTitle("Payment Authorized — Helpr");
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const jobId = searchParams.get("job_id");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (jobId) {
-      setSaving(true);
-      (async () => {
-        try {
-          // Verify the user owns this job before updating
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) {
-            console.error("Not authenticated");
-            setSaving(false);
-            return;
-          }
-          // RLS ensures only the job owner can update, but explicitly filter
-          const { error } = await supabase
-            .from("jobs")
-            .update({ payment_status: "escrow" })
-            .eq("id", jobId)
-            .eq("customer_id", session.user.id);
-          if (error) console.error("Post-payment update error:", error);
-        } catch (e) {
-          console.error("Post-payment update error:", e);
-        } finally {
-          setSaving(false);
-        }
-      })();
-    }
-  }, [jobId]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">

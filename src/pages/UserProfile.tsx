@@ -12,6 +12,7 @@ import { RetainerAgreement } from "@/components/RetainerAgreement";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

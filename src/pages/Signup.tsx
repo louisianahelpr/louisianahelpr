@@ -708,11 +708,11 @@ const Signup = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <Upload className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Verify your identity <span className="text-destructive">*</span></h3>
+                <h3 className="font-semibold text-foreground">Verify your identity <span className="text-muted-foreground text-xs">(optional)</span></h3>
                 <p className="text-sm text-muted-foreground">
-                  Upload a government-issued ID (driver's license, passport, or state ID). This keeps our community safe by verifying that everyone is a real person.
+                  Upload a government-issued ID (driver's license, passport, or state ID). This helps verify your identity and builds trust in the community.
                 </p>
-                <p className="text-xs text-muted-foreground italic">Required for both posting and accepting tasks.</p>
+                <p className="text-xs text-muted-foreground italic">You can skip this step and upload later from your profile. ID verification is required before accepting tasks as a helpr.</p>
               </div>
 
               <label className="cursor-pointer block">

@@ -32,9 +32,18 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setEvidenceFiles((prev) => [...prev, ...files].slice(0, 5));
+    const validFiles = files.filter((f) => {
+      if (f.size > MAX_FILE_SIZE) {
+        toast.error(`"${f.name}" exceeds 5MB limit`);
+        return false;
+      }
+      return true;
+    });
+    setEvidenceFiles((prev) => [...prev, ...validFiles].slice(0, 5));
   };
 
   const removeFile = (index: number) => {

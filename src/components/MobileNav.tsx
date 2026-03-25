@@ -129,6 +129,7 @@ const MobileNav = () => {
         {/* Post button bubble */}
         <button
           onClick={() => navigate("/post-job")}
+          aria-label="Post a new job"
           className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15 active:scale-95 transition-transform duration-150"
         >
           <Plus className="w-7 h-7" strokeWidth={2.5} />

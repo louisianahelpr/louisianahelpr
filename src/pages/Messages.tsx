@@ -109,7 +109,7 @@ const Messages = () => {
       .select("*")
       .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(200);
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 

@@ -122,11 +122,9 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         .order("created_at", { ascending: false });
 
       if (data && data.length > 0) {
-        const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
+      const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
         const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", reviewerIds);
+          .rpc("get_safe_profiles", { user_ids: reviewerIds });
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
         setReviews(data.map((r) => ({ ...r, reviewerName: profileMap.get(r.reviewer_id) })));

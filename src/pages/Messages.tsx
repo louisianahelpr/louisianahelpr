@@ -471,7 +471,7 @@ const Messages = () => {
               </div>
 
               {/* Rich message input */}
-              <div className="pt-2 pb-3 border-t border-border">
+              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background">
                 <RichMessageInput
                   onSend={sendMessage}
                   onTyping={broadcastTyping}

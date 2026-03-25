@@ -134,13 +134,15 @@ const Index = () => {
       <Navbar />
       <HeroSection />
       <SocialProofSection />
-      <HowItWorksSection />
-      <FeaturesSection />
-      <HelperSpotlightSection />
-      <JobStoriesSection />
-      <PublicJobsPreview />
-      <CommunityLoveSection />
-      <CTASection />
+      <Suspense fallback={<div className="min-h-[200px]" />}>
+        <HowItWorksSection />
+        <FeaturesSection />
+        <HelperSpotlightSection />
+        <JobStoriesSection />
+        <PublicJobsPreview />
+        <CommunityLoveSection />
+        <CTASection />
+      </Suspense>
       <Footer />
     </div>
   );

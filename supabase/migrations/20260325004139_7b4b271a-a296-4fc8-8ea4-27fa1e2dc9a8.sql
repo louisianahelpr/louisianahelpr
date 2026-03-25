@@ -1,0 +1,1 @@
+ALTER TABLE public.platform_settings ALTER COLUMN platform_fee_percent SET DEFAULT 2.00;

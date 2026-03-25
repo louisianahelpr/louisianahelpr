@@ -1,15 +1,18 @@
+import { lazy, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import SocialProofSection from "@/components/landing/SocialProofSection";
-import HowItWorksSection from "@/components/landing/HowItWorksSection";
-import FeaturesSection from "@/components/landing/FeaturesSection";
-import HelperSpotlightSection from "@/components/landing/HelperSpotlightSection";
-import JobStoriesSection from "@/components/landing/JobStoriesSection";
-import PublicJobsPreview from "@/components/landing/PublicJobsPreview";
-import CTASection from "@/components/landing/CTASection";
-import CommunityLoveSection from "@/components/landing/CommunityLoveSection";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
+
+// Lazy load below-the-fold sections
+const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
+const FeaturesSection = lazy(() => import("@/components/landing/FeaturesSection"));
+const HelperSpotlightSection = lazy(() => import("@/components/landing/HelperSpotlightSection"));
+const JobStoriesSection = lazy(() => import("@/components/landing/JobStoriesSection"));
+const PublicJobsPreview = lazy(() => import("@/components/landing/PublicJobsPreview"));
+const CTASection = lazy(() => import("@/components/landing/CTASection"));
+const CommunityLoveSection = lazy(() => import("@/components/landing/CommunityLoveSection"));
 
 const SITE_URL = "https://louisianahelpr.com";
 

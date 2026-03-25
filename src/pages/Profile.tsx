@@ -366,7 +366,11 @@ const ProfilePage = () => {
 
   const role = profile?.role || "customer";
   const initials = (profile?.full_name || user?.email || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-  const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)), 0);
+  const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
+    const fee = j.platform_fee_amount || 0;
+    const feeTax = fee * 0.085;
+    return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+  }, 0);
 
   const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] }[] = [
     {

@@ -17,6 +17,7 @@ const rightItems = [
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
@@ -24,7 +25,6 @@ const MobileNav = () => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadUnread = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { count } = await supabase

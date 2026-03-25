@@ -183,7 +183,10 @@ serve(async (req) => {
 
         if (jobId && piId) {
           const isRepay = (session.metadata as any)?.repay === "true";
-          const updateData: any = { stripe_payment_intent_id: piId };
+          const updateData: any = {
+            stripe_payment_intent_id: piId,
+            payment_status: "escrow", // Mark as escrow only after confirmed checkout
+          };
 
           if (isRepay) {
             updateData.payment_status = "payout_pending";
@@ -193,7 +196,7 @@ serve(async (req) => {
 
           const { error: jobError } = await supabase.from("jobs").update(updateData).eq("id", jobId);
           if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
-          else logStep("Stored payment_intent on job", { jobId, pi: piId, repay: isRepay });
+          else logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
         } else if (jobId) {
           logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });
         }

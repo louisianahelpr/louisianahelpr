@@ -114,9 +114,10 @@ serve(async (req) => {
         metadata: { job_id: jobId, customer_id: user.id },
       });
 
+      // Don't set payment_status to "escrow" yet — wait for Stripe webhook
+      // confirmation to avoid orphaned escrow status on abandoned checkouts
       await supabaseAdmin.from("jobs").update({
         stripe_session_id: session.id,
-        payment_status: "escrow",
         platform_fee_percent: feePercent,
         platform_fee_amount: feeAmount,
       }).eq("id", jobId);

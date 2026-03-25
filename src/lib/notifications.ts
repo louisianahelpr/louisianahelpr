@@ -66,11 +66,14 @@ export async function createNotifications(payloads: NotificationPayload[]) {
  * Fire-and-forget: notify admins when an email fails to send.
  * Uses a simple debounce key to avoid spamming admin notifications.
  */
+// In-memory debounce map (works in PWA/service workers unlike sessionStorage)
+const emailFailDebounce = new Map<string, number>();
+
 function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, errorMsg: string) {
   const debounceKey = `email_fail_alert_${targetUserId}`;
-  const lastAlert = sessionStorage.getItem(debounceKey);
-  if (lastAlert && Date.now() - parseInt(lastAlert, 10) < 60_000) return; // 1min debounce
-  sessionStorage.setItem(debounceKey, Date.now().toString());
+  const lastAlert = emailFailDebounce.get(debounceKey);
+  if (lastAlert && Date.now() - lastAlert < 60_000) return; // 1min debounce
+  emailFailDebounce.set(debounceKey, Date.now());
 
   // Get admin users and notify them
   supabase

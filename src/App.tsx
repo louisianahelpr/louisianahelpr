@@ -86,7 +86,7 @@ const AnimatedRoutes = () => {
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
-      <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
+      
       <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
       <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />

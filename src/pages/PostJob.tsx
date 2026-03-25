@@ -224,7 +224,7 @@ const PostJob = () => {
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
-    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
+    if (!budget || parseFloat(budget) < 15) { toast.error("Minimum budget is $15"); return; }
     if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }
     if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent tip must be at least $5"); return; }
     setConfirmed(false);

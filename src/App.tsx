@@ -117,6 +117,7 @@ const App = () => (
           Skip to content
         </a>
         <BrowserRouter>
+          <SessionManager />
           <div id="main-content">
             <Suspense fallback={<PageFallback />}>
               <AnimatedRoutes />

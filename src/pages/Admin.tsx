@@ -304,6 +304,10 @@ const Admin = () => {
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;
       case "subscriptions": return <AdminSubscriptions />;
+      case "fraud": return <AdminFraudDashboard />;
+      case "audit": return <AdminAuditLog />;
+      case "health": return <AdminHealth />;
+      case "export": return <AdminExport />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };

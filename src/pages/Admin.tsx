@@ -383,7 +383,7 @@ const StatCard = ({ label, value, icon: Icon, trend, onClick }: {
         <Icon className="w-4 h-4 text-primary" />
       </div>
       {trend && (
-        <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+        <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
           <TrendingUp className="w-3 h-3" /> {trend}
         </span>
       )}

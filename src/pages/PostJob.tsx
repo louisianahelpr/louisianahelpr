@@ -257,6 +257,15 @@ const PostJob = () => {
       return;
     }
 
+    // Check open job limit (server enforces too, but show friendly message)
+    const { count: openCount } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
+    if ((openCount ?? 0) >= 5) {
+      toast.error("You can have a maximum of 5 open jobs at a time. Close or wait for existing jobs first.");
+      setSaving(false);
+      submittingRef.current = false;
+      return;
+    }
+
     let photoUrls: string[] = [];
 
     // Calculate expiry: use date_needed + start_time as the precise expiry

@@ -70,7 +70,7 @@ const UserProfile = () => {
         return;
       }
 
-      setIsFavorited((favRes.data?.length || 0) > 0);
+      
       if (postedRes.data) setPostedJobs(postedRes.data);
       if (workedRes.data) setWorkedJobs(workedRes.data);
 

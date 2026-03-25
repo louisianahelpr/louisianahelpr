@@ -103,7 +103,7 @@ const Signup = () => {
     );
   };
 
-  const validateStep1 = () => {
+  const validateStep1 = async () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
@@ -120,6 +120,21 @@ const Signup = () => {
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
     if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
     if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
+
+    // Duplicate phone detection
+    const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+    if (normalizedPhone.length === 10) {
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("phone", `%${normalizedPhone.slice(-7)}%`)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error("This phone number is already associated with an account. Please log in instead.");
+        return false;
+      }
+    }
+
     return true;
   };
 

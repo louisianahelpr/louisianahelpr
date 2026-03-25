@@ -99,6 +99,12 @@ const AnimatedRoutes = () => {
   );
 };
 
+const SessionManager = () => {
+  useSessionTimeout();
+  useLoginTracking();
+  return null;
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>

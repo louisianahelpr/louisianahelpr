@@ -57,7 +57,7 @@ const Login = () => {
         .single();
 
       // Block banned users
-      if (profile?.ban_status === "permanently_banned" || profile?.ban_status === "temp_banned") {
+      if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
         await supabase.auth.signOut();
         setLoading(false);
         toast.error(

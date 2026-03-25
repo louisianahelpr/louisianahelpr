@@ -14,32 +14,15 @@ const AccountDenied = () => {
       if (!session?.user) { navigate("/login"); return; }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, denial_reason")
         .eq("user_id", session.user.id)
         .single();
       if (!profile) return;
       if (profile.approval_status === "approved") navigate("/dashboard");
       if (profile.approval_status === "pending") navigate("/account-pending");
+      if (profile.denial_reason) setDenyReason(profile.denial_reason);
     };
     check();
-
-    // Check notifications for deny reason
-    const loadReason = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const { data: notifs } = await supabase
-        .from("notifications")
-        .select("message")
-        .eq("user_id", session.user.id)
-        .eq("title", "Account not approved")
-        .order("created_at", { ascending: false })
-        .limit(1);
-      if (notifs?.[0]?.message) {
-        const reason = notifs[0].message.replace("Your account was not approved. Reason: ", "").replace("Your account was not approved. Please contact support for details.", "");
-        setDenyReason(reason);
-      }
-    };
-    loadReason();
   }, [navigate]);
 
 

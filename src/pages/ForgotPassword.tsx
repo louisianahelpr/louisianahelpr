@@ -31,9 +31,6 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
-        <button onClick={() => navigate("/login")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to login
-        </button>
         <div className="text-center">
           <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
           <p className="mt-2 text-muted-foreground">Reset your password</p>

@@ -108,7 +108,12 @@ const ResetPassword = () => {
             </Button>
           </form>
         )}
-      </div>
+
+        <p className="text-center text-sm text-muted-foreground">
+          <Link to="/login" className="text-primary font-medium hover:underline">
+            Back to login
+          </Link>
+        </p>
     </div>
   );
 };

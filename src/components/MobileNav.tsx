@@ -78,7 +78,7 @@ const MobileNav = () => {
     };
   }, [user]);
 
-  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
+  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
   // Hide nav when in an active message conversation

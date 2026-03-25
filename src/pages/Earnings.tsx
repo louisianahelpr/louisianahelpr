@@ -41,7 +41,7 @@ const Earnings = () => {
   const completedJobs = jobs.filter((j) => j.status === "completed");
   const inProgressJobs = jobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce(
-    (sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)),
+    (sum, j) => sum + (j.budget - (j.platform_fee_amount || 0) + (j.urgent_fee || 0)),
     0
   );
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);

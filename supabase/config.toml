@@ -23,3 +23,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.admin-update-email]
     verify_jwt = false
+  [functions.pro-customer-portal]
+    verify_jwt = false

@@ -126,7 +126,7 @@ const Signup = () => {
   };
 
   const validateStep4 = () => {
-    if (!idFile) { toast.error("Please upload a proof of ID"); return false; }
+    // ID upload is optional — users can skip and upload later
     return true;
   };
 

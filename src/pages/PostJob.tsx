@@ -216,6 +216,11 @@ const PostJob = () => {
     if (!addrState.trim()) { toast.error("State is required"); return; }
     if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
     if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    // Validate date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateNeeded + "T00:00:00");
+    if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed

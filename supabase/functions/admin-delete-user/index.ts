@@ -18,7 +18,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify the caller is an admin
+    // Validate JWT using anon key (not service role) for proper auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -27,10 +27,14 @@ serve(async (req) => {
       });
     }
 
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!
+    );
     const token = authHeader.replace("Bearer ", "");
     const {
       data: { user: caller },
-    } = await supabaseAdmin.auth.getUser(token);
+    } = await supabaseAuth.auth.getUser(token);
 
     if (!caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {

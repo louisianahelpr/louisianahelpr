@@ -86,8 +86,11 @@ serve(async (req) => {
               cancellationFee = Math.round(job.budget * 0.25);
             }
           }
-          // Update the job record with the server-calculated fee
-          await supabaseAdmin.from("jobs").update({ cancellation_fee: cancellationFee }).eq("id", job.id);
+          // Update the job record with the server-calculated fee and status
+          await supabaseAdmin.from("jobs").update({
+            cancellation_fee: cancellationFee,
+            cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
+          }).eq("id", job.id);
           const refundAmount = Math.round((job.budget - cancellationFee) * 100);
           if (refundAmount > 0) {
             await stripe.refunds.create({

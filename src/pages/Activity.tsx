@@ -392,15 +392,6 @@ const Activity = () => {
       return true;
     });
   }, [appliedApps, statusFilter, searchLower]);
-      if (statusFilter === "pending") return a.status === "pending" && a.job?.status !== "cancelled";
-      if (statusFilter === "offered") return a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
-      if (statusFilter === "accepted") return a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
-      if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
-      if (statusFilter === "revision") return a.status === "accepted" && a.job?.status === "revision_requested";
-      if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-      if (statusFilter === "not_selected") return a.status === "rejected" || a.job?.status === "cancelled";
-      return false;
-    }), [appliedApps, statusFilter]);
 
   const appliedCounts = useMemo(() => {
     const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };

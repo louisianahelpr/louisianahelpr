@@ -25,8 +25,8 @@ const Activity = () => {
   usePageTitle("My Activity — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user: cachedUser } = useCurrentUser();
-  const [user, setUser] = useState<SupaUser | null>(null);
+  const { user } = useCurrentUser();
+  const [searchQuery, setSearchQuery] = useState("");
   const [tab, setTab] = useState<Tab>(() => {
     const paramTab = searchParams.get("tab");
     return paramTab === "applied" ? "applied" : "posted";
@@ -37,25 +37,6 @@ const Activity = () => {
     const paramTab = searchParams.get("tab");
     return paramTab === "applied" ? "pending" : "open";
   });
-
-  // Seed from cache
-  useEffect(() => {
-    if (cachedUser && !user) setUser(cachedUser);
-  }, [cachedUser]);
-
-  useEffect(() => {
-    const init = async () => {
-      if (user) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      setUser(session.user);
-    };
-    init();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) setUser(session.user);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const {
     loading, postedJobs, appliedApps, applicantCounts,

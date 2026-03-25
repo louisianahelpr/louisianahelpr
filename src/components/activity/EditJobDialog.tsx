@@ -55,6 +55,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const locked = hasHelper || isPaid;
 
   return (
+    <>
     <Dialog open={!!job} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>

@@ -148,23 +148,7 @@ const ProfilePage = () => {
     }
   }, [cachedUser, cachedProfile]);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) return;
-      setUser(session.user);
-      loadProfile(session.user.id);
-      loadStats(session.user.id);
-    });
-    if (!cachedUser) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session?.user) return;
-        setUser(session.user);
-        loadProfile(session.user.id);
-        loadStats(session.user.id);
-      });
-    }
-    return () => subscription.unsubscribe();
-  }, []);
+  // No separate auth listener needed — useCurrentUser handles it via React Query
 
   const loadProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();

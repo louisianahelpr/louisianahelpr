@@ -142,22 +142,22 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // Verify caller identity via JWT
     const supabaseUser = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY')!
     )
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: claims, error: claimsErr } = await supabaseUser.auth.getClaims(token)
-    if (claimsErr || !claims?.claims) {
+    const { data: userData, error: userError } = await supabaseUser.auth.getUser(token)
+    if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const adminId = claims.claims.sub as string
+    const adminId = userData.user.id
 
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
       _user_id: adminId,

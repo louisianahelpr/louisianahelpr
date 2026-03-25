@@ -261,37 +261,31 @@ const Dashboard = () => {
           {/* Welcome section */}
           {showGreeting && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="rounded-2xl bg-gradient-to-br from-primary/10 via-accent/6 to-primary/4 p-5 border border-primary/12 relative overflow-hidden"
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+            className="rounded-xl bg-gradient-to-r from-primary/8 to-primary/4 px-4 py-2.5 border border-primary/10 relative flex items-center justify-between gap-2"
           >
-            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-primary/[0.04] blur-xl" />
-            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-accent/[0.06] blur-xl" />
-            <button
-              onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Dismiss greeting"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-display font-bold text-foreground">
-                  Hi, {firstName} 👋
-                </h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Browse tasks to help with, or post your own.
-                </p>
-              </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-base font-display font-bold text-foreground whitespace-nowrap">Hi, {firstName} 👋</span>
+              <span className="text-xs text-muted-foreground truncate hidden xs:inline">Browse tasks or post your own</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 onClick={() => navigate("/post-job")}
                 size="sm"
-                className="sm:hidden bg-gradient-to-r from-primary to-primary/80 shadow-md gap-1"
+                className="sm:hidden h-7 text-xs px-2.5 bg-gradient-to-r from-primary to-primary/80 shadow-sm gap-1"
               >
-                <Briefcase className="w-4 h-4" /> Post
+                <Briefcase className="w-3.5 h-3.5" /> Post
               </Button>
+              <button
+                onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Dismiss greeting"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </motion.div>
           )}

@@ -47,8 +47,17 @@ const Login = () => {
     }
     setLoginAttempts(0);
 
+    // Block unverified emails
+    const sessionUser = data.session?.user;
+    if (sessionUser && !sessionUser.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast.error("Please verify your email before logging in. Check your inbox for a verification link.");
+      return;
+    }
+
     // Check approval + ban status before redirecting
-    const userId = data.session?.user?.id;
+    const userId = sessionUser?.id;
     if (userId) {
       const { data: profile } = await supabase
         .from("profiles")

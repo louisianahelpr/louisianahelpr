@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { Button } from "@/components/ui/button";
 import { 
   Shield, DollarSign, Clock, AlertTriangle, Ban, 
   Scale, ArrowLeft, CheckCircle, XCircle, Timer 
@@ -7,16 +8,18 @@ import {
 
 const PlatformRules = () => {
   usePageTitle("Platform Rules & Policies — Helpr");
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto max-w-3xl px-4 py-12">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="w-4 h-4" /> Back to home
-        </Link>
-
         <div className="space-y-2 mb-12">
-          <h1 className="text-3xl font-display font-bold text-foreground">Platform Rules & Policies</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="text-3xl font-display font-bold text-foreground">Platform Rules & Policies</h1>
+          </div>
           <p className="text-muted-foreground">
             These rules keep Helpr safe, fair, and reliable for everyone. By using Helpr, you agree to follow these policies.
           </p>

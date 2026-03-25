@@ -226,6 +226,19 @@ const Jobs = () => {
             </div>
           )}
 
+          {/* Load More */}
+          {hasMore && !loading && filtered.length > 0 && (
+            <div className="text-center mt-6">
+              <Button
+                variant="outline"
+                onClick={() => fetchJobs(jobs.length, true)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "Loading…" : "Load more jobs"}
+              </Button>
+            </div>
+          )}
+
           {/* CTA */}
           <div className="text-center mt-12 space-y-4">
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 max-w-lg mx-auto space-y-4">

@@ -75,8 +75,8 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Log out
+            <AlertDialogAction onClick={handleLogout} disabled={loggingOut} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {loggingOut ? "Logging out…" : "Log out"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

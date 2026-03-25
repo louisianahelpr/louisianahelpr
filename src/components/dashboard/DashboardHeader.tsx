@@ -18,8 +18,10 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { isAdmin } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    setLoggingOut(true);
     await supabase.auth.signOut();
     navigate("/");
   };

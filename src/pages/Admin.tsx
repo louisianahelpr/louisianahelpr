@@ -88,7 +88,7 @@ const Admin = () => {
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    pendingReviews: 0, disputedJobs: 0,
+    pendingReviews: 0, disputedJobs: 0, activeSubscriptions: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -134,7 +134,7 @@ const Admin = () => {
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes] = await Promise.all([
+    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes, subsRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -144,6 +144,7 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
       supabase.from("reviews").select("id", { count: "exact", head: true }),
       supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed"),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
     ]);
     const feeRows = feesRes.data || [];
     setStats({
@@ -157,6 +158,7 @@ const Admin = () => {
       totalFees: feeRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
       pendingReviews: reviewsRes.count || 0,
       disputedJobs: disputesRes.count || 0,
+      activeSubscriptions: subsRes.count || 0,
     });
     setStatsLoading(false);
   };
@@ -370,7 +372,7 @@ interface DashboardHomeProps {
     totalUsers: number; pendingApprovals: number; openReports: number;
     supportTickets: number; activeJobs: number; completedJobs: number;
     totalRevenue: number; totalFees: number; pendingReviews: number;
-    disputedJobs: number;
+    disputedJobs: number; activeSubscriptions: number;
   };
   statsLoading: boolean;
   onNavigate: (v: View) => void;
@@ -458,7 +460,11 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Key metrics</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Total Users" value={v(stats.totalUsers)} icon={Users} onClick={() => onNavigate("people")} />
+          <StatCard label="Pending Accounts" value={v(stats.pendingApprovals)} icon={Users} onClick={() => onNavigate("people")} />
+          <StatCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} onClick={() => onNavigate("subscriptions")} />
+          <StatCard label="Open Reports" value={v(stats.openReports)} icon={AlertTriangle} onClick={() => onNavigate("reports")} />
+          <StatCard label="Support Tickets" value={v(stats.supportTickets)} icon={Headphones} onClick={() => onNavigate("support")} />
+          <StatCard label="Active Disputes" value={v(stats.disputedJobs)} icon={ShieldAlert} onClick={() => onNavigate("disputes")} />
           <StatCard label="Active Jobs" value={v(stats.activeJobs)} icon={Briefcase} onClick={() => onNavigate("jobs")} />
           <StatCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} onClick={() => onNavigate("analytics")} />
           <StatCard label="Platform Revenue" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />

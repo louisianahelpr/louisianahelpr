@@ -122,7 +122,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setStep("tip")}>Skip</Button>
-            <Button onClick={submitReview} disabled={saving || rating === 0}>
+            <Button onClick={submitReview} disabled={saving || rating === 0 || feedback.trim().length < 10}>
               {saving ? "Submitting…" : "Submit Review"}
             </Button>
           </DialogFooter>

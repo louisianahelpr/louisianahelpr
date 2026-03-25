@@ -351,9 +351,9 @@ const UserProfile = () => {
           )}
 
           {/* Worked Jobs expanded inline */}
-          {showWorkedJobs && workedJobs.length > 0 && (
+          {showWorkedJobs && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {workedJobs.map((job) => (
+              {workedJobs.length > 0 ? workedJobs.map((job) => (
                 <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>

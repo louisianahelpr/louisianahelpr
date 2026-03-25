@@ -1651,22 +1651,40 @@ const Activity = () => {
         </div>
       </main>
 
-      {/* Poster reviewing helper */}
-      {reviewJob && reviewTarget && (
-        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); if (user) loadData(user.id); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
-      )}
-
-      {/* Helper reviewing poster */}
-      {helperReviewJob && (
-        <ReviewForm open={!!helperReviewJob} onClose={() => setHelperReviewJob(null)} jobId={helperReviewJob.jobId} revieweeId={helperReviewJob.posterId} revieweeName={helperReviewJob.posterName} />
-      )}
-
-      {/* Revision Request Dialog */}
-      <Dialog open={!!revisionJobId} onOpenChange={() => setRevisionJobId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Request Revision</DialogTitle>
-          </DialogHeader>
+      <ActivityDialogs
+        user={user ? { id: user.id } : null}
+        revisionJobId={revisionJobId}
+        setRevisionJobId={setRevisionJobId}
+        onRevisionRequested={() => user && loadData(user.id)}
+        editJob={editJob}
+        setEditJob={setEditJob}
+        boostJobId={boostJobId}
+        setBoostJobId={setBoostJobId}
+        enhancedTipJobId={enhancedTipJobId}
+        enhancedTipHelperName={enhancedTipHelperName}
+        setEnhancedTipJobId={setEnhancedTipJobId}
+        setEnhancedTipHelperName={setEnhancedTipHelperName}
+        noShowJobId={noShowJobId}
+        setNoShowJobId={setNoShowJobId}
+        onNoShow={handleNoShow}
+        reportingNoShow={reportingNoShow}
+        cancelDialogJob={cancelDialogJob}
+        setCancelDialogJob={setCancelDialogJob}
+        completionPromptJob={completionPromptJob}
+        setCompletionPromptJob={setCompletionPromptJob}
+        deadlineDialogApp={deadlineDialogApp}
+        setDeadlineDialogApp={setDeadlineDialogApp}
+        onDeadlineConfirm={confirmAcceptWithDeadline}
+        disputeJob={disputeJob}
+        setDisputeJob={setDisputeJob}
+        reviewJob={reviewJob}
+        reviewTarget={reviewTarget}
+        setReviewJob={setReviewJob}
+        setReviewTarget={setReviewTarget}
+        helperReviewJob={helperReviewJob}
+        setHelperReviewJob={setHelperReviewJob}
+        onRefresh={() => user && loadData(user.id)}
+      />
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Describe what needs to be fixed or redone. The helpr will be notified.</p>
             <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} />

@@ -105,7 +105,7 @@ const Earnings = () => {
                   <div className="space-y-3">
                     {jobs.map((job) => {
                       const payout = job.status === "completed"
-                        ? job.budget - (job.platform_fee_amount || 0)
+                        ? job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee || 0)
                         : null;
                       const jobTips = tips.filter((t) => t.job_id === job.id);
                       const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);

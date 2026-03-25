@@ -216,7 +216,8 @@ serve(async (req) => {
       }
 
       if (bothDone) {
-        const helperPayout = job.budget - (job.platform_fee_amount || 0);
+        const urgentFee = job.urgent_fee ?? 0;
+        const helperPayout = job.budget - (job.platform_fee_amount || 0) + urgentFee;
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,

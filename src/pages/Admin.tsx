@@ -372,7 +372,7 @@ interface DashboardHomeProps {
     totalUsers: number; pendingApprovals: number; openReports: number;
     supportTickets: number; activeJobs: number; completedJobs: number;
     totalRevenue: number; totalFees: number; pendingReviews: number;
-    disputedJobs: number;
+    disputedJobs: number; activeSubscriptions: number;
   };
   statsLoading: boolean;
   onNavigate: (v: View) => void;

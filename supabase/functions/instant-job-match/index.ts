@@ -17,12 +17,24 @@ Deno.serve(async (req) => {
   });
   if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
   try {
+    // Authenticate user
+    const authHeader = req.headers.get("Authorization");
+    let callerId: string | null = null;
+
+    if (authHeader) {
+      const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseAuth.auth.getUser(token);
+      callerId = userData?.user?.id || null;
+    }
+
     const { jobId } = await req.json();
     if (!jobId) throw new Error("Missing jobId");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Get the job details
@@ -33,6 +45,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (jobError || !job) throw new Error("Job not found");
+
+    // Verify the caller owns the job (if authenticated)
+    if (callerId && callerId !== job.customer_id) {
+      throw new Error("Not authorized to trigger match for this job");
+    }
 
     // Find approved helpers matching by location or category/skills
     const { data: helpers, error: helpersError } = await supabase

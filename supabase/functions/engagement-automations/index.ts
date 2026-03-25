@@ -137,6 +137,12 @@ Deno.serve(async (_req) => {
   const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
 
   try {
+    // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
+    const { data: suppressedList } = await supabase
+      .from('suppressed_emails')
+      .select('email')
+    const suppressedSet = new Set((suppressedList || []).map(s => s.email.toLowerCase()))
+
     // ─── 1. Welcome Drip Sequence ─────────────────────────────────
     const now = new Date()
 
@@ -148,6 +154,9 @@ Deno.serve(async (_req) => {
       .not('email', 'is', null)
 
     for (const user of dripUsers || []) {
+      // Skip suppressed emails
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+
       const signupDate = new Date(user.created_at)
       const daysSinceSignup = (now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24)
 
@@ -216,6 +225,9 @@ Deno.serve(async (_req) => {
       .not('email', 'is', null)
 
     for (const user of approvedUsers || []) {
+      // Skip suppressed emails
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+
       const emailCount = user.approval_email_count || 0
       if (emailCount < 1) continue // First email sent on approval, skip if 0
 
@@ -305,6 +317,9 @@ Deno.serve(async (_req) => {
       .not('email', 'is', null)
 
     for (const user of inactiveUsers || []) {
+      // Skip suppressed emails
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+
       // Only send re-engagement once every 14 days
       if (user.last_drip_at) {
         const daysSinceLastEmail = (now.getTime() - new Date(user.last_drip_at).getTime()) / (1000 * 60 * 60 * 24)

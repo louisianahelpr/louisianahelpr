@@ -4,7 +4,11 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing, Headphones, Gift, Crown } from "lucide-react";
+import {
+  LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck,
+  AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
+  BellRing, Headphones, Gift, Crown, Menu, X, TrendingUp, Activity,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
@@ -18,13 +22,60 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import { cn } from "@/lib/utils";
 
 type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";
 
-// Keys for localStorage timestamps tracking when admin last visited each section
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
 const markSeen = (section: string) => localStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
+
+interface NavItem {
+  id: View;
+  label: string;
+  icon: React.ElementType;
+}
+
+const navGroups: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Overview",
+    items: [
+      { id: "home", label: "Dashboard", icon: Activity },
+      { id: "analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { id: "people", label: "Users", icon: Users },
+      { id: "jobs", label: "Jobs", icon: Briefcase },
+      { id: "disputes", label: "Disputes", icon: ShieldAlert },
+      { id: "reports", label: "Reports", icon: AlertTriangle },
+      { id: "support", label: "Support", icon: Headphones },
+    ],
+  },
+  {
+    title: "Revenue",
+    items: [
+      { id: "subscriptions", label: "Subscriptions", icon: Crown },
+      { id: "referrals", label: "Referrals", icon: Gift },
+    ],
+  },
+  {
+    title: "Engagement",
+    items: [
+      { id: "reviews", label: "Reviews", icon: ClipboardCheck },
+      { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
+      { id: "notifications", label: "Notifications", icon: BellRing },
+    ],
+  },
+  {
+    title: "System",
+    items: [
+      { id: "settings", label: "Settings", icon: Settings },
+    ],
+  },
+];
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -32,14 +83,13 @@ const Admin = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     pendingReviews: 0, disputedJobs: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
-
-  // Unread badge counts — items created since last visit
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   const loadUnreadCounts = useCallback(async () => {
@@ -53,49 +103,33 @@ const Admin = () => {
       { key: "referrals", table: "referrals", dateCol: "created_at" },
       { key: "subscriptions", table: "profiles", dateCol: "updated_at", filter: { subscription_tier: "not_null" } },
     ];
-
     const counts: Record<string, number> = {};
-
     await Promise.all(sections.map(async (s) => {
       const lastSeen = getSeenTimestamp(s.key);
       let query = supabase.from(s.table as any).select("id", { count: "exact", head: true });
-
-      if (lastSeen) {
-        query = query.gt(s.dateCol, lastSeen);
-      }
-
+      if (lastSeen) query = query.gt(s.dateCol, lastSeen);
       if (s.filter) {
         for (const [col, val] of Object.entries(s.filter)) {
-          if (val === "not_null") {
-            query = query.not(col, "is", null);
-          } else {
-            query = query.eq(col, val);
-          }
+          if (val === "not_null") query = query.not(col, "is", null);
+          else query = query.eq(col, val);
         }
       }
       if (s.notFilter) {
-        for (const [col, val] of Object.entries(s.notFilter)) {
-          query = query.neq(col, val);
-        }
+        for (const [col, val] of Object.entries(s.notFilter)) query = query.neq(col, val);
       }
-
       const { count } = await query;
       if (count && count > 0) counts[s.key] = count;
     }));
-
     setUnreadCounts(counts);
   }, []);
 
   const handleViewChange = useCallback((newView: View) => {
     if (newView !== "home") {
       markSeen(newView);
-      setUnreadCounts(prev => {
-        const next = { ...prev };
-        delete next[newView];
-        return next;
-      });
+      setUnreadCounts(prev => { const next = { ...prev }; delete next[newView]; return next; });
     }
     setView(newView);
+    setSidebarOpen(false);
   }, []);
 
   const loadStats = async () => {
@@ -130,7 +164,6 @@ const Admin = () => {
     if (loading) return;
     loadStats();
     loadUnreadCounts();
-
     const channel = supabase
       .channel('admin-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
@@ -138,280 +171,292 @@ const Admin = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => { loadStats(); loadUnreadCounts(); })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [loading]);
 
   useEffect(() => {
-    if (view === "home" && !loading) {
-      loadStats();
-      loadUnreadCounts();
-    }
+    if (view === "home" && !loading) { loadStats(); loadUnreadCounts(); }
   }, [view]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Loading…</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
-  const viewLabels: Record<View, string> = {
-    home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
-    notifications: "Notifications", reports: "Reports", support: "Support Tickets",
-    referrals: "Referrals", subscriptions: "Subscriptions",
+  const getBadge = (id: View): number | undefined => {
+    const uc = unreadCounts[id];
+    if (uc && uc > 0) return uc;
+    if (id === "people" && stats.pendingApprovals > 0) return stats.pendingApprovals;
+    if (id === "disputes" && stats.disputedJobs > 0) return stats.disputedJobs;
+    if (id === "reports" && stats.openReports > 0) return stats.openReports;
+    if (id === "support" && stats.supportTickets > 0) return stats.supportTickets;
+    return undefined;
   };
 
-  const header = (
-    <header className="sticky top-0 z-40 glass border-b border-border/30">
-      <div className="container mx-auto flex items-center justify-between h-14 px-4">
-        <div className="flex items-center gap-2">
-          <Link to="/dashboard" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
-              <span className="text-primary-foreground font-bold text-sm">H</span>
-            </div>
-            <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Helpr
-            </span>
-          </Link>
-          <span className="text-[10px] font-medium bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
-        </div>
-        <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9">
-          <LogOut className="w-4 h-4" />
-        </Button>
+  const getBadgeColor = (id: View): string => {
+    if (["disputes", "reports"].includes(id)) return "bg-destructive text-destructive-foreground";
+    if (["people", "support"].includes(id)) return "bg-accent text-accent-foreground";
+    return "bg-primary text-primary-foreground";
+  };
+
+  // Sidebar content (shared between desktop sidebar & mobile drawer)
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="p-4 pb-6 border-b border-border/50">
+        <Link to="/dashboard" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+            <span className="text-primary-foreground font-bold text-sm">H</span>
+          </div>
+          <div>
+            <span className="text-base font-display font-bold text-foreground block leading-tight">Helpr</span>
+            <span className="text-[10px] font-medium text-destructive uppercase tracking-wider">Admin</span>
+          </div>
+        </Link>
       </div>
-    </header>
-  );
 
-  const logoutDialog = (
-    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Log out?</AlertDialogTitle>
-          <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+      {/* Nav groups */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        {navGroups.map((group) => (
+          <div key={group.title}>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-3 mb-2">
+              {group.title}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = view === item.id;
+                const badge = getBadge(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleViewChange(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive && "text-primary")} />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {badge !== undefined && (
+                      <span className={cn(
+                        "text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",
+                        getBadgeColor(item.id)
+                      )}>
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
 
-  const subHeader = view !== "home" && (
-    <div className="container mx-auto px-4 pt-4 pb-2 flex items-center gap-2">
-      <Button variant="ghost" size="icon" onClick={() => handleViewChange("home")} className="rounded-xl h-9 w-9">
-        <ArrowLeft className="w-4 h-4" />
-      </Button>
-      <h2 className="text-lg font-display font-bold text-foreground">{viewLabels[view]}</h2>
+      {/* Bottom actions */}
+      <div className="p-3 border-t border-border/50 space-y-1">
+        <button
+          onClick={() => setShowLogoutDialog(true)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Log out</span>
+        </button>
+      </div>
     </div>
   );
 
-  if (view !== "home") {
-    return (
-      <div className="min-h-screen bg-background">
-        {header}
-        {logoutDialog}
-        {subHeader}
-        <div className="container mx-auto px-4 py-4">
-          {view === "analytics" && <AdminAnalytics />}
-          {view === "reviews" && <AdminReviews />}
-          {view === "people" && <AdminUsers />}
-          {view === "jobs" && <AdminJobs />}
-          {view === "settings" && <AdminSettings />}
-          {view === "disputes" && <AdminDisputes />}
-          {view === "broadcasts" && <AdminBroadcasts />}
-          {view === "notifications" && <AdminNotifications />}
-          {view === "reports" && <AdminReports />}
-          {view === "support" && <AdminSupport />}
-          {view === "referrals" && <AdminReferrals />}
-          {view === "subscriptions" && <AdminSubscriptions />}
-        </div>
-      </div>
-    );
-  }
+  const viewLabels: Record<View, string> = {
+    home: "Dashboard", analytics: "Analytics", reviews: "Reviews", people: "Users",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+    notifications: "Notifications", reports: "Reports", support: "Support",
+    referrals: "Referrals", subscriptions: "Subscriptions",
+  };
 
-  const quickActions: { id: View; label: string; description: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[] = [
-    {
-      id: "people", label: "Users", description: "Manage accounts & approvals",
-      icon: <Users className="w-5 h-5" />,
-      badge: (unreadCounts.people || 0) > 0 ? unreadCounts.people : (stats.pendingApprovals > 0 ? stats.pendingApprovals : undefined),
-      badgeColor: "bg-accent/10 text-accent-foreground",
-    },
-    {
-      id: "jobs", label: "Jobs", description: "All tasks & listings",
-      icon: <Briefcase className="w-5 h-5" />,
-      badge: unreadCounts.jobs || undefined,
-      badgeColor: "bg-primary/10 text-primary",
-    },
-    {
-      id: "disputes", label: "Disputes", description: "Review disputed jobs & payments",
-      icon: <ShieldAlert className="w-5 h-5" />,
-      badge: (unreadCounts.disputes || 0) > 0 ? unreadCounts.disputes : (stats.disputedJobs > 0 ? stats.disputedJobs : undefined),
-      badgeColor: "bg-destructive/10 text-destructive",
-    },
-    {
-      id: "analytics", label: "Analytics", description: "Revenue, stats & breakdowns",
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
-    {
-      id: "reviews", label: "Reviews", description: "Ratings & feedback",
-      icon: <ClipboardCheck className="w-5 h-5" />,
-      badge: unreadCounts.reviews || undefined,
-      badgeColor: "bg-primary/10 text-primary",
-    },
-    {
-      id: "reports", label: "Reports", description: "User & content reports",
-      icon: <AlertTriangle className="w-5 h-5" />,
-      badge: (unreadCounts.reports || 0) > 0 ? unreadCounts.reports : (stats.openReports > 0 ? stats.openReports : undefined),
-      badgeColor: "bg-destructive/10 text-destructive",
-    },
-    {
-      id: "broadcasts", label: "Broadcasts", description: "Send announcements to all users",
-      icon: <Megaphone className="w-5 h-5" />,
-    },
-    {
-      id: "notifications", label: "Notifications", description: "Choose which alerts you receive",
-      icon: <BellRing className="w-5 h-5" />,
-    },
-    {
-      id: "support", label: "Support Tickets", description: "Messages, suggestions & help requests",
-      icon: <Headphones className="w-5 h-5" />,
-      badge: (unreadCounts.support || 0) > 0 ? unreadCounts.support : (stats.supportTickets > 0 ? stats.supportTickets : undefined),
-      badgeColor: "bg-accent/10 text-accent-foreground",
-    },
-    {
-      id: "subscriptions", label: "Subscriptions", description: "Active tiers, expiry & purchase tracking",
-      icon: <Crown className="w-5 h-5" />,
-      badge: unreadCounts.subscriptions || undefined,
-      badgeColor: "bg-primary/10 text-primary",
-    },
-    {
-      id: "referrals", label: "Referrals", description: "Codes, credits & payout tracking",
-      icon: <Gift className="w-5 h-5" />,
-      badge: unreadCounts.referrals || undefined,
-      badgeColor: "bg-primary/10 text-primary",
-    },
-    {
-      id: "settings", label: "Settings", description: "Platform configuration",
-      icon: <Settings className="w-5 h-5" />,
-    },
-  ];
+  const renderContent = () => {
+    switch (view) {
+      case "analytics": return <AdminAnalytics />;
+      case "reviews": return <AdminReviews />;
+      case "people": return <AdminUsers />;
+      case "jobs": return <AdminJobs />;
+      case "settings": return <AdminSettings />;
+      case "disputes": return <AdminDisputes />;
+      case "broadcasts": return <AdminBroadcasts />;
+      case "notifications": return <AdminNotifications />;
+      case "reports": return <AdminReports />;
+      case "support": return <AdminSupport />;
+      case "referrals": return <AdminReferrals />;
+      case "subscriptions": return <AdminSubscriptions />;
+      default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {header}
-      {logoutDialog}
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Welcome */}
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Platform overview and management</p>
-        </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-60 border-r border-border/50 bg-card/50 flex-col flex-shrink-0 sticky top-0 h-screen">
+        {sidebarContent}
+      </aside>
 
-        {/* Alerts */}
-        {(stats.pendingApprovals > 0 || stats.openReports > 0 || stats.disputedJobs > 0) && (
-          <div className="flex flex-col sm:flex-row gap-3">
+      {/* Mobile drawer overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r border-border shadow-xl flex flex-col">
+            <div className="absolute top-3 right-3">
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-8 w-8 rounded-lg">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <header className="sticky top-0 z-30 h-14 border-b border-border/50 bg-background/95 backdrop-blur-sm flex items-center px-4 gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden h-9 w-9 rounded-lg"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          <h1 className="text-lg font-display font-bold text-foreground">{viewLabels[view]}</h1>
+        </header>
+
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+          {renderContent()}
+        </main>
+      </div>
+
+      {/* Logout dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out?</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Log out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+/* ─── Dashboard Home ─── */
+
+interface DashboardHomeProps {
+  stats: {
+    totalUsers: number; pendingApprovals: number; openReports: number;
+    supportTickets: number; activeJobs: number; completedJobs: number;
+    totalRevenue: number; totalFees: number; pendingReviews: number;
+    disputedJobs: number;
+  };
+  statsLoading: boolean;
+  onNavigate: (v: View) => void;
+}
+
+const StatCard = ({ label, value, icon: Icon, trend, onClick }: {
+  label: string; value: string | number; icon: React.ElementType; trend?: string; onClick?: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/20 hover:shadow-sm transition-all group w-full"
+  >
+    <div className="flex items-center justify-between mb-3">
+      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+        <Icon className="w-4 h-4 text-primary" />
+      </div>
+      {trend && (
+        <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+          <TrendingUp className="w-3 h-3" /> {trend}
+        </span>
+      )}
+    </div>
+    <p className="text-2xl font-bold text-foreground">{value}</p>
+    <p className="text-xs text-muted-foreground mt-1">{label}</p>
+  </button>
+);
+
+const AlertBanner = ({ label, count, color, onClick }: {
+  label: string; count: number; color: "destructive" | "accent"; onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all w-full",
+      color === "destructive"
+        ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
+        : "border-accent/20 bg-accent/5 hover:bg-accent/10"
+    )}
+  >
+    <span className={cn(
+      "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold",
+      color === "destructive" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent-foreground"
+    )}>
+      {count}
+    </span>
+    <span className="text-sm font-medium text-foreground flex-1">{label}</span>
+    <span className="text-xs text-muted-foreground">View →</span>
+  </button>
+);
+
+const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
+  const v = (val: number | string) => statsLoading ? "—" : val;
+  const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
+
+  return (
+    <div className="space-y-8 max-w-5xl">
+      {/* Greeting */}
+      <div>
+        <h2 className="text-2xl font-display font-bold text-foreground">Welcome back</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Here's what's happening on the platform today.</p>
+      </div>
+
+      {/* Attention needed */}
+      {hasAlerts && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Needs attention</p>
+          <div className="grid sm:grid-cols-2 gap-2">
             {stats.pendingApprovals > 0 && (
-              <button
-                onClick={() => handleViewChange("people")}
-                className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 flex-1 text-left hover:bg-accent/10 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">{stats.pendingApprovals} pending approval{stats.pendingApprovals !== 1 ? "s" : ""}</p>
-                  <p className="text-xs text-muted-foreground">Review new signups</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              </button>
+              <AlertBanner label="Pending approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
             )}
             {stats.disputedJobs > 0 && (
-              <button
-                onClick={() => handleViewChange("disputes")}
-                className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-                  <ShieldAlert className="w-5 h-5 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">{stats.disputedJobs} active dispute{stats.disputedJobs !== 1 ? "s" : ""}</p>
-                  <p className="text-xs text-muted-foreground">Payment on hold</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              </button>
+              <AlertBanner label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
             )}
             {stats.openReports > 0 && (
-              <button
-                onClick={() => handleViewChange("reports")}
-                className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">{stats.openReports} open report{stats.openReports !== 1 ? "s" : ""}</p>
-                  <p className="text-xs text-muted-foreground">Needs attention</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              </button>
+              <AlertBanner label="Open reports" count={stats.openReports} color="destructive" onClick={() => onNavigate("reports")} />
+            )}
+            {stats.supportTickets > 0 && (
+              <AlertBanner label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
             )}
           </div>
-        )}
-
-        {/* Stats overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => handleViewChange("people") },
-            { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => handleViewChange("jobs") },
-            { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => handleViewChange("analytics") },
-            { label: "Platform Revenue", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(2)}`, icon: DollarSign, onClick: () => handleViewChange("analytics") },
-          ].map((card) => (
-            <button
-              key={card.label}
-              onClick={card.onClick}
-              className="rounded-xl border border-border bg-card p-5 text-left hover:bg-secondary/30 hover:border-primary/20 transition-all group"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">{card.label}</span>
-                <card.icon className="w-4 h-4 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-2xl font-bold text-foreground">{card.value}</p>
-            </button>
-          ))}
         </div>
+      )}
 
-        {/* Navigation cards */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Manage</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {quickActions.map((action) => (
-              <button
-                key={action.id}
-                onClick={() => handleViewChange(action.id)}
-                className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 text-left hover:bg-secondary/20 hover:border-primary/20 transition-all group"
-              >
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors flex-shrink-0">
-                  {action.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-foreground">{action.label}</p>
-                    {action.badge && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${action.badgeColor}`}>
-                        {action.badge}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-              </button>
-            ))}
-          </div>
+      {/* Key metrics */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Key metrics</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard label="Total Users" value={v(stats.totalUsers)} icon={Users} onClick={() => onNavigate("people")} />
+          <StatCard label="Active Jobs" value={v(stats.activeJobs)} icon={Briefcase} onClick={() => onNavigate("jobs")} />
+          <StatCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} onClick={() => onNavigate("analytics")} />
+          <StatCard label="Platform Revenue" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />
         </div>
       </div>
     </div>

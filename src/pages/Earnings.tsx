@@ -56,7 +56,12 @@ const Earnings = () => {
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto space-y-8">
-          <h1 className="text-3xl font-display font-bold text-foreground">My Earnings</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="text-3xl font-display font-bold text-foreground">My Earnings</h1>
+          </div>
 
           {loading ? (
             <p className="text-muted-foreground">Loading…</p>

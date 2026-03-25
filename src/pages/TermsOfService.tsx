@@ -19,8 +19,13 @@ const TermsOfService = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Terms & Policies</h1>
-            <p className="text-sm text-muted-foreground mt-2">Last updated: March 2026</p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-3xl font-display font-bold text-foreground">Terms & Policies</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2 ml-11">Last updated: March 2026</p>
           </div>
 
           {/* Terms of Use */}

@@ -112,8 +112,13 @@ const SupportPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-lg mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Support & Feedback</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-2xl font-display font-bold text-foreground">Support & Feedback</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1 ml-11">
               Message admin, share suggestions, or report issues
             </p>
           </div>

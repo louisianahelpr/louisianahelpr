@@ -50,7 +50,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
                 <span className="text-xs text-muted-foreground">Total</span>
                 <TrendingUp className="w-4 h-4 text-primary" />
               </div>
-              <p className="text-xl font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
+              <p className="text-xl font-bold text-foreground">${(totalEarnings + totalTips).toFixed(2)}</p>
               <p className="text-xs text-muted-foreground mt-1">{completedJobs.length} jobs</p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">

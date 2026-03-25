@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -320,18 +320,20 @@ const Messages = () => {
 
   const deleteConversation = async (convo: Conversation) => {
     if (!userId) return;
-    // Delete all messages in this conversation for this user pair + job
+    // RLS only allows deleting own sent messages — so only delete those
     const { error } = await supabase
       .from("messages")
       .delete()
       .eq("job_id", convo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`);
+      .eq("sender_id", userId)
+      .eq("receiver_id", convo.otherUserId);
 
     if (error) {
       toast.error("Failed to delete conversation");
     } else {
+      // Remove from local list — the other person's messages still exist for them
       setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
-      toast.success("Conversation deleted");
+      toast.success("Your messages in this conversation have been deleted");
     }
     setDeleteConvoConfirm(null);
   };
@@ -494,9 +496,16 @@ const Messages = () => {
               <div className="flex-1 overflow-y-auto space-y-3 py-4" ref={chatContainerRef}>
                 {hasMoreMessages && (
                   <div className="text-center py-2">
-                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50">
+                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
+                      {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                       {loadingMore ? "Loading…" : "Load earlier messages"}
                     </button>
+                  </div>
+                )}
+                {messages.length === 0 && (
+                  <div className="text-center py-12 space-y-2">
+                    <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                    <p className="text-sm text-muted-foreground">No messages yet. Say hello!</p>
                   </div>
                 )}
                 {messages.map((m) => (

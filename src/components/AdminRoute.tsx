@@ -1,37 +1,14 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface AdminRouteProps {
   children: React.ReactNode;
 }
 
 const AdminRoute = ({ children }: AdminRouteProps) => {
-  const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
+  const { isAdmin, isLoading } = useCurrentUser();
 
-  useEffect(() => {
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-
-      const isAdmin = roles?.some((r) => r.role === "admin") ?? false;
-      setAuthorized(isAdmin);
-      setLoading(false);
-    };
-
-    check();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -39,7 +16,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
     );
   }
 
-  if (!authorized) {
+  if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 

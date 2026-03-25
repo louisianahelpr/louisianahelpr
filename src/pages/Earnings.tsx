@@ -41,7 +41,7 @@ const Earnings = () => {
   const completedJobs = jobs.filter((j) => j.status === "completed");
   const inProgressJobs = jobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce(
-    (sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)),
+    (sum, j) => sum + (j.budget - (j.platform_fee_amount || 0) + (j.urgent_fee || 0)),
     0
   );
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
@@ -105,7 +105,7 @@ const Earnings = () => {
                   <div className="space-y-3">
                     {jobs.map((job) => {
                       const payout = job.status === "completed"
-                        ? job.budget - (job.platform_fee_amount || 0)
+                        ? job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee || 0)
                         : null;
                       const jobTips = tips.filter((t) => t.job_id === job.id);
                       const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);

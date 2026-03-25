@@ -15,7 +15,7 @@ const tierConfig = [
     badge: "⭐",
     monthly: "$5/mo",
     annual: "$50/yr",
-    lifetime: "$5",
+    lifetime: "$5 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Helpr Badge", "Search Priority", "5-min Early Job Access"],
@@ -26,7 +26,7 @@ const tierConfig = [
     badge: "🔥",
     monthly: "$10/mo",
     annual: "$100/yr",
-    lifetime: "$10",
+    lifetime: "$10 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "Weekly Reports", "10-min Early Access"],
@@ -37,7 +37,7 @@ const tierConfig = [
     badge: "💎",
     monthly: "$15/mo",
     annual: "$150/yr",
-    lifetime: "$15",
+    lifetime: "$15 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Everything in Pro", "Landing Page Spotlight", "Auto-Match Jobs", "Priority Dispute Resolution", "20-min Early Access"],
@@ -88,7 +88,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
 
   const getSaveBadge = (tier: typeof tierConfig[0]) => {
     if (billingInterval === "annual") return tier.annualSave;
-    if (billingInterval === "lifetime") return "Best value";
+    if (billingInterval === "lifetime") return "One month, no recurring";
     return null;
   };
 

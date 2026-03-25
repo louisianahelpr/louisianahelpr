@@ -26,7 +26,7 @@ serve(async (req) => {
     // Find cancelled jobs still showing escrow payment status
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee, date_needed, cancelled_at, helper_id")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 

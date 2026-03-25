@@ -316,7 +316,7 @@ const Admin = () => {
           <div className="flex flex-col sm:flex-row gap-3">
             {stats.pendingApprovals > 0 && (
               <button
-                onClick={() => setView("people")}
+                onClick={() => handleViewChange("people")}
                 className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 flex-1 text-left hover:bg-accent/10 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">

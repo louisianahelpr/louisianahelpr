@@ -38,14 +38,26 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   const handleCancel = async () => {
     setCancelling(true);
     try {
+      // Fetch authoritative job data to calculate fee server-side
+      const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id").eq("id", jobId).single();
+      if (fetchError || !jobData) throw new Error("Could not verify job details");
+
+      const serverJobDate = new Date(jobData.date_needed + "T00:00:00");
+      const serverHoursUntil = (serverJobDate.getTime() - Date.now()) / (1000 * 60 * 60);
+      const serverHasHelper = !!jobData.helper_id;
+      const serverIsLate = serverHoursUntil < 24 && serverHoursUntil > 0;
+      const serverIsVeryLate = serverHoursUntil < 2 && serverHoursUntil > 0;
+      const serverFeePercent = serverHasHelper ? (serverIsVeryLate ? 50 : serverIsLate ? 25 : 0) : 0;
+      const serverFee = Math.round((jobData.budget * serverFeePercent) / 100);
+
       const updateData: any = {
         status: "cancelled",
         cancelled_by: userId,
         cancelled_at: new Date().toISOString(),
         cancellation_reason: reason.trim() || null,
-        late_cancellation: isLateCancellation,
-        cancellation_fee: cancellationFee,
-        cancellation_fee_status: cancellationFee > 0 ? "pending" : null,
+        late_cancellation: serverIsLate,
+        cancellation_fee: serverFee,
+        cancellation_fee_status: serverFee > 0 ? "pending" : null,
       };
 
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);

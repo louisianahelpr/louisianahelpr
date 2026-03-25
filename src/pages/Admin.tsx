@@ -365,10 +365,10 @@ const Admin = () => {
         {/* Stats overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => setView("people") },
-            { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => setView("jobs") },
-            { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => setView("analytics") },
-            { label: "Platform Revenue", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(2)}`, icon: DollarSign, onClick: () => setView("analytics") },
+            { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => handleViewChange("people") },
+            { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => handleViewChange("jobs") },
+            { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => handleViewChange("analytics") },
+            { label: "Platform Revenue", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(2)}`, icon: DollarSign, onClick: () => handleViewChange("analytics") },
           ].map((card) => (
             <button
               key={card.label}

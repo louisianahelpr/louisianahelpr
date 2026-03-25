@@ -505,7 +505,7 @@ const ProfilePage = () => {
               </div>
 
               {/* Logout */}
-              <Button variant="outline" className="w-full" onClick={handleLogout}>
+              <Button variant="outline" className="w-full" onClick={() => setShowLogoutDialog(true)}>
                 <LogOut className="w-4 h-4 mr-2" /> Sign out
               </Button>
             </div>

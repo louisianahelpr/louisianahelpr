@@ -63,8 +63,8 @@ const AdminDisputes = () => {
       return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
     };
     const sorted = jobs.sort((a, b) => {
-      const aMax = Math.max(tierOrder(a.customer_id), tierOrder(a.helper_id));
-      const bMax = Math.max(tierOrder(b.customer_id), tierOrder(b.helper_id));
+      const aMax = Math.max(tierPriority(a.customer_id), tierPriority(a.helper_id));
+      const bMax = Math.max(tierPriority(b.customer_id), tierPriority(b.helper_id));
       return bMax - aMax;
     });
 

@@ -196,9 +196,10 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
-
-      // Notify the other party
+      // Calculate helper payout: budget - fee - feeTax + urgent_fee
+      const feeAmountCalc = job.platform_fee_amount || 0;
+      const feeTaxCalc = feeAmountCalc * 0.085;
+      const helperPayout = job.budget - feeAmountCalc - feeTaxCalc + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

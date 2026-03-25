@@ -403,8 +403,10 @@ const ProfilePage = () => {
             <div className="space-y-5">
               {/* Profile header card */}
               <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
-                  {initials}
+                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : initials}
                 </div>
                 <div>
                   <h1 className="text-xl font-display font-bold text-foreground">{profile?.full_name || "Set up your profile"}</h1>

@@ -106,16 +106,6 @@ const Activity = () => {
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editCategory, setEditCategory] = useState("other");
-  const [editLocation, setEditLocation] = useState("");
-  const [editDateNeeded, setEditDateNeeded] = useState("");
-  const [editStartTime, setEditStartTime] = useState("");
-  const [editEstimatedHours, setEditEstimatedHours] = useState("");
-  const [editBudget, setEditBudget] = useState("");
-  const [editSpecialReq, setEditSpecialReq] = useState("");
-  const [editSaving, setEditSaving] = useState(false);
 
   // Applied jobs state
   const [appliedApps, setAppliedApps] = useState<(Application & { job?: (Job & { revision_note?: string | null }) | null; posterName?: string })[]>([]);

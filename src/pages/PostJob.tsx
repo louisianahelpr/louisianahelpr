@@ -176,7 +176,9 @@ const PostJob = () => {
       toast.error("Maximum 5 images allowed");
       return;
     }
-    const newFiles = [...imageFiles, ...files].slice(0, 5);
+    // Compress images before storing
+    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+    const newFiles = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(newFiles);
     const previews = newFiles.map((f) => URL.createObjectURL(f));
     setImagePreviews(previews);

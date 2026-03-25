@@ -622,6 +622,7 @@ const ProfilePage = () => {
                       <p className="text-xs text-muted-foreground mt-1">Work samples, certifications, resume — up to 10 files</p>
                     )}
                   </div>
+                  {(profile?.subscription_tier === "pro" || profile?.subscription_tier === "elite") && (
                   <div className="flex flex-wrap gap-3">
                     {(profile?.portfolio_urls as string[] || []).map((url, i) => {
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);

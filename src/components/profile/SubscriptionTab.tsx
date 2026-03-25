@@ -15,7 +15,7 @@ const tierConfig = [
     badge: "⭐",
     monthly: "$5/mo",
     annual: "$50/yr",
-    lifetime: "$5",
+    lifetime: "$5 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Helpr Badge", "Search Priority", "5-min Early Job Access"],

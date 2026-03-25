@@ -58,9 +58,25 @@ const Signup = () => {
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState("");
 
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`${label}: Invalid file type. Allowed: ${allowedTypes.map(t => t.split("/")[1]).join(", ")}`);
+      return false;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`${label}: File too large. Maximum 10MB.`);
+      return false;
+    }
+    return true;
+  };
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && validateFile(file, ALLOWED_IMAGE_TYPES, "Profile picture")) {
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }
@@ -68,7 +84,7 @@ const Signup = () => {
 
   const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
       setIdFile(file);
       setIdFileName(file.name);
     }

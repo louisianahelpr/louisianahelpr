@@ -123,18 +123,6 @@ const UserProfile = () => {
     loadAll();
   }, [userId]);
 
-  const toggleFavorite = async () => {
-    if (!currentUserId || !userId) { navigate("/login"); return; }
-    if (isFavorited) {
-      await supabase.from("favorite_helpers").delete().eq("customer_id", currentUserId).eq("helper_id", userId);
-      setIsFavorited(false);
-      toast.success("Removed from favorites");
-    } else {
-      await supabase.from("favorite_helpers").insert({ customer_id: currentUserId, helper_id: userId });
-      setIsFavorited(true);
-      toast.success("Added to favorites");
-    }
-  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading…</p></div>;

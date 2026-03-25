@@ -27,6 +27,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [budget, setBudget] = useState(job?.budget.toString() || "");
   const [specialReq, setSpecialReq] = useState(job?.special_requirements || "");
   const [saving, setSaving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const save = async () => {
     if (!job) return;
@@ -44,6 +45,8 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     if (error) toast.error(error.message);
     else { toast.success("Job updated!"); onSaved(); onClose(); }
   };
+
+  const handleSaveClick = () => setShowConfirm(true);
 
   if (!job) return null;
 

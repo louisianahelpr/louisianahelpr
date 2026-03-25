@@ -41,11 +41,10 @@ const AdminDisputes = () => {
 
     // Load profile names and subscription tiers for priority sorting
     const userIds = [...new Set(jobs.flatMap(j => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]))];
-    const tierMap: Record<string, string | null> = {};
+    const tMap: Record<string, string | null> = {};
     if (userIds.length > 0) {
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
       const map: Record<string, string> = {};
-      const tMap: Record<string, string | null> = {};
       profs?.forEach(p => {
         map[p.user_id] = formatName(p.full_name);
         tMap[p.user_id] = p.subscription_tier;

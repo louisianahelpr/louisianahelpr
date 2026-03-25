@@ -22,10 +22,14 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import AdminFraudDashboard from "@/components/admin/AdminFraudDashboard";
+import AdminAuditLog from "@/components/admin/AdminAuditLog";
+import AdminHealth from "@/components/admin/AdminHealth";
+import AdminExport from "@/components/admin/AdminExport";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -50,6 +54,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { id: "people", label: "Users", icon: Users },
       { id: "jobs", label: "Jobs", icon: Briefcase },
+      { id: "fraud", label: "Fraud", icon: ShieldAlert },
       { id: "disputes", label: "Disputes", icon: ShieldAlert },
       { id: "reports", label: "Reports", icon: AlertTriangle },
       { id: "support", label: "Support", icon: Headphones },
@@ -74,6 +79,9 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "System",
     items: [
       { id: "settings", label: "Settings", icon: Settings },
+      { id: "audit", label: "Audit Log", icon: ClipboardCheck },
+      { id: "health", label: "Health", icon: Activity },
+      { id: "export", label: "Export", icon: DollarSign },
     ],
   },
 ];
@@ -278,7 +286,8 @@ const Admin = () => {
     home: "Dashboard", analytics: "Analytics", reviews: "Reviews", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
     notifications: "Notifications", reports: "Reports", support: "Support",
-    referrals: "Referrals", subscriptions: "Subscriptions",
+    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
+    audit: "Audit Log", health: "Health", export: "Export",
   };
 
   const renderContent = () => {
@@ -295,6 +304,10 @@ const Admin = () => {
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;
       case "subscriptions": return <AdminSubscriptions />;
+      case "fraud": return <AdminFraudDashboard />;
+      case "audit": return <AdminAuditLog />;
+      case "health": return <AdminHealth />;
+      case "export": return <AdminExport />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };

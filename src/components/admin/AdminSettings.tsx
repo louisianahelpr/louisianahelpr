@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { ShieldCheck, Trash2, Plus, Search, UserPlus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { logAdminAction } from "@/lib/adminAudit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -89,7 +90,10 @@ const AdminSettings = () => {
       .eq("id", settingsId);
     setSaving(false);
     if (error) toast.error(error.message);
-    else toast.success("Platform fee updated!");
+    else {
+      toast.success("Platform fee updated!");
+      await logAdminAction("update_settings", "platform_settings", settingsId, { platform_fee_percent: value });
+    }
   };
 
   const searchUsers = async () => {
@@ -119,6 +123,7 @@ const AdminSettings = () => {
       else toast.error(error.message);
     } else {
       toast.success(`${formatName(profile.full_name)} added as admin`);
+      await logAdminAction("add_admin", "user", profile.user_id, { name: profile.full_name });
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
     }
@@ -142,6 +147,7 @@ const AdminSettings = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`${admin.name} removed from admins`);
+      await logAdminAction("remove_admin", "user", admin.user_id, { name: admin.name });
       await loadAdmins();
     }
     setRemoving(null);

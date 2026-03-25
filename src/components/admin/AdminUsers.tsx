@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
+import { logAdminAction } from "@/lib/adminAudit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -114,6 +115,7 @@ const AdminUsers = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`${formatName(profile.full_name)} approved!`);
+      await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
       await createNotification({
         user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",
@@ -164,6 +166,7 @@ const AdminUsers = () => {
       toast.error(error.message);
     } else {
       toast.success(`${formatName(denyProfile.full_name)} denied.`);
+      await logAdminAction("deny_user", "user", denyProfile.user_id, { name: denyProfile.full_name, reason: denyReason.trim() });
       await createNotification({
         user_id: denyProfile.user_id, title: "Account not approved",
         message: denyReason.trim()
@@ -252,6 +255,7 @@ const AdminUsers = () => {
           type: "warning", link: "/profile",
         });
         toast.success("Warning issued.");
+        await logAdminAction("ban_user", "user", banProfile.user_id, { type: "warning", reason: banReason.trim() });
       } else if (banType === "temporary") {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(banDuration));

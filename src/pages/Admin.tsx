@@ -22,6 +22,7 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";

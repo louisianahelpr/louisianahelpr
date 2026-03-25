@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -21,6 +21,11 @@ import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 
 type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";
 
+// Keys for localStorage timestamps tracking when admin last visited each section
+const SEEN_KEY_PREFIX = "admin_seen_";
+const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
+const markSeen = (section: string) => localStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
+
 const Admin = () => {
   const { loading } = useAdminAuth();
   usePageTitle("Admin — Helpr");
@@ -33,6 +38,65 @@ const Admin = () => {
     pendingReviews: 0, disputedJobs: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
+
+  // Unread badge counts — items created since last visit
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
+  const loadUnreadCounts = useCallback(async () => {
+    const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [
+      { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending" } },
+      { key: "jobs", table: "jobs", dateCol: "created_at" },
+      { key: "reviews", table: "reviews", dateCol: "created_at" },
+      { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" } },
+      { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
+      { key: "support", table: "reports", dateCol: "created_at", filter: { status: "pending", reported_type: "support" } },
+      { key: "referrals", table: "referrals", dateCol: "created_at" },
+      { key: "subscriptions", table: "profiles", dateCol: "updated_at", filter: { subscription_tier: "not_null" } },
+    ];
+
+    const counts: Record<string, number> = {};
+
+    await Promise.all(sections.map(async (s) => {
+      const lastSeen = getSeenTimestamp(s.key);
+      let query = supabase.from(s.table as any).select("id", { count: "exact", head: true });
+
+      if (lastSeen) {
+        query = query.gt(s.dateCol, lastSeen);
+      }
+
+      if (s.filter) {
+        for (const [col, val] of Object.entries(s.filter)) {
+          if (val === "not_null") {
+            query = query.not(col, "is", null);
+          } else {
+            query = query.eq(col, val);
+          }
+        }
+      }
+      if (s.notFilter) {
+        for (const [col, val] of Object.entries(s.notFilter)) {
+          query = query.neq(col, val);
+        }
+      }
+
+      const { count } = await query;
+      if (count && count > 0) counts[s.key] = count;
+    }));
+
+    setUnreadCounts(counts);
+  }, []);
+
+  const handleViewChange = useCallback((newView: View) => {
+    if (newView !== "home") {
+      markSeen(newView);
+      setUnreadCounts(prev => {
+        const next = { ...prev };
+        delete next[newView];
+        return next;
+      });
+    }
+    setView(newView);
+  }, []);
 
   const loadStats = async () => {
     const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes] = await Promise.all([
@@ -65,23 +129,23 @@ const Admin = () => {
   useEffect(() => {
     if (loading) return;
     loadStats();
+    loadUnreadCounts();
 
-    // Realtime subscription for admin dashboard
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => loadStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => { loadStats(); loadUnreadCounts(); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [loading]);
 
-  // Refresh stats when returning to the home view
   useEffect(() => {
     if (view === "home" && !loading) {
       loadStats();
+      loadUnreadCounts();
     }
   }, [view]);
 

@@ -26,7 +26,7 @@ serve(async (req) => {
     // Find cancelled jobs still showing escrow payment status
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee, date_needed, cancelled_at, helper_id")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -74,7 +74,20 @@ serve(async (req) => {
           results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
         } else if (pi.status === "succeeded") {
           // Already captured — issue a refund (minus cancellation fee if applicable)
-          const cancellationFee = job.cancellation_fee || 0;
+          // Server-side fee calculation: ignore client-sent cancellation_fee
+          let cancellationFee = 0;
+          if (job.helper_id && job.cancelled_at && job.date_needed) {
+            const jobDateTime = new Date(job.date_needed + "T00:00:00Z");
+            const cancelledAt = new Date(job.cancelled_at);
+            const hoursUntilJob = (jobDateTime.getTime() - cancelledAt.getTime()) / (1000 * 60 * 60);
+            if (hoursUntilJob < 2 && hoursUntilJob > 0) {
+              cancellationFee = Math.round(job.budget * 0.5);
+            } else if (hoursUntilJob < 24 && hoursUntilJob > 0) {
+              cancellationFee = Math.round(job.budget * 0.25);
+            }
+          }
+          // Update the job record with the server-calculated fee
+          await supabaseAdmin.from("jobs").update({ cancellation_fee: cancellationFee }).eq("id", job.id);
           const refundAmount = Math.round((job.budget - cancellationFee) * 100);
           if (refundAmount > 0) {
             await stripe.refunds.create({

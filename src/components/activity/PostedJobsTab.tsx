@@ -1,0 +1,410 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { formatName } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw,
+  Star, MessageSquare, Users, Pencil, AlertTriangle, RefreshCw,
+  Rocket, Clock, ChevronDown, Calendar, Timer, Navigation as NavigationIcon,
+} from "lucide-react";
+import { formatDistanceToNow, differenceInHours } from "date-fns";
+import { PhotoProof } from "@/components/PhotoProof";
+import { JobConfirmation } from "@/components/JobConfirmation";
+import { JobTracking } from "@/components/JobTracking";
+import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { JobCheckins } from "@/components/JobCheckins";
+import { getCityState } from "@/lib/locationUtils";
+import { type Job, type Application, type EnrichedApplication, categoryColors } from "./activityConstants";
+
+interface PostedJobsTabProps {
+  jobs: Job[];
+  applicantCounts: Record<string, number>;
+  expandedJobId: string | null;
+  setExpandedJobId: (id: string | null) => void;
+  helperNames: Record<string, string>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  startRequestedJobIds: Set<string>;
+  userId: string;
+  onBoost: (jobId: string) => void;
+  onEdit: (job: Job) => void;
+  onCancel: (job: Job) => void;
+  onComplete: (jobId: string) => void;
+  completingJobId: string | null;
+  onRevision: (jobId: string) => void;
+  onNoShow: (jobId: string) => void;
+  onTip: (jobId: string, helperName: string) => void;
+  onReview: (job: Job) => void;
+  onDispute: (job: Job) => void;
+  onConfirmStart: (jobId: string) => void;
+  onLoadApplications: (job: Job) => void;
+  selectedJob: Job | null;
+  setSelectedJob: (job: Job | null) => void;
+  applications: EnrichedApplication[];
+  onAcceptApplication: (app: EnrichedApplication) => void;
+  onLoadInlineApplicants: (jobId: string) => void;
+  inlineApplicants: Record<string, EnrichedApplication[]>;
+  loadingApplicants: Record<string, boolean>;
+}
+
+export const PostedJobsTab = ({
+  jobs, applicantCounts, expandedJobId, setExpandedJobId,
+  helperNames, completedJobMeta, startRequestedJobIds, userId,
+  onBoost, onEdit, onCancel, onComplete, completingJobId,
+  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart,
+  onLoadApplications, selectedJob, setSelectedJob, applications,
+  onAcceptApplication, onLoadInlineApplicants, inlineApplicants, loadingApplicants,
+}: PostedJobsTabProps) => {
+  const navigate = useNavigate();
+
+  const handleExpandJob = (jobId: string, job: Job) => {
+    const newId = expandedJobId === jobId ? null : jobId;
+    setExpandedJobId(newId);
+    if (newId && (job.status === "open" || job.status === "accepted")) {
+      onLoadInlineApplicants(jobId);
+    }
+  };
+
+  if (jobs.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground mb-4">No tasks match this filter.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {jobs.map((job) => {
+          const catStyle = categoryColors[job.category] || categoryColors.other;
+          return (
+            <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all cursor-pointer" onClick={() => handleExpandJob(job.id, job)}>
+              {/* Top bar */}
+              <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
+                <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span className="flex items-center gap-0.5 font-bold text-primary text-sm"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="px-4 py-3 space-y-2">
+                <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 shrink-0" />
+                    {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {!job.start_time ? " · Flexible time" : ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
+                  </span>
+                  {(() => {
+                    const cityState = getCityState(job.location);
+                    return (
+                      <a onClick={(e) => e.stopPropagation()} href={job.latitude && job.longitude ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                        <MapPin className="w-3 h-3 shrink-0" /><span className="truncate max-w-[140px]">{cityState}</span>
+                      </a>
+                    );
+                  })()}
+                  {job.expires_at && (() => {
+                    const expiryText = new Date(job.expires_at) <= new Date() ? "Expired" : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left";
+                    const isExpiringSoon = differenceInHours(new Date(job.expires_at), new Date()) < 24;
+                    return (<span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}><Timer className="w-3 h-3 shrink-0" /> {expiryText}</span>);
+                  })()}
+                  {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
+                    <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
+                  )}
+                </div>
+
+                {/* Accepted status */}
+                {job.status === "accepted" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(job as any).helper_confirmed_at
+                        ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>
+                        : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
+                      }
+                    </div>
+                    {(job as any).helper_confirmed_at && (
+                      <div className="space-y-1.5">
+                        {(job as any).helper_on_the_way_at ? (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
+                            <NavigationIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is on the way</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to head out</span>
+                        )}
+                        {(job as any).helper_arrived_at && (
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} has arrived</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* In progress tracking timestamps */}
+                {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).helper_on_the_way_at || (job as any).helper_arrived_at) && (
+                  <div className="space-y-1">
+                    {(job as any).helper_on_the_way_at && (
+                      <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                        <NavigationIcon className="w-3 h-3 shrink-0" />
+                        <span>{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} was on the way</span>
+                        <span className="ml-auto text-[10px]">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    )}
+                    {(job as any).helper_arrived_at && (
+                      <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span>{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} arrived</span>
+                        <span className="ml-auto text-[10px]">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Completion confirmation */}
+                {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
+                    {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
+                    {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
+                    {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
+                  </div>
+                )}
+
+                {/* Revision notice */}
+                {job.status === "revision_requested" && (job as any).revision_note && (
+                  <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                    <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                    <p className="text-xs text-muted-foreground mt-1">{(job as any).revision_note}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Applicants button */}
+              {job.status === "open" && (
+                <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+                  <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => onLoadApplications(job)}>
+                    <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
+                  </Button>
+                </div>
+              )}
+
+              {/* Completed hint */}
+              {job.status === "completed" && (() => {
+                const meta = completedJobMeta[job.id];
+                const hasTipped = meta?.tipped;
+                const hasReviewed = meta?.reviewed;
+                return (!hasTipped || !hasReviewed) ? (
+                  <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
+                    <span className="text-xs text-muted-foreground">
+                      {!hasTipped && !hasReviewed ? "Tap to tip & review" : !hasTipped ? "Tap to leave a tip" : "Tap to leave a review"}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Paid badge */}
+              {job.payment_status === "released" && job.status !== "completed" && job.status !== "cancelled" && (
+                <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>
+                </div>
+              )}
+
+              {/* Expandable section */}
+              <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === job.id ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
+                <div className="px-4 pb-3 space-y-3 border-t border-border/40">
+                  {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+                    <div className="pt-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+                      <p className="text-sm text-foreground leading-relaxed">{job.description}</p>
+                    </div>
+                  )}
+                  {(job.photos || []).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {(job.photos || []).map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                            <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {job.estimated_hours && (
+                    <div className="rounded-lg bg-secondary/30 p-2.5">
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                      <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
+                    </div>
+                  )}
+                  {job.special_requirements?.trim() && (
+                    <div className="rounded-lg bg-secondary/30 p-2.5">
+                      <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
+                      <p className="text-sm text-foreground">{job.special_requirements}</p>
+                    </div>
+                  )}
+                  {job.is_recurring && (
+                    <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+                      <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Recurring Task</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Yes"}
+                          {job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {job.is_group_job && (
+                    <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
+                      <Users className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Group Task</p>
+                        <p className="text-sm font-medium text-foreground">{job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Multiple helprs needed"}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Features for active jobs */}
+                {(job.status === "in_progress" || job.status === "accepted") && (
+                  <div className="px-4 pb-3 space-y-3">
+                    <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_completed_at} helperConfirmedAt={(job as any).helper_completed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
+                    <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
+                    {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
+                    <JobCheckins jobId={job.id} userId={userId} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="border-t border-border/40 px-4 py-3">
+                  <div className="space-y-2">
+                    {job.status === "open" && (
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onBoost(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
+                        <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                        <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                      </div>
+                    )}
+                    {job.status === "accepted" && (
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                        {startRequestedJobIds.has(job.id) && !(job as any).helper_confirmed_at && (
+                          <Button size="sm" onClick={() => onConfirmStart(job.id)}><CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start</Button>
+                        )}
+                        <Button size="sm" className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                      </div>
+                    )}
+                    {(job.status === "in_progress" || job.status === "revision_requested") && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" className="flex-1" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                        </div>
+                        {job.status !== "revision_requested" && (
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
+                              <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
+                              <XCircle className="w-4 h-4 mr-1" /> No-Show
+                            </Button>
+                          </div>
+                        )}
+                        <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
+                          <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
+                        </Button>
+                      </div>
+                    )}
+                    {job.status === "completed" && (() => {
+                      const meta = completedJobMeta[job.id];
+                      const hasTipped = meta?.tipped;
+                      const hasReviewed = meta?.reviewed;
+                      const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
+                      return (
+                        <div className="space-y-2">
+                          <PhotoProof jobId={job.id} type="before" existingUrls={(job as any).proof_before_urls || []} onUploaded={() => {}} />
+                          <PhotoProof jobId={job.id} type="after" existingUrls={(job as any).proof_after_urls || []} onUploaded={() => {}} />
+                          {!hasTipped && (
+                            <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
+                              <DollarSign className="w-4 h-4 mr-1" /> Tip {helperName}
+                            </Button>
+                          )}
+                          {!hasReviewed && (
+                            <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
+                              <Star className="w-4 h-4 mr-1" /> Review
+                            </Button>
+                          )}
+                          <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
+                            <RotateCcw className="w-4 h-4 mr-1" /> Rebook
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Applicants full-screen view */}
+      {selectedJob && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-right duration-200">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedJob(null)}><ArrowLeft className="w-4 h-4" /></Button>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display font-semibold text-foreground truncate">Applicants</h2>
+              <p className="text-xs text-muted-foreground truncate">{selectedJob.title}</p>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {applications.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No applications yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-w-lg mx-auto">
+                {applications.map((app) => (
+                  <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>
+                        {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
+                        {app.reviewCount !== undefined && app.reviewCount > 0 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Star className="w-3 h-3 fill-accent text-accent" />
+                            <span className="text-xs text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
+                          </div>
+                        )}
+                      </div>
+                      {app.status === "pending" && <Button size="sm" onClick={() => onAcceptApplication(app)}>Select</Button>}
+                      {app.status === "accepted" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
+                      {app.status === "rejected" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
+                    </div>
+                    {app.message && (
+                      <div className="rounded-lg bg-secondary/30 p-3 mt-2">
+                        <p className="text-xs text-muted-foreground mb-0.5">Their message to you:</p>
+                        <p className="text-sm text-foreground">{app.message}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

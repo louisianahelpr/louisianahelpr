@@ -320,18 +320,20 @@ const Messages = () => {
 
   const deleteConversation = async (convo: Conversation) => {
     if (!userId) return;
-    // Delete all messages in this conversation for this user pair + job
+    // RLS only allows deleting own sent messages — so only delete those
     const { error } = await supabase
       .from("messages")
       .delete()
       .eq("job_id", convo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`);
+      .eq("sender_id", userId)
+      .eq("receiver_id", convo.otherUserId);
 
     if (error) {
       toast.error("Failed to delete conversation");
     } else {
+      // Remove from local list — the other person's messages still exist for them
       setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
-      toast.success("Conversation deleted");
+      toast.success("Your messages in this conversation have been deleted");
     }
     setDeleteConvoConfirm(null);
   };

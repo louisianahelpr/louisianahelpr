@@ -57,9 +57,9 @@ const AdminDisputes = () => {
     }
 
     // Priority Dispute Resolution: Elite subscribers' disputes appear first
-    const tierOrder = (uid: string | null) => {
+    const tierPriority = (uid: string | null) => {
       if (!uid) return 0;
-      const t = tierMap[uid];
+      const t = tMap[uid];
       return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
     };
     const sorted = jobs.sort((a, b) => {

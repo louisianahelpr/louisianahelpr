@@ -194,7 +194,8 @@ const ProfilePage = () => {
         return s + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
       }, 0);
       const tipEarnings = (tipsStatsRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
-      setTotalEarned(jobEarnings + tipEarnings);
+      setTotalJobEarnings(jobEarnings);
+      setTotalTipEarnings(tipEarnings);
     }
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {

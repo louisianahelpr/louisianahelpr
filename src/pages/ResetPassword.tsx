@@ -90,6 +90,7 @@ const ResetPassword = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
+                autoComplete="new-password"
               />
               <p className="text-xs text-muted-foreground">At least 8 characters, 1 uppercase, 1 number</p>
             </div>

@@ -607,14 +607,22 @@ const ProfilePage = () => {
                   )}
                 </div>
 
-                {/* Portfolio Card */}
+                {/* Portfolio Card — Pro+ only */}
                 <div className="rounded-xl border border-border bg-card p-5 space-y-4">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" /> Portfolio & Documents
                     </h2>
-                    <p className="text-xs text-muted-foreground mt-1">Work samples, certifications, resume — up to 10 files</p>
+                    {(!profile?.subscription_tier || profile.subscription_tier === "basic") ? (
+                      <div className="mt-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <p className="text-xs text-primary font-medium">🔒 Pro+ Feature</p>
+                        <p className="text-xs text-muted-foreground mt-1">Upgrade to Pro or Elite to showcase your portfolio and stand out to customers.</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">Work samples, certifications, resume — up to 10 files</p>
+                    )}
                   </div>
+                  {(profile?.subscription_tier === "pro" || profile?.subscription_tier === "elite") && (
                   <div className="flex flex-wrap gap-3">
                     {(profile?.portfolio_urls as string[] || []).map((url, i) => {
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
@@ -683,6 +691,7 @@ const ProfilePage = () => {
                       />
                     </label>
                   </div>
+                  )}
                 </div>
 
                 <Button type="submit" className="w-full" size="lg" disabled={saving}>

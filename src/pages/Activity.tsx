@@ -89,11 +89,16 @@ const Activity = () => {
         if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
         reviewMap.get(r.reviewee_id)!.push(r.rating);
       });
-      return apps.map((app) => {
+      const enriched = apps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
         const ratings = reviewMap.get(app.helper_id) || [];
         return { ...app, profiles: prof, reviewCount: ratings.length, avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };
       });
+      // Boosted Visibility: Pro/Elite helpers appear first in applicant lists
+      const tierOrder = (tier: string | null | undefined) => tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+      enriched.sort((a, b) => tierOrder(a.profiles?.subscription_tier) - tierOrder(b.profiles?.subscription_tier));
+      enriched.reverse();
+      return enriched;
     }
     return [];
   };

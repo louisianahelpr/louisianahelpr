@@ -22,6 +22,7 @@ interface DisputedJob {
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
 
@@ -37,16 +38,34 @@ const AdminDisputes = () => {
       .order("disputed_at" as any, { ascending: false });
 
     const jobs = (data || []) as unknown as DisputedJob[];
-    setDisputes(jobs);
 
-    // Load profile names
+    // Load profile names and subscription tiers for priority sorting
     const userIds = [...new Set(jobs.flatMap(j => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]))];
+    const tMap: Record<string, string | null> = {};
     if (userIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
       const map: Record<string, string> = {};
-      profs?.forEach(p => { map[p.user_id] = formatName(p.full_name); });
+      profs?.forEach(p => {
+        map[p.user_id] = formatName(p.full_name);
+        tMap[p.user_id] = p.subscription_tier;
+      });
       setProfiles(map);
+      setTiers(tMap);
     }
+
+    // Priority Dispute Resolution: Elite subscribers' disputes appear first
+    const tierPriority = (uid: string | null) => {
+      if (!uid) return 0;
+      const t = tMap[uid];
+      return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
+    };
+    const sorted = jobs.sort((a, b) => {
+      const aMax = Math.max(tierPriority(a.customer_id), tierPriority(a.helper_id));
+      const bMax = Math.max(tierPriority(b.customer_id), tierPriority(b.helper_id));
+      return bMax - aMax;
+    });
+
+    setDisputes(sorted);
     setLoading(false);
   };
 
@@ -96,7 +115,12 @@ const AdminDisputes = () => {
         <div key={job.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-foreground">{job.title}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground">{job.title}</h3>
+                {[job.customer_id, job.helper_id].some(id => id && tiers[id] === "elite") && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">${job.budget}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Customer: <span className="font-medium text-foreground">{profiles[job.customer_id] || "Unknown"}</span>

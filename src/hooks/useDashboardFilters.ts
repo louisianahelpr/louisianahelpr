@@ -76,6 +76,14 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       if (!aUrgent && bUrgent) return 1;
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;
+      // Search Priority: subscribed helpers see jobs from subscribed posters first (Basic+)
+      // This doesn't change content, just prioritization — subscribed posters' jobs float up
+      if (helprTier) {
+        const aPosterSub = (a as any).posterSubscriptionTier;
+        const bPosterSub = (b as any).posterSubscriptionTier;
+        if (aPosterSub && !bPosterSub) return -1;
+        if (!aPosterSub && bPosterSub) return 1;
+      }
       switch (sortBy) {
         case "highest_pay": return b.budget - a.budget;
         case "lowest_pay": return a.budget - b.budget;

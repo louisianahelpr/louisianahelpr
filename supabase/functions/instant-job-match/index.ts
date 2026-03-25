@@ -51,16 +51,23 @@ Deno.serve(async (req) => {
       throw new Error("Not authorized to trigger match for this job");
     }
 
-    // Find approved helpers matching by location or category/skills
+    // Auto-Match Jobs: Only notify Elite subscribers
     const { data: helpers, error: helpersError } = await supabase
       .from("profiles")
-      .select("user_id, full_name, skills, location")
+      .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at")
       .eq("role", "helper")
       .eq("approval_status", "approved")
+      .eq("subscription_tier", "elite")
       .neq("user_id", job.customer_id);
 
     if (helpersError) throw helpersError;
-    if (!helpers || helpers.length === 0) {
+    // Filter out expired Elite subscriptions
+    const now = new Date().toISOString();
+    const activeHelpers = (helpers || []).filter(h => {
+      if (!h.subscription_expires_at) return true; // no expiry = lifetime or not set
+      return h.subscription_expires_at > now;
+    });
+    if (activeHelpers.length === 0) {
       return new Response(JSON.stringify({ notified: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -70,7 +77,7 @@ Deno.serve(async (req) => {
     const jobCategory = job.category.toLowerCase();
 
     // Score helpers by relevance
-    const scored = helpers
+    const scored = activeHelpers
       .map((h) => {
         let score = 0;
         const helperLoc = (h.location || "").toLowerCase();

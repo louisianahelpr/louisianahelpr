@@ -30,7 +30,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Activity = lazy(() => import("./pages/Activity"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Support = lazy(() => import("./pages/Support"));
-const FavoriteHelpers = lazy(() => import("./pages/FavoriteHelpers"));
+
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Community = lazy(() => import("./pages/Community"));
@@ -86,7 +86,7 @@ const AnimatedRoutes = () => {
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
-      <Route path="/favorites" element={<ProtectedRoute><FavoriteHelpers /></ProtectedRoute>} />
+      
       <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
       <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />

@@ -4,7 +4,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Heart, HeartOff, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
@@ -38,7 +38,7 @@ const UserProfile = () => {
   const [workedJobs, setWorkedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isFavorited, setIsFavorited] = useState(false);
+  
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
@@ -53,13 +53,10 @@ const UserProfile = () => {
       setCurrentUserId(session?.user?.id || null);
 
       // All independent queries in parallel
-      const [profileRes, reviewsRes, completedRes, favRes, postedRes, workedRes, appsRes] = await Promise.all([
+      const [profileRes, reviewsRes, completedRes, postedRes, workedRes, appsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
-        session?.user
-          ? supabase.from("favorite_helpers").select("id").eq("customer_id", session.user.id).eq("helper_id", userId)
-          : Promise.resolve({ data: [] }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId),
@@ -73,7 +70,7 @@ const UserProfile = () => {
         return;
       }
 
-      setIsFavorited((favRes.data?.length || 0) > 0);
+      
       if (postedRes.data) setPostedJobs(postedRes.data);
       if (workedRes.data) setWorkedJobs(workedRes.data);
 
@@ -126,18 +123,6 @@ const UserProfile = () => {
     loadAll();
   }, [userId]);
 
-  const toggleFavorite = async () => {
-    if (!currentUserId || !userId) { navigate("/login"); return; }
-    if (isFavorited) {
-      await supabase.from("favorite_helpers").delete().eq("customer_id", currentUserId).eq("helper_id", userId);
-      setIsFavorited(false);
-      toast.success("Removed from favorites");
-    } else {
-      await supabase.from("favorite_helpers").insert({ customer_id: currentUserId, helper_id: userId });
-      setIsFavorited(true);
-      toast.success("Added to favorites");
-    }
-  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading…</p></div>;

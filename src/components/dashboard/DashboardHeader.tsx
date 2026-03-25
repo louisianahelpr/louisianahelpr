@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import NotificationPanel from "@/components/NotificationPanel";
-import FavoritesPanel from "@/components/FavoritesPanel";
+
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -54,7 +54,7 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
                 <Shield className="w-4 h-4 text-destructive" />
               </Button>
             )}
-            <FavoritesPanel />
+            
             <ThemeToggle />
             <NotificationPanel />
             <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">

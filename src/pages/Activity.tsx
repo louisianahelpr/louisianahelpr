@@ -669,32 +669,6 @@ const Activity = () => {
 
   const openEditJob = (job: Job) => {
     setEditJob(job);
-    setEditTitle(job.title);
-    setEditDescription(job.description);
-    setEditCategory(job.category);
-    setEditLocation(job.location);
-    setEditDateNeeded(job.date_needed);
-    setEditStartTime(job.start_time || "");
-    setEditEstimatedHours(job.estimated_hours?.toString() || "");
-    setEditBudget(job.budget.toString());
-    setEditSpecialReq(job.special_requirements || "");
-  };
-
-  const saveEditJob = async () => {
-    if (!editJob) return;
-    setEditSaving(true);
-    const isPaid = editJob.payment_status === 'escrow' || editJob.payment_status === 'released';
-    const updateData: any = {
-      title: editTitle.trim(), description: editDescription.trim(), category: editCategory as any,
-      location: editLocation.trim(), date_needed: editDateNeeded, start_time: editStartTime || null,
-      estimated_hours: editEstimatedHours ? parseFloat(editEstimatedHours) : null,
-      special_requirements: editSpecialReq.trim() || null,
-    };
-    if (!isPaid) updateData.budget = parseFloat(editBudget);
-    const { error } = await supabase.from("jobs").update(updateData).eq("id", editJob.id);
-    setEditSaving(false);
-    if (error) toast.error(error.message);
-    else { toast.success("Job updated!"); setEditJob(null); if (user) loadData(user.id); }
   };
 
   const openReviewForPosted = async (job: Job) => {

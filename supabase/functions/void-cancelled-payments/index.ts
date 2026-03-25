@@ -196,7 +196,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, voided, refunded, total: jobs?.length || 0, results }), {
+    return new Response(JSON.stringify({ success: true, voided, refunded, abandoned: abandonedCount, total: jobs?.length || 0, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

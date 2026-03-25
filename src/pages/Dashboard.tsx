@@ -296,8 +296,6 @@ const Dashboard = () => {
           </motion.div>
           )}
 
-          {/* Invite Friends Banner */}
-          {user && <InviteBanner userId={user.id} />}
 
           {/* Jobs Near You */}
           {filters.nearbyJobs.length > 0 && !filters.hasFilters && (

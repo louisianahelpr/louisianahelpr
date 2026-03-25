@@ -293,7 +293,7 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmEmail">Confirm email <span className="text-destructive">*</span></Label>

@@ -22,6 +22,7 @@ interface DisputedJob {
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
 

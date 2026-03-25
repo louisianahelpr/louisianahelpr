@@ -4,7 +4,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing, Headphones } from "lucide-react";
+import { LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck, ArrowRight, AlertTriangle, CheckCircle2, Clock, DollarSign, ArrowLeft, ShieldAlert, Megaphone, BellRing, Headphones, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
@@ -16,8 +16,9 @@ import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
+import AdminReferrals from "@/components/admin/AdminReferrals";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals";
 
 const Admin = () => {
   const { loading } = useAdminAuth();
@@ -94,7 +95,7 @@ const Admin = () => {
   const viewLabels: Record<View, string> = {
     home: "Admin", analytics: "Analytics", reviews: "Reviews", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
-    notifications: "Notifications", reports: "Reports", support: "Support Tickets",
+    notifications: "Notifications", reports: "Reports", support: "Support Tickets", referrals: "Referrals",
   };
 
   const header = (
@@ -159,6 +160,7 @@ const Admin = () => {
           {view === "notifications" && <AdminNotifications />}
           {view === "reports" && <AdminReports />}
           {view === "support" && <AdminSupport />}
+          {view === "referrals" && <AdminReferrals />}
         </div>
       </div>
     );
@@ -202,6 +204,10 @@ const Admin = () => {
       icon: <Headphones className="w-5 h-5" />,
       badge: stats.supportTickets > 0 ? stats.supportTickets : undefined,
       badgeColor: "bg-accent/10 text-accent-foreground",
+    },
+    {
+      id: "referrals", label: "Referrals", description: "Codes, credits & payout tracking",
+      icon: <Gift className="w-5 h-5" />,
     },
     {
       id: "settings", label: "Settings", description: "Platform configuration",

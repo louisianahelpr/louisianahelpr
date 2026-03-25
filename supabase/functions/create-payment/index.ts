@@ -54,6 +54,11 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
+      // Idempotency: if payment is already in progress or paid, don't create another session
+      if (job.stripe_session_id && job.payment_status && job.payment_status !== "unpaid") {
+        throw new Error("Payment has already been initiated for this job. If you need to retry, please cancel the existing payment first.");
+      }
+
       const { data: settings } = await supabaseAdmin
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
       const feePercent = settings?.platform_fee_percent ?? 2;
@@ -421,7 +426,9 @@ serve(async (req) => {
       const captureResult = { paymentIntentId };
 
       // Transfer to helpr
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
+      const feeAmt = job.platform_fee_amount || 0;
+      const feeTax = feeAmt * 0.085;
+      const helperPayout = job.budget - feeAmt - feeTax + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
         await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
       }

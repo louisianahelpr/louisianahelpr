@@ -17,15 +17,35 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Validate the caller's JWT to ensure they can only modify their own profile
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: authData, error: authError } = await anonClient.auth.getUser(token);
+    if (authError || !authData.user) {
+      return new Response(JSON.stringify({ error: "Invalid authentication" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const {
-      userId,
       avatarBase64,
       avatarExt,
       avatarContentType,
       idBase64,
       idExt,
       idContentType,
-      portfolioFiles, // Array of { base64, ext, contentType }
+      portfolioFiles,
       phone,
       bio,
       location,
@@ -41,6 +61,9 @@ serve(async (req) => {
       jobRadius,
       extraComments,
     } = await req.json();
+
+    // Use the authenticated user's ID — ignore any userId from the body
+    const userId = authData.user.id;
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "userId is required" }), {

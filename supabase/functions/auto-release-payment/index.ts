@@ -29,7 +29,6 @@ serve(async (req) => {
       .from("jobs")
       .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status")
       .in("status", ["in_progress", "revision_requested", "accepted"])
-      .not("status", "eq", "disputed")
       .eq("payment_status", "escrow")
       .or(`poster_completed_at.lte.${cutoff},helper_completed_at.lte.${cutoff}`);
 
@@ -87,7 +86,9 @@ serve(async (req) => {
         .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
         .eq("id", job.id);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
+      const feeAmt = job.platform_fee_amount || 0;
+      const feeTax = feeAmt * 0.085;
+      const helperPayout = job.budget - feeAmt - feeTax + (job.urgent_fee ?? 0);
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

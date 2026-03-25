@@ -209,6 +209,10 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .single();
 
+      if (!profile?.stripe_account_id) {
+        throw new Error("No payout account connected. Please set up your payout account first.");
+      }
+
       // Sync email to Stripe account before redirecting
       await stripe.accounts.update(profile.stripe_account_id, {
         email: user.email,

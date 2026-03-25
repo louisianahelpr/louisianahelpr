@@ -460,7 +460,11 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Key metrics</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Total Users" value={v(stats.totalUsers)} icon={Users} onClick={() => onNavigate("people")} />
+          <StatCard label="Pending Accounts" value={v(stats.pendingApprovals)} icon={Users} onClick={() => onNavigate("people")} />
+          <StatCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} onClick={() => onNavigate("subscriptions")} />
+          <StatCard label="Open Reports" value={v(stats.openReports)} icon={AlertTriangle} onClick={() => onNavigate("reports")} />
+          <StatCard label="Support Tickets" value={v(stats.supportTickets)} icon={Headphones} onClick={() => onNavigate("support")} />
+          <StatCard label="Active Disputes" value={v(stats.disputedJobs)} icon={ShieldAlert} onClick={() => onNavigate("disputes")} />
           <StatCard label="Active Jobs" value={v(stats.activeJobs)} icon={Briefcase} onClick={() => onNavigate("jobs")} />
           <StatCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} onClick={() => onNavigate("analytics")} />
           <StatCard label="Platform Revenue" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />

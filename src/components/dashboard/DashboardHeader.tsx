@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import NotificationPanel from "@/components/NotificationPanel";
-import FavoritesPanel from "@/components/FavoritesPanel";
+
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";

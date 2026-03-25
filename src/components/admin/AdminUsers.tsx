@@ -115,6 +115,7 @@ const AdminUsers = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`${formatName(profile.full_name)} approved!`);
+      await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
       await createNotification({
         user_id: profile.user_id, title: "Account approved!",
         message: "Your account has been approved. You can now use the platform.",

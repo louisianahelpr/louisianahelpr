@@ -36,6 +36,8 @@ type Conversation = {
   unread: number;
 };
 
+const CHAT_PAGE_SIZE = 50;
+
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
@@ -49,7 +51,10 @@ const Messages = () => {
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({

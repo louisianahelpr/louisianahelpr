@@ -510,6 +510,218 @@ Deno.serve(async (req) => {
       }
     }
 
+
+    // ── 8. AUTO-RELEASE REMINDERS ──
+    // Notify posters at 24h and 44h into the 48h auto-release window
+    const twentyFourHoursAgo2 = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+    const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString()
+    
+    // Jobs where one party marked complete 24h+ ago (approaching auto-release)
+    const { data: pendingReleaseJobs } = await supabase
+      .from('jobs')
+      .select('id, title, customer_id, helper_id, poster_completed_at, helper_completed_at')
+      .in('status', ['in_progress', 'revision_requested'])
+      .eq('payment_status', 'escrow')
+      .or(`poster_completed_at.lte.${twentyFourHoursAgo2},helper_completed_at.lte.${twentyFourHoursAgo2}`)
+
+    if (pendingReleaseJobs) {
+      for (const job of pendingReleaseJobs) {
+        // Determine which timestamp to use
+        const completedAt = job.poster_completed_at || job.helper_completed_at
+        if (!completedAt) continue
+        
+        const completedTime = new Date(completedAt).getTime()
+        const hoursElapsed = (now.getTime() - completedTime) / (1000 * 60 * 60)
+        
+        // Send at ~24h mark
+        if (hoursElapsed >= 23 && hoursElapsed < 26) {
+          const recipientId = job.poster_completed_at && !job.helper_completed_at 
+            ? job.helper_id 
+            : !job.poster_completed_at && job.helper_completed_at 
+            ? job.customer_id 
+            : null
+          
+          if (recipientId) {
+            const { data: existing } = await supabase
+              .from('notifications')
+              .select('id')
+              .eq('user_id', recipientId)
+              .ilike('title', '%auto-complete in%')
+              .gte('created_at', new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString())
+              .limit(1)
+            
+            if (!existing?.length) {
+              await supabase.from('notifications').insert({
+                user_id: recipientId,
+                title: '⏰ Job will auto-complete in ~24 hours',
+                message: `"${job.title}" will be automatically marked complete if you don't respond. If there's an issue, dispute now.`,
+                type: 'warning',
+                link: '/activity',
+              })
+              results.autoReleaseReminders++
+            }
+          }
+        }
+        
+        // Send at ~44h mark (final warning)
+        if (hoursElapsed >= 43 && hoursElapsed < 46) {
+          const recipientId = job.poster_completed_at && !job.helper_completed_at 
+            ? job.helper_id 
+            : !job.poster_completed_at && job.helper_completed_at 
+            ? job.customer_id 
+            : null
+          
+          if (recipientId) {
+            const { data: existing } = await supabase
+              .from('notifications')
+              .select('id')
+              .eq('user_id', recipientId)
+              .ilike('title', '%FINAL%auto-complete%')
+              .gte('created_at', new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString())
+              .limit(1)
+            
+            if (!existing?.length) {
+              await supabase.from('notifications').insert({
+                user_id: recipientId,
+                title: '🚨 FINAL: Job will auto-complete in ~4 hours',
+                message: `"${job.title}" will auto-complete and payment will be released very soon. Dispute NOW if there's a problem.`,
+                type: 'warning',
+                link: '/activity',
+              })
+              results.autoReleaseReminders++
+            }
+          }
+        }
+      }
+    }
+
+    // ── 9. SUSPICIOUS PATTERN DETECTION ──
+    // Flag helpers who complete jobs unusually fast
+    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString()
+    
+    const { data: recentCompletions } = await supabase
+      .from('jobs')
+      .select('id, title, helper_id, estimated_hours, status, updated_at, created_at')
+      .eq('status', 'completed')
+      .not('helper_id', 'is', null)
+      .gte('updated_at', sixHoursAgo)
+
+    if (recentCompletions) {
+      for (const job of recentCompletions) {
+        if (!job.helper_id || !job.estimated_hours) continue
+        
+        // Check if job was completed in less than 25% of estimated time
+        const { data: startCheckin } = await supabase
+          .from('job_checkins')
+          .select('created_at')
+          .eq('job_id', job.id)
+          .eq('user_id', job.helper_id)
+          .eq('type', 'start_request')
+          .order('created_at', { ascending: true })
+          .limit(1)
+        
+        if (startCheckin?.length) {
+          const startTime = new Date(startCheckin[0].created_at).getTime()
+          const completeTime = new Date(job.updated_at).getTime()
+          const actualMinutes = (completeTime - startTime) / (1000 * 60)
+          const estimatedMinutes = job.estimated_hours * 60
+          
+          // If completed in less than 25% of estimated time (e.g., 4hr job done in <1hr)
+          if (actualMinutes < estimatedMinutes * 0.25 && estimatedMinutes >= 60) {
+            // Check if already flagged
+            const { data: existingFlag } = await supabase
+              .from('fraud_flags')
+              .select('id')
+              .eq('job_id', job.id)
+              .eq('flag_type', 'suspicious_speed')
+              .limit(1)
+            
+            if (!existingFlag?.length) {
+              await supabase.from('fraud_flags').insert({
+                user_id: job.helper_id,
+                job_id: job.id,
+                flag_type: 'suspicious_speed',
+                details: `Completed "${job.title}" in ${Math.round(actualMinutes)} min (estimated ${Math.round(estimatedMinutes)} min — ${Math.round(actualMinutes / estimatedMinutes * 100)}% of estimate)`,
+              })
+              
+              // Notify admins
+              const { data: adminRoles } = await supabase
+                .from('user_roles')
+                .select('user_id')
+                .eq('role', 'admin')
+              
+              if (adminRoles) {
+                await supabase.from('notifications').insert(
+                  adminRoles.map(a => ({
+                    user_id: a.user_id,
+                    title: '🚩 Suspicious fast completion',
+                    message: `"${job.title}" completed in ${Math.round(actualMinutes)} min (est. ${job.estimated_hours}h). Review for potential fraud.`,
+                    type: 'warning',
+                    link: '/admin?tab=reports',
+                  }))
+                )
+              }
+              results.suspiciousFlagged++
+            }
+          }
+        }
+      }
+      
+      // Also flag helpers with high dispute rates (3+ disputes in 30 days)
+      const thirtyDaysAgo2 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: disputedJobs } = await supabase
+        .from('jobs')
+        .select('helper_id')
+        .eq('status', 'disputed')
+        .not('helper_id', 'is', null)
+        .gte('disputed_at', thirtyDaysAgo2)
+      
+      if (disputedJobs) {
+        const disputeCounts: Record<string, number> = {}
+        for (const j of disputedJobs) {
+          if (j.helper_id) disputeCounts[j.helper_id] = (disputeCounts[j.helper_id] || 0) + 1
+        }
+        
+        for (const [helperId, count] of Object.entries(disputeCounts)) {
+          if (count < 3) continue
+          
+          const { data: existingFlag } = await supabase
+            .from('fraud_flags')
+            .select('id')
+            .eq('user_id', helperId)
+            .eq('flag_type', 'high_dispute_rate')
+            .gte('created_at', thirtyDaysAgo2)
+            .limit(1)
+          
+          if (!existingFlag?.length) {
+            await supabase.from('fraud_flags').insert({
+              user_id: helperId,
+              flag_type: 'high_dispute_rate',
+              details: `${count} disputed jobs in the past 30 days`,
+            })
+            
+            const { data: adminRoles } = await supabase
+              .from('user_roles')
+              .select('user_id')
+              .eq('role', 'admin')
+            
+            if (adminRoles) {
+              await supabase.from('notifications').insert(
+                adminRoles.map(a => ({
+                  user_id: a.user_id,
+                  title: '🚩 High dispute rate helper',
+                  message: `A helper has ${count} disputed jobs in 30 days. Consider reviewing their account.`,
+                  type: 'warning',
+                  link: '/admin?tab=reports',
+                }))
+              )
+            }
+            results.suspiciousFlagged++
+          }
+        }
+      }
+    }
+
     console.log('Job lifecycle results:', results)
 
     return new Response(JSON.stringify(results), {

@@ -16,7 +16,7 @@ const reasons = [
 interface ReportDialogProps {
   open: boolean;
   onClose: () => void;
-  reportedType: "job" | "message" | "user";
+  reportedType: "job" | "message" | "user" | "profile";
   reportedId: string;
 }
 

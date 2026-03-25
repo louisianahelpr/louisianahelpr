@@ -26,6 +26,9 @@ const FLAG_TYPES = [
   { value: "fast_completion", label: "Fast Completion" },
   { value: "high_dispute_rate", label: "High Dispute Rate" },
   { value: "referral_abuse", label: "Referral Abuse" },
+  { value: "application_spam", label: "Application Spam" },
+  { value: "review_manipulation", label: "Review Manipulation" },
+  { value: "message_flooding", label: "Message Flooding" },
 ];
 
 const AdminFraudDashboard = () => {

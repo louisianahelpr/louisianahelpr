@@ -317,16 +317,10 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
       if (job.status !== "completed") throw new Error("Job must be completed to tip");
+      if (user.id !== job.customer_id) throw new Error("Only the customer can tip the helper");
+      if (!job.helper_id) throw new Error("No helper assigned to this job");
 
-      let helperId: string;
-      if (user.id === job.customer_id) {
-        if (!job.helper_id) throw new Error("No helper assigned");
-        helperId = job.helper_id;
-      } else if (user.id === job.helper_id) {
-        helperId = job.customer_id;
-      } else {
-        throw new Error("Not authorized to tip on this job");
-      }
+      const helperId = job.helper_id;
 
       // Check if helper has a connected Stripe account for direct tip transfer
       const { data: helperProfile } = await supabaseAdmin

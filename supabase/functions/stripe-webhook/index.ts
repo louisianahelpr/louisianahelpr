@@ -146,6 +146,35 @@ serve(async (req) => {
           else logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
         }
 
+        // Handle tip checkout completion
+        const sessionType = (session.metadata as any)?.type;
+        if (sessionType === "tip") {
+          const tipJobId = (session.metadata as any)?.job_id;
+          const tipperId = (session.metadata as any)?.tipper_id;
+          const tipHelperId = (session.metadata as any)?.helper_id;
+          if (tipJobId && tipperId) {
+            const { error: tipError } = await supabase
+              .from("tips")
+              .update({ payment_status: "paid" })
+              .eq("job_id", tipJobId)
+              .eq("tipper_id", tipperId)
+              .eq("payment_status", "pending");
+            if (tipError) logStep("ERROR updating tip status", { error: tipError.message });
+            else logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
+
+            // Notify the helper about the tip
+            if (tipHelperId) {
+              await supabase.from("notifications").insert({
+                user_id: tipHelperId,
+                title: "💰 You received a tip!",
+                message: `Someone tipped you for a completed job. Thanks for the great work!`,
+                type: "payment",
+                link: "/earnings",
+              });
+            }
+          }
+        }
+
         // Store payment intent ID on the job
         const jobId = (session.metadata as any)?.job_id;
         const piId = typeof session.payment_intent === "string"

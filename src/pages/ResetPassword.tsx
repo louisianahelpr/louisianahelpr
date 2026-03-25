@@ -104,6 +104,7 @@ const ResetPassword = () => {
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={8}
+                autoComplete="new-password"
               />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>

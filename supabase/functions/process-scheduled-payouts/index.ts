@@ -113,6 +113,7 @@ serve(async (req) => {
       }
 
       // ── Step 4: Transfer to helper (charge is confirmed captured) ──
+      // Re-use the PI object from Step 3 verification above (already retrieved)
       try {
         const transferParams: any = {
           amount: Math.round(helperPayout * 100),
@@ -121,13 +122,13 @@ serve(async (req) => {
           metadata: { job_id: job.id, helper_id: job.helper_id, scheduled_payout: "true" },
         };
 
-        // Link to source charge for clean reporting
+        // Link to source charge for clean reporting — use PI from Step 3
         try {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi.latest_charge) {
-            transferParams.source_transaction = typeof pi.latest_charge === "string"
-              ? pi.latest_charge
-              : pi.latest_charge.id;
+          const piForCharge = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
+          if (piForCharge.latest_charge) {
+            transferParams.source_transaction = typeof piForCharge.latest_charge === "string"
+              ? piForCharge.latest_charge
+              : piForCharge.latest_charge.id;
           }
         } catch (e) {
           console.warn("Could not link charge:", e);

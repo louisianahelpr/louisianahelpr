@@ -224,9 +224,10 @@ const Signup = () => {
         },
       });
 
-      // If user already exists, check their status — don't auto-sign-in denied users
+      // Generic error for existing accounts — prevents email enumeration
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        toast.error("An account with this email already exists. Please log in instead.");
+        toast.success("If this email isn't registered, you'll receive a verification link shortly.");
+        navigate("/signup-pending");
         setLoading(false);
         return;
       }

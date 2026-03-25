@@ -72,6 +72,23 @@ serve(async (req) => {
       });
     }
 
+    // Enforce file size limits (5 MB max per file)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB in bytes
+    const checkBase64Size = (b64: string | null, label: string) => {
+      if (!b64) return;
+      const sizeBytes = Math.ceil(b64.length * 3 / 4);
+      if (sizeBytes > MAX_FILE_SIZE) {
+        throw new Error(`${label} exceeds 5 MB limit`);
+      }
+    };
+    checkBase64Size(avatarBase64, "Profile picture");
+    checkBase64Size(idBase64, "ID document");
+    if (portfolioFiles && Array.isArray(portfolioFiles)) {
+      for (const f of portfolioFiles) {
+        checkBase64Size(f.base64, "Portfolio file");
+      }
+    }
+
     let avatarUrl: string | null = null;
     let idDocumentUrl: string | null = null;
     const portfolioUrls: string[] = [];

@@ -890,7 +890,7 @@ const PostJob = () => {
                   className="mt-0.5"
                 />
                 <label htmlFor="confirm-details" className="text-sm text-foreground cursor-pointer leading-snug">
-                  I've reviewed all details above and confirm everything is correct. I understand my payment will be held in escrow until the job is completed.
+                  I've reviewed all details above and confirm everything is correct. I understand the helpr's payout will be released after both parties confirm job completion.
                 </label>
               </div>
 

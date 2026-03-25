@@ -52,8 +52,6 @@ const AdminDisputes = () => {
       });
       setProfiles(map);
       setTiers(tMap);
-      });
-      setProfiles(map);
     }
 
     // Priority Dispute Resolution: Elite subscribers' disputes appear first

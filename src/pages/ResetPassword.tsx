@@ -20,14 +20,16 @@ const ResetPassword = () => {
     const type = hashParams.get("type");
     if (type === "recovery") {
       setReady(true);
-    } else {
-      // Also check via auth state
-      supabase.auth.onAuthStateChange((event) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setReady(true);
-        }
-      });
     }
+
+    // Also check via auth state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setReady(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

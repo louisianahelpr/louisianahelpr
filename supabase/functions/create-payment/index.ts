@@ -60,7 +60,8 @@ serve(async (req) => {
 
       const feeAmount = (job.budget * feePercent) / 100;
       const feeTax = feeAmount * 0.085;
-      const totalDeduction = feeAmount + feeTax; // Platform fee + 8.5% tax on fee, deducted from helpr payout
+      // Store fee and tax separately on the job for accurate payout calculations
+      // platform_fee_amount = fee only (without tax), feeTax tracked via the percent
 
       const lineItems: any[] = [
         {

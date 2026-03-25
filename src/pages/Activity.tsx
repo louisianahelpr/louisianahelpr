@@ -1685,9 +1685,6 @@ const Activity = () => {
         setHelperReviewJob={setHelperReviewJob}
         onRefresh={() => user && loadData(user.id)}
       />
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Describe what needs to be fixed or redone. The helpr will be notified.</p>
-            <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} />
     </div>
   );
 };

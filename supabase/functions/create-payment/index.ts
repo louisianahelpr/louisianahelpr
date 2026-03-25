@@ -56,7 +56,7 @@ serve(async (req) => {
 
       const { data: settings } = await supabaseAdmin
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
-      const feePercent = settings?.platform_fee_percent ?? 15;
+      const feePercent = settings?.platform_fee_percent ?? 2;
 
       const feeAmount = (job.budget * feePercent) / 100;
       const feeTax = feeAmount * 0.085;

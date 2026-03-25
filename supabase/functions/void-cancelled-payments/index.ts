@@ -95,9 +95,65 @@ serve(async (req) => {
               amount: refundAmount,
             });
           }
+
+          // Transfer cancellation fee to the inconvenienced helper
+          if (cancellationFee > 0 && job.helper_id) {
+            const { data: helperProfile } = await supabaseAdmin
+              .from("profiles")
+              .select("stripe_account_id")
+              .eq("user_id", job.helper_id)
+              .single();
+
+            if (helperProfile?.stripe_account_id) {
+              try {
+                const transferParams: any = {
+                  amount: Math.round(cancellationFee * 100),
+                  currency: "usd",
+                  destination: helperProfile.stripe_account_id,
+                  metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee" },
+                };
+
+                // Link to source charge
+                try {
+                  if (pi.latest_charge) {
+                    transferParams.source_transaction = typeof pi.latest_charge === "string"
+                      ? pi.latest_charge
+                      : pi.latest_charge.id;
+                  }
+                } catch (_e) { /* ignore */ }
+
+                await stripe.transfers.create(transferParams);
+                console.log(`Transferred cancellation fee $${cancellationFee} to helper ${job.helper_id} for job ${job.id}`);
+
+                await supabaseAdmin.from("notifications").insert({
+                  user_id: job.helper_id,
+                  title: "Cancellation fee received",
+                  message: `You received a $${cancellationFee.toFixed(2)} cancellation fee for "${job.title}" because the poster cancelled late.`,
+                  type: "payment",
+                  link: "/earnings",
+                });
+              } catch (transferErr: any) {
+                console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);
+                // Notify admins about the failed transfer
+                const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+                if (adminRoles) {
+                  for (const admin of adminRoles) {
+                    await supabaseAdmin.from("notifications").insert({
+                      user_id: admin.user_id,
+                      title: "⚠️ Cancellation fee transfer failed",
+                      message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to helper for job ${job.id}. Error: ${transferErr.message}`,
+                      type: "warning",
+                      link: "/admin",
+                    });
+                  }
+                }
+              }
+            }
+          }
+
           await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
           refunded++;
-          results.push({ job_id: job.id, title: job.title, status: "refunded", amount: refundAmount / 100 });
+          results.push({ job_id: job.id, title: job.title, status: "refunded", amount: refundAmount / 100, cancellation_fee_transferred: cancellationFee > 0 });
         } else {
           results.push({ job_id: job.id, title: job.title, status: `pi_status_${pi.status}`, skipped: true });
         }

@@ -318,7 +318,36 @@ const Messages = () => {
     if (error) toast.error("Failed to send message");
   };
 
-  const renderMessageContent = (content: string) => {
+  const deleteConversation = async (convo: Conversation) => {
+    if (!userId) return;
+    // Delete all messages in this conversation for this user pair + job
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("job_id", convo.jobId)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`);
+
+    if (error) {
+      toast.error("Failed to delete conversation");
+    } else {
+      setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
+      toast.success("Conversation deleted");
+    }
+    setDeleteConvoConfirm(null);
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    const { error } = await supabase.from("messages").delete().eq("id", messageId);
+    if (error) {
+      toast.error("Failed to delete message");
+    } else {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      toast.success("Message deleted");
+    }
+    setDeleteMessageConfirm(null);
+  };
+
+
     // Photo message
     if (content.startsWith("📷 ")) {
       const parts = content.slice(2).trim().split("\n");

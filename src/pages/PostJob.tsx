@@ -834,12 +834,12 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
+                    <span className="text-muted-foreground">Platform fee ({platformFee}%, deducted from helpr)</span>
                     <span className="font-medium text-muted-foreground">−${feeAmount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">LA sales tax on fee (8.5%)</span>
-                    <span className="font-medium text-muted-foreground">${feeTax.toFixed(2)}</span>
+                    <span className="text-muted-foreground">LA sales tax on fee (8.5%, deducted from helpr)</span>
+                    <span className="font-medium text-muted-foreground">−${feeTax.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Helpr earns</span>

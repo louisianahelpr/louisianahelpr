@@ -61,7 +61,13 @@ Deno.serve(async (req) => {
       .neq("user_id", job.customer_id);
 
     if (helpersError) throw helpersError;
-    if (!helpers || helpers.length === 0) {
+    // Filter out expired Elite subscriptions
+    const now = new Date().toISOString();
+    const activeHelpers = (helpers || []).filter(h => {
+      if (!h.subscription_expires_at) return true; // no expiry = lifetime or not set
+      return h.subscription_expires_at > now;
+    });
+    if (activeHelpers.length === 0) {
       return new Response(JSON.stringify({ notified: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

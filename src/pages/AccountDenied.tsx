@@ -81,22 +81,19 @@ const AccountDenied = () => {
               <RefreshCw className="w-4 h-4 mr-2" />
               Re-apply Now
             </Button>
-            <Link to="/support">
+            <a href="mailto:support@louisianahelpr.com">
               <Button variant="ghost" className="w-full" size="sm">
-                Contact Support
+                <Mail className="w-4 h-4 mr-2" />
+                Email Support
               </Button>
-            </Link>
+            </a>
           </div>
 
           <p className="text-xs text-muted-foreground text-center pt-2">
-            You can also go to the{" "}
-            <span
-              className="text-primary font-medium cursor-pointer hover:underline"
-              onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}
-            >
-              Sign Up page
-            </span>{" "}
-            to re-submit your profile with updated info and documents.
+            Need help? Email us at{" "}
+            <a href="mailto:support@louisianahelpr.com" className="text-primary font-medium hover:underline">
+              support@louisianahelpr.com
+            </a>
           </p>
         </div>
 

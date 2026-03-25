@@ -488,7 +488,7 @@ const ProfilePage = () => {
                 <button onClick={() => { loadEarnings(); setTab("earnings"); }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
                   <div className="flex items-center justify-center gap-1">
                     <DollarSign className="w-3.5 h-3.5 text-primary" />
-                    <p className="text-lg font-bold text-foreground">{totalJobEarnings > 0 ? `$${totalJobEarnings.toFixed(2)}` : "—"}</p>
+                    <p className="text-lg font-bold text-foreground">{(totalJobEarnings + totalTipEarnings) > 0 ? `$${(totalJobEarnings + totalTipEarnings).toFixed(2)}` : "—"}</p>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Earnings</p>
                   {totalTipEarnings > 0 && (

@@ -71,7 +71,7 @@ serve(async (req) => {
       const tier = PRODUCT_TO_TIER[productId];
       if (tier) {
         // Sync tier to profile
-        await supabaseClient.from("profiles").update({ subscription_tier: tier }).eq("email", user.email);
+        await supabaseAdmin.from("profiles").update({ subscription_tier: tier }).eq("email", user.email);
         
         return new Response(JSON.stringify({
           subscribed: true,

@@ -255,6 +255,7 @@ const AdminUsers = () => {
           type: "warning", link: "/profile",
         });
         toast.success("Warning issued.");
+        await logAdminAction("ban_user", "user", banProfile.user_id, { type: "warning", reason: banReason.trim() });
       } else if (banType === "temporary") {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(banDuration));

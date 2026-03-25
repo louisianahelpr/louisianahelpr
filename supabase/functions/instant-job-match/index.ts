@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     const jobCategory = job.category.toLowerCase();
 
     // Score helpers by relevance
-    const scored = helpers
+    const scored = activeHelpers
       .map((h) => {
         let score = 0;
         const helperLoc = (h.location || "").toLowerCase();

@@ -113,7 +113,17 @@ const AdminDisputes = () => {
         <div key={job.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-foreground">{job.title}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground">{job.title}</h3>
+                {(() => {
+                  const participants = [job.customer_id, job.helper_id].filter(Boolean) as string[];
+                  const hasElite = participants.some(id => {
+                    const { data: prof } = { data: null }; // already loaded
+                    return false; // We use inline check below
+                  });
+                  return null;
+                })()}
+              </div>
               <p className="text-sm text-muted-foreground">${job.budget}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Customer: <span className="font-medium text-foreground">{profiles[job.customer_id] || "Unknown"}</span>

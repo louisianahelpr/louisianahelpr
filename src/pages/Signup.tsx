@@ -628,6 +628,7 @@ const Signup = () => {
                 <p className="text-sm text-muted-foreground">
                   Want to help others with tasks? Upload work photos, certifications, or a resume to stand out. <span className="font-medium text-foreground">Only posting tasks? This step is optional.</span>
                 </p>
+                <p className="text-xs text-primary font-medium mt-1">💎 Portfolio Showcase is a Pro+ subscriber perk — you can upload now, but only Pro/Elite subscribers' portfolios will be visible on their profiles.</p>
               </div>
 
               <div className="flex flex-wrap gap-3">

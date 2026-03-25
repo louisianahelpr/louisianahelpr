@@ -209,6 +209,10 @@ const Admin = () => {
       badgeColor: "bg-accent/10 text-accent-foreground",
     },
     {
+      id: "subscriptions", label: "Subscriptions", description: "Active tiers, expiry & purchase tracking",
+      icon: <Crown className="w-5 h-5" />,
+    },
+    {
       id: "referrals", label: "Referrals", description: "Codes, credits & payout tracking",
       icon: <Gift className="w-5 h-5" />,
     },

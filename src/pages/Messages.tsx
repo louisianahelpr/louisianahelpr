@@ -575,7 +575,7 @@ const Messages = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all messages in this conversation with {deleteConvoConfirm?.otherUserName}. This action cannot be undone.
+              This will delete your sent messages in this conversation with {deleteConvoConfirm?.otherUserName}. Messages you received will still be visible to the other person. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

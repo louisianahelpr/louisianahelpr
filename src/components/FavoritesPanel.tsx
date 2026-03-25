@@ -98,7 +98,7 @@ const FavoritesPanel = () => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" title="Favorite Helpers" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
+        <Button variant="ghost" size="icon" title="Favorite Helpers" aria-label="Favorite Helpers" className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9">
           <Heart className="w-4 h-4" />
         </Button>
       </SheetTrigger>

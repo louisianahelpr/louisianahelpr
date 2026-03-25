@@ -30,7 +30,7 @@ const typeIcons: Record<string, React.ReactNode> = {
 
 const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(
   ({ unreadCount, ...props }, ref) => (
-    <Button ref={ref} variant="ghost" size="icon" className="relative" {...props}>
+    <Button ref={ref} variant="ghost" size="icon" className="relative" aria-label="Notifications" {...props}>
       <Bell className="w-4 h-4" />
       {unreadCount > 0 && (
         <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold min-w-[18px] h-[18px]">

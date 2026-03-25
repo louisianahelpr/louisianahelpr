@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Crown, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Crown, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -15,7 +17,7 @@ const tierConfig = [
     badge: "⭐",
     monthly: "$5/mo",
     annual: "$50/yr",
-    lifetime: "$5 one-time",
+    oneTime: "$5 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Helpr Badge", "Search Priority", "5-min Early Job Access"],
@@ -26,7 +28,7 @@ const tierConfig = [
     badge: "🔥",
     monthly: "$10/mo",
     annual: "$100/yr",
-    lifetime: "$10 one-time",
+    oneTime: "$10 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "Weekly Reports", "10-min Early Access"],
@@ -37,7 +39,7 @@ const tierConfig = [
     badge: "💎",
     monthly: "$15/mo",
     annual: "$150/yr",
-    lifetime: "$15 one-time",
+    oneTime: "$15 one-time",
     monthlySave: null,
     annualSave: "Save 17%",
     features: ["Everything in Pro", "Landing Page Spotlight", "Auto-Match Jobs", "Priority Dispute Resolution", "20-min Early Access"],
@@ -47,9 +49,35 @@ const tierConfig = [
 export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "lifetime">("lifetime");
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("one_time");
   const [billingDay, setBillingDay] = useState<number>(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const currentTier = profile?.subscription_tier || null;
+  const expiresAt = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+  const isExpired = expiresAt ? expiresAt < new Date() : false;
+
+  // Auto-refresh subscription status after returning from Stripe checkout
+  useEffect(() => {
+    if (searchParams.get("pro") === "success") {
+      refreshSubscription();
+    }
+  }, [searchParams]);
+
+  const refreshSubscription = async () => {
+    setRefreshing(true);
+    try {
+      await supabase.functions.invoke("check-pro-subscription");
+      // Invalidate profile cache to pick up updated tier
+      await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      toast.success("Subscription status updated!");
+    } catch {
+      toast.error("Failed to refresh subscription status");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleManageSubscription = async () => {
     setLoadingPortal(true);
@@ -67,7 +95,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
   const handleSubscribe = async (tier: string) => {
     setLoadingCheckout(tier);
     try {
-      const billing_cycle = billingInterval === "lifetime" ? "one_time" : billingInterval;
+      const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
         body: { tier, billing_cycle, ...(billing_cycle === "monthly" ? { billing_day: billingDay } : {}) },
       });
@@ -82,26 +110,37 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
 
   const getPrice = (tier: typeof tierConfig[0]) => {
     if (billingInterval === "annual") return tier.annual;
-    if (billingInterval === "lifetime") return tier.lifetime;
+    if (billingInterval === "one_time") return tier.oneTime;
     return tier.monthly;
   };
 
   const getSaveBadge = (tier: typeof tierConfig[0]) => {
     if (billingInterval === "annual") return tier.annualSave;
-    if (billingInterval === "lifetime") return "One month, no recurring";
+    if (billingInterval === "one_time") return "One month, no recurring";
     return null;
+  };
+
+  const formatExpiry = (date: Date) => {
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "Expired";
+    if (diffDays === 0) return "Expires today";
+    if (diffDays === 1) return "Expires tomorrow";
+    if (diffDays <= 7) return `Expires in ${diffDays} days`;
+    return `Expires ${date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Go back">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
       </div>
 
-      {currentTier && (
+      {currentTier && !isExpired && (
         <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -110,29 +149,48 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
             </div>
             <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">Active</span>
           </div>
-          <Button
-            onClick={handleManageSubscription}
-            disabled={loadingPortal}
-            variant="outline"
-            className="w-full"
-          >
-            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Manage Subscription
-          </Button>
+          {expiresAt && (
+            <p className="text-sm text-muted-foreground">
+              {formatExpiry(expiresAt)}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+              variant="outline"
+              className="flex-1"
+            >
+              {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Manage Subscription
+            </Button>
+            <Button
+              onClick={refreshSubscription}
+              disabled={refreshing}
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label="Refresh subscription status"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       )}
 
-      {!currentTier && (
-        <p className="text-sm text-muted-foreground">You're on the free plan. Upgrade to unlock premium features and get more jobs.</p>
+      {(!currentTier || isExpired) && (
+        <p className="text-sm text-muted-foreground">
+          {isExpired ? "Your subscription has expired. Renew to continue accessing premium features." : "You're on the free plan. Upgrade to unlock premium features and get more jobs."}
+        </p>
       )}
 
       {/* Billing Interval Toggle */}
       <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-muted">
         {([
-          { key: "lifetime", label: "One-Time" },
-          { key: "monthly", label: "Monthly" },
-          { key: "annual", label: "Annual" },
-        ] as const).map((opt) => (
+          { key: "one_time" as const, label: "One-Time" },
+          { key: "monthly" as const, label: "Monthly" },
+          { key: "annual" as const, label: "Annual" },
+        ]).map((opt) => (
           <button
             key={opt.key}
             onClick={() => setBillingInterval(opt.key)}
@@ -167,7 +225,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
 
       <div className="space-y-3">
         {tierConfig.map((tier) => {
-          const isActive = currentTier?.toLowerCase() === tier.id;
+          const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
           return (
             <div
@@ -202,13 +260,13 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
               </ul>
               {!isActive && (
                 <Button
-                  onClick={() => currentTier ? handleManageSubscription() : handleSubscribe(tier.id)}
+                  onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
                   className="w-full"
                   variant="outline"
                 >
                   {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  {currentTier ? "Change Plan" : billingInterval === "lifetime" ? "Buy Now" : "Subscribe"}
+                  {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
                 </Button>
               )}
             </div>

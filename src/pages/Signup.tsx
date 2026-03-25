@@ -11,6 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
+const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
+
 const Signup = () => {
   const navigate = useNavigate();
   usePageTitle("Sign Up — Helpr");
@@ -197,6 +200,17 @@ const Signup = () => {
     if (!validateStep4()) return;
 
     setLoading(true);
+    // Rate limiting
+    const lastAttempt = parseInt(localStorage.getItem(SIGNUP_COOLDOWN_KEY) || "0", 10);
+    const elapsed = Date.now() - lastAttempt;
+    if (elapsed < SIGNUP_COOLDOWN_MS) {
+      const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
+      toast.error(`Please wait ${secsLeft} seconds before trying again`);
+      setLoading(false);
+      return;
+    }
+    localStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
+
     try {
       // 1. Create account
       const { data: authData, error: authError } = await supabase.auth.signUp({

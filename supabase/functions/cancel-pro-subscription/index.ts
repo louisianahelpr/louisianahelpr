@@ -51,6 +51,15 @@ serve(async (req) => {
       cancel_at_period_end: true,
     });
 
+    // Update profile to reflect cancellation end date
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    await supabaseAdmin.from("profiles").update({
+      subscription_expires_at: new Date(updated.current_period_end * 1000).toISOString(),
+    }).eq("user_id", user.id);
+
     return new Response(JSON.stringify({
       success: true,
       cancel_at: new Date(updated.current_period_end * 1000).toISOString(),

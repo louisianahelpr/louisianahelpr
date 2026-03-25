@@ -37,44 +37,18 @@ import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import { DisputeDialog } from "@/components/DisputeDialog";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { ActivityDialogs } from "@/components/activity/ActivityDialogs";
+import { EditJobDialog } from "@/components/activity/EditJobDialog";
+import {
+  type Job, type Application, type Tab, type EnrichedApplication, type AppliedApp,
+  categoryLabels, categories, categoryColors, statusBadge,
+} from "@/components/activity/activityConstants";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
-type Application = Database["public"]["Tables"]["applications"]["Row"];
+// Constants moved to activityConstants.ts
 
-const categoryLabels: Record<string, string> = {
-  cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
-  handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", other: "Other",
-};
-const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
-
-const categoryColors: Record<string, { badge: string; title: string }> = {
-  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700" },
-  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700" },
-  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700" },
-  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700" },
-  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700" },
-  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700" },
-  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700" },
-  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700" },
-  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700" },
-  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700" },
-};
-
-const statusBadge: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-amber-500/15 text-amber-600",
-  in_progress: "bg-amber-500/15 text-amber-600",
-  revision_requested: "bg-orange-500/15 text-orange-600",
-  completed: "bg-emerald-500/15 text-emerald-600",
-  cancelled: "bg-destructive/10 text-destructive",
-  disputed: "bg-red-500/15 text-red-600",
-};
-
-type Tab = "posted" | "applied";
+// Tab type imported from activityConstants
 
 const Activity = () => {
   usePageTitle("My Activity — Helpr");
@@ -132,16 +106,6 @@ const Activity = () => {
 
   // Edit job state
   const [editJob, setEditJob] = useState<Job | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editCategory, setEditCategory] = useState("other");
-  const [editLocation, setEditLocation] = useState("");
-  const [editDateNeeded, setEditDateNeeded] = useState("");
-  const [editStartTime, setEditStartTime] = useState("");
-  const [editEstimatedHours, setEditEstimatedHours] = useState("");
-  const [editBudget, setEditBudget] = useState("");
-  const [editSpecialReq, setEditSpecialReq] = useState("");
-  const [editSaving, setEditSaving] = useState(false);
 
   // Applied jobs state
   const [appliedApps, setAppliedApps] = useState<(Application & { job?: (Job & { revision_note?: string | null }) | null; posterName?: string })[]>([]);
@@ -523,25 +487,7 @@ const Activity = () => {
     }
   };
 
-  const requestRevision = async () => {
-    if (!revisionJobId) return;
-    setRequestingRevision(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "request_revision", jobId: revisionJobId, note: revisionNote.trim() },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success("Revision requested!");
-      setRevisionJobId(null);
-      setRevisionNote("");
-      if (user) loadData(user.id);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to request revision");
-    } finally {
-      setRequestingRevision(false);
-    }
-  };
+  // Revision request logic moved to ActivityDialogs
 
   const resolveRevision = async (jobId: string) => {
     try {
@@ -723,32 +669,6 @@ const Activity = () => {
 
   const openEditJob = (job: Job) => {
     setEditJob(job);
-    setEditTitle(job.title);
-    setEditDescription(job.description);
-    setEditCategory(job.category);
-    setEditLocation(job.location);
-    setEditDateNeeded(job.date_needed);
-    setEditStartTime(job.start_time || "");
-    setEditEstimatedHours(job.estimated_hours?.toString() || "");
-    setEditBudget(job.budget.toString());
-    setEditSpecialReq(job.special_requirements || "");
-  };
-
-  const saveEditJob = async () => {
-    if (!editJob) return;
-    setEditSaving(true);
-    const isPaid = editJob.payment_status === 'escrow' || editJob.payment_status === 'released';
-    const updateData: any = {
-      title: editTitle.trim(), description: editDescription.trim(), category: editCategory as any,
-      location: editLocation.trim(), date_needed: editDateNeeded, start_time: editStartTime || null,
-      estimated_hours: editEstimatedHours ? parseFloat(editEstimatedHours) : null,
-      special_requirements: editSpecialReq.trim() || null,
-    };
-    if (!isPaid) updateData.budget = parseFloat(editBudget);
-    const { error } = await supabase.from("jobs").update(updateData).eq("id", editJob.id);
-    setEditSaving(false);
-    if (error) toast.error(error.message);
-    else { toast.success("Job updated!"); setEditJob(null); if (user) loadData(user.id); }
   };
 
   const openReviewForPosted = async (job: Job) => {
@@ -1677,204 +1597,40 @@ const Activity = () => {
         </div>
       </main>
 
-      {/* Poster reviewing helper */}
-      {reviewJob && reviewTarget && (
-        <ReviewForm open={!!reviewJob} onClose={() => { setReviewJob(null); setReviewTarget(null); if (user) loadData(user.id); }} jobId={reviewJob.id} revieweeId={reviewTarget.id} revieweeName={reviewTarget.name} />
-      )}
-
-      {/* Helper reviewing poster */}
-      {helperReviewJob && (
-        <ReviewForm open={!!helperReviewJob} onClose={() => setHelperReviewJob(null)} jobId={helperReviewJob.jobId} revieweeId={helperReviewJob.posterId} revieweeName={helperReviewJob.posterName} />
-      )}
-
-      {/* Revision Request Dialog */}
-      <Dialog open={!!revisionJobId} onOpenChange={() => setRevisionJobId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Request Revision</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Describe what needs to be fixed or redone. The helpr will be notified.</p>
-            <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setRevisionJobId(null)}>Cancel</Button>
-            <Button onClick={requestRevision} disabled={requestingRevision || !revisionNote.trim()}>
-              {requestingRevision ? "Sending…" : "Request Revision"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Job Dialog */}
-      <Dialog open={!!editJob} onOpenChange={() => setEditJob(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">Edit Job</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-          {(() => {
-            const hasHelper = !!editJob?.helper_id;
-            const isPaid = editJob?.payment_status === 'escrow' || editJob?.payment_status === 'released';
-            const locked = hasHelper || isPaid;
-            return (
-              <>
-                {locked && (
-                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
-                    {hasHelper ? "Fields are locked because a helpr has been accepted." : "Budget is locked after payment."}
-                  </p>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="editTitle">Title</Label>
-                  <Input id="editTitle" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required disabled={hasHelper} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDesc">Description</Label>
-                  <Textarea id="editDesc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} disabled={hasHelper} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select value={editCategory} onValueChange={setEditCategory} disabled={hasHelper}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editLoc">Location</Label>
-                  <Input id="editLoc" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} disabled={hasHelper} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Date needed</Label>
-                    <Input type="date" value={editDateNeeded} onChange={(e) => setEditDateNeeded(e.target.value)} disabled={hasHelper} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Start time</Label>
-                    <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} disabled={hasHelper} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Est. hours</Label>
-                    <Input type="number" step="0.5" value={editEstimatedHours} onChange={(e) => setEditEstimatedHours(e.target.value)} disabled={hasHelper} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Budget ($)</Label>
-                    <Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} disabled={locked} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Special requirements</Label>
-                  <Textarea value={editSpecialReq} onChange={(e) => setEditSpecialReq(e.target.value)} rows={2} disabled={hasHelper} />
-                </div>
-              </>
-            );
-          })()}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditJob(null)}>Cancel</Button>
-            <Button onClick={saveEditJob} disabled={editSaving || !!editJob?.helper_id}>{editSaving ? "Saving…" : "Save changes"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Boost Dialog */}
-      {boostJobId && (
-        <JobBoostDialog
-          jobId={boostJobId}
-          open={!!boostJobId}
-          onClose={() => setBoostJobId(null)}
-          onBoosted={() => { if (user) loadData(user.id); }}
-        />
-      )}
-
-      {/* Enhanced Tip Dialog */}
-      {enhancedTipJobId && (
-        <TipDialog
-          jobId={enhancedTipJobId}
-          helperName={enhancedTipHelperName}
-          open={!!enhancedTipJobId}
-          onClose={() => { setEnhancedTipJobId(null); setEnhancedTipHelperName(""); if (user) loadData(user.id); }}
-        />
-      )}
-
-      {/* No-Show Confirmation Dialog */}
-      <Dialog open={!!noShowJobId} onOpenChange={() => setNoShowJobId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" /> Report No-Show
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Are you sure the helpr didn't show up? This will:
-            </p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
-              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helpr (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
-              <li>Reopen your job so you can pick another applicant</li>
-              <li>Notify the admin team</li>
-            </ul>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setNoShowJobId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => noShowJobId && handleNoShow(noShowJobId)} disabled={reportingNoShow}>
-              {reportingNoShow ? "Reporting…" : "Confirm No-Show"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Cancellation Dialog */}
-      {cancelDialogJob && user && (
-        <CancellationDialog
-          jobId={cancelDialogJob.id}
-          jobTitle={cancelDialogJob.title}
-          jobDate={cancelDialogJob.date_needed}
-          jobBudget={cancelDialogJob.budget}
-          userId={user.id}
-          hasHelper={!!cancelDialogJob.helper_id}
-          open={!!cancelDialogJob}
-          onClose={() => setCancelDialogJob(null)}
-          onCancelled={() => { if (user) loadData(user.id); }}
-        />
-      )}
-
-      {/* Completion Prompts (review + tip) */}
-      {completionPromptJob && user && (
-        <CompletionPrompts
-          jobId={completionPromptJob.job.id}
-          jobTitle={completionPromptJob.job.title}
-          revieweeId={completionPromptJob.revieweeId}
-          revieweeName={completionPromptJob.revieweeName}
-          userId={user.id}
-          onDone={() => setCompletionPromptJob(null)}
-        />
-      )}
-
-      {/* Response Deadline Dialog */}
-      {deadlineDialogApp && (
-        <ResponseDeadlineDialog
-          open={!!deadlineDialogApp}
-          helperName={formatName(deadlineDialogApp.profiles?.full_name, "Helpr")}
-          onConfirm={confirmAcceptWithDeadline}
-          onClose={() => setDeadlineDialogApp(null)}
-        />
-      )}
-
-      {/* Dispute Dialog */}
-      {disputeJob && user && (
-        <DisputeDialog
-          jobId={disputeJob.id}
-          jobTitle={disputeJob.title}
-          userId={user.id}
-          open={!!disputeJob}
-          onClose={() => setDisputeJob(null)}
-          onDisputed={() => { if (user) loadData(user.id); }}
-        />
-      )}
+      <ActivityDialogs
+        user={user ? { id: user.id } : null}
+        revisionJobId={revisionJobId}
+        setRevisionJobId={setRevisionJobId}
+        onRevisionRequested={() => user && loadData(user.id)}
+        editJob={editJob}
+        setEditJob={setEditJob}
+        boostJobId={boostJobId}
+        setBoostJobId={setBoostJobId}
+        enhancedTipJobId={enhancedTipJobId}
+        enhancedTipHelperName={enhancedTipHelperName}
+        setEnhancedTipJobId={setEnhancedTipJobId}
+        setEnhancedTipHelperName={setEnhancedTipHelperName}
+        noShowJobId={noShowJobId}
+        setNoShowJobId={setNoShowJobId}
+        onNoShow={handleNoShow}
+        reportingNoShow={reportingNoShow}
+        cancelDialogJob={cancelDialogJob}
+        setCancelDialogJob={setCancelDialogJob}
+        completionPromptJob={completionPromptJob}
+        setCompletionPromptJob={setCompletionPromptJob}
+        deadlineDialogApp={deadlineDialogApp}
+        setDeadlineDialogApp={setDeadlineDialogApp}
+        onDeadlineConfirm={confirmAcceptWithDeadline}
+        disputeJob={disputeJob}
+        setDisputeJob={setDisputeJob}
+        reviewJob={reviewJob}
+        reviewTarget={reviewTarget}
+        setReviewJob={setReviewJob}
+        setReviewTarget={setReviewTarget}
+        helperReviewJob={helperReviewJob}
+        setHelperReviewJob={setHelperReviewJob}
+        onRefresh={() => user && loadData(user.id)}
+      />
     </div>
   );
 };

@@ -36,6 +36,8 @@ type Conversation = {
   unread: number;
 };
 
+const CHAT_PAGE_SIZE = 50;
+
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
@@ -49,7 +51,10 @@ const Messages = () => {
   const [reportTarget, setReportTarget] = useState<{ type: "message"; id: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({
@@ -127,22 +132,58 @@ const Messages = () => {
 
   const openConvo = async (convo: Conversation) => {
     setActiveConvo(convo);
+    setHasMoreMessages(false);
     navigate("/messages?chat=1", { replace: true });
     const { data } = await supabase
       .from("messages")
       .select("*")
       .eq("job_id", convo.jobId)
       .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
 
     if (data) {
-      setMessages(data);
+      const sorted = [...data].reverse();
+      setMessages(sorted);
+      setHasMoreMessages(data.length === CHAT_PAGE_SIZE);
       const unreadIds = data.filter((m) => m.receiver_id === userId && !m.read).map((m) => m.id);
       if (unreadIds.length > 0) {
         await supabase.from("messages").update({ read: true }).in("id", unreadIds);
       }
     }
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
+
+  const loadOlderMessages = async () => {
+    if (!activeConvo || !userId || loadingMore || messages.length === 0) return;
+    setLoadingMore(true);
+    const oldestMsg = messages[0];
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("job_id", activeConvo.jobId)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId})`)
+      .lt("created_at", oldestMsg.created_at)
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
+
+    if (data && data.length > 0) {
+      const sorted = [...data].reverse();
+      // Preserve scroll position
+      const container = chatContainerRef.current;
+      const scrollHeightBefore = container?.scrollHeight || 0;
+      setMessages((prev) => [...sorted, ...prev]);
+      setHasMoreMessages(data.length === CHAT_PAGE_SIZE);
+      // Restore scroll position after DOM update
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - scrollHeightBefore;
+        }
+      });
+    } else {
+      setHasMoreMessages(false);
+    }
+    setLoadingMore(false);
   };
 
   // Realtime subscription
@@ -385,7 +426,14 @@ const Messages = () => {
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto space-y-3 py-4">
+              <div className="flex-1 overflow-y-auto space-y-3 py-4" ref={chatContainerRef}>
+                {hasMoreMessages && (
+                  <div className="text-center py-2">
+                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50">
+                      {loadingMore ? "Loading…" : "Load earlier messages"}
+                    </button>
+                  </div>
+                )}
                 {messages.map((m) => (
                   <div key={m.id} className={`flex ${m.sender_id === userId ? "justify-end" : "justify-start"}`}>
                     <div

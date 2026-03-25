@@ -347,7 +347,7 @@ const Messages = () => {
     setDeleteMessageConfirm(null);
   };
 
-
+  const renderMessageContent = (content: string) => {
     // Photo message
     if (content.startsWith("📷 ")) {
       const parts = content.slice(2).trim().split("\n");

@@ -11,6 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
+const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
+
 const Signup = () => {
   const navigate = useNavigate();
   usePageTitle("Sign Up — Helpr");

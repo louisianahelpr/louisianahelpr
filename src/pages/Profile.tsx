@@ -193,10 +193,10 @@ const ProfilePage = () => {
         const feeTax = fee * 0.085;
         return s + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
       }, 0);
-      const tipEarnings = (tipsStatsRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
       setTotalJobEarnings(jobEarnings);
-      setTotalTipEarnings(tipEarnings);
     }
+    const tipEarnings = (tipsStatsRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
+    setTotalTipEarnings(tipEarnings);
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);

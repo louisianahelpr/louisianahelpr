@@ -88,7 +88,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
 
   const getSaveBadge = (tier: typeof tierConfig[0]) => {
     if (billingInterval === "annual") return tier.annualSave;
-    if (billingInterval === "lifetime") return "Best value";
+    if (billingInterval === "lifetime") return "One month, no recurring";
     return null;
   };
 

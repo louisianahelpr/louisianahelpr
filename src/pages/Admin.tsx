@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -21,6 +21,11 @@ import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 
 type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";
 
+// Keys for localStorage timestamps tracking when admin last visited each section
+const SEEN_KEY_PREFIX = "admin_seen_";
+const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
+const markSeen = (section: string) => localStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
+
 const Admin = () => {
   const { loading } = useAdminAuth();
   usePageTitle("Admin — Helpr");
@@ -33,6 +38,65 @@ const Admin = () => {
     pendingReviews: 0, disputedJobs: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
+
+  // Unread badge counts — items created since last visit
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
+  const loadUnreadCounts = useCallback(async () => {
+    const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [
+      { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending" } },
+      { key: "jobs", table: "jobs", dateCol: "created_at" },
+      { key: "reviews", table: "reviews", dateCol: "created_at" },
+      { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" } },
+      { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
+      { key: "support", table: "reports", dateCol: "created_at", filter: { status: "pending", reported_type: "support" } },
+      { key: "referrals", table: "referrals", dateCol: "created_at" },
+      { key: "subscriptions", table: "profiles", dateCol: "updated_at", filter: { subscription_tier: "not_null" } },
+    ];
+
+    const counts: Record<string, number> = {};
+
+    await Promise.all(sections.map(async (s) => {
+      const lastSeen = getSeenTimestamp(s.key);
+      let query = supabase.from(s.table as any).select("id", { count: "exact", head: true });
+
+      if (lastSeen) {
+        query = query.gt(s.dateCol, lastSeen);
+      }
+
+      if (s.filter) {
+        for (const [col, val] of Object.entries(s.filter)) {
+          if (val === "not_null") {
+            query = query.not(col, "is", null);
+          } else {
+            query = query.eq(col, val);
+          }
+        }
+      }
+      if (s.notFilter) {
+        for (const [col, val] of Object.entries(s.notFilter)) {
+          query = query.neq(col, val);
+        }
+      }
+
+      const { count } = await query;
+      if (count && count > 0) counts[s.key] = count;
+    }));
+
+    setUnreadCounts(counts);
+  }, []);
+
+  const handleViewChange = useCallback((newView: View) => {
+    if (newView !== "home") {
+      markSeen(newView);
+      setUnreadCounts(prev => {
+        const next = { ...prev };
+        delete next[newView];
+        return next;
+      });
+    }
+    setView(newView);
+  }, []);
 
   const loadStats = async () => {
     const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes] = await Promise.all([
@@ -65,23 +129,23 @@ const Admin = () => {
   useEffect(() => {
     if (loading) return;
     loadStats();
+    loadUnreadCounts();
 
-    // Realtime subscription for admin dashboard
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => loadStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => { loadStats(); loadUnreadCounts(); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [loading]);
 
-  // Refresh stats when returning to the home view
   useEffect(() => {
     if (view === "home" && !loading) {
       loadStats();
+      loadUnreadCounts();
     }
   }, [view]);
 
@@ -138,7 +202,7 @@ const Admin = () => {
 
   const subHeader = view !== "home" && (
     <div className="container mx-auto px-4 pt-4 pb-2 flex items-center gap-2">
-      <Button variant="ghost" size="icon" onClick={() => setView("home")} className="rounded-xl h-9 w-9">
+      <Button variant="ghost" size="icon" onClick={() => handleViewChange("home")} className="rounded-xl h-9 w-9">
         <ArrowLeft className="w-4 h-4" />
       </Button>
       <h2 className="text-lg font-display font-bold text-foreground">{viewLabels[view]}</h2>
@@ -171,13 +235,21 @@ const Admin = () => {
 
   const quickActions: { id: View; label: string; description: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[] = [
     {
+      id: "people", label: "Users", description: "Manage accounts & approvals",
+      icon: <Users className="w-5 h-5" />,
+      badge: (unreadCounts.people || 0) > 0 ? unreadCounts.people : (stats.pendingApprovals > 0 ? stats.pendingApprovals : undefined),
+      badgeColor: "bg-accent/10 text-accent-foreground",
+    },
+    {
       id: "jobs", label: "Jobs", description: "All tasks & listings",
       icon: <Briefcase className="w-5 h-5" />,
+      badge: unreadCounts.jobs || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "disputes", label: "Disputes", description: "Review disputed jobs & payments",
       icon: <ShieldAlert className="w-5 h-5" />,
-      badge: stats.disputedJobs > 0 ? stats.disputedJobs : undefined,
+      badge: (unreadCounts.disputes || 0) > 0 ? unreadCounts.disputes : (stats.disputedJobs > 0 ? stats.disputedJobs : undefined),
       badgeColor: "bg-destructive/10 text-destructive",
     },
     {
@@ -187,11 +259,13 @@ const Admin = () => {
     {
       id: "reviews", label: "Reviews", description: "Ratings & feedback",
       icon: <ClipboardCheck className="w-5 h-5" />,
+      badge: unreadCounts.reviews || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "reports", label: "Reports", description: "User & content reports",
       icon: <AlertTriangle className="w-5 h-5" />,
-      badge: stats.openReports > 0 ? stats.openReports : undefined,
+      badge: (unreadCounts.reports || 0) > 0 ? unreadCounts.reports : (stats.openReports > 0 ? stats.openReports : undefined),
       badgeColor: "bg-destructive/10 text-destructive",
     },
     {
@@ -205,16 +279,20 @@ const Admin = () => {
     {
       id: "support", label: "Support Tickets", description: "Messages, suggestions & help requests",
       icon: <Headphones className="w-5 h-5" />,
-      badge: stats.supportTickets > 0 ? stats.supportTickets : undefined,
+      badge: (unreadCounts.support || 0) > 0 ? unreadCounts.support : (stats.supportTickets > 0 ? stats.supportTickets : undefined),
       badgeColor: "bg-accent/10 text-accent-foreground",
     },
     {
       id: "subscriptions", label: "Subscriptions", description: "Active tiers, expiry & purchase tracking",
       icon: <Crown className="w-5 h-5" />,
+      badge: unreadCounts.subscriptions || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "referrals", label: "Referrals", description: "Codes, credits & payout tracking",
       icon: <Gift className="w-5 h-5" />,
+      badge: unreadCounts.referrals || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "settings", label: "Settings", description: "Platform configuration",
@@ -238,7 +316,7 @@ const Admin = () => {
           <div className="flex flex-col sm:flex-row gap-3">
             {stats.pendingApprovals > 0 && (
               <button
-                onClick={() => setView("people")}
+                onClick={() => handleViewChange("people")}
                 className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 flex-1 text-left hover:bg-accent/10 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
@@ -253,7 +331,7 @@ const Admin = () => {
             )}
             {stats.disputedJobs > 0 && (
               <button
-                onClick={() => setView("disputes")}
+                onClick={() => handleViewChange("disputes")}
                 className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -268,7 +346,7 @@ const Admin = () => {
             )}
             {stats.openReports > 0 && (
               <button
-                onClick={() => setView("reports")}
+                onClick={() => handleViewChange("reports")}
                 className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex-1 text-left hover:bg-destructive/10 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -287,10 +365,10 @@ const Admin = () => {
         {/* Stats overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => setView("people") },
-            { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => setView("jobs") },
-            { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => setView("analytics") },
-            { label: "Platform Revenue", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(2)}`, icon: DollarSign, onClick: () => setView("analytics") },
+            { label: "Pending Accounts", value: statsLoading ? "…" : stats.pendingApprovals, icon: Users, onClick: () => handleViewChange("people") },
+            { label: "Active Jobs", value: statsLoading ? "…" : stats.activeJobs, icon: Briefcase, onClick: () => handleViewChange("jobs") },
+            { label: "Completed", value: statsLoading ? "…" : stats.completedJobs, icon: CheckCircle2, onClick: () => handleViewChange("analytics") },
+            { label: "Platform Revenue", value: statsLoading ? "…" : `$${stats.totalFees.toFixed(2)}`, icon: DollarSign, onClick: () => handleViewChange("analytics") },
           ].map((card) => (
             <button
               key={card.label}
@@ -313,7 +391,7 @@ const Admin = () => {
             {quickActions.map((action) => (
               <button
                 key={action.id}
-                onClick={() => setView(action.id)}
+                onClick={() => handleViewChange(action.id)}
                 className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 text-left hover:bg-secondary/20 hover:border-primary/20 transition-all group"
               >
                 <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors flex-shrink-0">

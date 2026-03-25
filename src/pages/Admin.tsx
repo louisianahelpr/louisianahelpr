@@ -22,6 +22,7 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";
@@ -297,18 +298,44 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 border-r border-border/50 bg-card/50 flex-col flex-shrink-0 sticky top-0 h-screen">
-        {sidebarContent}
-      </aside>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top nav bar (same as dashboard) */}
+      <DashboardHeader title="Admin" />
 
-      {/* Mobile drawer overlay */}
+      <div className="flex flex-1">
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Sub-header with view title & mobile menu trigger */}
+          <div className="sticky top-[57px] z-30 h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm flex items-center px-4 gap-3">
+            <h1 className="text-base font-display font-bold text-foreground flex-1">{viewLabels[view]}</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden h-9 w-9 rounded-lg"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </div>
+
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+            {renderContent()}
+          </main>
+        </div>
+
+        {/* Desktop sidebar — RIGHT side */}
+        <aside className="hidden lg:flex w-60 border-l border-border/50 bg-card/50 flex-col flex-shrink-0 sticky top-[57px] h-[calc(100vh-57px)]">
+          {sidebarContent}
+        </aside>
+      </div>
+
+      {/* Mobile drawer overlay — slides from RIGHT */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r border-border shadow-xl flex flex-col">
-            <div className="absolute top-3 right-3">
+          <aside className="absolute right-0 top-0 bottom-0 w-64 bg-card border-l border-border shadow-xl flex flex-col">
+            <div className="absolute top-3 left-3">
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-8 w-8 rounded-lg">
                 <X className="w-4 h-4" />
               </Button>
@@ -317,27 +344,6 @@ const Admin = () => {
           </aside>
         </div>
       )}
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 h-14 border-b border-border/50 bg-background/95 backdrop-blur-sm flex items-center px-4 gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden h-9 w-9 rounded-lg"
-            aria-label="Open menu"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-display font-bold text-foreground">{viewLabels[view]}</h1>
-        </header>
-
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-          {renderContent()}
-        </main>
-      </div>
 
       {/* Logout dialog */}
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>

@@ -39,14 +39,13 @@ serve(async (req) => {
     }
 
     const {
-      userId,
       avatarBase64,
       avatarExt,
       avatarContentType,
       idBase64,
       idExt,
       idContentType,
-      portfolioFiles, // Array of { base64, ext, contentType }
+      portfolioFiles,
       phone,
       bio,
       location,
@@ -62,6 +61,9 @@ serve(async (req) => {
       jobRadius,
       extraComments,
     } = await req.json();
+
+    // Use the authenticated user's ID — ignore any userId from the body
+    const userId = authData.user.id;
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "userId is required" }), {

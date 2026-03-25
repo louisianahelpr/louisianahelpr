@@ -30,6 +30,7 @@ export function useDashboardData() {
           .from("jobs")
           .select("*")
           .eq("status", "open")
+          .neq("payment_status", "abandoned")
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(0, 499),

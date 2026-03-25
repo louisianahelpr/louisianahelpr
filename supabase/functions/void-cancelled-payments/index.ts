@@ -23,14 +23,45 @@ serve(async (req) => {
   });
 
   try {
-    // Find cancelled jobs still showing escrow payment status
-    const { data: jobs, error } = await supabaseAdmin
+    // ── Part A: Cancelled jobs still in escrow ──
+    const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
       .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee, date_needed, cancelled_at, helper_id")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
     if (error) throw error;
+
+    // ── Part B: Abandoned checkouts — open jobs with unpaid status older than 1 hour ──
+    const abandonedCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: abandonedJobs, error: abErr } = await supabaseAdmin
+      .from("jobs")
+      .select("id, title, stripe_session_id")
+      .eq("status", "open")
+      .eq("payment_status", "unpaid")
+      .not("stripe_session_id", "is", null)
+      .lt("created_at", abandonedCutoff);
+
+    if (abErr) throw abErr;
+
+    // Clean up abandoned jobs — mark payment_status as "abandoned"
+    let abandonedCount = 0;
+    for (const job of (abandonedJobs || [])) {
+      // Verify the Stripe session is actually expired/unpaid
+      try {
+        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id!);
+        if (session.payment_status === "unpaid") {
+          await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          abandonedCount++;
+        }
+      } catch (_e) {
+        // Session not found — mark as abandoned
+        await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+        abandonedCount++;
+      }
+    }
+
+    const jobs = cancelledJobs;
 
     let voided = 0;
     let refunded = 0;
@@ -165,7 +196,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, voided, refunded, total: jobs?.length || 0, results }), {
+    return new Response(JSON.stringify({ success: true, voided, refunded, abandoned: abandonedCount, total: jobs?.length || 0, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

@@ -20,14 +20,16 @@ const ResetPassword = () => {
     const type = hashParams.get("type");
     if (type === "recovery") {
       setReady(true);
-    } else {
-      // Also check via auth state
-      supabase.auth.onAuthStateChange((event) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setReady(true);
-        }
-      });
     }
+
+    // Also check via auth state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setReady(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +90,7 @@ const ResetPassword = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
+                autoComplete="new-password"
               />
               <p className="text-xs text-muted-foreground">At least 8 characters, 1 uppercase, 1 number</p>
             </div>
@@ -101,6 +104,7 @@ const ResetPassword = () => {
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={8}
+                autoComplete="new-password"
               />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>

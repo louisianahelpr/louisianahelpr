@@ -224,9 +224,10 @@ const Signup = () => {
         },
       });
 
-      // If user already exists, check their status — don't auto-sign-in denied users
+      // Generic error for existing accounts — prevents email enumeration
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        toast.error("An account with this email already exists. Please log in instead.");
+        toast.success("If this email isn't registered, you'll receive a verification link shortly.");
+        navigate("/signup-pending");
         setLoading(false);
         return;
       }
@@ -292,7 +293,7 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmEmail">Confirm email <span className="text-destructive">*</span></Label>
@@ -306,7 +307,7 @@ const Signup = () => {
             <div className="space-y-2">
               <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="pr-10" autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -315,7 +316,7 @@ const Signup = () => {
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="pr-10" />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="pr-10" autoComplete="new-password" />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -333,7 +334,7 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone number <span className="text-destructive text-xs">*</span></Label>
-              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required autoComplete="tel" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="referral" className="flex items-center gap-1.5">

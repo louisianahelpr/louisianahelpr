@@ -18,7 +18,7 @@ interface EditJobDialogProps {
 export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [title, setTitle] = useState(job?.title || "");
   const [description, setDescription] = useState(job?.description || "");
-  const [category, setCategory] = useState(job?.category || "other");
+  const [category, setCategory] = useState<string>(job?.category || "other");
   const [location, setLocation] = useState(job?.location || "");
   const [dateNeeded, setDateNeeded] = useState(job?.date_needed || "");
   const [startTime, setStartTime] = useState(job?.start_time || "");

@@ -76,7 +76,7 @@ const Schedule = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <DashboardHeader showBack />
+      <DashboardHeader />
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-6">

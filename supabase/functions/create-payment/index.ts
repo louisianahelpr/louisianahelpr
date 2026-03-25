@@ -56,7 +56,7 @@ serve(async (req) => {
 
       const { data: settings } = await supabaseAdmin
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
-      const feePercent = settings?.platform_fee_percent ?? 15;
+      const feePercent = settings?.platform_fee_percent ?? 2;
 
       const feeAmount = (job.budget * feePercent) / 100;
       const feeTax = feeAmount * 0.085;
@@ -195,7 +195,7 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0);
+      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
 
       // Notify the other party
       if (isPoster && job.helper_id && !helperDone) {
@@ -216,7 +216,8 @@ serve(async (req) => {
       }
 
       if (bothDone) {
-        const helperPayout = job.budget - (job.platform_fee_amount || 0);
+        const urgentFee = job.urgent_fee ?? 0;
+        const helperPayout = job.budget - (job.platform_fee_amount || 0) + urgentFee;
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
@@ -420,7 +421,7 @@ serve(async (req) => {
       const captureResult = { paymentIntentId };
 
       // Transfer to helpr
-      const helperPayout = job.budget - (job.platform_fee_amount || 0);
+      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
         await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
       }

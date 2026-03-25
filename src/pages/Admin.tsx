@@ -22,6 +22,10 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import AdminFraudDashboard from "@/components/admin/AdminFraudDashboard";
+import AdminAuditLog from "@/components/admin/AdminAuditLog";
+import AdminHealth from "@/components/admin/AdminHealth";
+import AdminExport from "@/components/admin/AdminExport";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 

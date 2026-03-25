@@ -73,6 +73,17 @@ const ProfilePage = () => {
     const newUrl = newParams.toString() ? `?${newParams.toString()}` : window.location.pathname;
     window.history.pushState(null, "", newUrl);
   }, [tab]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get("tab") as Tab | null;
+      setTab(urlTab || "landing");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
   const [stripeOnboarding, setStripeOnboarding] = useState(false);

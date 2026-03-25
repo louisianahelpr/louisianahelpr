@@ -334,7 +334,7 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone number <span className="text-destructive text-xs">*</span></Label>
-              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required autoComplete="tel" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="referral" className="flex items-center gap-1.5">

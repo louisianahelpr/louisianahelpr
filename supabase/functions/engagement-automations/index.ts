@@ -225,6 +225,9 @@ Deno.serve(async (_req) => {
       .not('email', 'is', null)
 
     for (const user of approvedUsers || []) {
+      // Skip suppressed emails
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+
       const emailCount = user.approval_email_count || 0
       if (emailCount < 1) continue // First email sent on approval, skip if 0
 

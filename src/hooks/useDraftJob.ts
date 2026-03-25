@@ -16,6 +16,11 @@ export interface JobDraft {
   recurrenceInterval: string;
   recurrenceEndDate: string;
   jobDuration: string;
+  isFlexibleSchedule?: boolean;
+  isUrgent?: boolean;
+  urgentFee?: string;
+  isGroupJob?: boolean;
+  helpersNeeded?: string;
   savedAt: number;
 }
 

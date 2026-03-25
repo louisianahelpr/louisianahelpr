@@ -487,25 +487,7 @@ const Activity = () => {
     }
   };
 
-  const requestRevision = async () => {
-    if (!revisionJobId) return;
-    setRequestingRevision(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "request_revision", jobId: revisionJobId, note: revisionNote.trim() },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success("Revision requested!");
-      setRevisionJobId(null);
-      setRevisionNote("");
-      if (user) loadData(user.id);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to request revision");
-    } finally {
-      setRequestingRevision(false);
-    }
-  };
+  // Revision request logic moved to ActivityDialogs
 
   const resolveRevision = async (jobId: string) => {
     try {

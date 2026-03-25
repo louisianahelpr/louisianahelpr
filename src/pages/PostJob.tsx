@@ -214,7 +214,7 @@ const PostJob = () => {
     if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
     if (!dateNeeded) { toast.error("Date needed is required"); return; }
     if (!startTime) { toast.error("Start time is required"); return; }
-    if (!estimatedHours || parseFloat(estimatedHours) <= 0) { toast.error("Estimated hours is required"); return; }
+    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
     if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }

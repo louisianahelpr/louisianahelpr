@@ -384,7 +384,7 @@ const Signup = () => {
                 I understand the cancellation, no-show, and dispute policies.
               </label>
             </div>
-            <Button className="w-full" size="lg" onClick={() => validateStep1() && setStep(2)} disabled={!acceptedPolicies}>
+            <Button className="w-full" size="lg" onClick={async () => { if (await validateStep1()) setStep(2); }} disabled={!acceptedPolicies}>
               Continue <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>

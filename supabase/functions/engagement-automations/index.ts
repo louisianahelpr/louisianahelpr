@@ -137,6 +137,12 @@ Deno.serve(async (_req) => {
   const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
 
   try {
+    // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
+    const { data: suppressedList } = await supabase
+      .from('suppressed_emails')
+      .select('email')
+    const suppressedSet = new Set((suppressedList || []).map(s => s.email.toLowerCase()))
+
     // ─── 1. Welcome Drip Sequence ─────────────────────────────────
     const now = new Date()
 

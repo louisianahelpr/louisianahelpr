@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut, Shield, Menu } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import NotificationPanel from "@/components/NotificationPanel";
 
@@ -13,9 +13,10 @@ interface DashboardHeaderProps {
   showBack?: boolean;
   onBack?: () => void;
   title?: string;
+  onMenuClick?: () => void;
 }
 
-const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
+const DashboardHeader = ({ showBack, onBack, title, onMenuClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { isAdmin } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -57,6 +58,11 @@ const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
             
             <ThemeToggle />
             <NotificationPanel />
+            {onMenuClick && (
+              <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Open menu">
+                <Menu className="w-4 h-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">
               <LogOut className="w-4 h-4" />
             </Button>

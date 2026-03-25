@@ -302,20 +302,10 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top nav bar with menu trigger */}
-      <DashboardHeader title="Admin" />
+      <DashboardHeader title="Admin" onMenuClick={() => setSidebarOpen(true)} />
 
-      {/* Mobile menu trigger in top bar area */}
-      <div className="lg:hidden fixed top-0 right-[calc(theme(spacing.4)+9rem)] z-50 h-14 flex items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSidebarOpen(true)}
-          className="h-9 w-9 rounded-lg"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
-      </div>
+
+
 
       <div className="flex flex-1">
         {/* Main content */}

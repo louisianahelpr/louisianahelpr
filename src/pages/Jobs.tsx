@@ -43,23 +43,36 @@ const Jobs = () => {
   usePageTitle("Browse Jobs — Helpr");
   const [jobs, setJobs] = useState<PublicJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
+  const PAGE_SIZE = 30;
+
+  const fetchJobs = async (offset = 0, append = false) => {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("jobs")
+      .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
+      .eq("status", "open")
+      .gte("date_needed", today)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+    const newJobs = data || [];
+    setHasMore(newJobs.length === PAGE_SIZE);
+    if (append) {
+      setJobs((prev) => [...prev, ...newJobs]);
+    } else {
+      setJobs(newJobs);
+    }
+    setLoading(false);
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data } = await supabase
-        .from("jobs")
-        .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
-        .eq("status", "open")
-        .gte("date_needed", today)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setJobs(data || []);
-      setLoading(false);
-    };
     fetchJobs();
   }, []);
 

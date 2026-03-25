@@ -396,8 +396,8 @@ const UserProfile = () => {
           {/* Availability */}
           {profile.role === "helper" && <HelperAvailabilityDisplay helperId={userId!} />}
 
-          {/* Portfolio */}
-          {profile.role === "helper" && <HelperPortfolio helperId={userId!} />}
+          {/* Portfolio — Pro+ only */}
+          {profile.role === "helper" && (profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
 
           {/* Retainer */}
           {!isOwnProfile && currentUserId && profile.role === "helper" && (

@@ -17,16 +17,35 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Rate limiting: lock after 5 failed attempts for 60 seconds
+    if (lockedUntil && Date.now() < lockedUntil) {
+      const secondsLeft = Math.ceil((lockedUntil - Date.now()) / 1000);
+      toast.error(`Too many attempts. Try again in ${secondsLeft}s`);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
-      toast.error(error.message);
+      const newAttempts = loginAttempts + 1;
+      setLoginAttempts(newAttempts);
+      if (newAttempts >= 5) {
+        setLockedUntil(Date.now() + 60000);
+        setLoginAttempts(0);
+        toast.error("Too many failed attempts. Account locked for 60 seconds.");
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
+    setLoginAttempts(0);
 
     // Check approval + ban status before redirecting
     const userId = data.session?.user?.id;
@@ -38,7 +57,7 @@ const Login = () => {
         .single();
 
       // Block banned users
-      if (profile?.ban_status === "permanently_banned" || profile?.ban_status === "temp_banned") {
+      if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
         await supabase.auth.signOut();
         setLoading(false);
         toast.error(

@@ -268,7 +268,9 @@ const Dashboard = () => {
             className="rounded-xl bg-gradient-to-r from-primary/8 to-primary/4 px-4 py-2.5 border border-primary/10 relative flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-base font-display font-bold text-foreground whitespace-nowrap">Hi, {firstName} 👋</span>
+              <span className="text-base font-display font-bold text-foreground whitespace-nowrap">
+                {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
+              </span>
               <span className="text-xs text-muted-foreground truncate hidden xs:inline">Browse tasks or post your own</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">

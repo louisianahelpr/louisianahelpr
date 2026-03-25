@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },

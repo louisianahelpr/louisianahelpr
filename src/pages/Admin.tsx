@@ -391,7 +391,7 @@ const Admin = () => {
             {quickActions.map((action) => (
               <button
                 key={action.id}
-                onClick={() => setView(action.id)}
+                onClick={() => handleViewChange(action.id)}
                 className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 text-left hover:bg-secondary/20 hover:border-primary/20 transition-all group"
               >
                 <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors flex-shrink-0">

@@ -18,7 +18,7 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals";
 
 const Admin = () => {
   const { loading } = useAdminAuth();

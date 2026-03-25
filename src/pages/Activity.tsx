@@ -357,12 +357,22 @@ const Activity = () => {
     { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
+  const searchLower = searchQuery.toLowerCase().trim();
+
   const filteredPostedJobs = useMemo(() =>
     postedJobs.filter((j) => {
-      if (statusFilter === "offered") return j.status === "accepted" && !(j as any).helper_confirmed_at;
-      if (statusFilter === "accepted") return j.status === "accepted" && !!(j as any).helper_confirmed_at;
-      return j.status === statusFilter;
-    }), [postedJobs, statusFilter]);
+      // Status filter
+      let statusMatch = false;
+      if (statusFilter === "offered") statusMatch = j.status === "accepted" && !(j as any).helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!(j as any).helper_confirmed_at;
+      else statusMatch = j.status === statusFilter;
+      if (!statusMatch) return false;
+      // Search filter
+      if (searchLower) {
+        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
+      }
+      return true;
+    }), [postedJobs, statusFilter, searchLower]);
 
   const filteredAppliedApps = useMemo(() =>
     appliedApps.filter((a) => {

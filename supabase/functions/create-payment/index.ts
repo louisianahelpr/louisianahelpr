@@ -54,6 +54,11 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
+      // Idempotency: if payment is already in progress or paid, don't create another session
+      if (job.stripe_session_id && job.payment_status && job.payment_status !== "unpaid") {
+        throw new Error("Payment has already been initiated for this job. If you need to retry, please cancel the existing payment first.");
+      }
+
       const { data: settings } = await supabaseAdmin
         .from("platform_settings").select("platform_fee_percent").limit(1).single();
       const feePercent = settings?.platform_fee_percent ?? 2;

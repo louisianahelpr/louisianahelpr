@@ -206,6 +206,10 @@ const Admin = () => {
       badgeColor: "bg-accent/10 text-accent-foreground",
     },
     {
+      id: "referrals", label: "Referrals", description: "Codes, credits & payout tracking",
+      icon: <Gift className="w-5 h-5" />,
+    },
+    {
       id: "settings", label: "Settings", description: "Platform configuration",
       icon: <Settings className="w-5 h-5" />,
     },

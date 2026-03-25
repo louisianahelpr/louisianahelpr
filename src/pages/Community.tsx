@@ -74,14 +74,14 @@ const Community = () => {
       {/* Hero */}
       <section className="py-16 px-4 bg-gradient-to-b from-primary/8 to-background">
         <div className="container mx-auto max-w-3xl text-center">
-          <div className="flex justify-start mb-4">
-            <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="rounded-xl gap-1.5 text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
-          </div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <Heart className="w-4 h-4 fill-primary" /> Our Community
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-xl h-9 w-9 shrink-0 absolute left-4 md:relative md:left-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                <Heart className="w-4 h-4 fill-primary" /> Our Community
+              </div>
             </div>
             <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground leading-tight">
               Built by People.<br />Powered by Heart.

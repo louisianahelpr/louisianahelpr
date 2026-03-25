@@ -136,6 +136,17 @@ Deno.serve(async (req) => {
     const { html, text } = renderNotificationEmail(title, message, link, profile.full_name || '')
     const messageId = crypto.randomUUID()
 
+    // Enqueue via pgmq for retry safety instead of sending directly
+    const emailPayload = {
+      to: profile.email,
+      from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+      subject: title,
+      html,
+      text,
+      message_id: messageId,
+      template_name: `notification_${type}`,
+    }
+
     await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: `notification_${type}`,
@@ -144,24 +155,34 @@ Deno.serve(async (req) => {
     })
 
     try {
-      await sendWithResend(resendApiKey, {
-        to: profile.email,
-        from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
-        subject: title,
-        html,
-        text,
+      await supabase.rpc('enqueue_email', {
+        queue_name: 'transactional_emails',
+        payload: emailPayload,
       })
+      console.log(`Notification email enqueued for ${profile.email}: ${title}`)
+    } catch (enqueueErr) {
+      const errMsg = enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr)
+      console.error('Failed to enqueue notification email, falling back to direct send:', errMsg)
 
-      await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
-      console.log(`Notification email sent to ${profile.email}: ${title}`)
-    } catch (sendErr) {
-      const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
-      console.error('Notification email failed:', errMsg)
-
-      await supabase.from('email_send_log').update({
-        status: 'failed',
-        error_message: errMsg,
-      }).eq('message_id', messageId)
+      // Fallback: send directly if queue fails
+      try {
+        await sendWithResend(resendApiKey, {
+          to: profile.email,
+          from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+          subject: title,
+          html,
+          text,
+        })
+        await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
+        console.log(`Notification email sent directly to ${profile.email}: ${title}`)
+      } catch (sendErr) {
+        const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+        console.error('Notification email failed:', sendErrMsg)
+        await supabase.from('email_send_log').update({
+          status: 'failed',
+          error_message: sendErrMsg,
+        }).eq('message_id', messageId)
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {

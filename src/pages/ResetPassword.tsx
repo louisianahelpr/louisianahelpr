@@ -87,8 +87,9 @@ const ResetPassword = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
               />
+              <p className="text-xs text-muted-foreground">At least 8 characters, 1 uppercase, 1 number</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirm password</Label>
@@ -99,7 +100,7 @@ const ResetPassword = () => {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>

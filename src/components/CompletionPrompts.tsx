@@ -38,7 +38,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
 
   const submitReview = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
-    if (feedback.trim().length > 0 && feedback.trim().length < 10) { toast.error("Feedback must be at least 10 characters"); return; }
+    if (feedback.trim().length < 10) { toast.error("Feedback must be at least 10 characters"); return; }
     setSaving(true);
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,

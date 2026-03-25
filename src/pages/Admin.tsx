@@ -163,6 +163,7 @@ const Admin = () => {
           {view === "reports" && <AdminReports />}
           {view === "support" && <AdminSupport />}
           {view === "referrals" && <AdminReferrals />}
+          {view === "subscriptions" && <AdminSubscriptions />}
         </div>
       </div>
     );

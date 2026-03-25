@@ -456,7 +456,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
           <StatCard label="Support Tickets" value={v(stats.supportTickets)} icon={Headphones} onClick={() => onNavigate("support")} />
           <StatCard label="Active Disputes" value={v(stats.disputedJobs)} icon={ShieldAlert} onClick={() => onNavigate("disputes")} />
           <StatCard label="Active Jobs" value={v(stats.activeJobs)} icon={Briefcase} onClick={() => onNavigate("jobs")} />
-          <StatCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} onClick={() => onNavigate("analytics")} />
+          
           <StatCard label="Platform Revenue" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />
         </div>
       </div>

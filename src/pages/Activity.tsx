@@ -197,11 +197,40 @@ const Activity = () => {
       if (isHelper) {
         const job = appliedApps.find(a => a.job_id === jobId)?.job;
         if (job) {
+          // GPS proximity check with photo fallback
           const proximity = await checkProximity((job as any).latitude, (job as any).longitude);
           if (!proximity.allowed) {
-            const miles = ((proximity.distance || 0) / 5280).toFixed(1);
-            toast.error(`You must be within 500ft of the job site to mark complete. You're ~${miles} miles away.`, { duration: 6000 });
-            return;
+            // Check if helper has a verified arrival check-in (GPS or photo fallback)
+            const { data: arrivalCheckins } = await supabase
+              .from("job_checkins")
+              .select("id")
+              .eq("job_id", jobId)
+              .eq("user_id", user!.id)
+              .in("type", ["arrival", "arrival_photo"])
+              .limit(1);
+
+            if (!arrivalCheckins?.length) {
+              const miles = ((proximity.distance || 0) / 5280).toFixed(1);
+              toast.error(
+                `You must be within 500ft of the job site or have a verified arrival check-in. You're ~${miles} miles away. If your GPS is off, use the "Check In with Photo" option.`,
+                { duration: 8000 }
+              );
+              return;
+            }
+          }
+
+          // Require after-photos for jobs $50+
+          if (job.budget >= 50) {
+            const { data: jobData } = await supabase
+              .from("jobs")
+              .select("proof_after_urls")
+              .eq("id", jobId)
+              .single();
+            const afterPhotos = (jobData as any)?.proof_after_urls || [];
+            if (afterPhotos.length === 0) {
+              toast.error("After-photos are required for jobs $50+. Please upload proof photos before marking complete.", { duration: 6000 });
+              return;
+            }
           }
         }
       }

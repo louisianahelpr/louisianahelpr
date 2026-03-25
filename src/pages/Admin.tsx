@@ -63,6 +63,17 @@ const Admin = () => {
   useEffect(() => {
     if (loading) return;
     loadStats();
+
+    // Realtime subscription for admin dashboard
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => loadStats())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [loading]);
 
   // Refresh stats when returning to the home view

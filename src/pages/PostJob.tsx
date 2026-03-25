@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { categoryPricing } from "@/lib/pricingGuide";
+import { compressImage } from "@/lib/imageCompression";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },

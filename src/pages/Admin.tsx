@@ -235,13 +235,21 @@ const Admin = () => {
 
   const quickActions: { id: View; label: string; description: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[] = [
     {
+      id: "people", label: "Users", description: "Manage accounts & approvals",
+      icon: <Users className="w-5 h-5" />,
+      badge: (unreadCounts.people || 0) > 0 ? unreadCounts.people : (stats.pendingApprovals > 0 ? stats.pendingApprovals : undefined),
+      badgeColor: "bg-accent/10 text-accent-foreground",
+    },
+    {
       id: "jobs", label: "Jobs", description: "All tasks & listings",
       icon: <Briefcase className="w-5 h-5" />,
+      badge: unreadCounts.jobs || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "disputes", label: "Disputes", description: "Review disputed jobs & payments",
       icon: <ShieldAlert className="w-5 h-5" />,
-      badge: stats.disputedJobs > 0 ? stats.disputedJobs : undefined,
+      badge: (unreadCounts.disputes || 0) > 0 ? unreadCounts.disputes : (stats.disputedJobs > 0 ? stats.disputedJobs : undefined),
       badgeColor: "bg-destructive/10 text-destructive",
     },
     {
@@ -251,11 +259,13 @@ const Admin = () => {
     {
       id: "reviews", label: "Reviews", description: "Ratings & feedback",
       icon: <ClipboardCheck className="w-5 h-5" />,
+      badge: unreadCounts.reviews || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "reports", label: "Reports", description: "User & content reports",
       icon: <AlertTriangle className="w-5 h-5" />,
-      badge: stats.openReports > 0 ? stats.openReports : undefined,
+      badge: (unreadCounts.reports || 0) > 0 ? unreadCounts.reports : (stats.openReports > 0 ? stats.openReports : undefined),
       badgeColor: "bg-destructive/10 text-destructive",
     },
     {
@@ -269,16 +279,20 @@ const Admin = () => {
     {
       id: "support", label: "Support Tickets", description: "Messages, suggestions & help requests",
       icon: <Headphones className="w-5 h-5" />,
-      badge: stats.supportTickets > 0 ? stats.supportTickets : undefined,
+      badge: (unreadCounts.support || 0) > 0 ? unreadCounts.support : (stats.supportTickets > 0 ? stats.supportTickets : undefined),
       badgeColor: "bg-accent/10 text-accent-foreground",
     },
     {
       id: "subscriptions", label: "Subscriptions", description: "Active tiers, expiry & purchase tracking",
       icon: <Crown className="w-5 h-5" />,
+      badge: unreadCounts.subscriptions || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "referrals", label: "Referrals", description: "Codes, credits & payout tracking",
       icon: <Gift className="w-5 h-5" />,
+      badge: unreadCounts.referrals || undefined,
+      badgeColor: "bg-primary/10 text-primary",
     },
     {
       id: "settings", label: "Settings", description: "Platform configuration",

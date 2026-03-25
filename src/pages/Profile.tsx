@@ -63,13 +63,14 @@ const ProfilePage = () => {
 
   // Sync tab to URL for bookmarkability and browser back
   useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
     if (tab === "landing") {
-      searchParams.delete("tab");
+      newParams.delete("tab");
     } else {
-      searchParams.set("tab", tab);
+      newParams.set("tab", tab);
     }
-    const newUrl = searchParams.toString() ? `?${searchParams.toString()}` : window.location.pathname;
-    window.history.replaceState(null, "", newUrl);
+    const newUrl = newParams.toString() ? `?${newParams.toString()}` : window.location.pathname;
+    window.history.pushState(null, "", newUrl);
   }, [tab]);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);

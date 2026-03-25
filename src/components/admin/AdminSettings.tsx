@@ -123,6 +123,7 @@ const AdminSettings = () => {
       else toast.error(error.message);
     } else {
       toast.success(`${formatName(profile.full_name)} added as admin`);
+      await logAdminAction("add_admin", "user", profile.user_id, { name: profile.full_name });
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
     }

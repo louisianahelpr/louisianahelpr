@@ -154,6 +154,9 @@ Deno.serve(async (_req) => {
       .not('email', 'is', null)
 
     for (const user of dripUsers || []) {
+      // Skip suppressed emails
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+
       const signupDate = new Date(user.created_at)
       const daysSinceSignup = (now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24)
 

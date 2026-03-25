@@ -496,9 +496,16 @@ const Messages = () => {
               <div className="flex-1 overflow-y-auto space-y-3 py-4" ref={chatContainerRef}>
                 {hasMoreMessages && (
                   <div className="text-center py-2">
-                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50">
+                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
+                      {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                       {loadingMore ? "Loading…" : "Load earlier messages"}
                     </button>
+                  </div>
+                )}
+                {messages.length === 0 && (
+                  <div className="text-center py-12 space-y-2">
+                    <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                    <p className="text-sm text-muted-foreground">No messages yet. Say hello!</p>
                   </div>
                 )}
                 {messages.map((m) => (

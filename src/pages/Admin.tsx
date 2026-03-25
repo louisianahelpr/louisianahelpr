@@ -79,6 +79,9 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "System",
     items: [
       { id: "settings", label: "Settings", icon: Settings },
+      { id: "audit", label: "Audit Log", icon: ClipboardCheck },
+      { id: "health", label: "Health", icon: Activity },
+      { id: "export", label: "Export", icon: DollarSign },
     ],
   },
 ];

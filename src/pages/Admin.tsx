@@ -17,8 +17,9 @@ import AdminNotifications from "@/components/admin/AdminNotifications";
 import AdminReports from "@/components/admin/AdminReports";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminReferrals from "@/components/admin/AdminReferrals";
+import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals";
+type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions";
 
 const Admin = () => {
   const { loading } = useAdminAuth();

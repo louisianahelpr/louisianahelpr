@@ -37,16 +37,33 @@ const AdminDisputes = () => {
       .order("disputed_at" as any, { ascending: false });
 
     const jobs = (data || []) as unknown as DisputedJob[];
-    setDisputes(jobs);
 
-    // Load profile names
+    // Load profile names and subscription tiers for priority sorting
     const userIds = [...new Set(jobs.flatMap(j => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]))];
+    const tierMap: Record<string, string | null> = {};
     if (userIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
       const map: Record<string, string> = {};
-      profs?.forEach(p => { map[p.user_id] = formatName(p.full_name); });
+      profs?.forEach(p => {
+        map[p.user_id] = formatName(p.full_name);
+        tierMap[p.user_id] = p.subscription_tier;
+      });
       setProfiles(map);
     }
+
+    // Priority Dispute Resolution: Elite subscribers' disputes appear first
+    const tierOrder = (uid: string | null) => {
+      if (!uid) return 0;
+      const t = tierMap[uid];
+      return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
+    };
+    const sorted = jobs.sort((a, b) => {
+      const aMax = Math.max(tierOrder(a.customer_id), tierOrder(a.helper_id));
+      const bMax = Math.max(tierOrder(b.customer_id), tierOrder(b.helper_id));
+      return bMax - aMax;
+    });
+
+    setDisputes(sorted);
     setLoading(false);
   };
 

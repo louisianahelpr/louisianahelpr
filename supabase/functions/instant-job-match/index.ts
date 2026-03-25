@@ -51,12 +51,13 @@ Deno.serve(async (req) => {
       throw new Error("Not authorized to trigger match for this job");
     }
 
-    // Find approved helpers matching by location or category/skills
+    // Auto-Match Jobs: Only notify Elite subscribers
     const { data: helpers, error: helpersError } = await supabase
       .from("profiles")
-      .select("user_id, full_name, skills, location")
+      .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at")
       .eq("role", "helper")
       .eq("approval_status", "approved")
+      .eq("subscription_tier", "elite")
       .neq("user_id", job.customer_id);
 
     if (helpersError) throw helpersError;

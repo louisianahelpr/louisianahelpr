@@ -691,6 +691,7 @@ const ProfilePage = () => {
                       />
                     </label>
                   </div>
+                  )}
                 </div>
 
                 <Button type="submit" className="w-full" size="lg" disabled={saving}>

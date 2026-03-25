@@ -57,15 +57,10 @@ const HelperSpotlightSection = () => {
         };
       });
 
-      // Sort: Elite subscribers first, then by reputation score
+      // Landing Page Spotlight: Only show Elite subscribers
       const top = enriched
-        .filter(h => h.reviewCount > 0)
-        .sort((a, b) => {
-          const tierOrder = (t: string | null) => t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
-          const tierDiff = tierOrder(b.subscription_tier) - tierOrder(a.subscription_tier);
-          if (tierDiff !== 0) return tierDiff;
-          return (b.avgRating * b.reviewCount) - (a.avgRating * a.reviewCount);
-        })
+        .filter(h => h.subscription_tier === "elite" && h.reviewCount > 0)
+        .sort((a, b) => (b.avgRating * b.reviewCount) - (a.avgRating * a.reviewCount))
         .slice(0, 3);
 
       setHelpers(top);

@@ -53,8 +53,8 @@ const TermsOfService = () => {
             </h2>
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 text-sm text-muted-foreground">
               <div>
-                <p className="font-semibold text-foreground mb-1">Escrow System</p>
-                <p>All payments use a Stripe escrow system with manual capture. Funds are authorized at booking and only captured once both parties confirm job completion. A Stripe transfer is then initiated to the helpr's connected account.</p>
+                <p className="font-semibold text-foreground mb-1">Payment System</p>
+                <p>All payments are processed immediately via Stripe at the time of booking. Funds are charged to the customer upfront and held by the platform. A Stripe transfer to the helpr's connected account is initiated only after both parties confirm job completion. Refunds are issued if a job is cancelled before completion.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Platform Fee</p>

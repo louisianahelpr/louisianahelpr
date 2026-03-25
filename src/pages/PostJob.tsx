@@ -867,7 +867,7 @@ const PostJob = () => {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">Secure Payment</p>
-                    <p className="text-xs text-muted-foreground">Your payment is processed securely via Stripe. Payouts to the helpr are held until both parties confirm job completion.</p>
+                    <p className="text-xs text-muted-foreground">Your payment is processed securely via Stripe. The helpr is paid only after both parties confirm job completion.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

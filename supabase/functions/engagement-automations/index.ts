@@ -317,6 +317,9 @@ Deno.serve(async (_req) => {
       .not('email', 'is', null)
 
     for (const user of inactiveUsers || []) {
+      // Skip suppressed emails
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+
       // Only send re-engagement once every 14 days
       if (user.last_drip_at) {
         const daysSinceLastEmail = (now.getTime() - new Date(user.last_drip_at).getTime()) / (1000 * 60 * 60 * 24)

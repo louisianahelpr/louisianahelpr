@@ -36,8 +36,16 @@ const ResetPassword = () => {
       toast.error("Passwords don't match");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      toast.error("Password must contain at least one uppercase letter");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      toast.error("Password must contain at least one number");
       return;
     }
     setLoading(true);
@@ -79,8 +87,9 @@ const ResetPassword = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
               />
+              <p className="text-xs text-muted-foreground">At least 8 characters, 1 uppercase, 1 number</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirm password</Label>
@@ -91,7 +100,7 @@ const ResetPassword = () => {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>

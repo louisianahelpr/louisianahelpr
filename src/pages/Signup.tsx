@@ -107,7 +107,9 @@ const Signup = () => {
     if (!fullName.trim()) { toast.error("Full name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
-    if (password.length < 6) { toast.error("Password must be at least 6 characters"); return false; }
+    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
+    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
+    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
     if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
     if (!phone.trim()) { toast.error("Phone number is required"); return false; }
     if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
@@ -304,7 +306,7 @@ const Signup = () => {
             <div className="space-y-2">
               <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -313,7 +315,7 @@ const Signup = () => {
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10" />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="pr-10" />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

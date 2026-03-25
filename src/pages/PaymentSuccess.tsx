@@ -15,14 +15,22 @@ const PaymentSuccess = () => {
   useEffect(() => {
     if (jobId) {
       setSaving(true);
-      // Retrieve the checkout session's payment intent and store it, then mark in_progress
       (async () => {
         try {
-          // Mark payment as escrow since Stripe checkout succeeded
-          await supabase
+          // Verify the user owns this job before updating
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) {
+            console.error("Not authenticated");
+            setSaving(false);
+            return;
+          }
+          // RLS ensures only the job owner can update, but explicitly filter
+          const { error } = await supabase
             .from("jobs")
             .update({ payment_status: "escrow" })
-            .eq("id", jobId);
+            .eq("id", jobId)
+            .eq("customer_id", session.user.id);
+          if (error) console.error("Post-payment update error:", error);
         } catch (e) {
           console.error("Post-payment update error:", e);
         } finally {

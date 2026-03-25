@@ -38,7 +38,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
 
   const submitReview = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
-    if (feedback.trim().length > 0 && feedback.trim().length < 10) { toast.error("Feedback must be at least 10 characters"); return; }
+    if (feedback.trim().length < 10) { toast.error("Feedback must be at least 10 characters"); return; }
     setSaving(true);
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
@@ -112,14 +112,17 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 </button>
               ))}
             </div>
-            <Textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Share your experience (at least 10 characters)…" rows={3} />
+            <Textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Share your experience (required, at least 10 characters)…" rows={3} />
             {feedback.trim().length > 0 && feedback.trim().length < 10 && (
               <p className="text-xs text-destructive">Feedback must be at least 10 characters ({feedback.trim().length}/10)</p>
+            )}
+            {feedback.trim().length === 0 && (
+              <p className="text-xs text-muted-foreground">A review comment is required</p>
             )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setStep("tip")}>Skip</Button>
-            <Button onClick={submitReview} disabled={saving || rating === 0}>
+            <Button onClick={submitReview} disabled={saving || rating === 0 || feedback.trim().length < 10}>
               {saving ? "Submitting…" : "Submit Review"}
             </Button>
           </DialogFooter>

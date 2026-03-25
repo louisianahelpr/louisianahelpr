@@ -146,18 +146,19 @@ const Activity = () => {
       const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
       const priorCount = existing?.length || 0;
       let actionTaken = "none";
-      if (priorCount >= 2) actionTaken = "permanent_ban";
-      else if (priorCount >= 1) actionTaken = "warning";
+      // Softened: 5 strikes with graduated warnings before ban
+      if (priorCount >= 4) actionTaken = "permanent_ban";
+      else if (priorCount >= 2) actionTaken = "warning";
       await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
-        await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/2)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. One more decline will result in a permanent ban.`, type: "warning", link: "/profile" });
-        toast.warning(`Warning ${warningNum}/2: You've declined a job offer. A 3rd decline will result in a permanent ban.`);
+        await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
+        toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
-        await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 3 job offers after being selected", banned_by: user.id });
+        await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
-        toast.error("Your account has been permanently banned due to 3 job offer declines.");
+        toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");

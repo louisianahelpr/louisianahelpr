@@ -147,6 +147,7 @@ const AdminSettings = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`${admin.name} removed from admins`);
+      await logAdminAction("remove_admin", "user", admin.user_id, { name: admin.name });
       await loadAdmins();
     }
     setRemoving(null);

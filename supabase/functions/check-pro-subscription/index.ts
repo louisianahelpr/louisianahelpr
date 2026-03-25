@@ -16,6 +16,10 @@ const PRODUCT_TO_TIER: Record<string, string> = {
   "prod_U8rTux09RGNWWd": "basic",
   "prod_U8rTiOIcITvnIT": "pro",
   "prod_U8rT5zWKWe29By": "elite",
+  // One-time month pass
+  "prod_U8rTPMHf6IQnGE": "basic",
+  "prod_U8rThLQr2jThoM": "pro",
+  "prod_U8rT0f4UtNPrrs": "elite",
 };
 
 serve(async (req) => {

@@ -23,7 +23,7 @@ serve(async (req) => {
   });
 
   try {
-    const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")

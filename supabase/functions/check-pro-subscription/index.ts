@@ -85,7 +85,7 @@ serve(async (req) => {
     }
 
     // No active sub — clear tier from profile
-    await supabaseClient.from("profiles").update({ subscription_tier: null }).eq("email", user.email);
+    await supabaseAdmin.from("profiles").update({ subscription_tier: null }).eq("email", user.email);
 
     return new Response(JSON.stringify({ subscribed: false, tier: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

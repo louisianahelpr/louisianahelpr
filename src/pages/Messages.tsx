@@ -434,6 +434,7 @@ const Messages = () => {
                     </button>
                   </div>
                 )}
+                {messages.map((m) => (
                   <div key={m.id} className={`flex ${m.sender_id === userId ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative ${

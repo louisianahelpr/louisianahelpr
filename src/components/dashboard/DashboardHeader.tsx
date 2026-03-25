@@ -13,6 +13,7 @@ interface DashboardHeaderProps {
   showBack?: boolean;
   onBack?: () => void;
   title?: string;
+  onMenuClick?: () => void;
 }
 
 const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {

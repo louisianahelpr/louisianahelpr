@@ -32,7 +32,7 @@ export function useDashboardData() {
           .eq("status", "open")
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(0, 199),
+          .range(0, 499),
         supabase.from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle(),
         supabase
           .from("helper_availability")

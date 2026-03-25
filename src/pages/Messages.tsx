@@ -470,7 +470,7 @@ const Messages = () => {
               </div>
 
               {/* Rich message input */}
-              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background">
+              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
                 <RichMessageInput
                   onSend={sendMessage}
                   onTyping={broadcastTyping}

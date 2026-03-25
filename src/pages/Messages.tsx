@@ -5,7 +5,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";

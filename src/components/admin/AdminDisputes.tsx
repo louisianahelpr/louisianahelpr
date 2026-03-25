@@ -120,14 +120,9 @@ const AdminDisputes = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground">{job.title}</h3>
-                {(() => {
-                  const participants = [job.customer_id, job.helper_id].filter(Boolean) as string[];
-                  const hasElite = participants.some(id => {
-                    const { data: prof } = { data: null }; // already loaded
-                    return false; // We use inline check below
-                  });
-                  return null;
-                })()}
+                {[job.customer_id, job.helper_id].some(id => id && tiers[id] === "elite") && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">${job.budget}</p>
               <p className="text-xs text-muted-foreground mt-1">

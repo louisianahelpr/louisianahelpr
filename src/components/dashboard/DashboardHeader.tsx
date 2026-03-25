@@ -16,7 +16,7 @@ interface DashboardHeaderProps {
   onMenuClick?: () => void;
 }
 
-const DashboardHeader = ({ showBack, onBack, title }: DashboardHeaderProps) => {
+const DashboardHeader = ({ showBack, onBack, title, onMenuClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { isAdmin } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);

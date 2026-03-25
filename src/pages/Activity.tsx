@@ -48,7 +48,7 @@ import {
 
 // Constants moved to activityConstants.ts
 
-type Tab = "posted" | "applied";
+// Tab type imported from activityConstants
 
 const Activity = () => {
   usePageTitle("My Activity — Helpr");

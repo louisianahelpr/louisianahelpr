@@ -179,18 +179,21 @@ const ProfilePage = () => {
   };
 
   const loadStats = async (userId: string) => {
-    const [helperJobsRes, reviewsRes, postedRes] = await Promise.all([
+    const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes] = await Promise.all([
       supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
+      supabase.from("tips").select("amount").eq("helper_id", userId).eq("payment_status", "paid"),
     ]);
     if (helperJobsRes.data) {
       setCompletedCount(helperJobsRes.data.length);
-      setTotalEarned(helperJobsRes.data.reduce((s, j) => {
+      const jobEarnings = helperJobsRes.data.reduce((s, j) => {
         const fee = j.platform_fee_amount || 0;
         const feeTax = fee * 0.085;
         return s + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
-      }, 0));
+      }, 0);
+      const tipEarnings = (tipsStatsRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
+      setTotalEarned(jobEarnings + tipEarnings);
     }
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
@@ -483,7 +486,7 @@ const ProfilePage = () => {
                 <button onClick={() => { loadEarnings(); setTab("earnings"); }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
                   <div className="flex items-center justify-center gap-1">
                     <DollarSign className="w-3.5 h-3.5 text-primary" />
-                    <p className="text-lg font-bold text-foreground">{totalEarned > 0 ? `${totalEarned.toFixed(0)}` : "—"}</p>
+                    <p className="text-lg font-bold text-foreground">{totalEarned > 0 ? `$${totalEarned.toFixed(2)}` : "—"}</p>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Earnings</p>
                 </button>

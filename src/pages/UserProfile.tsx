@@ -57,9 +57,6 @@ const UserProfile = () => {
         supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
-        session?.user
-          ? supabase.from("favorite_helpers").select("id").eq("customer_id", session.user.id).eq("helper_id", userId)
-          : Promise.resolve({ data: [] }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId),

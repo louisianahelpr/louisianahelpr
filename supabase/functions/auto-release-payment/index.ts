@@ -93,7 +93,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job auto-completed!",
-          message: `"${job.title}" was auto-completed after 72 hours. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
+          message: `"${job.title}" was auto-completed after 48 hours. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
           type: "payment", link: "/activity?tab=applied&filter=completed",
         });
       }

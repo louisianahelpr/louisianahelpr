@@ -91,7 +91,8 @@ const ProfilePage = () => {
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
   const [postedCount, setPostedCount] = useState(0);
-  const [totalEarned, setTotalEarned] = useState(0);
+  const [totalJobEarnings, setTotalJobEarnings] = useState(0);
+  const [totalTipEarnings, setTotalTipEarnings] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
 

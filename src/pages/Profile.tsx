@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatName } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -63,14 +64,26 @@ const ProfilePage = () => {
 
   // Sync tab to URL for bookmarkability and browser back
   useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
     if (tab === "landing") {
-      searchParams.delete("tab");
+      newParams.delete("tab");
     } else {
-      searchParams.set("tab", tab);
+      newParams.set("tab", tab);
     }
-    const newUrl = searchParams.toString() ? `?${searchParams.toString()}` : window.location.pathname;
-    window.history.replaceState(null, "", newUrl);
+    const newUrl = newParams.toString() ? `?${newParams.toString()}` : window.location.pathname;
+    window.history.pushState(null, "", newUrl);
   }, [tab]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get("tab") as Tab | null;
+      setTab(urlTab || "landing");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
   const [stripeOnboarding, setStripeOnboarding] = useState(false);
@@ -167,13 +180,17 @@ const ProfilePage = () => {
 
   const loadStats = async (userId: string) => {
     const [helperJobsRes, reviewsRes, postedRes] = await Promise.all([
-      supabase.from("jobs").select("budget, platform_fee_amount").eq("helper_id", userId).eq("status", "completed"),
+      supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
     ]);
     if (helperJobsRes.data) {
       setCompletedCount(helperJobsRes.data.length);
-      setTotalEarned(helperJobsRes.data.reduce((s, j) => s + (j.budget - (j.platform_fee_amount || 0)), 0));
+      setTotalEarned(helperJobsRes.data.reduce((s, j) => {
+        const fee = j.platform_fee_amount || 0;
+        const feeTax = fee * 0.085;
+        return s + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+      }, 0));
     }
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
@@ -339,6 +356,7 @@ const ProfilePage = () => {
     setAvatarUploading(false);
   };
 
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
 
   if (loading) {
@@ -361,7 +379,11 @@ const ProfilePage = () => {
 
   const role = profile?.role || "customer";
   const initials = (profile?.full_name || user?.email || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-  const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => sum + (j.budget - (j.platform_fee_amount || 0)), 0);
+  const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
+    const fee = j.platform_fee_amount || 0;
+    const feeTax = fee * 0.085;
+    return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+  }, 0);
 
   const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] }[] = [
     {
@@ -403,8 +425,10 @@ const ProfilePage = () => {
             <div className="space-y-5">
               {/* Profile header card */}
               <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
-                  {initials}
+                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : initials}
                 </div>
                 <div>
                   <h1 className="text-xl font-display font-bold text-foreground">{profile?.full_name || "Set up your profile"}</h1>
@@ -493,7 +517,7 @@ const ProfilePage = () => {
               </div>
 
               {/* Logout */}
-              <Button variant="outline" className="w-full" onClick={handleLogout}>
+              <Button variant="outline" className="w-full" onClick={() => setShowLogoutDialog(true)}>
                 <LogOut className="w-4 h-4 mr-2" /> Sign out
               </Button>
             </div>
@@ -870,6 +894,19 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
+
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out?</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

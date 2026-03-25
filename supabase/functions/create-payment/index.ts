@@ -60,7 +60,8 @@ serve(async (req) => {
 
       const feeAmount = (job.budget * feePercent) / 100;
       const feeTax = feeAmount * 0.085;
-      const totalDeduction = feeAmount + feeTax; // Platform fee + 8.5% tax on fee, deducted from helpr payout
+      // Store fee and tax separately on the job for accurate payout calculations
+      // platform_fee_amount = fee only (without tax), feeTax tracked via the percent
 
       const lineItems: any[] = [
         {
@@ -112,7 +113,7 @@ serve(async (req) => {
         stripe_session_id: session.id,
         payment_status: "escrow",
         platform_fee_percent: feePercent,
-        platform_fee_amount: totalDeduction,
+        platform_fee_amount: feeAmount,
       }).eq("id", jobId);
 
       return new Response(JSON.stringify({ url: session.url }), {
@@ -195,9 +196,10 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
-
-      // Notify the other party
+      // Calculate helper payout: budget - fee - feeTax + urgent_fee
+      const feeAmountCalc = job.platform_fee_amount || 0;
+      const feeTaxCalc = feeAmountCalc * 0.085;
+      const helperPayout = job.budget - feeAmountCalc - feeTaxCalc + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
@@ -216,8 +218,6 @@ serve(async (req) => {
       }
 
       if (bothDone) {
-        const urgentFee = job.urgent_fee ?? 0;
-        const helperPayout = job.budget - (job.platform_fee_amount || 0) + urgentFee;
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
@@ -237,7 +237,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true, bothDone,
         helperPayout: bothDone ? helperPayout : 0,
-        platformFee: bothDone ? job.platform_fee_amount : 0,
+        platformFee: bothDone ? (job.platform_fee_amount || 0) : 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });

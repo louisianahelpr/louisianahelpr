@@ -71,17 +71,16 @@ const Messages = () => {
     }
   }, [cachedUser]);
 
+  // Fallback auth check only if useCurrentUser hasn't loaded yet
   useEffect(() => {
-    if (userId) return; // already seeded from cache
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
-      setUserId(user.id);
-      await loadConversations(user.id);
-    };
-    init();
-  }, []);
+    if (userId || cachedUser) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        loadConversations(session.user.id);
+      }
+    });
+  }, [userId, cachedUser]);
 
   const CONVO_LIMIT = 50;
 
@@ -471,7 +470,7 @@ const Messages = () => {
               </div>
 
               {/* Rich message input */}
-              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background">
+              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
                 <RichMessageInput
                   onSend={sendMessage}
                   onTyping={broadcastTyping}

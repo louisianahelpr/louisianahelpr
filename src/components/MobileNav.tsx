@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -16,6 +17,7 @@ const rightItems = [
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
@@ -23,7 +25,6 @@ const MobileNav = () => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadUnread = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { count } = await supabase
@@ -75,7 +76,7 @@ const MobileNav = () => {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support"];
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;

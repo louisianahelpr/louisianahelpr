@@ -129,9 +129,9 @@ const PostJob = () => {
   const autoSave = useCallback(() => {
     const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration });
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded } as any);
     }
-  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);
@@ -216,6 +216,11 @@ const PostJob = () => {
     if (!addrState.trim()) { toast.error("State is required"); return; }
     if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
     if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    // Validate date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateNeeded + "T00:00:00");
+    if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
     if (!startTime) { toast.error("Start time is required"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
@@ -551,7 +556,7 @@ const PostJob = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
-                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} />
+                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} min={new Date().toISOString().split("T")[0]} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
@@ -586,8 +591,8 @@ const PostJob = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="requirements">Special requirements <span className="text-destructive">*</span></Label>
-                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc." rows={2} maxLength={500} required />
+                  <Label htmlFor="requirements">Special requirements</Label>
+                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
                 </div>
 
                 {/* Recurring Job */}
@@ -861,8 +866,8 @@ const PostJob = () => {
                     <Shield className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Secure Escrow Payment</p>
-                    <p className="text-xs text-muted-foreground">Your payment is held securely until the job is completed to your satisfaction.</p>
+                    <p className="text-sm font-semibold text-foreground">Secure Payment</p>
+                    <p className="text-xs text-muted-foreground">Your payment is processed securely via Stripe. Payouts to the helpr are held until both parties confirm job completion.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -885,7 +890,7 @@ const PostJob = () => {
                   className="mt-0.5"
                 />
                 <label htmlFor="confirm-details" className="text-sm text-foreground cursor-pointer leading-snug">
-                  I've reviewed all details above and confirm everything is correct. I understand my payment will be held in escrow until the job is completed.
+                  I've reviewed all details above and confirm everything is correct. I understand the helpr's payout will be released after both parties confirm job completion.
                 </label>
               </div>
 

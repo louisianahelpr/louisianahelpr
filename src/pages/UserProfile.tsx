@@ -51,7 +51,7 @@ const UserProfile = () => {
     const loadAll = async () => {
       setLoading(true);
 
-      // currentUserId is set from useCurrentUser hook below
+      
 
       // All independent queries in parallel
       const [profileRes, reviewsRes, completedRes, postedRes, workedRes, appsRes] = await Promise.all([

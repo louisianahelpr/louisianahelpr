@@ -195,7 +195,7 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      const helperPayout = job.budget - (job.platform_fee_amount || 0);
+      const helperPayout = job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee ?? 0);
 
       // Notify the other party
       if (isPoster && job.helper_id && !helperDone) {

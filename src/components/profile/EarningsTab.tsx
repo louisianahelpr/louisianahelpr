@@ -80,7 +80,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
             ) : (
               <div className="space-y-3">
                 {earningsJobs.map((job) => {
-                  const payout = job.status === "completed" ? job.budget - (job.platform_fee_amount || 0) + (job.urgent_fee || 0) : null;
+                  const fee = job.platform_fee_amount || 0;
+                  const feeTax = fee * 0.085;
+                  const payout = job.status === "completed" ? job.budget - fee - feeTax + (job.urgent_fee ?? 0) : null;
                   const jobTips = tips.filter((t) => t.job_id === job.id);
                   const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                   return (

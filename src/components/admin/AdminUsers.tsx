@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
+import { logAdminAction } from "@/lib/adminAudit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

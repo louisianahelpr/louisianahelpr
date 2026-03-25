@@ -82,9 +82,6 @@ const SupportPage = () => {
         <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="container mx-auto flex items-center h-16 px-4 gap-4">
             <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
           </div>
         </header>
         <main className="container mx-auto px-4 py-12">
@@ -109,9 +106,6 @@ const SupportPage = () => {
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
         </div>
       </header>
 

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { categories, type Job } from "./activityConstants";
 
@@ -26,6 +27,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [budget, setBudget] = useState(job?.budget.toString() || "");
   const [specialReq, setSpecialReq] = useState(job?.special_requirements || "");
   const [saving, setSaving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const save = async () => {
     if (!job) return;
@@ -44,6 +46,8 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     else { toast.success("Job updated!"); onSaved(); onClose(); }
   };
 
+  const handleSaveClick = () => setShowConfirm(true);
+
   if (!job) return null;
 
   const hasHelper = !!job.helper_id;
@@ -51,6 +55,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const locked = hasHelper || isPaid;
 
   return (
+    <>
     <Dialog open={!!job} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -110,9 +115,23 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={saving || hasHelper}>{saving ? "Saving…" : "Save changes"}</Button>
+          <Button onClick={handleSaveClick} disabled={saving || hasHelper}>{saving ? "Saving…" : "Save changes"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm Changes</AlertDialogTitle>
+          <AlertDialogDescription>Are you sure you want to save these changes to your job?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

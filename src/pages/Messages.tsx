@@ -396,7 +396,7 @@ const Messages = () => {
               )}
             </div>
           ) : (
-            <div className="flex flex-col h-[calc(100dvh-4rem)]">
+            <div className="flex flex-col h-[calc(100dvh-4rem)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
               {/* Chat header with back button and user info */}
               <div className="flex items-center gap-3 p-3 -mx-4 -mt-0 border-b border-border mb-3 bg-card">
                 <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0" onClick={() => { setActiveConvo(null); navigate("/messages", { replace: true }); }}>
@@ -471,7 +471,7 @@ const Messages = () => {
               </div>
 
               {/* Rich message input */}
-              <div className="pt-2 pb-3 border-t border-border">
+              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background">
                 <RichMessageInput
                   onSend={sendMessage}
                   onTyping={broadcastTyping}

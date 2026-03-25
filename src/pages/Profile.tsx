@@ -60,6 +60,17 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  // Sync tab to URL for bookmarkability and browser back
+  useEffect(() => {
+    if (tab === "landing") {
+      searchParams.delete("tab");
+    } else {
+      searchParams.set("tab", tab);
+    }
+    const newUrl = searchParams.toString() ? `?${searchParams.toString()}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [tab]);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
   const [stripeOnboarding, setStripeOnboarding] = useState(false);
@@ -137,23 +148,7 @@ const ProfilePage = () => {
     }
   }, [cachedUser, cachedProfile]);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) return;
-      setUser(session.user);
-      loadProfile(session.user.id);
-      loadStats(session.user.id);
-    });
-    if (!cachedUser) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session?.user) return;
-        setUser(session.user);
-        loadProfile(session.user.id);
-        loadStats(session.user.id);
-      });
-    }
-    return () => subscription.unsubscribe();
-  }, []);
+  // No separate auth listener needed — useCurrentUser handles it via React Query
 
   const loadProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();

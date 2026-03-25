@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
-import type { User as SupaUser } from "@supabase/supabase-js";
+import { Search } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -25,8 +26,8 @@ const Activity = () => {
   usePageTitle("My Activity — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user: cachedUser } = useCurrentUser();
-  const [user, setUser] = useState<SupaUser | null>(null);
+  const { user } = useCurrentUser();
+  const [searchQuery, setSearchQuery] = useState("");
   const [tab, setTab] = useState<Tab>(() => {
     const paramTab = searchParams.get("tab");
     return paramTab === "applied" ? "applied" : "posted";
@@ -37,25 +38,6 @@ const Activity = () => {
     const paramTab = searchParams.get("tab");
     return paramTab === "applied" ? "pending" : "open";
   });
-
-  // Seed from cache
-  useEffect(() => {
-    if (cachedUser && !user) setUser(cachedUser);
-  }, [cachedUser]);
-
-  useEffect(() => {
-    const init = async () => {
-      if (user) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      setUser(session.user);
-    };
-    init();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) setUser(session.user);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const {
     loading, postedJobs, appliedApps, applicantCounts,
@@ -164,18 +146,19 @@ const Activity = () => {
       const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
       const priorCount = existing?.length || 0;
       let actionTaken = "none";
-      if (priorCount >= 2) actionTaken = "permanent_ban";
-      else if (priorCount >= 1) actionTaken = "warning";
+      // Softened: 5 strikes with graduated warnings before ban
+      if (priorCount >= 4) actionTaken = "permanent_ban";
+      else if (priorCount >= 2) actionTaken = "warning";
       await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
         await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
-        await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/2)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. One more decline will result in a permanent ban.`, type: "warning", link: "/profile" });
-        toast.warning(`Warning ${warningNum}/2: You've declined a job offer. A 3rd decline will result in a permanent ban.`);
+        await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
+        toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
-        await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 3 job offers after being selected", banned_by: user.id });
+        await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
-        toast.error("Your account has been permanently banned due to 3 job offer declines.");
+        toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
@@ -374,24 +357,41 @@ const Activity = () => {
     { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
+  const searchLower = searchQuery.toLowerCase().trim();
+
   const filteredPostedJobs = useMemo(() =>
     postedJobs.filter((j) => {
-      if (statusFilter === "offered") return j.status === "accepted" && !(j as any).helper_confirmed_at;
-      if (statusFilter === "accepted") return j.status === "accepted" && !!(j as any).helper_confirmed_at;
-      return j.status === statusFilter;
-    }), [postedJobs, statusFilter]);
+      // Status filter
+      let statusMatch = false;
+      if (statusFilter === "offered") statusMatch = j.status === "accepted" && !(j as any).helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!(j as any).helper_confirmed_at;
+      else statusMatch = j.status === statusFilter;
+      if (!statusMatch) return false;
+      // Search filter
+      if (searchLower) {
+        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
+      }
+      return true;
+    }), [postedJobs, statusFilter, searchLower]);
 
-  const filteredAppliedApps = useMemo(() =>
-    appliedApps.filter((a) => {
-      if (statusFilter === "pending") return a.status === "pending" && a.job?.status !== "cancelled";
-      if (statusFilter === "offered") return a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
-      if (statusFilter === "accepted") return a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
-      if (statusFilter === "in_progress") return a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
-      if (statusFilter === "revision") return a.status === "accepted" && a.job?.status === "revision_requested";
-      if (statusFilter === "completed") return a.status === "accepted" && a.job?.status === "completed";
-      if (statusFilter === "not_selected") return a.status === "rejected" || a.job?.status === "cancelled";
-      return false;
-    }), [appliedApps, statusFilter]);
+  const filteredAppliedApps = useMemo(() => {
+    const query = searchLower;
+    return appliedApps.filter((a) => {
+      let statusMatch = false;
+      if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
+      else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
+      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
+      else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
+      else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
+      else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
+      if (!statusMatch) return false;
+      if (query && a.job) {
+        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || a.job.location.toLowerCase().includes(query);
+      }
+      return true;
+    });
+  }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
     const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
@@ -443,6 +443,17 @@ const Activity = () => {
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
           <h1 className="text-2xl font-display font-bold text-foreground">My Activity</h1>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search tasks by title, description, or location…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
+          </div>
 
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
             {tabs.map((t) => (

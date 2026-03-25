@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { categoryPricing } from "@/lib/pricingGuide";
+import { compressImage } from "@/lib/imageCompression";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -169,13 +170,15 @@ const PostJob = () => {
     }
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (imageFiles.length + files.length > 5) {
       toast.error("Maximum 5 images allowed");
       return;
     }
-    const newFiles = [...imageFiles, ...files].slice(0, 5);
+    // Compress images before storing
+    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+    const newFiles = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(newFiles);
     const previews = newFiles.map((f) => URL.createObjectURL(f));
     setImagePreviews(previews);

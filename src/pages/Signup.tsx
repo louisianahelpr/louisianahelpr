@@ -208,43 +208,9 @@ const Signup = () => {
         },
       });
 
-      // If user already exists, try to sign in and resubmit if denied
+      // If user already exists, check their status — don't auto-sign-in denied users
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (signInError) {
-          toast.error("An account with this email already exists. Please log in instead.");
-          setLoading(false);
-          return;
-        }
-
-        const userId = signInData.user?.id;
-        if (!userId) throw new Error("Login failed");
-
-        // Check if the account is denied
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("approval_status")
-          .eq("user_id", userId)
-          .single();
-
-        if (profile?.approval_status === "denied") {
-          // Resubmit with updated info
-          await completeProfile(userId);
-          toast.success("Your profile has been updated and resubmitted for review!");
-          navigate("/account-pending");
-        } else if (profile?.approval_status === "pending") {
-          toast.info("Your account is already pending review.");
-          navigate("/account-pending");
-        } else if (profile?.approval_status === "approved") {
-          toast.info("Your account is already approved!");
-          navigate("/dashboard");
-        } else {
-          toast.error("An account with this email already exists. Please log in instead.");
-        }
+        toast.error("An account with this email already exists. Please log in instead.");
         setLoading(false);
         return;
       }

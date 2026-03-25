@@ -132,22 +132,58 @@ const Messages = () => {
 
   const openConvo = async (convo: Conversation) => {
     setActiveConvo(convo);
+    setHasMoreMessages(false);
     navigate("/messages?chat=1", { replace: true });
     const { data } = await supabase
       .from("messages")
       .select("*")
       .eq("job_id", convo.jobId)
       .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
 
     if (data) {
-      setMessages(data);
+      const sorted = [...data].reverse();
+      setMessages(sorted);
+      setHasMoreMessages(data.length === CHAT_PAGE_SIZE);
       const unreadIds = data.filter((m) => m.receiver_id === userId && !m.read).map((m) => m.id);
       if (unreadIds.length > 0) {
         await supabase.from("messages").update({ read: true }).in("id", unreadIds);
       }
     }
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
+
+  const loadOlderMessages = async () => {
+    if (!activeConvo || !userId || loadingMore || messages.length === 0) return;
+    setLoadingMore(true);
+    const oldestMsg = messages[0];
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("job_id", activeConvo.jobId)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId})`)
+      .lt("created_at", oldestMsg.created_at)
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
+
+    if (data && data.length > 0) {
+      const sorted = [...data].reverse();
+      // Preserve scroll position
+      const container = chatContainerRef.current;
+      const scrollHeightBefore = container?.scrollHeight || 0;
+      setMessages((prev) => [...sorted, ...prev]);
+      setHasMoreMessages(data.length === CHAT_PAGE_SIZE);
+      // Restore scroll position after DOM update
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - scrollHeightBefore;
+        }
+      });
+    } else {
+      setHasMoreMessages(false);
+    }
+    setLoadingMore(false);
   };
 
   // Realtime subscription

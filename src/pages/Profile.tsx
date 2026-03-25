@@ -184,7 +184,7 @@ const ProfilePage = () => {
       supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
-      supabase.from("tips").select("amount").eq("helper_id", userId).eq("payment_status", "paid"),
+      supabase.from("tips").select("amount").eq("helper_id", userId),
     ]);
     if (helperJobsRes.data) {
       setCompletedCount(helperJobsRes.data.length);

@@ -130,8 +130,20 @@ export const PhotoProofGroup = ({
   const hasAfter = afterUrls.length > 0;
   const [viewOpen, setViewOpen] = useState(false);
 
-  // If no photos at all and can't upload, don't render
-  if (!hasBefore && !hasAfter && !canUpload) return null;
+  // If no photos at all and can't upload, show a minimal empty state
+  if (!hasBefore && !hasAfter && !canUpload) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
+        <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center gap-1.5">
+          <Image className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Photo Proof</span>
+        </div>
+        <div className="px-3 py-3">
+          <p className="text-xs text-muted-foreground/60 italic text-center">No photos were uploaded for this job</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">

@@ -151,10 +151,12 @@ const Messages = () => {
     setLoading(false);
 
     // Auto-open conversation from deep link
-    if (deepLinkJobId && deepLinkUserId) {
+    if (deepLinkJobId && deepLinkUserId && !deepLinkHandled.current) {
+      deepLinkHandled.current = true;
       const match = convos.find(c => c.jobId === deepLinkJobId && c.otherUserId === deepLinkUserId);
       if (match) {
-        openConvoRef.current?.(match);
+        setActiveConvo(match);
+        navigate("/messages?chat=1", { replace: true });
       } else {
         // No existing conversation — create a placeholder so user can start messaging
         const [profileRes, jobRes] = await Promise.all([
@@ -172,7 +174,8 @@ const Messages = () => {
           unread: 0,
         };
         setConversations(prev => [placeholder, ...prev]);
-        openConvoRef.current?.(placeholder);
+        setActiveConvo(placeholder);
+        navigate("/messages?chat=1", { replace: true });
       }
     }
   };

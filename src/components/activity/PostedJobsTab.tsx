@@ -125,7 +125,6 @@ export const PostedJobsTab = ({
                     <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-xs font-medium text-primary hover:underline">
                       {helperNames[job.helper_id] || "Helpr"}
                     </a>
-                    {job.status === "in_progress" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">In Progress</span>}
                     {job.status === "completed" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">Completed</span>}
                   </div>
                 )}

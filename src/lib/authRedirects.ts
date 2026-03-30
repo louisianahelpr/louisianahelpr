@@ -3,3 +3,7 @@ export const getPublicResetPasswordUrl = () => {
 
   return `${publishedUrl}/reset-password`;
 };
+
+export const getPublicSiteUrl = () => {
+  return "https://louisianahelpr.lovable.app";
+};

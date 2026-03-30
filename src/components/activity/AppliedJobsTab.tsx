@@ -103,6 +103,11 @@ export const AppliedJobsTab = ({
                   return (<span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}><Timer className="w-3 h-3 shrink-0" /> {expiryText}</span>);
                 })()}
               </div>
+              {app.posterName && (
+                <div className="text-xs text-muted-foreground">
+                  Posted by <a href={`/user/${app.job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
+                </div>
+              )}
             </div>
           )}
 

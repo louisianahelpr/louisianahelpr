@@ -77,8 +77,8 @@ const Login = () => {
         return;
       }
 
-      // Pre-populate the currentUser cache so ProtectedRoute sees the session immediately
-      await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      // Invalidate cache without awaiting - don't block navigation
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
 
       setLoading(false);
       toast.success("Welcome back!");

@@ -107,8 +107,8 @@ const UserProfile = () => {
 
       // Enrich reviews with names
       if (reviewsRes.data && reviewsRes.data.length > 0) {
-        const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
-        const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))];
+        const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
+        const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),

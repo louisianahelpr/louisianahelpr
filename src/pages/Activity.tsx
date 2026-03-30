@@ -379,6 +379,7 @@ const Activity = () => {
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "revision_requested", label: "Revision", color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "disputed", label: "Disputed", color: "bg-red-500/15 text-red-600 border-red-500/30" },
   ], []);
 
   const appliedStatusFilters = useMemo(() => [
@@ -442,7 +443,7 @@ const Activity = () => {
   }, [appliedApps]);
 
   const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = { open: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0 };
+    const counts: Record<string, number> = { open: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
     postedJobs.forEach((j) => {
       if (j.status === "accepted" && !(j as any).helper_confirmed_at) counts.offered++;
       else if (j.status === "accepted" && !!(j as any).helper_confirmed_at) counts.accepted++;

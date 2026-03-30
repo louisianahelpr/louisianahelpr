@@ -116,7 +116,7 @@ export const PostedJobsTab = ({
                 </div>
 
                 {/* Assigned helper display */}
-                {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed") && (
+                {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
                   <div className="flex items-center gap-2 py-1">
                     <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                       {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
@@ -126,6 +126,7 @@ export const PostedJobsTab = ({
                       {helperNames[job.helper_id] || "Helpr"}
                     </a>
                     {job.status === "completed" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">Completed</span>}
+                    {job.status === "disputed" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium">Disputed</span>}
                   </div>
                 )}
 
@@ -365,6 +366,16 @@ export const PostedJobsTab = ({
                         </div>
                       );
                     })()}
+                    {job.status === "disputed" && (
+                      <div className="space-y-2">
+                        <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                          <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute Under Review</p>
+                          <p className="text-xs text-muted-foreground mt-1">Payment is on hold. An admin will review and resolve this dispute.</p>
+                          {(job as any).dispute_reason && <p className="text-xs text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

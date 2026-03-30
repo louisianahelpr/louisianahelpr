@@ -38,13 +38,12 @@ export const useCurrentUser = (): CurrentUser => {
     gcTime: 10 * 60 * 1000,
   });
 
+  // Auth state changes are handled by useAuthReady; just invalidate the profile query when user changes
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      queryClient.setQueryData(["currentUser", session?.user?.id], (prev: { profile: Profile | null; isAdmin: boolean } | undefined) => prev);
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-    });
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
+    if (user) {
+      queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+    }
+  }, [user?.id, queryClient]);
 
   return {
     user,

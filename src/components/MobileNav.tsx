@@ -22,61 +22,44 @@ const MobileNav = () => {
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    if (!user) return;
 
-    const loadUnread = async () => {
-      if (!user) return;
-
-      const { count } = await supabase
+    const loadCounts = () => {
+      supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
-        .eq("read", false);
-      setUnreadCount(count || 0);
+        .eq("read", false)
+        .then(({ count }) => setUnreadCount(count || 0));
 
-      const { count: notifCount } = await supabase
+      supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .eq("read", false);
-      setUnreadNotifCount(notifCount || 0);
-
-      // Subscribe to new messages
-      channel = supabase
-        .channel("unread-messages-nav")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
-          () => {
-            supabase
-              .from("messages")
-              .select("*", { count: "exact", head: true })
-              .eq("receiver_id", user.id)
-              .eq("read", false)
-              .then(({ count }) => setUnreadCount(count || 0));
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-          () => {
-            supabase
-              .from("notifications")
-              .select("*", { count: "exact", head: true })
-              .eq("user_id", user.id)
-              .eq("read", false)
-              .then(({ count }) => setUnreadNotifCount(count || 0));
-          }
-        )
-        .subscribe();
+        .eq("read", false)
+        .then(({ count }) => setUnreadNotifCount(count || 0));
     };
 
-    loadUnread();
+    loadCounts();
+
+    const channel = supabase
+      .channel(`unread-nav-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => loadCounts()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => loadCounts()
+      )
+      .subscribe();
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
 
   const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/my-jobs", "/job-history"];
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-pending", "/account-denied"];

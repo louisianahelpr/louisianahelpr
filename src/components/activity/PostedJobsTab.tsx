@@ -195,10 +195,31 @@ export const PostedJobsTab = ({
                 )}
 
                 {/* Revision notice */}
-                {job.status === "revision_requested" && (job as any).revision_note && (
-                  <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                {job.status === "revision_requested" && (
+                  <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20 space-y-1.5">
                     <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
-                    <p className="text-xs text-muted-foreground mt-1">{(job as any).revision_note}</p>
+                    {(job as any).revision_note && <p className="text-xs text-muted-foreground">{(job as any).revision_note}</p>}
+                    {(job as any).revision_completed_at && (
+                      <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        <p className="text-xs text-emerald-600 font-medium">✓ Helpr marked revision as fixed</p>
+                        {(job as any).revision_acceptance_deadline && (
+                          <p className={`text-[10px] mt-0.5 flex items-center gap-1 ${differenceInHours(new Date((job as any).revision_acceptance_deadline), new Date()) < 12 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            <Timer className="w-3 h-3" />
+                            {new Date((job as any).revision_acceptance_deadline) <= new Date()
+                              ? "Acceptance deadline passed — payment releasing"
+                              : `${formatDistanceToNow(new Date((job as any).revision_acceptance_deadline), { addSuffix: false })} to accept or dispute`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {!(job as any).revision_completed_at && (job as any).revision_deadline && (
+                      <p className={`text-[10px] flex items-center gap-1 ${differenceInHours(new Date((job as any).revision_deadline), new Date()) < 12 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                        <Timer className="w-3 h-3" />
+                        {new Date((job as any).revision_deadline) <= new Date()
+                          ? "Revision deadline passed"
+                          : `Helpr has ${formatDistanceToNow(new Date((job as any).revision_deadline), { addSuffix: false })} to fix`}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

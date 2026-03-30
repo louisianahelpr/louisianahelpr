@@ -206,7 +206,27 @@ export const AppliedJobsTab = ({
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
               </div>
               {app.job?.status === "revision_requested" && (
-                <Button size="sm" variant="outline" className="w-full" onClick={() => onResolveRevision(app.job_id)}><RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed</Button>
+                <div className="space-y-2">
+                  {(app.job as any)?.revision_note && (
+                    <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                      <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                      <p className="text-xs text-muted-foreground mt-1">{(app.job as any).revision_note}</p>
+                    </div>
+                  )}
+                  {(app.job as any)?.revision_deadline && !(app.job as any)?.revision_completed_at && (
+                    <div className={`flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((app.job as any).revision_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
+                      <Timer className="w-3.5 h-3.5" />
+                      {new Date((app.job as any).revision_deadline) <= new Date()
+                        ? "Revision deadline passed — poster can dispute or complete"
+                        : `${formatDistanceToNow(new Date((app.job as any).revision_deadline), { addSuffix: false })} to fix the revision`}
+                    </div>
+                  )}
+                  {(app.job as any)?.revision_completed_at ? (
+                    <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ You marked this as fixed — waiting for poster to accept</div>
+                  ) : (
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => onResolveRevision(app.job_id)}><RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed</Button>
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -19,7 +19,7 @@ const MobileNav = () => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [activityBadgeCount, setActivityBadgeCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -32,12 +32,16 @@ const MobileNav = () => {
         .eq("read", false)
         .then(({ count }) => setUnreadCount(count || 0));
 
+      // Count job updates: jobs where user is customer or helper with recent status changes
+      // Use applications with pending status as a proxy for "new activity"
       supabase
-        .from("notifications")
+        .from("applications")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("read", false)
-        .then(({ count }) => setUnreadNotifCount(count || 0));
+        .eq("status", "pending")
+        .in("job_id", 
+          supabase.from("jobs").select("id").eq("customer_id", user.id)
+        )
+        .then(({ count }) => setActivityBadgeCount(count || 0));
     };
 
     loadCounts();
@@ -51,7 +55,12 @@ const MobileNav = () => {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "applications" },
+        () => loadCounts()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs" },
         () => loadCounts()
       )
       .subscribe();

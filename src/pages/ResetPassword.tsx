@@ -15,19 +15,30 @@ const ResetPassword = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Check for recovery session from the URL hash
+    // Listen for PASSWORD_RECOVERY or SIGNED_IN (recovery redirects sometimes fire SIGNED_IN)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setReady(true);
+      }
+      // If user lands here with an active session (from recovery link), allow reset
+      if (event === "SIGNED_IN" && session) {
+        setReady(true);
+      }
+    });
+
+    // Also check if there's already an active session (page refresh / direct load)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setReady(true);
+      }
+    });
+
+    // Check for recovery type in URL hash (legacy format)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get("type");
     if (type === "recovery") {
       setReady(true);
     }
-
-    // Also check via auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, []);

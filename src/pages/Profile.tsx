@@ -24,6 +24,7 @@ import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -876,7 +877,7 @@ const ProfilePage = () => {
                     onClick={async () => {
                       if (!user?.email) return;
                       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                        redirectTo: `${window.location.origin}/reset-password`,
+                        redirectTo: getPublicResetPasswordUrl(),
                       });
                       if (error) toast.error(error.message);
                       else toast.success("Password reset link sent to your email!");

@@ -223,12 +223,6 @@ export const PostedJobsTab = ({
                 ) : null;
               })()}
 
-              {/* Paid badge */}
-              {job.payment_status === "released" && job.status !== "completed" && job.status !== "cancelled" && (
-                <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 text-[11px]">
-                  <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600">💰 Paid</span>
-                </div>
-              )}
 
               {/* Expandable section */}
               <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === job.id ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>

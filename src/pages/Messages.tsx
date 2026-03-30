@@ -148,6 +148,32 @@ const Messages = () => {
     convos.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
     setConversations(convos);
     setLoading(false);
+
+    // Auto-open conversation from deep link
+    if (deepLinkJobId && deepLinkUserId) {
+      const match = convos.find(c => c.jobId === deepLinkJobId && c.otherUserId === deepLinkUserId);
+      if (match) {
+        openConvoRef.current?.(match);
+      } else {
+        // No existing conversation — create a placeholder so user can start messaging
+        const [profileRes, jobRes] = await Promise.all([
+          supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
+          supabase.from("jobs").select("id, title").eq("id", deepLinkJobId).maybeSingle(),
+        ]);
+        const name = profileRes.data?.[0]?.full_name || "User";
+        const placeholder: Conversation = {
+          otherUserId: deepLinkUserId,
+          otherUserName: formatName(name),
+          jobTitle: jobRes.data?.title || "Job",
+          jobId: deepLinkJobId,
+          lastMessage: "",
+          lastAt: new Date().toISOString(),
+          unread: 0,
+        };
+        setConversations(prev => [placeholder, ...prev]);
+        openConvoRef.current?.(placeholder);
+      }
+    }
   };
 
   const openConvo = async (convo: Conversation) => {

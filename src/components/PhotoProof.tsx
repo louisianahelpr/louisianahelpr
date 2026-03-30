@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Camera, ImagePlus, X, CheckCircle2 } from "lucide-react";
+import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 
 type PhotoProofProps = {
@@ -109,5 +109,142 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
         </DialogContent>
       </Dialog>
     </>
+  );
+};
+
+/* ── Grouped Before & After card ── */
+type PhotoProofGroupProps = {
+  jobId: string;
+  beforeUrls: string[];
+  afterUrls: string[];
+  onUploaded?: () => void;
+  canUpload?: boolean;
+  requireAfter?: boolean;
+  budget?: number;
+};
+
+export const PhotoProofGroup = ({
+  jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, requireAfter = false, budget = 0,
+}: PhotoProofGroupProps) => {
+  const hasBefore = beforeUrls.length > 0;
+  const hasAfter = afterUrls.length > 0;
+  const [viewOpen, setViewOpen] = useState(false);
+
+  // If no photos at all and can't upload, don't render
+  if (!hasBefore && !hasAfter && !canUpload) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
+      {/* Header */}
+      <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Image className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Photo Proof</span>
+        </div>
+        {(hasBefore || hasAfter) && (
+          <button onClick={() => setViewOpen(true)} className="text-[10px] text-primary hover:underline font-medium">
+            View all
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-3">
+        <div className="grid grid-cols-2 gap-3">
+          {/* Before column */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+            {hasBefore ? (
+              <div className="flex gap-1.5 flex-wrap">
+                {beforeUrls.slice(0, 3).map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img src={url} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                  </a>
+                ))}
+                {beforeUrls.length > 3 && (
+                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground font-medium">
+                    +{beforeUrls.length - 3}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
+            )}
+            {canUpload && (
+              <PhotoProof jobId={jobId} type="before" existingUrls={beforeUrls} onUploaded={onUploaded} />
+            )}
+          </div>
+
+          {/* After column */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+            {hasAfter ? (
+              <div className="flex gap-1.5 flex-wrap">
+                {afterUrls.slice(0, 3).map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img src={url} alt={`After ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                  </a>
+                ))}
+                {afterUrls.length > 3 && (
+                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground font-medium">
+                    +{afterUrls.length - 3}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
+            )}
+            {canUpload && (
+              <PhotoProof jobId={jobId} type="after" existingUrls={afterUrls} onUploaded={onUploaded} />
+            )}
+          </div>
+        </div>
+
+        {/* Warning for $50+ jobs */}
+        {requireAfter && budget >= 50 && !hasAfter && (
+          <p className="text-xs text-destructive flex items-center gap-1 mt-2">
+            <Camera className="w-3 h-3" /> After-photos required for jobs $50+
+          </p>
+        )}
+      </div>
+
+      {/* Full view dialog */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display">Photo Proof</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {hasBefore && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {beforeUrls.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {hasAfter && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {afterUrls.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!hasBefore && !hasAfter && (
+              <p className="text-sm text-muted-foreground text-center py-6">No photos uploaded yet.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };

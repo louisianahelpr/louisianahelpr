@@ -105,7 +105,7 @@ export const PostedJobsTab = ({
                       </a>
                     );
                   })()}
-                  {job.expires_at && (() => {
+                  {job.expires_at && !job.helper_id && (() => {
                     const expiryText = new Date(job.expires_at) <= new Date() ? "Expired" : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left";
                     const isExpiringSoon = differenceInHours(new Date(job.expires_at), new Date()) < 24;
                     return (<span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}><Timer className="w-3 h-3 shrink-0" /> {expiryText}</span>);

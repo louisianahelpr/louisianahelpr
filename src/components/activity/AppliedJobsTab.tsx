@@ -190,15 +190,14 @@ export const AppliedJobsTab = ({
               )}
               <JobCheckins jobId={app.job_id} userId={userId} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
               {/* Photo proof during active job */}
-              <div className="flex gap-2">
-                <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => {}} />
-                <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => {}} />
-              </div>
-              {app.job && app.job.budget >= 50 && !((app.job as any)?.proof_after_urls?.length > 0) && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> After-photos required for jobs $50+ before marking complete
-                </p>
-              )}
+              <PhotoProofGroup
+                jobId={app.job_id}
+                beforeUrls={(app.job as any)?.proof_before_urls || []}
+                afterUrls={(app.job as any)?.proof_after_urls || []}
+                canUpload={true}
+                requireAfter={true}
+                budget={app.job?.budget || 0}
+              />
               <div className="grid grid-cols-2 gap-2">
                 <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
                   <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}

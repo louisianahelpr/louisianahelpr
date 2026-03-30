@@ -330,9 +330,15 @@ export const PostedJobsTab = ({
                             </Button>
                           </div>
                         )}
-                        <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
-                          <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
-                        </Button>
+                        {/* Dispute only available after a revision was requested OR it's a revision_requested status */}
+                        {(job.status === "revision_requested" || (job as any).revision_requested_at) && (
+                          <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
+                            <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
+                          </Button>
+                        )}
+                        {job.status === "in_progress" && !(job as any).revision_requested_at && (
+                          <p className="text-[10px] text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
+                        )}
                       </div>
                     )}
                     {job.status === "completed" && (() => {

@@ -212,10 +212,15 @@ export const AppliedJobsTab = ({
           )}
 
           {/* Disputed */}
-          {app.status === "accepted" && app.job?.status === "disputed" && (
+          {app.status === "accepted" && app.job?.status === "disputed" && (() => {
+            const disputeStatus = (app.job as any)?.dispute_status || "open";
+            const hasResponded = !!(app.job as any)?.dispute_helper_response;
+            return (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
               <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-xs font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute In Progress</p>
+                <p className="text-xs font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
+                  {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}
+                </p>
                 {(app.job as any)?.dispute_reason && (
                   <p className="text-xs text-muted-foreground mt-1">Reason: {(app.job as any).dispute_reason}</p>
                 )}
@@ -231,9 +236,53 @@ export const AppliedJobsTab = ({
                   </div>
                 )}
               </div>
+              {/* Helper's existing response */}
+              {hasResponded && (
+                <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-[10px] text-muted-foreground font-medium">Your response:</p>
+                  <p className="text-xs text-foreground mt-0.5">"{(app.job as any).dispute_helper_response}"</p>
+                </div>
+              )}
+              {/* Helper respond form */}
+              {!hasResponded && disputeStatus === "open" && (
+                <div className="space-y-2">
+                  {respondingJobId === app.job_id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Explain your side — what work was done, any issues, etc."
+                        value={disputeResponse}
+                        onChange={(e) => setDisputeResponse(e.target.value)}
+                        rows={3}
+                        maxLength={500}
+                        className="text-xs"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" className="flex-1" disabled={!disputeResponse.trim() || submittingResponse} onClick={async () => {
+                          setSubmittingResponse(true);
+                          const { error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" } as any).eq("id", app.job_id);
+                          if (error) { toast.error("Failed to submit response"); setSubmittingResponse(false); return; }
+                          if (app.job?.customer_id) await createNotification({ user_id: app.job.customer_id, title: "Helpr responded to dispute", message: `The helpr has responded to the dispute on "${app.job?.title}". Please review and mark resolved or escalate.`, type: "info", link: "/activity?tab=posted&filter=disputed" });
+                          toast.success("Response submitted — poster will review");
+                          setSubmittingResponse(false);
+                          setRespondingJobId(null);
+                          setDisputeResponse("");
+                          window.location.reload();
+                        }}>
+                          <Send className="w-3.5 h-3.5 mr-1" /> {submittingResponse ? "Sending…" : "Submit Response"}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setRespondingJobId(null); setDisputeResponse(""); }}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => setRespondingJobId(app.job_id)}>
+                      <MessageSquare className="w-4 h-4 mr-1" /> Respond to Dispute
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="p-2 rounded-lg bg-muted/50 border border-border">
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  <strong>Policy:</strong> If this dispute is not resolved within 72 hours, payment is automatically released to you.
+                  <strong>Policy:</strong> If this dispute is not resolved within 72 hours, payment is automatically released to you. Respond with your side to help resolve it faster.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -241,7 +290,8 @@ export const AppliedJobsTab = ({
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Completed */}
           {app.status === "accepted" && app.job?.status === "completed" && (

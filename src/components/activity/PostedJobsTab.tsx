@@ -341,14 +341,22 @@ export const PostedJobsTab = ({
                         <div className="space-y-2">
                           <PhotoProof jobId={job.id} type="before" existingUrls={(job as any).proof_before_urls || []} onUploaded={() => {}} />
                           <PhotoProof jobId={job.id} type="after" existingUrls={(job as any).proof_after_urls || []} onUploaded={() => {}} />
-                          {!hasTipped && (
+                          {!hasTipped ? (
                             <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
                               <DollarSign className="w-4 h-4 mr-1" /> Tip {helperName}
                             </Button>
+                          ) : (
+                            <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Tipped ✓
+                            </Button>
                           )}
-                          {!hasReviewed && (
+                          {!hasReviewed ? (
                             <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
                               <Star className="w-4 h-4 mr-1" /> Review
+                            </Button>
+                          ) : (
+                            <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed ✓
                             </Button>
                           )}
                           <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>

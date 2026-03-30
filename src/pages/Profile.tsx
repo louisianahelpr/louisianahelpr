@@ -54,7 +54,7 @@ const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user: cachedUser, profile: cachedProfile } = useCurrentUser();
+  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,7 +145,10 @@ const ProfilePage = () => {
   useEffect(() => { if (tab === "warnings") loadViolations(); }, [tab]);
 
   useEffect(() => {
-    if (cachedUser && !user) {
+    // Once auth loading is done, resolve the loading state
+    if (authLoading) return;
+    
+    if (cachedUser) {
       setUser(cachedUser);
       if (cachedProfile) {
         setProfile(cachedProfile);
@@ -156,11 +159,14 @@ const ProfilePage = () => {
         setSkills(cachedProfile.skills || "");
         setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
         setDateOfBirth(cachedProfile.date_of_birth || "");
-        setLoading(false);
       }
+      setLoading(false);
       loadStats(cachedUser.id);
+    } else {
+      // No user — stop loading (ProtectedRoute will redirect)
+      setLoading(false);
     }
-  }, [cachedUser, cachedProfile]);
+  }, [cachedUser, cachedProfile, authLoading]);
 
   // No separate auth listener needed — useCurrentUser handles it via React Query
 

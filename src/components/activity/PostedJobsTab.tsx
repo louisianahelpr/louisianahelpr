@@ -373,7 +373,7 @@ export const PostedJobsTab = ({
                           <p className="text-xs text-muted-foreground mt-1">Payment is on hold. An admin will review and resolve this dispute.</p>
                           {(job as any).dispute_reason && <p className="text-xs text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
                         </div>
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
                       </div>
                     )}
                   </div>

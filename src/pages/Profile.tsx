@@ -24,7 +24,7 @@ import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
+import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -852,7 +852,10 @@ const ProfilePage = () => {
                     onClick={async () => {
                       const newEmail = prompt("Enter new email address:");
                       if (!newEmail) return;
-                      const { error } = await supabase.auth.updateUser({ email: newEmail });
+                      const { error } = await supabase.auth.updateUser(
+                        { email: newEmail },
+                        { emailRedirectTo: getPublicSiteUrl() }
+                      );
                       if (error) toast.error(error.message);
                       else toast.success("Confirmation sent to your new email!");
                     }}

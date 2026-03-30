@@ -63,16 +63,14 @@ const UserProfile = () => {
 
       // Step 2: Remaining queries in parallel — skip applications for non-helpers
       const isHelper = prof.role === "helper";
-      const promises: Promise<any>[] = [
+      const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all([
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
-      ];
-      if (isHelper) {
-        promises.push(supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId));
-      }
-
-      const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all(promises);
+        isHelper
+          ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId)
+          : Promise.resolve({ data: null }),
+      ]);
 
       if (postedRes.data) setPostedJobs(postedRes.data);
       if (workedRes.data) setWorkedJobs(workedRes.data);

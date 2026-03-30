@@ -315,8 +315,12 @@ export const AppliedJobsTab = ({
           {/* Completed */}
           {app.status === "accepted" && app.job?.status === "completed" && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              <PhotoProof jobId={app.job_id} type="before" existingUrls={(app.job as any)?.proof_before_urls || []} onUploaded={() => {}} />
-              <PhotoProof jobId={app.job_id} type="after" existingUrls={(app.job as any)?.proof_after_urls || []} onUploaded={() => {}} />
+              <PhotoProofGroup
+                jobId={app.job_id}
+                beforeUrls={(app.job as any)?.proof_before_urls || []}
+                afterUrls={(app.job as any)?.proof_after_urls || []}
+                canUpload={false}
+              />
               {helperReviewedJobIds.has(app.job_id) ? (
                 <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
               ) : (

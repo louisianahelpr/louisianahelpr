@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,9 @@ const CHAT_PAGE_SIZE = 50;
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const deepLinkJobId = searchParams.get("jobId");
+  const deepLinkUserId = searchParams.get("userId");
   const { user: cachedUser } = useCurrentUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -73,6 +76,7 @@ const Messages = () => {
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const deepLinkHandled = useRef(false);
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({
@@ -145,6 +149,35 @@ const Messages = () => {
     convos.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
     setConversations(convos);
     setLoading(false);
+
+    // Auto-open conversation from deep link
+    if (deepLinkJobId && deepLinkUserId && !deepLinkHandled.current) {
+      deepLinkHandled.current = true;
+      const match = convos.find(c => c.jobId === deepLinkJobId && c.otherUserId === deepLinkUserId);
+      if (match) {
+        setActiveConvo(match);
+        navigate("/messages?chat=1", { replace: true });
+      } else {
+        // No existing conversation — create a placeholder so user can start messaging
+        const [profileRes, jobRes] = await Promise.all([
+          supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
+          supabase.from("jobs").select("id, title").eq("id", deepLinkJobId).maybeSingle(),
+        ]);
+        const name = profileRes.data?.[0]?.full_name || "User";
+        const placeholder: Conversation = {
+          otherUserId: deepLinkUserId,
+          otherUserName: formatName(name),
+          jobTitle: jobRes.data?.title || "Job",
+          jobId: deepLinkJobId,
+          lastMessage: "",
+          lastAt: new Date().toISOString(),
+          unread: 0,
+        };
+        setConversations(prev => [placeholder, ...prev]);
+        setActiveConvo(placeholder);
+        navigate("/messages?chat=1", { replace: true });
+      }
+    }
   };
 
   const openConvo = async (convo: Conversation) => {

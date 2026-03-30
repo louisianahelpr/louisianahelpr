@@ -210,7 +210,7 @@ export const AppliedJobsTab = ({
                   <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date((app.job as any).disputed_at), { addSuffix: true })}</p>
                 )}
               </div>
-              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${app.job?.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Poster</Button>
             </div>
           )}
 

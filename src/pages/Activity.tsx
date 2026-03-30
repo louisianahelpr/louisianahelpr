@@ -417,7 +417,8 @@ const Activity = () => {
       if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
       else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
-      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
+      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
+      else if (statusFilter === "disputed") statusMatch = a.status === "accepted" && a.job?.status === "disputed";
       else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
       else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
       else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";

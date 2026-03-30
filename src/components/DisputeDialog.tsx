@@ -116,7 +116,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Disputing this job will put the payment on hold until an admin reviews it. Please provide details about the issue.
+            You've already requested a revision. If the issue still isn't resolved, filing a dispute will put the payment on hold for <strong>72 hours</strong> while you and the helpr try to work it out.
           </p>
 
           <div className="space-y-2">

@@ -165,10 +165,13 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </div>
 
           <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <p className="text-xs text-destructive font-medium">What happens next:</p>
+            <p className="text-xs text-destructive font-medium">⚠️ Strict 72-Hour Dispute Policy:</p>
             <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
-              <li>Payment stays on hold (no capture or transfer)</li>
-              <li>An admin will review and reach a resolution</li>
+              <li>Payment is held for <strong>72 hours only</strong> while admin reviews</li>
+              <li><strong>If not resolved within 72 hours, payment is automatically released to the helpr</strong></li>
+              <li>You must provide evidence (photos, messages) to support your claim</li>
+              <li>False or frivolous disputes may result in account warnings or suspension</li>
+              <li>3+ disputes in 30 days will flag your account for review</li>
               <li>Both parties will be notified of the outcome</li>
             </ul>
           </div>

@@ -51,67 +51,73 @@ const UserProfile = () => {
     const loadAll = async () => {
       setLoading(true);
 
-      
-
-      // All independent queries in parallel
-      const [profileRes, reviewsRes, completedRes, postedRes, workedRes, appsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
-        supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${userId},helper_id.eq.${userId}`).eq("status", "completed"),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
-        supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId),
-      ]);
-
-      if (profileRes.data && profileRes.data.length > 0) {
-        setProfile(profileRes.data[0] as any);
-      } else {
+      // Step 1: Get profile first (fast, needed to decide other queries)
+      const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId] });
+      if (!profileRes.data || profileRes.data.length === 0) {
         setProfile(null);
         setLoading(false);
         return;
       }
+      const prof = profileRes.data[0] as any;
+      setProfile(prof);
 
-      
+      // Step 2: Remaining queries in parallel — skip applications for non-helpers
+      const isHelper = prof.role === "helper";
+      const promises: Promise<any>[] = [
+        supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
+      ];
+      if (isHelper) {
+        promises.push(supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId));
+      }
+
+      const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all(promises);
+
       if (postedRes.data) setPostedJobs(postedRes.data);
       if (workedRes.data) setWorkedJobs(workedRes.data);
 
-      const ratings = reviewsRes.data?.map(r => r.rating) || [];
+      // Derive completed count from posted + worked (no extra query)
+      const allJobs = [...(postedRes.data || []), ...(workedRes.data || [])];
+      const completedCount = new Set(allJobs.filter(j => j.status === "completed").map(j => j.id)).size;
+
+      const ratings = reviewsRes.data?.map((r: any) => r.rating) || [];
       setStats({
-        completedJobs: (completedRes as any).count || completedRes.data?.length || 0,
-        avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+        completedJobs: completedCount,
+        avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
         reviewCount: ratings.length,
       });
 
-      // Response metrics
-      const allApps = appsRes.data;
-      if (allApps && allApps.length > 0) {
-        const accepted = allApps.filter(a => a.status === "accepted");
+      // Response metrics (only for helpers)
+      if (isHelper && appsRes?.data && appsRes.data.length > 0) {
+        const allApps = appsRes.data;
+        const accepted = allApps.filter((a: any) => a.status === "accepted");
         const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
         const responseTimes = accepted
-          .map(a => {
+          .map((a: any) => {
             const created = new Date(a.created_at).getTime();
             const updated = new Date(a.updated_at).getTime();
             return (updated - created) / (1000 * 60 * 60);
           })
-          .filter(h => h > 0 && h < 720);
+          .filter((h: number) => h > 0 && h < 720);
         setResponseMetrics({
-          avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : null,
+          avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a: number, b: number) => a + b, 0) / responseTimes.length : null,
           acceptanceRate,
           totalApplications: allApps.length,
         });
       }
 
-      // Enrich reviews with names — parallel
+      // Enrich reviews with names
       if (reviewsRes.data && reviewsRes.data.length > 0) {
-        const reviewerIds = [...new Set(reviewsRes.data.map(r => r.reviewer_id))];
-        const jobIds = [...new Set(reviewsRes.data.map(r => r.job_id))];
+        const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
+        const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
-        const nameMap = new Map(profilesRes2.data?.map(p => [p.user_id, formatName(p.full_name)]) || []);
-        const jobMap = new Map(jobsRes.data?.map(j => [j.id, j.title]) || []);
-        setReviews(reviewsRes.data.map(r => ({
+        const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
+        const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
+        setReviews(reviewsRes.data.map((r: any) => ({
           rating: r.rating, feedback: r.feedback, created_at: r.created_at,
           reviewerName: nameMap.get(r.reviewer_id) || "User",
           jobTitle: jobMap.get(r.job_id) || "Job",

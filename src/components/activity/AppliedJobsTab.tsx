@@ -206,14 +206,27 @@ export const AppliedJobsTab = ({
           {/* Disputed */}
           {app.status === "accepted" && app.job?.status === "disputed" && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-xs font-semibold text-red-600 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute In Progress</p>
+              <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-xs font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute In Progress</p>
                 {(app.job as any)?.dispute_reason && (
                   <p className="text-xs text-muted-foreground mt-1">Reason: {(app.job as any).dispute_reason}</p>
                 )}
                 {(app.job as any)?.disputed_at && (
                   <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date((app.job as any).disputed_at), { addSuffix: true })}</p>
                 )}
+                {(app.job as any)?.dispute_deadline && (
+                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((app.job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
+                    <Timer className="w-3.5 h-3.5" />
+                    {new Date((app.job as any).dispute_deadline) <= new Date()
+                      ? "Deadline passed — payment releasing to you"
+                      : `${formatDistanceToNow(new Date((app.job as any).dispute_deadline), { addSuffix: false })} left to resolve`}
+                  </div>
+                )}
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 border border-border">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  <strong>Policy:</strong> If this dispute is not resolved within 72 hours, payment is automatically released to you.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${app.job?.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Poster</Button>

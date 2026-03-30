@@ -389,6 +389,7 @@ const Activity = () => {
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "revision", label: "Revision", color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "disputed", label: "Disputed", color: "bg-red-500/15 text-red-600 border-red-500/30" },
     { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
@@ -416,7 +417,8 @@ const Activity = () => {
       if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
       else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
-      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed");
+      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
+      else if (statusFilter === "disputed") statusMatch = a.status === "accepted" && a.job?.status === "disputed";
       else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
       else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
       else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
@@ -429,12 +431,13 @@ const Activity = () => {
   }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at) counts.offered++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) counts.accepted++;
-      else if (a.status === "accepted" && (a.job?.status === "in_progress" || a.job?.status === "disputed")) counts.in_progress++;
+      else if (a.status === "accepted" && a.job?.status === "in_progress") counts.in_progress++;
+      else if (a.status === "accepted" && a.job?.status === "disputed") counts.disputed++;
       else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
       else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
       else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;

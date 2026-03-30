@@ -9,15 +9,15 @@ export const useLoginTracking = () => {
       if (event === "SIGNED_IN" && session?.user && !tracked.current) {
         tracked.current = true;
 
-        window.setTimeout(() => {
-          void (supabase.from as any)("login_history")
-            .insert({
+        window.setTimeout(async () => {
+          try {
+            await supabase.from("login_history").insert({
               user_id: session.user.id,
               user_agent: navigator.userAgent,
-            })
-            .catch((e: unknown) => {
-              console.error("Login tracking failed:", e);
             });
+          } catch (e) {
+            console.error("Login tracking failed:", e);
+          }
         }, 0);
       }
 

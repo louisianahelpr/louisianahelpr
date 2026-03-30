@@ -198,6 +198,22 @@ export const AppliedJobsTab = ({
             </div>
           )}
 
+          {/* Disputed */}
+          {app.status === "accepted" && app.job?.status === "disputed" && (
+            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-xs font-semibold text-red-600 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute In Progress</p>
+                {(app.job as any)?.dispute_reason && (
+                  <p className="text-xs text-muted-foreground mt-1">Reason: {(app.job as any).dispute_reason}</p>
+                )}
+                {(app.job as any)?.disputed_at && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date((app.job as any).disputed_at), { addSuffix: true })}</p>
+                )}
+              </div>
+              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+            </div>
+          )}
+
           {/* Completed */}
           {app.status === "accepted" && app.job?.status === "completed" && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>

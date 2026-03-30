@@ -365,6 +365,16 @@ export const PostedJobsTab = ({
                         </div>
                       );
                     })()}
+                    {job.status === "disputed" && (
+                      <div className="space-y-2">
+                        <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                          <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute Under Review</p>
+                          <p className="text-xs text-muted-foreground mt-1">Payment is on hold. An admin will review and resolve this dispute.</p>
+                          {(job as any).dispute_reason && <p className="text-xs text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

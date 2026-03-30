@@ -85,7 +85,7 @@ const MobileNav = () => {
 
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
     const active = location.pathname === path;
-    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? unreadNotifCount : 0;
+    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? activityBadgeCount : 0;
     const showBadge = badgeCount > 0;
     return (
       <button

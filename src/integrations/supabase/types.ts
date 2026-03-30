@@ -710,6 +710,9 @@ export type Database = {
           removed_by: string | null
           response_deadline: string | null
           review_reminder_sent: boolean
+          revision_acceptance_deadline: string | null
+          revision_completed_at: string | null
+          revision_deadline: string | null
           revision_note: string | null
           revision_requested_at: string | null
           special_requirements: string | null
@@ -778,6 +781,9 @@ export type Database = {
           removed_by?: string | null
           response_deadline?: string | null
           review_reminder_sent?: boolean
+          revision_acceptance_deadline?: string | null
+          revision_completed_at?: string | null
+          revision_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null
@@ -846,6 +852,9 @@ export type Database = {
           removed_by?: string | null
           response_deadline?: string | null
           review_reminder_sent?: boolean
+          revision_acceptance_deadline?: string | null
+          revision_completed_at?: string | null
+          revision_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
           special_requirements?: string | null

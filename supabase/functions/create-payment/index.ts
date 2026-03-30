@@ -291,17 +291,19 @@ serve(async (req) => {
       if (job.helper_id !== user.id) throw new Error("Not authorized");
       if (job.status !== "revision_requested") throw new Error("No revision pending");
 
+      const now = new Date();
+      const acceptanceDeadline = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
       await supabaseAdmin.from("jobs").update({
-        status: "in_progress",
-        revision_note: null,
-        revision_requested_at: null,
+        revision_completed_at: now.toISOString(),
+        revision_acceptance_deadline: acceptanceDeadline.toISOString(),
       }).eq("id", jobId);
 
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
-        title: "Revision completed",
-        message: `The helper has addressed your revision request for "${job.title}".`,
-        type: "success", link: "/activity?tab=posted&filter=in_progress",
+        title: "Revision completed — review needed",
+        message: `The helper has fixed the revision for "${job.title}". You have 48 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
+        type: "warning", link: "/activity?tab=posted&filter=revision_requested",
       });
 
       return new Response(JSON.stringify({ success: true }), {

@@ -293,11 +293,17 @@ const PlatformRules = () => {
                   <span className="text-xs font-bold text-primary">1</span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Request a Revision</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    If you're not satisfied with the work, request a revision first. This gives the helpr a chance to fix the issue. 
-                    Include a clear note about what needs to change. The helpr can then address the problem and resubmit.
-                  </p>
+                   <p className="text-sm font-semibold text-foreground">Request a Revision (72-hour window)</p>
+                   <p className="text-xs text-muted-foreground mt-1">
+                     If you're not satisfied with the work, request a revision first. This gives the helpr 
+                     <strong className="text-foreground"> 72 hours to fix the issue</strong>. Include a clear note about what needs to change.
+                   </p>
+                   <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4 space-y-0.5">
+                     <li>The helpr has <strong className="text-foreground">72 hours</strong> to address the revision and mark it as fixed</li>
+                     <li>Once the helpr marks it fixed, you have <strong className="text-foreground">48 hours to accept or dispute</strong></li>
+                     <li>If you <strong className="text-destructive">don't respond within 48 hours</strong>, the job auto-completes and payment is released</li>
+                     <li>If the helpr <strong className="text-destructive">doesn't fix it within 72 hours</strong>, you can mark complete or file a dispute</li>
+                   </ul>
                 </div>
               </div>
             </div>

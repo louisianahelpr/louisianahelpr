@@ -24,7 +24,7 @@ const MobileNav = () => {
   useEffect(() => {
     if (!user) return;
 
-    const loadCounts = () => {
+    const loadCounts = async () => {
       supabase
         .from("messages")
         .select("*", { count: "exact", head: true })

@@ -111,12 +111,14 @@ const UserProfile = () => {
 
       // Enrich reviews with names
       if (reviewsRes.data && reviewsRes.data.length > 0) {
+        const t2 = performance.now();
         const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
+        console.log(`[UserProfile] review enrichment: ${(performance.now() - t2).toFixed(0)}ms`);
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
         setReviews(reviewsRes.data.map((r: any) => ({
@@ -126,6 +128,7 @@ const UserProfile = () => {
         })));
       }
 
+      console.log(`[UserProfile] total load: ${(performance.now() - t0).toFixed(0)}ms`);
       setLoading(false);
     };
 

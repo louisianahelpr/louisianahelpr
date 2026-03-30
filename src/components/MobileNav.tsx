@@ -19,12 +19,12 @@ const MobileNav = () => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [activityBadgeCount, setActivityBadgeCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
 
-    const loadCounts = () => {
+    const loadCounts = async () => {
       supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
@@ -32,12 +32,20 @@ const MobileNav = () => {
         .eq("read", false)
         .then(({ count }) => setUnreadCount(count || 0));
 
-      supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("read", false)
-        .then(({ count }) => setUnreadNotifCount(count || 0));
+      // Count job updates: jobs where user is customer or helper with recent status changes
+      // Count pending applications on user's posted jobs as activity badge
+      const { data: userJobs } = await supabase.from("jobs").select("id").eq("customer_id", user.id);
+      if (userJobs && userJobs.length > 0) {
+        const jobIds = userJobs.map(j => j.id);
+        const { count } = await supabase
+          .from("applications")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending")
+          .in("job_id", jobIds);
+        setActivityBadgeCount(count || 0);
+      } else {
+        setActivityBadgeCount(0);
+      }
     };
 
     loadCounts();
@@ -51,7 +59,12 @@ const MobileNav = () => {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "applications" },
+        () => loadCounts()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs" },
         () => loadCounts()
       )
       .subscribe();
@@ -72,7 +85,7 @@ const MobileNav = () => {
 
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
     const active = location.pathname === path;
-    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? unreadNotifCount : 0;
+    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? activityBadgeCount : 0;
     const showBadge = badgeCount > 0;
     return (
       <button

@@ -667,6 +667,7 @@ export type Database = {
           customer_id: string
           date_needed: string
           description: string
+          dispute_deadline: string | null
           dispute_evidence_urls: string[] | null
           dispute_reason: string | null
           disputed_at: string | null
@@ -731,6 +732,7 @@ export type Database = {
           customer_id: string
           date_needed: string
           description: string
+          dispute_deadline?: string | null
           dispute_evidence_urls?: string[] | null
           dispute_reason?: string | null
           disputed_at?: string | null
@@ -795,6 +797,7 @@ export type Database = {
           customer_id?: string
           date_needed?: string
           description?: string
+          dispute_deadline?: string | null
           dispute_evidence_urls?: string[] | null
           dispute_reason?: string | null
           disputed_at?: string | null

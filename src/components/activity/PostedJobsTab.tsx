@@ -372,11 +372,24 @@ export const PostedJobsTab = ({
                           <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute Under Review</p>
                           <p className="text-xs text-muted-foreground mt-1">Payment is on hold. An admin will review and resolve this dispute.</p>
                           {(job as any).dispute_reason && <p className="text-xs text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
+                          {(job as any).dispute_deadline && (
+                            <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
+                              <Timer className="w-3.5 h-3.5" />
+                              {new Date((job as any).dispute_deadline) <= new Date()
+                                ? "Deadline passed — auto-resolving"
+                                : `${formatDistanceToNow(new Date((job as any).dispute_deadline), { addSuffix: false })} left to resolve`}
+                            </div>
+                          )}
                         </div>
-                         <div className="grid grid-cols-2 gap-2">
-                           <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
-                           <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
-                         </div>
+                        <div className="p-2 rounded-lg bg-muted/50 border border-border">
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            <strong>Policy:</strong> Disputes must be resolved within 72 hours. If no resolution is reached, payment is automatically released to the helpr.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
+                        </div>
                       </div>
                     )}
                   </div>

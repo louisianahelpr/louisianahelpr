@@ -76,6 +76,7 @@ const Messages = () => {
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const deepLinkHandled = useRef(false);
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({

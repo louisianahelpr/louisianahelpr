@@ -46,6 +46,9 @@ export const AppliedJobsTab = ({
   onResolveRevision, onHelperReview,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
+  const [disputeResponse, setDisputeResponse] = useState("");
+  const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
+  const [submittingResponse, setSubmittingResponse] = useState(false);
 
   if (apps.length === 0) {
     return (

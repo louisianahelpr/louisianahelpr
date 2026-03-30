@@ -130,7 +130,30 @@ const UserProfile = () => {
 
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading…</p></div>;
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <DashboardHeader />
+        <main className="container mx-auto px-4 py-6">
+          <div className="max-w-lg mx-auto space-y-5">
+            <div className="h-9 w-32 rounded-xl bg-muted animate-pulse" />
+            <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
+              <div className="w-20 h-20 rounded-full bg-muted animate-pulse mx-auto" />
+              <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
+              <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
+              <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                  <div className="h-7 w-10 bg-muted animate-pulse mx-auto rounded" />
+                  <div className="h-3 w-12 bg-muted animate-pulse mx-auto rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (!profile) {

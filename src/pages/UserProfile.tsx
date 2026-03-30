@@ -50,9 +50,11 @@ const UserProfile = () => {
 
     const loadAll = async () => {
       setLoading(true);
+      const t0 = performance.now();
 
-      // Step 1: Get profile first (fast, needed to decide other queries)
+      // Step 1: Get profile first
       const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId] });
+      console.log(`[UserProfile] get_safe_profiles: ${(performance.now() - t0).toFixed(0)}ms`);
       if (!profileRes.data || profileRes.data.length === 0) {
         setProfile(null);
         setLoading(false);
@@ -61,8 +63,9 @@ const UserProfile = () => {
       const prof = profileRes.data[0] as any;
       setProfile(prof);
 
-      // Step 2: Remaining queries in parallel — skip applications for non-helpers
+      // Step 2: Remaining queries in parallel
       const isHelper = prof.role === "helper";
+      const t1 = performance.now();
       const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all([
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
@@ -71,6 +74,7 @@ const UserProfile = () => {
           ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId)
           : Promise.resolve({ data: null }),
       ]);
+      console.log(`[UserProfile] parallel batch: ${(performance.now() - t1).toFixed(0)}ms`);
 
       if (postedRes.data) setPostedJobs(postedRes.data);
       if (workedRes.data) setWorkedJobs(workedRes.data);

@@ -272,33 +272,96 @@ const PlatformRules = () => {
           </div>
         </section>
 
-        {/* Dispute Resolution */}
+        {/* Revision, Dispute & Resolution Process */}
         <section className="mb-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
               <Scale className="w-5 h-5 text-accent" />
             </div>
-            <h2 className="text-xl font-display font-bold text-foreground">Dispute Resolution</h2>
+            <h2 className="text-xl font-display font-bold text-foreground">Revision, Dispute & Resolution Process</h2>
           </div>
-          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Timer className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">48-hour admin review</p>
-                  <p className="text-xs text-muted-foreground">All disputes are reviewed by our team within 48 hours of being filed. Both parties can submit evidence (photos, messages).</p>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+            <p className="text-sm text-muted-foreground">
+              Helpr uses a <strong className="text-foreground">3-step escalation process</strong> to resolve issues fairly. 
+              You must follow these steps in order — disputes cannot be filed without first requesting a revision.
+            </p>
+
+            {/* Step 1: Revision */}
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-primary">1</span>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold text-foreground">24-hour appeal window</p>
-                  <p className="text-xs text-muted-foreground">After a decision is made, both parties have 24 hours to appeal with new evidence. After that, the decision is final.</p>
+                  <p className="text-sm font-semibold text-foreground">Request a Revision</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    If you're not satisfied with the work, request a revision first. This gives the helpr a chance to fix the issue. 
+                    Include a clear note about what needs to change. The helpr can then address the problem and resubmit.
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Step 2: Dispute */}
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/10">
+                <div className="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-accent">2</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">File a Dispute (if revision fails)</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    If the revision doesn't resolve the issue, you can file a formal dispute. This puts the payment on hold and starts a 
+                    <strong className="text-foreground"> strict 72-hour resolution window</strong>. You must provide:
+                  </p>
+                  <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4 space-y-0.5">
+                    <li>A specific reason for the dispute</li>
+                    <li>Photo evidence or documentation (recommended)</li>
+                    <li>A description of what went wrong</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    The helpr can respond with their side of the story. You then have 72 hours to either:
+                  </p>
+                  <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4 space-y-0.5">
+                    <li><strong className="text-foreground">Mark Resolved</strong> — releases payment to the helpr</li>
+                    <li><strong className="text-foreground">Escalate to Admin</strong> — an admin will make the final decision</li>
+                    <li><strong className="text-destructive">Do nothing</strong> — payment auto-releases to the helpr after 72 hours</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Admin */}
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                <div className="w-7 h-7 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-destructive">3</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Admin Resolution (final step)</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    If escalated, an admin reviews all evidence from both parties and makes a final, binding decision. 
+                    This may result in full payment release, partial refund, or full refund depending on the circumstances.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Anti-abuse warnings */}
+            <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4 space-y-2">
+              <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Dispute Abuse Policy
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                <li>Filing <strong className="text-foreground">false or frivolous disputes</strong> to avoid paying is an immediate ban offense</li>
+                <li><strong className="text-foreground">3+ disputes in 30 days</strong> automatically flags your account for admin review</li>
+                <li>If you <strong className="text-foreground">ignore the 72-hour deadline</strong>, payment is released to the helpr — no exceptions</li>
+                <li>The dispute system exists to protect both parties — not to be used as a negotiation tactic</li>
+              </ul>
+            </div>
+
             <p className="text-xs text-muted-foreground italic">
-              During a dispute, funds are held in escrow until resolution. Abuse of the dispute system may result in account restrictions.
+              By using Helpr, you agree to this dispute resolution process. During any dispute, funds are held securely until resolution.
             </p>
           </div>
         </section>

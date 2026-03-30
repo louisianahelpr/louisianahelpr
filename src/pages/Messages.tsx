@@ -57,6 +57,10 @@ const CHAT_PAGE_SIZE = 50;
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const deepLinkJobId = searchParams.get("jobId");
+  const deepLinkUserId = searchParams.get("userId");
+  const navigate = useNavigate();
   const { user: cachedUser } = useCurrentUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);

@@ -291,12 +291,6 @@ export const AppliedJobsTab = ({
                   </div>
                 </div>
               )}
-              {app.job && (
-                <div className="pt-2 text-xs text-muted-foreground">
-                  <span>Posted by <a href={`/user/${app.job.customer_id}`} className="font-medium text-primary hover:underline">{app.posterName}</a></span>
-                </div>
-              )}
-              {app.message && <p className="text-sm text-muted-foreground">{app.message}</p>}
               {/* Completion status */}
               {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && ((app.job as any)?.poster_completed_at || (app.job as any)?.helper_completed_at) && (
                 <div className="flex items-center gap-2 flex-wrap">

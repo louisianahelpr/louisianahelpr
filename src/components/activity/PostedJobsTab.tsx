@@ -317,7 +317,7 @@ export const PostedJobsTab = ({
                           </Button>
                           <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                         </div>
-                        {job.status !== "revision_requested" && (
+                        {job.status !== "revision_requested" && !(job as any).poster_completed_at && (
                           <div className="flex items-center gap-2">
                             <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
                               <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision

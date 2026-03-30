@@ -50,9 +50,11 @@ const UserProfile = () => {
 
     const loadAll = async () => {
       setLoading(true);
+      const t0 = performance.now();
 
-      // Step 1: Get profile first (fast, needed to decide other queries)
+      // Step 1: Get profile first
       const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId] });
+      console.log(`[UserProfile] get_safe_profiles: ${(performance.now() - t0).toFixed(0)}ms`);
       if (!profileRes.data || profileRes.data.length === 0) {
         setProfile(null);
         setLoading(false);
@@ -61,8 +63,9 @@ const UserProfile = () => {
       const prof = profileRes.data[0] as any;
       setProfile(prof);
 
-      // Step 2: Remaining queries in parallel — skip applications for non-helpers
+      // Step 2: Remaining queries in parallel
       const isHelper = prof.role === "helper";
+      const t1 = performance.now();
       const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all([
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
@@ -71,6 +74,7 @@ const UserProfile = () => {
           ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId)
           : Promise.resolve({ data: null }),
       ]);
+      console.log(`[UserProfile] parallel batch: ${(performance.now() - t1).toFixed(0)}ms`);
 
       if (postedRes.data) setPostedJobs(postedRes.data);
       if (workedRes.data) setWorkedJobs(workedRes.data);
@@ -107,12 +111,14 @@ const UserProfile = () => {
 
       // Enrich reviews with names
       if (reviewsRes.data && reviewsRes.data.length > 0) {
+        const t2 = performance.now();
         const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
+        console.log(`[UserProfile] review enrichment: ${(performance.now() - t2).toFixed(0)}ms`);
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
         setReviews(reviewsRes.data.map((r: any) => ({
@@ -122,6 +128,7 @@ const UserProfile = () => {
         })));
       }
 
+      console.log(`[UserProfile] total load: ${(performance.now() - t0).toFixed(0)}ms`);
       setLoading(false);
     };
 

@@ -369,8 +369,12 @@ export const PostedJobsTab = ({
                       const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
                       return (
                         <div className="space-y-2">
-                          <PhotoProof jobId={job.id} type="before" existingUrls={(job as any).proof_before_urls || []} onUploaded={() => {}} />
-                          <PhotoProof jobId={job.id} type="after" existingUrls={(job as any).proof_after_urls || []} onUploaded={() => {}} />
+                          <PhotoProofGroup
+                            jobId={job.id}
+                            beforeUrls={(job as any).proof_before_urls || []}
+                            afterUrls={(job as any).proof_after_urls || []}
+                            canUpload={false}
+                          />
                           {!hasTipped ? (
                             <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
                               <DollarSign className="w-4 h-4 mr-1" /> Tip {helperName}

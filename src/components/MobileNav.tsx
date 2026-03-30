@@ -33,15 +33,19 @@ const MobileNav = () => {
         .then(({ count }) => setUnreadCount(count || 0));
 
       // Count job updates: jobs where user is customer or helper with recent status changes
-      // Use applications with pending status as a proxy for "new activity"
-      supabase
-        .from("applications")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending")
-        .in("job_id", 
-          supabase.from("jobs").select("id").eq("customer_id", user.id)
-        )
-        .then(({ count }) => setActivityBadgeCount(count || 0));
+      // Count pending applications on user's posted jobs as activity badge
+      const { data: userJobs } = await supabase.from("jobs").select("id").eq("customer_id", user.id);
+      if (userJobs && userJobs.length > 0) {
+        const jobIds = userJobs.map(j => j.id);
+        const { count } = await supabase
+          .from("applications")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending")
+          .in("job_id", jobIds);
+        setActivityBadgeCount(count || 0);
+      } else {
+        setActivityBadgeCount(0);
+      }
     };
 
     loadCounts();

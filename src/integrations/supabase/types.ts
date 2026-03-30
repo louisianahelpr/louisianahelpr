@@ -669,7 +669,10 @@ export type Database = {
           description: string
           dispute_deadline: string | null
           dispute_evidence_urls: string[] | null
+          dispute_helper_response: string | null
           dispute_reason: string | null
+          dispute_resolved_at: string | null
+          dispute_status: string | null
           disputed_at: string | null
           disputed_by: string | null
           estimated_hours: number | null
@@ -734,7 +737,10 @@ export type Database = {
           description: string
           dispute_deadline?: string | null
           dispute_evidence_urls?: string[] | null
+          dispute_helper_response?: string | null
           dispute_reason?: string | null
+          dispute_resolved_at?: string | null
+          dispute_status?: string | null
           disputed_at?: string | null
           disputed_by?: string | null
           estimated_hours?: number | null
@@ -799,7 +805,10 @@ export type Database = {
           description?: string
           dispute_deadline?: string | null
           dispute_evidence_urls?: string[] | null
+          dispute_helper_response?: string | null
           dispute_reason?: string | null
+          dispute_resolved_at?: string | null
+          dispute_status?: string | null
           disputed_at?: string | null
           disputed_by?: string | null
           estimated_hours?: number | null

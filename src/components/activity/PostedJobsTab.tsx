@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { createNotification } from "@/lib/notifications";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -366,13 +368,24 @@ export const PostedJobsTab = ({
                         </div>
                       );
                     })()}
-                    {job.status === "disputed" && (
+                    {job.status === "disputed" && (() => {
+                      const disputeStatus = (job as any).dispute_status || "open";
+                      const isDisputer = (job as any).disputed_by === userId;
+                      return (
                       <div className="space-y-2">
                         <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                          <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Dispute Under Review</p>
-                          <p className="text-xs text-muted-foreground mt-1">Payment is on hold. An admin will review and resolve this dispute.</p>
+                          <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
+                            {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Payment is on hold pending resolution.</p>
                           {(job as any).dispute_reason && <p className="text-xs text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
-                          {(job as any).dispute_deadline && (
+                          {(job as any).dispute_helper_response && (
+                            <div className="mt-2 p-2 rounded bg-muted/50">
+                              <p className="text-[10px] text-muted-foreground font-medium">Helpr's response:</p>
+                              <p className="text-xs text-foreground mt-0.5">"{(job as any).dispute_helper_response}"</p>
+                            </div>
+                          )}
+                          {(job as any).dispute_deadline && disputeStatus !== "resolved" && (
                             <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
                               <Timer className="w-3.5 h-3.5" />
                               {new Date((job as any).dispute_deadline) <= new Date()
@@ -383,15 +396,41 @@ export const PostedJobsTab = ({
                         </div>
                         <div className="p-2 rounded-lg bg-muted/50 border border-border">
                           <p className="text-[10px] text-muted-foreground leading-relaxed">
-                            <strong>Policy:</strong> Disputes must be resolved within 72 hours. If no resolution is reached, payment is automatically released to the helpr.
+                            <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the helpr.
                           </p>
                         </div>
+                        {/* Disputer actions: Mark Resolved or Escalate */}
+                        {isDisputer && disputeStatus === "open" && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={async (e) => {
+                              e.stopPropagation();
+                              const { error } = await supabase.from("jobs").update({ status: "completed" as any, dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() } as any).eq("id", job.id);
+                              if (error) { toast.error("Failed to resolve"); return; }
+                              if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/activity?tab=applied&filter=completed" });
+                              toast.success("Dispute resolved — payment released to helpr");
+                              window.location.reload();
+                            }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
+                            <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={async (e) => {
+                              e.stopPropagation();
+                              const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" } as any).eq("id", job.id);
+                              if (error) { toast.error("Failed to escalate"); return; }
+                              const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+                              if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
+                              toast.success("Dispute escalated to admin for final decision");
+                              window.location.reload();
+                            }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
+                          </div>
+                        )}
+                        {isDisputer && disputeStatus === "escalated" && (
+                          <div className="text-xs text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome.</div>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
                           <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
                           <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

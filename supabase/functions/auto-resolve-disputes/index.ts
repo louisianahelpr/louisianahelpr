@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // Find disputed jobs past their 72-hour deadline
     const { data: expiredDisputes, error: fetchErr } = await supabase
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline")
+      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status")
       .eq("status", "disputed")
       .not("dispute_deadline", "is", null)
       .lte("dispute_deadline", new Date().toISOString());
@@ -29,12 +29,37 @@ Deno.serve(async (req) => {
     const resolved: string[] = [];
 
     for (const job of expiredDisputes || []) {
-      // Auto-resolve: release payment to helper (work was done, customer didn't prove otherwise in time)
+      const disputeStatus = job.dispute_status || "open";
+
+      // If escalated to admin, don't auto-resolve — admin must handle it
+      if (disputeStatus === "escalated") {
+        // Just send a reminder to admins
+        const { data: adminRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
+        if (adminRoles) {
+          for (const admin of adminRoles) {
+            await supabase.from("notifications").insert({
+              user_id: admin.user_id,
+              title: "⏰ Escalated dispute overdue",
+              message: `"${job.title}" dispute was escalated and is past its 72h deadline. Please resolve ASAP.`,
+              type: "warning",
+              link: "/admin",
+            });
+          }
+        }
+        continue;
+      }
+
+      // Non-escalated: auto-release payment to helper
       const { error: updateErr } = await supabase
         .from("jobs")
         .update({
           status: "completed",
-          dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without admin resolution. Payment released to helper.`,
+          dispute_status: "auto_resolved",
+          dispute_resolved_at: new Date().toISOString(),
+          dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to helper.`,
         })
         .eq("id", job.id);
 
@@ -44,24 +69,27 @@ Deno.serve(async (req) => {
       }
 
       // Notify both parties
-      const notifications = [
-        {
-          user_id: job.helper_id!,
+      const notifications = [];
+
+      if (job.helper_id) {
+        notifications.push({
+          user_id: job.helper_id,
           title: "Dispute auto-resolved ✓",
-          message: `The dispute on "${job.title}" expired after 72 hours. Payment will be released to you.`,
+          message: `The dispute on "${job.title}" expired after 72 hours without the poster resolving or escalating. Payment will be released to you.`,
           type: "payment",
           link: "/activity?tab=applied&filter=completed",
-        },
-        {
-          user_id: job.customer_id,
-          title: "Dispute auto-resolved",
-          message: `The dispute on "${job.title}" was not resolved within 72 hours. Per platform policy, payment has been released to the helper.`,
-          type: "warning",
-          link: "/activity?tab=posted&filter=completed",
-        },
-      ];
+        });
+      }
 
-      // Notify admins too
+      notifications.push({
+        user_id: job.customer_id,
+        title: "Dispute auto-resolved",
+        message: `The dispute on "${job.title}" was not resolved or escalated within 72 hours. Per platform policy, payment has been released to the helper.`,
+        type: "warning",
+        link: "/activity?tab=posted&filter=completed",
+      });
+
+      // Notify admins
       const { data: adminRoles } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -72,14 +100,16 @@ Deno.serve(async (req) => {
           notifications.push({
             user_id: admin.user_id,
             title: "⚠️ Dispute auto-resolved",
-            message: `Dispute on "${job.title}" expired without admin action. Payment auto-released to helper.`,
+            message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helper.`,
             type: "warning",
             link: "/admin",
           });
         }
       }
 
-      await supabase.from("notifications").insert(notifications);
+      if (notifications.length > 0) {
+        await supabase.from("notifications").insert(notifications);
+      }
       resolved.push(job.id);
     }
 

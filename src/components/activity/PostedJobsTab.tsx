@@ -11,7 +11,7 @@ import {
   Rocket, Clock, ChevronDown, Calendar, Timer, Navigation as NavigationIcon,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
-import { PhotoProof } from "@/components/PhotoProof";
+import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";

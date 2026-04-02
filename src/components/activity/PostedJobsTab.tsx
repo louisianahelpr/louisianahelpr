@@ -199,8 +199,8 @@ export const PostedJobsTab = ({
 
                 {/* Revision notice */}
                 {job.status === "revision_requested" && (
-                  <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20 space-y-1.5">
-                    <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                  <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                     {(job as any).revision_note && <p className="text-xs text-muted-foreground">{(job as any).revision_note}</p>}
                     {(job as any).revision_completed_at && (
                       <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">

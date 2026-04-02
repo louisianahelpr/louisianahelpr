@@ -292,7 +292,7 @@ serve(async (req) => {
       if (job.status !== "revision_requested") throw new Error("No revision pending");
 
       const now = new Date();
-      const acceptanceDeadline = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+      const acceptanceDeadline = new Date(now.getTime() + 72 * 60 * 60 * 1000);
 
       await supabaseAdmin.from("jobs").update({
         revision_completed_at: now.toISOString(),
@@ -302,7 +302,7 @@ serve(async (req) => {
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
         title: "Revision completed — review needed",
-        message: `The helper has fixed the revision for "${job.title}". You have 48 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
+        message: `The helper has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
         type: "warning", link: "/activity?tab=posted&filter=revision_requested",
       });
 

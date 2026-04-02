@@ -300,8 +300,8 @@ const PlatformRules = () => {
                    </p>
                    <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4 space-y-0.5">
                      <li>The helpr has <strong className="text-foreground">72 hours</strong> to address the revision and mark it as fixed</li>
-                     <li>Once the helpr marks it fixed, you have <strong className="text-foreground">48 hours to accept or dispute</strong></li>
-                     <li>If you <strong className="text-destructive">don't respond within 48 hours</strong>, the job auto-completes and payment is released</li>
+                      <li>Once the helpr marks it fixed, you have <strong className="text-foreground">72 hours to accept or dispute</strong></li>
+                      <li>If you <strong className="text-destructive">don't respond within 72 hours</strong>, the job auto-completes and payment is released</li>
                      <li>If the helpr <strong className="text-destructive">doesn't fix it within 72 hours</strong>, you can mark complete or file a dispute</li>
                    </ul>
                 </div>

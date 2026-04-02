@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       resolved.push(job.id);
     }
 
-    // 2. Helper completed revision, poster didn't respond within 48h → auto-complete
+    // 2. Helper completed revision, poster didn't respond within 72h → auto-complete
     const { data: expiredAcceptances } = await supabase
       .from("jobs")
       .select("id, title, customer_id, helper_id, revision_acceptance_deadline")
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
         {
           user_id: job.customer_id,
           title: "Revision auto-accepted",
-          message: `You did not respond within 48 hours after the helpr fixed "${job.title}". Per policy, the job is marked complete and payment released.`,
+          message: `You did not respond within 72 hours after the helpr fixed "${job.title}". Per policy, the job is marked complete and payment released.`,
           type: "warning",
           link: "/activity?tab=posted&filter=completed",
         },
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
         notifications.push({
           user_id: job.helper_id,
           title: "Revision auto-accepted ✓",
-          message: `The poster did not respond within 48 hours for "${job.title}". Payment will be released to you.`,
+          message: `The poster did not respond within 72 hours for "${job.title}". Payment will be released to you.`,
           type: "payment",
           link: "/activity?tab=applied&filter=completed",
         });

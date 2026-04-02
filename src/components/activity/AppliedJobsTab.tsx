@@ -422,7 +422,8 @@ export const AppliedJobsTab = ({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

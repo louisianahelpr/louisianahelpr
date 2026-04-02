@@ -61,8 +61,10 @@ export const AppliedJobsTab = ({
 
   return (
     <div className="space-y-3">
-      {apps.map((app) => (
-        <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden cursor-pointer shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all" onClick={() => setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+      {apps.map((app) => {
+        const isNonExpandable = app.status === "rejected" || app.job?.status === "completed";
+        return (
+        <div key={app.id} className={`rounded-2xl border border-border/60 bg-card overflow-hidden ${isNonExpandable ? "" : "cursor-pointer"} shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all`} onClick={() => !isNonExpandable && setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
           {/* Top bar */}
           <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
             <h3 className={`font-bold text-[15px] leading-snug min-w-0 truncate ${(categoryColors[app.job?.category || "other"] || categoryColors.other).title}`}>
@@ -78,7 +80,7 @@ export const AppliedJobsTab = ({
                   </span>
                 );
               })()}
-              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />
+              {!isNonExpandable && <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />}
             </div>
           </div>
 
@@ -420,7 +422,8 @@ export const AppliedJobsTab = ({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

@@ -59,7 +59,10 @@ export const PostedJobsTab = ({
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
 
+  const isExpandable = (job: Job) => job.status !== "completed" && job.status !== "cancelled";
+
   const handleExpandJob = (jobId: string, job: Job) => {
+    if (!isExpandable(job)) return;
     const newId = expandedJobId === jobId ? null : jobId;
     setExpandedJobId(newId);
     if (newId && (job.status === "open" || job.status === "accepted")) {
@@ -81,13 +84,13 @@ export const PostedJobsTab = ({
         {jobs.map((job) => {
           const catStyle = categoryColors[job.category] || categoryColors.other;
           return (
-            <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all cursor-pointer" onClick={() => handleExpandJob(job.id, job)}>
+            <div key={job.id} className={`group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all ${isExpandable(job) ? "cursor-pointer" : ""}`} onClick={() => handleExpandJob(job.id, job)}>
               {/* Top bar */}
               <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
                 <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
                   <span className="flex items-center gap-0.5 font-bold text-primary text-sm"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
-                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />
+                  {isExpandable(job) && <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === job.id ? "rotate-180" : ""}`} />}
                 </div>
               </div>
 

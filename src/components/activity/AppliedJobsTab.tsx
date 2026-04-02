@@ -414,8 +414,8 @@ export const AppliedJobsTab = ({
               )}
               {/* Revision notice */}
               {app.job?.status === "revision_requested" && (app.job as any)?.revision_note && (
-                <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
-                  <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                   <p className="text-xs text-muted-foreground mt-1">{(app.job as any).revision_note}</p>
                 </div>
               )}

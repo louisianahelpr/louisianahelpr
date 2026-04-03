@@ -260,12 +260,12 @@ const AdminSettings = () => {
 
       {/* How fees work */}
       <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-3">
-        <h3 className="font-semibold text-foreground">How fees work</h3>
+        <h3 className="font-semibold text-foreground">How the split fee model works</h3>
         <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays the full job budget at time of posting (escrow)</li>
-          <li>When the job is completed, Helpr retains the platform fee</li>
-          <li>The remaining amount goes to the helpr</li>
-          <li>Current fee: <strong className="text-foreground">{feePercent}%</strong></li>
+          <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
+          <li>Helper receives: task budget − <strong className="text-foreground">{helperFee}%</strong> commission + urgent tip</li>
+          <li>Platform keeps: service fee from customer + commission from helper</li>
+          <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
         </ul>
       </div>
 

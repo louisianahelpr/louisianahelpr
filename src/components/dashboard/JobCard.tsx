@@ -245,13 +245,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </div>
           )}
 
-          {/* Cancellation Policy */}
-          <div className="rounded-lg bg-destructive/5 border border-destructive/10 p-2.5 flex items-start gap-2">
-            <Flag className="w-3.5 h-3.5 text-destructive/60 mt-0.5 shrink-0" />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">Cancellation policy:</span> Cancellations within 24 hours of the scheduled time may incur a 15% fee. The poster is responsible for any late cancellation charges.
-            </p>
-          </div>
 
           {/* Apply + Save + Flag */}
           <div className="flex items-center justify-end gap-2 pt-1">

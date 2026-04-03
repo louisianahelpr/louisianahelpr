@@ -65,8 +65,7 @@ const PostJob = () => {
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
-  const [salesTaxRate, setSalesTaxRate] = useState<number>(0);
-  const [salesTaxParish, setSalesTaxParish] = useState<string>("");
+  const [salesTaxRate] = useState<number>(10);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -88,31 +87,7 @@ const PostJob = () => {
       });
   }, []);
 
-  // Lookup parish tax rate when city changes
-  useEffect(() => {
-    if (!city.trim()) { setSalesTaxRate(0); setSalesTaxParish(""); return; }
-    // Try to match a parish from the parish_tax_rates table
-    // Louisiana cities don't map 1:1 to parishes, but we do a best-effort ilike match
-    supabase.from("parish_tax_rates").select("parish_name, total_rate")
-      .then(({ data: parishes }) => {
-        if (!parishes || parishes.length === 0) return;
-        const cityLower = city.trim().toLowerCase();
-        // Check for direct parish name match or common city-to-parish mappings
-        const match = parishes.find(p =>
-          p.parish_name.toLowerCase() === cityLower ||
-          cityLower.includes(p.parish_name.toLowerCase()) ||
-          p.parish_name.toLowerCase().includes(cityLower)
-        );
-        if (match) {
-          setSalesTaxRate(Number(match.total_rate));
-          setSalesTaxParish(match.parish_name);
-        } else {
-          // Default to average LA rate if no match
-          setSalesTaxRate(10);
-          setSalesTaxParish("Louisiana (avg)");
-        }
-      });
-  }, [city]);
+  
 
   // One-tap rebook: load from query params
   useEffect(() => {
@@ -849,9 +824,7 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      LA Sales Tax ({salesTaxRate}%{salesTaxParish ? ` — ${salesTaxParish} Parish` : ""})
-                    </span>
+                    <span className="text-muted-foreground">LA Sales Tax (10%)</span>
                     <span className="font-medium text-foreground">${salesTaxAmount.toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-border" />
@@ -859,33 +832,7 @@ const PostJob = () => {
                     <span className="font-semibold text-foreground">You pay</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
-
-                  {/* What the helper earns */}
-                  <div className="h-px bg-border" />
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Helpr payout breakdown</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">From task budget</span>
-                    <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
-                    <span className="font-medium text-destructive/70">−${feeAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax on fee (8.5%)</span>
-                    <span className="font-medium text-destructive/70">−${feeTax.toFixed(2)}</span>
-                  </div>
-                  {isUrgent && urgentFeeNum > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Urgent tip</span>
-                      <span className="font-medium text-accent">+${urgentFeeNum.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span className="text-foreground">Helpr earns</span>
-                    <span className="text-primary">${helperEarns.toFixed(2)}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Sales tax is collected from you and remitted to Louisiana. Platform fee & tax on fee are deducted from the helpr's payout.</p>
+                  <p className="text-[10px] text-muted-foreground">Sales tax is collected and remitted to Louisiana. Payment is held securely until both parties confirm job completion.</p>
                 </div>
               </div>
 

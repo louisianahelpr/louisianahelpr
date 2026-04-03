@@ -105,8 +105,8 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `LA Sales Tax (${salesTaxRate}%)`,
-              description: `Louisiana state + parish sales tax on services`,
+              name: `LA Sales Tax (10%)`,
+              description: `Louisiana sales tax on services`,
             },
             unit_amount: Math.round(salesTaxAmount * 100),
           },

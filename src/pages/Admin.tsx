@@ -95,7 +95,7 @@ const Admin = () => {
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    pendingReviews: 0, disputedJobs: 0, activeSubscriptions: 0,
+    disputedJobs: 0, activeSubscriptions: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});

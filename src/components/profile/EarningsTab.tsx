@@ -27,8 +27,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce((sum, j) => {
     const fee = j.platform_fee_amount || 0;
-    const feeTax = fee * 0.085;
-    return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+    return sum + (j.budget - fee + (j.urgent_fee ?? 0));
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 

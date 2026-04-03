@@ -77,7 +77,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         title: "Join Helpr!",
         text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job (post or work) and we both earn $5!`,
         url,
-      }).catch(() => {});
+      }).catch(() => {
+        navigator.clipboard.writeText(url);
+        toast.success("Referral link copied!");
+      });
     } else {
       navigator.clipboard.writeText(url);
       toast.success("Referral link copied!");

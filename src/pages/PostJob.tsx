@@ -56,7 +56,6 @@ const PostJob = () => {
   const [specialRequirements, setSpecialRequirements] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
-  const [jobDuration, setJobDuration] = useState("none"); // none, 3days, 7days, 14days, 30days
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");

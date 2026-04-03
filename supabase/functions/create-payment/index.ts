@@ -443,7 +443,8 @@ serve(async (req) => {
 
       // Transfer to helpr
       const feeAmt = job.platform_fee_amount || 0;
-      const helperPayout = job.budget - feeAmt + (job.urgent_fee ?? 0);
+      const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+      const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
         await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
       }

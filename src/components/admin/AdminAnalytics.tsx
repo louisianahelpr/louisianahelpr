@@ -88,6 +88,7 @@ const AdminAnalytics = () => {
     const commission = (perHelper * commissionPercent) / 100;
     return s + (perHelper - commission + (j.urgent_fee ?? 0));
   }, 0);
+  const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + t.amount, 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;

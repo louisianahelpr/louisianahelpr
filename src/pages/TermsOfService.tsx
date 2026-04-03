@@ -259,6 +259,33 @@ const TermsOfService = () => {
             </div>
           </section>
 
+          {/* Tax Responsibilities */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-primary" /> Tax Responsibilities
+            </h2>
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4 text-sm text-muted-foreground">
+              <p>Helpr operates as a marketplace facilitator. Each party has distinct tax obligations:</p>
+              <div>
+                <p className="font-semibold text-foreground mb-1">Platform (Helpr, LLC)</p>
+                <p>Helpr reports worker earnings to the IRS via <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met. As a Louisiana marketplace facilitator, Helpr collects and remits applicable state and parish-level sales tax on taxable services.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground mb-1">Job Posters (Customers)</p>
+                <p>You pay the agreed job fee plus any applicable sales tax (collected by Helpr). Workers are <strong className="text-foreground">independent contractors</strong> — you have no payroll, withholding, or employer tax obligations.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground mb-1">Helprs (Workers)</p>
+                <p>As independent contractors, you are responsible for <strong className="text-foreground">self-employment tax (15.3%)</strong>, reporting all income on your state and federal returns, and making <strong className="text-foreground">quarterly estimated tax payments</strong> if applicable. You will receive a 1099-K if you meet federal reporting thresholds.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground mb-1">Louisiana Parish Sales Tax</p>
+                <p>Louisiana parishes collect their own sales taxes. Rates vary by job location. Helpr applies the correct parish rate automatically based on where the job is performed.</p>
+              </div>
+              <p className="text-xs italic">Tax laws change frequently. This is general guidance — consult a CPA for advice specific to your situation. See our <Link to="/rules" className="text-primary hover:underline">Platform Rules</Link> for more detail.</p>
+            </div>
+          </section>
+
           {/* Privacy Summary */}
           <section className="space-y-4">
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">

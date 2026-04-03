@@ -178,7 +178,7 @@ const Admin = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => { loadStats(); loadUnreadCounts(); })
+      
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loading]);

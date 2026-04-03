@@ -135,7 +135,7 @@ const AdminAnalytics = () => {
     monthlyData.push({
       month: label,
       revenue: monthJobs.reduce((s, j) => s + (j.budget || 0), 0),
-      fees: monthJobs.reduce((s, j) => s + (j.platform_fee_amount || 0), 0),
+      fees: monthJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0),
       jobs: monthJobs.length,
       signups: monthSignups.length,
     });

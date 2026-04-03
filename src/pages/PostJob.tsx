@@ -84,8 +84,10 @@ const PostJob = () => {
     supabase.from("platform_settings").select("platform_fee_percent, customer_fee_percent, helper_fee_percent").limit(1).maybeSingle()
       .then(({ data }) => {
         if (data) {
-          setPlatformFee(data.platform_fee_percent);
-          setCustomerFee((data as any).customer_fee_percent ?? 10);
+          // Use customer_fee_percent as the poster-facing fee (service fee at checkout)
+          const custFee = (data as any).customer_fee_percent ?? 10;
+          setPlatformFee(custFee);
+          setCustomerFee(custFee);
         }
       });
   }, []);

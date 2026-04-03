@@ -92,7 +92,7 @@ const InviteBanner = ({ userId }: { userId: string }) => {
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
             <SocialShare
-              url={`${window.location.origin}/signup?ref=${referralCode}`}
+              url={`https://louisianahelpr.lovable.app/signup?ref=${referralCode}`}
               text={`Join me on Helpr! Use code ${referralCode} and we both earn $5.`}
               compact
             />

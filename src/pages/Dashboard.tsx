@@ -359,7 +359,7 @@ const Dashboard = () => {
               </div>
               <div className="space-y-3">
                 {recommendedJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                 ))}
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />

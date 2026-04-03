@@ -435,12 +435,12 @@ export const PostedJobsTab = ({
                             </div>
                           )}
                           {(job as any).dispute_deadline && disputeStatus !== "resolved" && (
-                            <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
-                              <Timer className="w-3.5 h-3.5" />
-                              {new Date((job as any).dispute_deadline) <= new Date()
-                                ? "Deadline passed — auto-resolving"
-                                : `${formatDistanceToNow(new Date((job as any).dispute_deadline), { addSuffix: false })} left to resolve`}
-                            </div>
+                            <DeadlineCountdown
+                              deadline={(job as any).dispute_deadline}
+                              expiredText="Deadline passed — payment auto-releasing to helpr"
+                              consequenceText="Confirm the issue is fixed or escalate to admin. If no action is taken, payment auto-releases to the helpr."
+                              variant="destructive"
+                            />
                           )}
                         </div>
                         <div className="p-2 rounded-lg bg-muted/50 border border-border">

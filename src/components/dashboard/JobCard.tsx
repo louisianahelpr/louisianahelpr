@@ -44,8 +44,10 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
     completedJobs: job.posterCompletedJobs || 0,
   });
 
-  const feeAmt = job.budget * (effectiveFee / 100);
-  const netEarnings = job.budget - feeAmt;
+  const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+  const perHelperBudget = job.budget / helpersCount;
+  const feeAmt = perHelperBudget * (effectiveFee / 100);
+  const netEarnings = perHelperBudget - feeAmt;
   const earnings = netEarnings.toFixed(2);
   const urgentTip = job.urgent_fee ?? 0;
   const catStyle = categoryColors[job.category] || categoryColors.other;

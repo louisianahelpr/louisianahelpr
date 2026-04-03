@@ -1729,7 +1729,6 @@ export type Database = {
           budget: number | null
           category: Database["public"]["Enums"]["job_category"] | null
           created_at: string | null
-          customer_id: string | null
           date_needed: string | null
           description: string | null
           estimated_hours: number | null
@@ -1754,7 +1753,6 @@ export type Database = {
           budget?: number | null
           category?: Database["public"]["Enums"]["job_category"] | null
           created_at?: string | null
-          customer_id?: string | null
           date_needed?: string | null
           description?: string | null
           estimated_hours?: number | null
@@ -1779,7 +1777,6 @@ export type Database = {
           budget?: number | null
           category?: Database["public"]["Enums"]["job_category"] | null
           created_at?: string | null
-          customer_id?: string | null
           date_needed?: string | null
           description?: string | null
           estimated_hours?: number | null

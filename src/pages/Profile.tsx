@@ -187,22 +187,23 @@ const ProfilePage = () => {
   };
 
   const loadStats = async (userId: string) => {
-    const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes] = await Promise.all([
+    const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes, completedJobIdsRes] = await Promise.all([
       supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
-      supabase.from("tips").select("amount").eq("helper_id", userId),
+      supabase.from("tips").select("amount, job_id").eq("helper_id", userId),
+      supabase.from("jobs").select("id").eq("helper_id", userId).eq("status", "completed"),
     ]);
+    const completedIds = new Set((completedJobIdsRes.data || []).map(j => j.id));
     if (helperJobsRes.data) {
       setCompletedCount(helperJobsRes.data.length);
       const jobEarnings = helperJobsRes.data.reduce((s, j) => {
         const fee = j.platform_fee_amount || 0;
-        const feeTax = fee * 0.085;
-        return s + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+        return s + (j.budget - fee + (j.urgent_fee ?? 0));
       }, 0);
       setTotalJobEarnings(jobEarnings);
     }
-    const tipEarnings = (tipsStatsRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
+    const tipEarnings = (tipsStatsRes.data || []).filter(t => completedIds.has(t.job_id)).reduce((s, t) => s + (t.amount || 0), 0);
     setTotalTipEarnings(tipEarnings);
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {

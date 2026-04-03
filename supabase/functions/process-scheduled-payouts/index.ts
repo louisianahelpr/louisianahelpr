@@ -27,7 +27,7 @@ serve(async (req) => {
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, stripe_session_id, stripe_payment_intent_id, status")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       .lte("payout_scheduled_at", now);

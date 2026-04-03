@@ -376,8 +376,7 @@ const PostJob = () => {
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
-  const salesTaxAmount = budgetNum * (salesTaxRate / 100);
-  const totalCharge = budgetNum + urgentFeeNum + salesTaxAmount;
+  const totalCharge = budgetNum + urgentFeeNum; // Tax calculated automatically by Stripe at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (

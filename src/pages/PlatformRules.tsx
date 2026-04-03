@@ -438,6 +438,107 @@ const PlatformRules = () => {
           </div>
         </section>
 
+        {/* Platform Fees — What They Cover */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Platform Fees — What They Cover</h2>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+            <p className="text-sm text-muted-foreground">
+              Helpr charges a <strong className="text-foreground">10% service fee to posters</strong> and a{" "}
+              <strong className="text-foreground">10% commission to helprs</strong>. These fees fund the infrastructure 
+              that makes the platform safe, reliable, and fair for everyone.
+            </p>
+
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">Your fees pay for:</p>
+              <div className="grid gap-2">
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Secure escrow payments</strong> — your money is held safely until the job is confirmed complete. No one gets stiffed.</p>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Payment processing</strong> — Stripe charges ~2.9% + $0.30 per transaction. We absorb this so you don't see extra line items.</p>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Dispute resolution & refund protection</strong> — if something goes wrong, our 3-step escalation process protects both parties. Refunds are processed automatically.</p>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Identity verification & fraud prevention</strong> — ID checks, GPS arrival verification, photo proof requirements, and automated fraud detection keep the community safe.</p>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Instant notifications & messaging</strong> — real-time job alerts, in-app messaging, email notifications, and push notifications so nothing falls through the cracks.</p>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Louisiana sales tax compliance</strong> — we calculate, collect, and remit the correct parish-level sales tax so you don't have to worry about it.</p>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Platform development & support</strong> — ongoing improvements, customer support, and keeping the app running 24/7.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Fee breakdown example */}
+            <div className="rounded-lg bg-muted/40 border border-border/50 p-4 space-y-3">
+              <p className="text-sm font-semibold text-foreground">Example: $100 yard work job</p>
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Poster pays</span>
+                  <span className="font-medium text-foreground">$110.00</span>
+                </div>
+                <div className="flex justify-between text-xs pl-4">
+                  <span>Job budget</span>
+                  <span>$100.00</span>
+                </div>
+                <div className="flex justify-between text-xs pl-4">
+                  <span>10% service fee</span>
+                  <span>$10.00</span>
+                </div>
+                <div className="flex justify-between text-xs pl-4">
+                  <span>+ applicable sales tax</span>
+                  <span>varies by parish</span>
+                </div>
+                <div className="border-t border-border/50 my-2" />
+                <div className="flex justify-between">
+                  <span>Helpr receives</span>
+                  <span className="font-medium text-foreground">$90.00</span>
+                </div>
+                <div className="flex justify-between text-xs pl-4">
+                  <span>Job budget</span>
+                  <span>$100.00</span>
+                </div>
+                <div className="flex justify-between text-xs pl-4">
+                  <span>10% commission</span>
+                  <span>−$10.00</span>
+                </div>
+                <div className="border-t border-border/50 my-2" />
+                <div className="flex justify-between">
+                  <span>Platform keeps</span>
+                  <span className="font-medium text-foreground">$20.00</span>
+                </div>
+                <div className="flex justify-between text-xs pl-4">
+                  <span>Covers Stripe fees, infrastructure, compliance, and support</span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground italic">
+              Fee percentages are set by the platform and may be adjusted. The fee percentage at the time you post a job is locked in — 
+              no retroactive changes will be applied to existing jobs. See our <Link to="/pricing" className="text-primary hover:underline">pricing page</Link> for more details.
+            </p>
+          </div>
+        </section>
+
         {/* Tax Responsibilities */}
         <section className="mb-10">
           <div className="flex items-center gap-3 mb-4">

@@ -88,6 +88,32 @@ const PostJob = () => {
       });
   }, []);
 
+  // Lookup parish tax rate when city changes
+  useEffect(() => {
+    if (!city.trim()) { setSalesTaxRate(0); setSalesTaxParish(""); return; }
+    // Try to match a parish from the parish_tax_rates table
+    // Louisiana cities don't map 1:1 to parishes, but we do a best-effort ilike match
+    supabase.from("parish_tax_rates").select("parish_name, total_rate")
+      .then(({ data: parishes }) => {
+        if (!parishes || parishes.length === 0) return;
+        const cityLower = city.trim().toLowerCase();
+        // Check for direct parish name match or common city-to-parish mappings
+        const match = parishes.find(p =>
+          p.parish_name.toLowerCase() === cityLower ||
+          cityLower.includes(p.parish_name.toLowerCase()) ||
+          p.parish_name.toLowerCase().includes(cityLower)
+        );
+        if (match) {
+          setSalesTaxRate(Number(match.total_rate));
+          setSalesTaxParish(match.parish_name);
+        } else {
+          // Default to average LA rate if no match
+          setSalesTaxRate(10);
+          setSalesTaxParish("Louisiana (avg)");
+        }
+      });
+  }, [city]);
+
   // One-tap rebook: load from query params
   useEffect(() => {
     const rebookId = searchParams.get("rebook");

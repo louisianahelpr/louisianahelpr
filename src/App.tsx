@@ -64,7 +64,9 @@ const PageFallback = () => (
   </div>
 );
 
-const AnimatedRoutes = () => {
+import { forwardRef } from "react";
+
+const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>

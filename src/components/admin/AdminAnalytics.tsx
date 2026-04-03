@@ -72,16 +72,17 @@ const AdminAnalytics = () => {
   const helpers = profiles.filter(p => p.role === "helper");
   const customers = profiles.filter(p => p.role === "customer");
   const completedJobs = allJobs.filter(j => j.status === "completed");
+  const capturedJobs = allJobs.filter(j => ["escrow", "payout_pending", "released"].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");
   const activeJobs = allJobs.filter(j => ["accepted", "in_progress"].includes(j.status));
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
 
-  const totalRevenue = completedJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  const totalFees = completedJobs.reduce((s, j) => s + (j.platform_fee_amount || 0), 0);
-  const totalHelperPayouts = totalRevenue - totalFees;
+  const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0), 0);
+  const totalFees = capturedJobs.reduce((s, j) => s + (j.platform_fee_amount || 0), 0);
+  const totalHelperPayouts = completedJobs.reduce((s, j) => s + ((j.budget || 0) - (j.platform_fee_amount || 0)), 0);
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + t.amount, 0);
-  const avgJobValue = completedJobs.length > 0 ? totalRevenue / completedJobs.length : 0;
+  const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;
 

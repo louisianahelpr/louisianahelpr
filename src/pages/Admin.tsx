@@ -141,7 +141,7 @@ const Admin = () => {
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, feesRes, subsRes] = await Promise.all([
+    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, paymentsRes, subsRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -149,10 +149,10 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
-      supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed"),
+      supabase.from("jobs").select("budget, platform_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
     ]);
-    const feeRows = feesRes.data || [];
+    const paymentRows = paymentsRes.data || [];
     setStats({
       totalUsers: profilesRes.count || 0,
       pendingApprovals: pendingRes.count || 0,
@@ -160,9 +160,8 @@ const Admin = () => {
       supportTickets: supportRes.count || 0,
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
-      totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),
-      totalFees: feeRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
-      
+      totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0), 0),
+      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
     });

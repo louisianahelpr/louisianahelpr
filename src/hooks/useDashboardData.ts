@@ -34,7 +34,7 @@ export function useDashboardData() {
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(0, 499),
-        supabase.from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle(),
+        supabase.from("platform_settings").select("platform_fee_percent, helper_fee_percent").limit(1).maybeSingle(),
         supabase
           .from("helper_availability")
           .select("day_of_week, is_available, start_time, end_time")
@@ -49,7 +49,7 @@ export function useDashboardData() {
 
       const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
 
-      const platformFee = feeRes.data?.platform_fee_percent ?? 0;
+      const platformFee = (feeRes.data as any)?.helper_fee_percent ?? 10;
       const helperAvailability = availRes.data ?? [];
       const rawJobs = openJobsRes.data ?? [];
 

@@ -76,7 +76,7 @@ serve(async (req) => {
         .from("platform_settings")
         .select("customer_fee_percent, helper_fee_percent, platform_fee_percent")
         .limit(1).single();
-      const customerFeePercent = settings?.customer_fee_percent ?? 5;
+      const customerFeePercent = settings?.customer_fee_percent ?? 10;
       const helperFeePercent = settings?.helper_fee_percent ?? 10;
 
       // Customer service fee (added as a line item)

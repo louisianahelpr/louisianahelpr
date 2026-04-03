@@ -50,7 +50,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("one_time");
-  const [billingDay, setBillingDay] = useState<number>(1);
+  
   const [refreshing, setRefreshing] = useState(false);
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -97,7 +97,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
     try {
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, billing_cycle, ...(billing_cycle === "monthly" ? { billing_day: billingDay } : {}) },
+        body: { tier, billing_cycle },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
@@ -205,23 +205,6 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
         ))}
       </div>
 
-      {billingInterval === "monthly" && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <label className="text-sm font-medium text-foreground">Billing day of the month</label>
-          <select
-            value={billingDay}
-            onChange={(e) => setBillingDay(Number(e.target.value))}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-          >
-            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-              <option key={day} value={day}>
-                {day === 1 ? "1st" : day === 2 ? "2nd" : day === 3 ? "3rd" : `${day}th`}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">You'll be charged on this day each month</p>
-        </div>
-      )}
 
       <div className="space-y-3">
         {tierConfig.map((tier) => {

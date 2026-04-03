@@ -142,7 +142,7 @@ const TermsOfService = () => {
                   <span>~$150/yr</span>
                 </div>
               </div>
-              <p>Billing intervals include One-Time, Monthly (user-selectable billing day from the 1st–28th), and Annual (discounted at ~10× monthly rate). All tiers include early access to new jobs and maintain the same 15% platform fee.</p>
+              <p>Billing intervals include One-Time, Monthly, and Annual (discounted at ~10× monthly rate). All tiers include early access to new jobs and maintain the same 15% platform fee. Stripe handles billing dates automatically based on your subscription start date.</p>
             </div>
           </section>
 

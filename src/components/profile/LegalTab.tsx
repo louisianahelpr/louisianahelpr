@@ -96,7 +96,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <p><strong className="text-foreground">Pro 🔥 ($10/mo):</strong> Priority job access and enhanced visibility.</p>
             <p><strong className="text-foreground">Elite 💎 ($15/mo):</strong> Top-tier access with maximum visibility and early job access.</p>
             <p><strong className="text-foreground">Annual Plans:</strong> Available at ~10x monthly rate (save ~17%).</p>
-            <p><strong className="text-foreground">Billing:</strong> One-time, monthly (choose billing day 1st–28th), or annual.</p>
+            <p><strong className="text-foreground">Billing:</strong> One-time, monthly, or annual. Stripe handles billing dates automatically.</p>
           </LegalCard>
         </div>
       </div>

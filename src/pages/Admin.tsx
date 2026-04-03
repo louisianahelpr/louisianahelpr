@@ -14,7 +14,7 @@ import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
-import AdminReviews from "@/components/admin/AdminReviews";
+
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";

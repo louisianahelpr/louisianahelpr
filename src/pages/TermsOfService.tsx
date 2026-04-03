@@ -58,8 +58,8 @@ const TermsOfService = () => {
                 <p>All payments are processed immediately via Stripe at the time of booking. Funds are charged to the customer upfront and held by the platform. A Stripe transfer to the helpr's connected account is initiated only after both parties confirm job completion. Refunds are issued if a job is cancelled before completion.</p>
               </div>
               <div>
-                <p className="font-semibold text-foreground mb-1">Platform Fee</p>
-                <p>Helpr charges a <strong className="text-foreground">15% platform fee</strong> on all transactions across all subscription tiers. This fee is deducted from the helpr's earnings before payout.</p>
+                <p className="font-semibold text-foreground mb-1">Split Fee Model</p>
+                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helpers pay a <strong className="text-foreground">10% commission</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Payout Schedule</p>

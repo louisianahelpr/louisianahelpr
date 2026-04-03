@@ -60,8 +60,19 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg bg-secondary/30 p-3">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Your Payout</p>
-              <p className="font-semibold text-primary">${(job.budget * (1 - effectiveFee / 100) + (job.urgent_fee ?? 0)).toFixed(2)}</p>
-              <p className="text-[9px] text-muted-foreground mt-0.5">After {effectiveFee}% platform fee</p>
+              {(() => {
+                const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+                const perHelper = job.budget / helpers;
+                const payout = perHelper * (1 - effectiveFee / 100) + (job.urgent_fee ?? 0);
+                return (
+                  <>
+                    <p className="font-semibold text-primary">${payout.toFixed(2)}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      After {effectiveFee}% platform fee{helpers > 1 ? ` · Split ${helpers} ways` : ""}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
             <div className="rounded-lg bg-secondary/30 p-3">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>

@@ -376,10 +376,8 @@ const PostJob = () => {
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
-  const feeTax = feeAmount * 0.085;
   const salesTaxAmount = budgetNum * (salesTaxRate / 100);
   const totalCharge = budgetNum + urgentFeeNum + salesTaxAmount;
-  const helperEarns = budgetNum - feeAmount - feeTax + urgentFeeNum;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (

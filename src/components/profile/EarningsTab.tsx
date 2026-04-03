@@ -28,8 +28,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
   const totalEarnings = completedJobs.reduce((sum, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = j.budget / helpers;
-    const fee = (j.platform_fee_amount || 0) / helpers;
-    return sum + (perHelper - fee + (j.urgent_fee ?? 0));
+    const commissionPercent = (j as any).helper_fee_percent ?? 10;
+    const commission = (perHelper * commissionPercent) / 100;
+    return sum + (perHelper - commission + (j.urgent_fee ?? 0));
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 

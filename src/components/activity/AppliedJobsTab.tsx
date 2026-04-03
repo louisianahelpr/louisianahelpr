@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
+import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { JobCheckins } from "@/components/JobCheckins";

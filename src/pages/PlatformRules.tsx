@@ -3,7 +3,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { 
   Shield, DollarSign, Clock, AlertTriangle, Ban, 
-  Scale, ArrowLeft, CheckCircle, XCircle, Timer 
+  Scale, ArrowLeft, CheckCircle, XCircle, Timer, Receipt
 } from "lucide-react";
 
 const PlatformRules = () => {
@@ -434,6 +434,110 @@ const PlatformRules = () => {
             </div>
             <p className="text-xs text-muted-foreground italic">
               Severe violations (no-shows, fraud, harassment, safety threats) skip the escalation ladder and result in an immediate permanent ban.
+            </p>
+          </div>
+        </section>
+
+        {/* Tax Responsibilities */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Receipt className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Tax Responsibilities</h2>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+            <p className="text-sm text-muted-foreground">
+              Operating on Helpr involves tax obligations for all parties. Understanding your responsibilities 
+              ensures compliance with federal and Louisiana state tax law.
+            </p>
+
+            {/* Platform */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Helpr (The Platform)</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">1099 Reporting:</strong> Helpr reports worker earnings to the IRS. If you meet the federal threshold ($20,000+ and 200+ transactions), you'll receive a 1099-K.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Sales Tax Collection:</strong> As a marketplace facilitator in Louisiana, Helpr collects and remits applicable state and local sales tax on taxable services.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Job Poster */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Job Posters (Customers)</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Sales Tax:</strong> If the service is taxable in Louisiana, you pay the applicable sales tax — which Helpr collects on your behalf and remits to the state.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">No Payroll Obligations:</strong> Workers on Helpr are independent contractors. You do not withhold income tax, Social Security, or Medicare.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Helpr (Worker) */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Helprs (Workers)</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Self-Employment Tax:</strong> As an independent contractor, you are responsible for the full 15.3% self-employment tax (Social Security + Medicare) on your Helpr earnings.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Income Tax:</strong> You must report all Helpr income on your state and federal tax returns.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Quarterly Estimates:</strong> If you earn a significant amount, you may need to make quarterly estimated tax payments to the IRS and the Louisiana Department of Revenue.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary table */}
+            <div className="rounded-lg bg-muted/40 border border-border/50 overflow-hidden">
+              <div className="grid grid-cols-3 text-xs font-semibold text-foreground bg-muted/60 px-4 py-2.5 border-b border-border/50">
+                <span>Tax Type</span>
+                <span>Who Pays</span>
+                <span>Who Reports</span>
+              </div>
+              <div className="grid grid-cols-3 text-xs px-4 py-2.5 border-b border-border/30 text-muted-foreground">
+                <span>Income Tax</span>
+                <span>The Worker</span>
+                <span>Worker pays; Helpr reports via 1099</span>
+              </div>
+              <div className="grid grid-cols-3 text-xs px-4 py-2.5 border-b border-border/30 text-muted-foreground">
+                <span>Self-Employment Tax</span>
+                <span>The Worker</span>
+                <span>The Worker</span>
+              </div>
+              <div className="grid grid-cols-3 text-xs px-4 py-2.5 border-b border-border/30 text-muted-foreground">
+                <span>Sales Tax (on service)</span>
+                <span>Job Poster</span>
+                <span>Helpr collects & remits to LA</span>
+              </div>
+              <div className="grid grid-cols-3 text-xs px-4 py-2.5 text-muted-foreground">
+                <span>Platform Revenue Tax</span>
+                <span>Helpr, LLC</span>
+                <span>Helpr pays tax on fees kept</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">Louisiana Parish Rates:</strong> Louisiana parishes collect their own sales taxes. The tax rate may vary depending on where the job is performed (e.g., Lafayette vs. New Iberia). Helpr applies the correct rate based on job location.
+              </p>
+            </div>
+
+            <p className="text-xs text-muted-foreground italic">
+              Tax laws change frequently. This is general guidance — consult a CPA for advice specific to your situation.
             </p>
           </div>
         </section>

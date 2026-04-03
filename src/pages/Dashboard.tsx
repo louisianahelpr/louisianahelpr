@@ -560,7 +560,7 @@ const Dashboard = () => {
                         <span>${confirmApplyJob.budget.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Platform fee ({platformFee}%)</span>
+                        <span>Commission ({platformFee}%)</span>
                         <span className="text-destructive/70">−${(confirmApplyJob.budget * platformFee / 100).toFixed(2)}</span>
                       </div>
                       {(confirmApplyJob.urgent_fee ?? 0) > 0 && (

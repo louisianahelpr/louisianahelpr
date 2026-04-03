@@ -65,8 +65,10 @@ serve(async (req) => {
 
       const feeAmount = (job.budget * feePercent) / 100;
       const feeTax = feeAmount * 0.085;
-      // Store fee and tax separately on the job for accurate payout calculations
-      // platform_fee_amount = fee only (without tax), feeTax tracked via the percent
+
+      // Sales tax from the job (locked at creation time)
+      const salesTaxAmount = job.sales_tax_amount ?? 0;
+      const salesTaxRate = job.sales_tax_rate ?? 0;
 
       const lineItems: any[] = [
         {
@@ -97,6 +99,21 @@ serve(async (req) => {
         });
       }
 
+      // Add sales tax line item if applicable
+      if (salesTaxAmount > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `LA Sales Tax (${salesTaxRate}%)`,
+              description: `Louisiana state + parish sales tax on services`,
+            },
+            unit_amount: Math.round(salesTaxAmount * 100),
+          },
+          quantity: 1,
+        });
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
@@ -107,6 +124,8 @@ serve(async (req) => {
             job_id: jobId,
             customer_id: user.id,
             platform_fee_percent: String(feePercent),
+            sales_tax_rate: String(salesTaxRate),
+            sales_tax_amount: String(salesTaxAmount),
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,

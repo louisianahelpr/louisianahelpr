@@ -65,6 +65,8 @@ const PostJob = () => {
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
+  const [salesTaxRate, setSalesTaxRate] = useState<number>(0);
+  const [salesTaxParish, setSalesTaxParish] = useState<string>("");
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -85,6 +87,32 @@ const PostJob = () => {
         if (data) setPlatformFee(data.platform_fee_percent);
       });
   }, []);
+
+  // Lookup parish tax rate when city changes
+  useEffect(() => {
+    if (!city.trim()) { setSalesTaxRate(0); setSalesTaxParish(""); return; }
+    // Try to match a parish from the parish_tax_rates table
+    // Louisiana cities don't map 1:1 to parishes, but we do a best-effort ilike match
+    supabase.from("parish_tax_rates").select("parish_name, total_rate")
+      .then(({ data: parishes }) => {
+        if (!parishes || parishes.length === 0) return;
+        const cityLower = city.trim().toLowerCase();
+        // Check for direct parish name match or common city-to-parish mappings
+        const match = parishes.find(p =>
+          p.parish_name.toLowerCase() === cityLower ||
+          cityLower.includes(p.parish_name.toLowerCase()) ||
+          p.parish_name.toLowerCase().includes(cityLower)
+        );
+        if (match) {
+          setSalesTaxRate(Number(match.total_rate));
+          setSalesTaxParish(match.parish_name);
+        } else {
+          // Default to average LA rate if no match
+          setSalesTaxRate(10);
+          setSalesTaxParish("Louisiana (avg)");
+        }
+      });
+  }, [city]);
 
   // One-tap rebook: load from query params
   useEffect(() => {
@@ -285,9 +313,11 @@ const PostJob = () => {
       }
     }
 
-    // Lock platform fee at creation time so admin changes don't retroactively affect this job
+    // Lock platform fee and sales tax at creation time
     const lockedFeePercent = platformFee ?? 0;
     const lockedFeeAmount = parseFloat(budget) * (lockedFeePercent / 100);
+    const lockedSalesTaxRate = salesTaxRate;
+    const lockedSalesTaxAmount = parseFloat(budget) * (lockedSalesTaxRate / 100);
 
     const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
@@ -311,6 +341,8 @@ const PostJob = () => {
       urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
       platform_fee_percent: lockedFeePercent,
       platform_fee_amount: lockedFeeAmount,
+      sales_tax_rate: lockedSalesTaxRate,
+      sales_tax_amount: lockedSalesTaxAmount,
     } as any).select("id").single();
 
     if (error || !jobData) {
@@ -379,7 +411,8 @@ const PostJob = () => {
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
   const feeTax = feeAmount * 0.085;
-  const totalCharge = budgetNum + urgentFeeNum;
+  const salesTaxAmount = budgetNum * (salesTaxRate / 100);
+  const totalCharge = budgetNum + urgentFeeNum + salesTaxAmount;
   const helperEarns = budgetNum - feeAmount - feeTax + urgentFeeNum;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
@@ -837,6 +870,8 @@ const PostJob = () => {
                   </h3>
                 </div>
                 <div className="p-5 space-y-3">
+                  {/* What the customer pays */}
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Task budget</span>
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
@@ -848,23 +883,43 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform fee ({platformFee}%, deducted from helpr)</span>
-                    <span className="font-medium text-muted-foreground">−${feeAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">LA sales tax on fee (8.5%, deducted from helpr)</span>
-                    <span className="font-medium text-muted-foreground">−${feeTax.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Helpr earns</span>
-                    <span>${helperEarns.toFixed(2)}</span>
+                    <span className="text-muted-foreground">
+                      LA Sales Tax ({salesTaxRate}%{salesTaxParish ? ` — ${salesTaxParish} Parish` : ""})
+                    </span>
+                    <span className="font-medium text-foreground">${salesTaxAmount.toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">You pay</span>
-                    <span className="text-xl font-bold text-foreground">${(budgetNum + urgentFeeNum).toFixed(2)}</span>
+                    <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Tax is collected by Stripe at checkout. The platform fee and tax are deducted from the payout.</p>
+
+                  {/* What the helper earns */}
+                  <div className="h-px bg-border" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Helpr payout breakdown</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">From task budget</span>
+                    <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
+                    <span className="font-medium text-destructive/70">−${feeAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax on fee (8.5%)</span>
+                    <span className="font-medium text-destructive/70">−${feeTax.toFixed(2)}</span>
+                  </div>
+                  {isUrgent && urgentFeeNum > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Urgent tip</span>
+                      <span className="font-medium text-accent">+${urgentFeeNum.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-semibold">
+                    <span className="text-foreground">Helpr earns</span>
+                    <span className="text-primary">${helperEarns.toFixed(2)}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Sales tax is collected from you and remitted to Louisiana. Platform fee & tax on fee are deducted from the helpr's payout.</p>
                 </div>
               </div>
 
@@ -912,7 +967,7 @@ const PostJob = () => {
                   disabled={saving || uploading || !confirmed}
                 >
                   {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${(budgetNum + urgentFeeNum).toFixed(2)}`}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${totalCharge.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

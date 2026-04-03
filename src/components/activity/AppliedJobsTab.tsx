@@ -258,12 +258,12 @@ export const AppliedJobsTab = ({
                   <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date((app.job as any).disputed_at), { addSuffix: true })}</p>
                 )}
                 {(app.job as any)?.dispute_deadline && (
-                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((app.job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
-                    <Timer className="w-3.5 h-3.5" />
-                    {new Date((app.job as any).dispute_deadline) <= new Date()
-                      ? "Deadline passed — payment releasing to you"
-                      : `${formatDistanceToNow(new Date((app.job as any).dispute_deadline), { addSuffix: false })} left to resolve`}
-                  </div>
+                  <DeadlineCountdown
+                    deadline={(app.job as any).dispute_deadline}
+                    expiredText="Deadline passed — payment auto-releasing to you"
+                    consequenceText="If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline."
+                    variant="destructive"
+                  />
                 )}
               </div>
               {/* Helper's existing response */}

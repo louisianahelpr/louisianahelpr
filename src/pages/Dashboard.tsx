@@ -560,7 +560,7 @@ const Dashboard = () => {
                         <span>${confirmApplyJob.budget.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Platform fee ({platformFee}%)</span>
+                        <span>Commission ({platformFee}%)</span>
                         <span className="text-destructive/70">−${(confirmApplyJob.budget * platformFee / 100).toFixed(2)}</span>
                       </div>
                       {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
@@ -582,7 +582,7 @@ const Dashboard = () => {
                         })()}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Platform fee is deducted from your payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""} Sales tax is paid by the customer separately.
+                        Commission is deducted from your payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""} Sales tax is paid by the customer separately.
                       </p>
                     </div>
                   </div>

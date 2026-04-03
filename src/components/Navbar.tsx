@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const Navbar = () => {

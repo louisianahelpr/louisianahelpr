@@ -146,7 +146,13 @@ const AdminAnalytics = () => {
   const pendingPayouts = allJobs.filter(j => j.payment_status === "payout_pending");
   const releasedPayouts = allJobs.filter(j => j.payment_status === "released");
   const escrowTotal = escrowJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  const pendingPayoutTotal = pendingPayouts.reduce((s, j) => s + (j.budget - (j.platform_fee_amount || 0)), 0);
+  const pendingPayoutTotal = pendingPayouts.reduce((s, j) => {
+    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
+    const perHelper = (j.budget || 0) / helpers;
+    const commissionPercent = j.helper_fee_percent ?? 10;
+    const commission = (perHelper * commissionPercent) / 100;
+    return s + (perHelper - commission + (j.urgent_fee ?? 0));
+  }, 0);
 
   // Subscription pie data
   const subPieData = [

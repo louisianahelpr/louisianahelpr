@@ -664,6 +664,7 @@ export type Database = {
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
           created_at: string
+          customer_fee_amount: number | null
           customer_id: string
           date_needed: string
           description: string
@@ -681,6 +682,7 @@ export type Database = {
           helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
+          helper_fee_percent: number | null
           helper_id: string | null
           helper_on_the_way_at: string | null
           helpers_needed: number | null
@@ -737,6 +739,7 @@ export type Database = {
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
           created_at?: string
+          customer_fee_amount?: number | null
           customer_id: string
           date_needed: string
           description: string
@@ -754,6 +757,7 @@ export type Database = {
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
+          helper_fee_percent?: number | null
           helper_id?: string | null
           helper_on_the_way_at?: string | null
           helpers_needed?: number | null
@@ -810,6 +814,7 @@ export type Database = {
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
           created_at?: string
+          customer_fee_amount?: number | null
           customer_id?: string
           date_needed?: string
           description?: string
@@ -827,6 +832,7 @@ export type Database = {
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
+          helper_fee_percent?: number | null
           helper_id?: string | null
           helper_on_the_way_at?: string | null
           helpers_needed?: number | null
@@ -1072,18 +1078,24 @@ export type Database = {
       }
       platform_settings: {
         Row: {
+          customer_fee_percent: number
+          helper_fee_percent: number
           id: string
           platform_fee_percent: number
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          customer_fee_percent?: number
+          helper_fee_percent?: number
           id?: string
           platform_fee_percent?: number
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          customer_fee_percent?: number
+          helper_fee_percent?: number
           id?: string
           platform_fee_percent?: number
           updated_at?: string

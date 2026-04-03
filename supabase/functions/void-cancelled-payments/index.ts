@@ -130,21 +130,31 @@ serve(async (req) => {
             });
           }
 
-          // Transfer cancellation fee to the inconvenienced helper
+          // Transfer cancellation fee to helper minus platform commission
           if (cancellationFee > 0 && job.helper_id) {
+            // Fetch helper fee percent from platform settings
+            const { data: settings } = await supabaseAdmin
+              .from("platform_settings")
+              .select("helper_fee_percent")
+              .limit(1)
+              .single();
+            const commissionPercent = settings?.helper_fee_percent ?? 10;
+            const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
+            const helperPayout = cancellationFee - platformCut;
+
             const { data: helperProfile } = await supabaseAdmin
               .from("profiles")
               .select("stripe_account_id")
               .eq("user_id", job.helper_id)
               .single();
 
-            if (helperProfile?.stripe_account_id) {
+            if (helperProfile?.stripe_account_id && helperPayout > 0) {
               try {
                 const transferParams: any = {
-                  amount: Math.round(cancellationFee * 100),
+                  amount: Math.round(helperPayout * 100),
                   currency: "usd",
                   destination: helperProfile.stripe_account_id,
-                  metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee" },
+                  metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee", platform_cut: platformCut },
                 };
 
                 // Link to source charge
@@ -157,12 +167,12 @@ serve(async (req) => {
                 } catch (_e) { /* ignore */ }
 
                 await stripe.transfers.create(transferParams);
-                console.log(`Transferred cancellation fee $${cancellationFee} to helper ${job.helper_id} for job ${job.id}`);
+                console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${job.helper_id} for job ${job.id}`);
 
                 await supabaseAdmin.from("notifications").insert({
                   user_id: job.helper_id,
                   title: "Cancellation fee received",
-                  message: `You received a $${cancellationFee.toFixed(2)} cancellation fee for "${job.title}" because the poster cancelled late.`,
+                  message: `You received a $${helperPayout.toFixed(2)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
                   type: "payment",
                   link: "/earnings",
                 });

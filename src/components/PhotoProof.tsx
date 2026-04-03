@@ -41,8 +41,8 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("proof-photos").upload(path, file);
       if (error) { console.error(error); continue; }
-      const { data } = supabase.storage.from("proof-photos").getPublicUrl(path);
-      urls.push(data.publicUrl);
+      const { data } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (data?.signedUrl) urls.push(data.signedUrl);
     }
 
     const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };

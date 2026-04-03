@@ -253,11 +253,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </p>
           </div>
 
-          {/* Apply + Flag */}
+          {/* Apply + Save + Flag */}
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
               <Flag className="w-4 h-4" />
             </Button>
+            {!isOwnJob && (
+              <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={isSaved ? "border-primary text-primary" : ""}>
+                <Bookmark className={`w-4 h-4 ${isSaved ? "fill-primary" : ""}`} />
+              </Button>
+            )}
             {!isOwnJob && (
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
                 <Send className="w-4 h-4 mr-1" /> Apply

@@ -81,13 +81,21 @@ const NotificationPanel = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && n.user_id === session.user.id) {
           setNotifications((prev) => [n, ...prev]);
-          // Play sound + vibrate for new notifications
+          // Play notification chime + vibrate
           try {
-            const audio = new Audio("data:audio/wav;base64,UklGRl9vT19teleVBQQEBAAAAAABAAEARKwAAIhYAQACABAAZGF0YU" + "tvT19" + "AAAAAA==");
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(830, ctx.currentTime);
+            osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
           } catch {}
-          if (navigator.vibrate) navigator.vibrate(200);
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
           if (document.hidden && getPushPermission() === "granted") {
             showLocalNotification(n.title, n.message, n.link || undefined);
           }

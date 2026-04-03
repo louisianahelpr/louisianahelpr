@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Zap, CreditCard, Ban, MapPin, Crown, Scale } from "lucide-react";
+import { ArrowLeft, FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Zap, CreditCard, Ban, MapPin, Crown, Scale, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";

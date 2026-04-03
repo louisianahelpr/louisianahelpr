@@ -86,8 +86,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
                 {earningsJobs.map((job) => {
                   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
                   const perHelper = job.budget / helpers;
-                  const fee = (job.platform_fee_amount || 0) / helpers;
-                  const payout = job.status === "completed" ? perHelper - fee + (job.urgent_fee ?? 0) : null;
+                  const commissionPercent = (job as any).helper_fee_percent ?? 10;
+                  const commission = (perHelper * commissionPercent) / 100;
+                  const payout = job.status === "completed" ? perHelper - commission + (job.urgent_fee ?? 0) : null;
                   const jobTips = tips.filter((t) => t.job_id === job.id);
                   const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                   return (

@@ -73,10 +73,13 @@ export const AppliedJobsTab = ({
             </h3>
             <div className="flex items-center gap-2 shrink-0 ml-3">
               {app.job && (() => {
-                const fee = app.job.platform_fee_amount ?? (app.job.budget * (app.job.platform_fee_percent ?? 15) / 100);
-                const payout = app.job.budget - fee;
+                const helpers = app.job.is_group_job && app.job.helpers_needed ? app.job.helpers_needed : 1;
+                const perHelper = app.job.budget / helpers;
+                const commissionPercent = (app.job as any).helper_fee_percent ?? 10;
+                const commission = (perHelper * commissionPercent) / 100;
+                const payout = perHelper - commission + (app.job.urgent_fee ?? 0);
                 return (
-                  <span className="flex items-center gap-0.5 font-bold text-primary text-sm" title={`Budget: $${app.job.budget} · Fee: $${fee.toFixed(2)}`}>
+                  <span className="flex items-center gap-0.5 font-bold text-primary text-sm" title={`Budget: $${app.job.budget} · Commission: ${commissionPercent}%`}>
                     <DollarSign className="w-3.5 h-3.5" />{payout.toFixed(2)}
                   </span>
                 );

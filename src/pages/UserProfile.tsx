@@ -204,7 +204,14 @@ const UserProfile = () => {
               </div>
             )}
             <div>
-              <h1 className="text-xl font-display font-bold text-foreground">{displayName}</h1>
+              <div className="flex items-center justify-center gap-1.5">
+                <h1 className="text-xl font-display font-bold text-foreground">{displayName}</h1>
+                {isIdVerified && (
+                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider" title="ID Verified">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                  </span>
+                )}
+              </div>
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
                 <div className="flex items-center justify-center gap-3 mt-1.5 text-xs text-muted-foreground">

@@ -169,7 +169,7 @@ const AdminAnalytics = () => {
       setDrillUsers(data || []);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
       const query = supabase.from("jobs").select("*").order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query.eq("status", "completed");
+      if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       const { data } = await query;
       setDrillJobs(data || []);

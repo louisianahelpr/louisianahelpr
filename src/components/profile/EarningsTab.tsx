@@ -26,8 +26,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce((sum, j) => {
-    const fee = j.platform_fee_amount || 0;
-    return sum + (j.budget - fee + (j.urgent_fee ?? 0));
+    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
+    const perHelper = j.budget / helpers;
+    const fee = (j.platform_fee_amount || 0) / helpers;
+    return sum + (perHelper - fee + (j.urgent_fee ?? 0));
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
@@ -79,8 +81,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
             ) : (
               <div className="space-y-3">
                 {earningsJobs.map((job) => {
-                  const fee = job.platform_fee_amount || 0;
-                  const payout = job.status === "completed" ? job.budget - fee + (job.urgent_fee ?? 0) : null;
+                  const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+                  const perHelper = job.budget / helpers;
+                  const fee = (job.platform_fee_amount || 0) / helpers;
+                  const payout = job.status === "completed" ? perHelper - fee + (job.urgent_fee ?? 0) : null;
                   const jobTips = tips.filter((t) => t.job_id === job.id);
                   const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                   return (

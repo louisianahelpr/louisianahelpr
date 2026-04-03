@@ -45,8 +45,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   });
 
   const feeAmt = job.budget * (effectiveFee / 100);
-  const feeTax = feeAmt * 0.085;
-  const netEarnings = job.budget - feeAmt - feeTax;
+  const netEarnings = job.budget - feeAmt;
   const earnings = netEarnings.toFixed(2);
   const urgentTip = job.urgent_fee ?? 0;
   const catStyle = categoryColors[job.category] || categoryColors.other;

@@ -64,7 +64,6 @@ serve(async (req) => {
       const feePercent = settings?.platform_fee_percent ?? 2;
 
       const feeAmount = (job.budget * feePercent) / 100;
-      const feeTax = feeAmount * 0.085;
 
       // Sales tax from the job (locked at creation time)
       const salesTaxAmount = job.sales_tax_amount ?? 0;
@@ -221,10 +220,9 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      // Calculate helper payout: budget - fee - feeTax + urgent_fee
+      // Calculate helper payout: budget - fee + urgent_fee
       const feeAmountCalc = job.platform_fee_amount || 0;
-      const feeTaxCalc = feeAmountCalc * 0.085;
-      const helperPayout = job.budget - feeAmountCalc - feeTaxCalc + (job.urgent_fee ?? 0);
+      const helperPayout = job.budget - feeAmountCalc + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
@@ -443,8 +441,7 @@ serve(async (req) => {
 
       // Transfer to helpr
       const feeAmt = job.platform_fee_amount || 0;
-      const feeTax = feeAmt * 0.085;
-      const helperPayout = job.budget - feeAmt - feeTax + (job.urgent_fee ?? 0);
+      const helperPayout = job.budget - feeAmt + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
         await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
       }

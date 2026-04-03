@@ -56,7 +56,6 @@ const PostJob = () => {
   const [specialRequirements, setSpecialRequirements] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
-  const [jobDuration, setJobDuration] = useState("none"); // none, 3days, 7days, 14days, 30days
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
@@ -132,9 +131,9 @@ const PostJob = () => {
   const autoSave = useCallback(() => {
     const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded } as any);
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded } as any);
     }
-  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, jobDuration, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);
@@ -377,10 +376,8 @@ const PostJob = () => {
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
-  const feeTax = feeAmount * 0.085;
   const salesTaxAmount = budgetNum * (salesTaxRate / 100);
   const totalCharge = budgetNum + urgentFeeNum + salesTaxAmount;
-  const helperEarns = budgetNum - feeAmount - feeTax + urgentFeeNum;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (
@@ -441,7 +438,7 @@ const PostJob = () => {
                         setSpecialRequirements(draft.specialRequirements);
                         setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
                         setRecurrenceEndDate(draft.recurrenceEndDate);
-                        if (draft.jobDuration) setJobDuration(draft.jobDuration);
+                        
                         setShowDraftPrompt(false);
                         toast.success("Draft restored!");
                       }}

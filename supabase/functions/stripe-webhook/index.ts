@@ -344,6 +344,84 @@ serve(async (req) => {
         break;
       }
 
+      case "payment_intent.succeeded": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        logStep("Payment intent succeeded", { id: pi.id, amount: pi.amount });
+
+        // Record the confirmed sales tax amount on the job
+        const { data: taxJob } = await supabase
+          .from("jobs")
+          .select("id, customer_id, title, sales_tax_amount")
+          .eq("stripe_payment_intent_id", pi.id)
+          .maybeSingle();
+
+        if (taxJob) {
+          // Extract actual tax from Stripe if available via latest_charge
+          let confirmedTax = taxJob.sales_tax_amount || 0;
+          try {
+            const chargeId = typeof pi.latest_charge === "string" ? pi.latest_charge : (pi.latest_charge as any)?.id;
+            if (chargeId) {
+              const charge = await stripe.charges.retrieve(chargeId, { expand: ["balance_transaction"] });
+              // If Stripe Tax was used, the tax is embedded in the charge metadata or line items
+              const stripeTax = (charge.metadata as any)?.sales_tax_amount;
+              if (stripeTax) {
+                confirmedTax = parseFloat(stripeTax);
+              }
+            }
+          } catch (e) {
+            logStep("Could not retrieve charge tax details", { error: String(e) });
+          }
+
+          await supabase.from("jobs").update({
+            sales_tax_amount: confirmedTax,
+          }).eq("id", taxJob.id);
+
+          logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax });
+        }
+        break;
+      }
+
+      case "transfer.created": {
+        const transfer = event.data.object as Stripe.Transfer;
+        const destAccount = transfer.destination as string;
+        logStep("Transfer created", { id: transfer.id, amount: transfer.amount, destination: destAccount });
+
+        // Find the helper with this Stripe Connect account
+        const { data: paidHelper } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("stripe_account_id", destAccount)
+          .maybeSingle();
+
+        if (paidHelper) {
+          const amountDollars = (transfer.amount / 100).toFixed(2);
+          await supabase.from("notifications").insert({
+            user_id: paidHelper.user_id,
+            title: "💵 Payment sent!",
+            message: `$${amountDollars} has been transferred to your payout account. It should arrive in 1-2 business days.`,
+            type: "payment",
+            link: "/earnings",
+          });
+
+          // Also update the job's payment_status to 'released' if we can find it
+          const transferJobId = (transfer.metadata as any)?.job_id;
+          if (transferJobId) {
+            await supabase.from("jobs").update({ payment_status: "released" }).eq("id", transferJobId);
+            logStep("Job payment status set to released", { jobId: transferJobId });
+          }
+
+          logStep("Helper notified of transfer", { userId: paidHelper.user_id, amount: amountDollars });
+        }
+        break;
+      }
+
+      case "tax.settings.updated": {
+        logStep("Stripe Tax settings updated — sync parish rates if needed");
+        // This is informational; tax rates are managed via Stripe Tax automatically
+        // Log it for audit purposes so admin can review if rates changed
+        break;
+      }
+
       default:
         logStep("Unhandled event type", { type: event.type });
     }

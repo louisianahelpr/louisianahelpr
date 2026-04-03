@@ -162,7 +162,7 @@ const Admin = () => {
       completedJobs: completedRes.count || 0,
       totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),
       totalFees: feeRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
-      pendingReviews: reviewsRes.count || 0,
+      
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
     });

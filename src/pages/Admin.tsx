@@ -104,7 +104,7 @@ const Admin = () => {
     const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [
       { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending" } },
       { key: "jobs", table: "jobs", dateCol: "created_at" },
-      { key: "reviews", table: "reviews", dateCol: "created_at" },
+      
       { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" } },
       { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
       { key: "support", table: "reports", dateCol: "created_at", filter: { status: "pending", reported_type: "support" } },

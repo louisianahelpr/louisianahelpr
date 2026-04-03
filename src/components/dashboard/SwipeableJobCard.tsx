@@ -17,6 +17,8 @@ interface SwipeableJobCardProps {
   index?: number;
   isExpanded?: boolean;
   onToggleExpand?: (jobId: string) => void;
+  isSaved?: boolean;
+  onToggleSave?: (jobId: string, saved: boolean) => void;
 }
 
 const SWIPE_THRESHOLD = -100;
@@ -34,6 +36,8 @@ const SwipeableJobCard = ({
   index,
   isExpanded,
   onToggleExpand,
+  isSaved,
+  onToggleSave,
 }: SwipeableJobCardProps) => {
   const x = useMotionValue(0);
   const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
@@ -98,6 +102,8 @@ const SwipeableJobCard = ({
             index={index}
             isExpanded={isExpanded}
             onToggleExpand={onToggleExpand}
+            isSaved={isSaved}
+            onToggleSave={onToggleSave}
           />
         </div>
       </motion.div>

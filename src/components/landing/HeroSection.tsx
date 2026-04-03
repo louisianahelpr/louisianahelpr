@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, CheckCircle } from "lucide-react";
-import heroImg from "@/assets/hero-illustration-v5.webp";
+import heroImg from "@/assets/hero-illustration-v6.webp";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -41,16 +41,16 @@ const HeroSection = () => {
               Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
             </p>
 
-            {/* Social proof */}
-            {stats && (stats.users > 0 || stats.completed > 0) && (
+            {/* Social proof — only show when numbers are meaningful */}
+            {stats && (stats.users >= 50 || stats.completed >= 20) && (
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {stats.users > 0 && (
+                {stats.users >= 50 && (
                   <span className="flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> community members
                   </span>
                 )}
-                {stats.completed > 0 && (
+                {stats.completed >= 20 && (
                   <span className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> tasks completed
@@ -81,8 +81,8 @@ const HeroSection = () => {
               )}
             </div>
           </div>
-          <div className="animate-fade-in [animation-delay:200ms] opacity-0">
-            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full rounded-2xl shadow-lg" loading="eager" width={1200} height={1200} />
+          <div className="animate-fade-in [animation-delay:200ms]">
+            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full rounded-2xl shadow-lg" loading="eager" width={1200} height={800} />
           </div>
         </div>
       </div>

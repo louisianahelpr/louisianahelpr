@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send, Users, Repeat,
+  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
 import { getCityState } from "@/lib/locationUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -21,6 +24,8 @@ interface JobCardProps {
   index?: number;
   isExpanded?: boolean;
   onToggleExpand?: (jobId: string) => void;
+  isSaved?: boolean;
+  onToggleSave?: (jobId: string, saved: boolean) => void;
 }
 
 const categoryColors: Record<string, { badge: string; title: string; accent: string }> = {
@@ -36,7 +41,29 @@ const categoryColors: Record<string, { badge: string; title: string; accent: str
   other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", accent: "from-slate-400/10 to-slate-500/5" },
 };
 
-const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0, isExpanded = false, onToggleExpand }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0, isExpanded = false, onToggleExpand, isSaved = false, onToggleSave }: JobCardProps) => {
+  const [savingBookmark, setSavingBookmark] = useState(false);
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUserId) { toast.error("Please log in to save jobs"); return; }
+    if (savingBookmark) return;
+    setSavingBookmark(true);
+    try {
+      if (isSaved) {
+        await supabase.from("saved_jobs").delete().eq("user_id", currentUserId).eq("job_id", job.id);
+        toast.success("Removed from saved jobs");
+      } else {
+        await supabase.from("saved_jobs").insert({ user_id: currentUserId, job_id: job.id });
+        toast.success("Job saved! Find it in your saved jobs.");
+      }
+      onToggleSave?.(job.id, !isSaved);
+    } catch {
+      toast.error("Failed to update saved jobs");
+    } finally {
+      setSavingBookmark(false);
+    }
+  };
 
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
@@ -226,11 +253,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
             </p>
           </div>
 
-          {/* Apply + Flag */}
+          {/* Apply + Save + Flag */}
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
               <Flag className="w-4 h-4" />
             </Button>
+            {!isOwnJob && (
+              <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={isSaved ? "border-primary text-primary" : ""}>
+                <Bookmark className={`w-4 h-4 ${isSaved ? "fill-primary" : ""}`} />
+              </Button>
+            )}
             {!isOwnJob && (
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
                 <Send className="w-4 h-4 mr-1" /> Apply

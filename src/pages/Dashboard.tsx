@@ -115,6 +115,7 @@ const Dashboard = () => {
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("helpr_dismissed_jobs");
@@ -129,6 +130,21 @@ const Dashboard = () => {
 
   const effectiveFee = platformFee;
 
+  // Load saved job IDs
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("saved_jobs").select("job_id").eq("user_id", user.id).then(({ data }) => {
+      if (data) setSavedJobIds(new Set(data.map((d: any) => d.job_id)));
+    });
+  }, [user?.id]);
+
+  const handleToggleSave = useCallback((jobId: string, saved: boolean) => {
+    setSavedJobIds(prev => {
+      const next = new Set(prev);
+      if (saved) next.add(jobId); else next.delete(jobId);
+      return next;
+    });
+  }, []);
   const handleApplyRequest = useCallback((jobId: string) => {
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
@@ -312,7 +328,7 @@ const Dashboard = () => {
               </div>
               <div className="space-y-3">
                 {filters.nearbyJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                 ))}
               </div>
               {filters.nearbyJobs.length > 3 && (
@@ -343,7 +359,7 @@ const Dashboard = () => {
               </div>
               <div className="space-y-3">
                 {recommendedJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                 ))}
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -512,7 +528,7 @@ const Dashboard = () => {
               <div className="divide-y divide-border/30">
                 {filters.filteredJobs.filter(j => !dismissedJobIds.has(j.id)).map((job, i) => (
                   <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
-                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} />
+                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                   </div>
                 ))}
               </div>

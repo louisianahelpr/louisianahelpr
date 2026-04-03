@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield, Menu } from "lucide-react";
+import { LogOut, Shield, Menu, MessageSquare } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import NotificationPanel from "@/components/NotificationPanel";
 
@@ -16,9 +16,23 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
-  const { isAdmin } = useCurrentUser();
+  const { isAdmin, user } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadUnread = () => {
+      supabase.from("messages").select("*", { count: "exact", head: true }).eq("receiver_id", user.id).eq("read", false)
+        .then(({ count }) => setUnreadMessages(count || 0));
+    };
+    loadUnread();
+    const channel = supabase.channel(`header-unread-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, () => loadUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -50,6 +64,15 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
                 <Shield className="w-4 h-4 text-destructive" />
               </Button>
             )}
+            
+            <Button variant="ghost" size="icon" onClick={() => navigate("/messages")} className="relative hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Messages">
+              <MessageSquare className="w-4 h-4" />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Button>
             
             <ThemeToggle />
             <NotificationPanel />

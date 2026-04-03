@@ -81,8 +81,8 @@ const HeroSection = () => {
               )}
             </div>
           </div>
-          <div className="animate-fade-in [animation-delay:200ms] opacity-0">
-            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full rounded-2xl shadow-lg" loading="eager" width={1200} height={1200} />
+          <div className="animate-fade-in [animation-delay:200ms]">
+            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full rounded-2xl shadow-lg" loading="eager" width={1200} height={800} />
           </div>
         </div>
       </div>

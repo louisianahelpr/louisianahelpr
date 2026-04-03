@@ -205,12 +205,12 @@ export const PostedJobsTab = ({
                       <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
                         <p className="text-xs text-emerald-600 font-medium">✓ Helpr marked revision as fixed</p>
                         {(job as any).revision_acceptance_deadline && (
-                          <p className={`text-[10px] mt-0.5 flex items-center gap-1 ${differenceInHours(new Date((job as any).revision_acceptance_deadline), new Date()) < 12 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                            <Timer className="w-3 h-3" />
-                            {new Date((job as any).revision_acceptance_deadline) <= new Date()
-                              ? "Acceptance deadline passed — payment releasing"
-                              : `${formatDistanceToNow(new Date((job as any).revision_acceptance_deadline), { addSuffix: false })} to accept or dispute`}
-                          </p>
+                          <DeadlineCountdown
+                            deadline={(job as any).revision_acceptance_deadline}
+                            expiredText="Acceptance deadline passed — payment releasing to helpr"
+                            consequenceText="Accept the fix, or dispute. If no action is taken, payment auto-releases to the helpr."
+                            variant="warning"
+                          />
                         )}
                       </div>
                     )}

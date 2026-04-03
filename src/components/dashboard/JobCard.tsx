@@ -72,8 +72,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   });
 
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const budgetAfterTax = job.budget - (job.sales_tax_amount ?? 0);
-  const perHelperBudget = budgetAfterTax / helpersCount;
+  const perHelperBudget = job.budget / helpersCount;
   const feeAmt = perHelperBudget * (effectiveFee / 100);
   const netEarnings = perHelperBudget - feeAmt;
   const earnings = netEarnings.toFixed(2);

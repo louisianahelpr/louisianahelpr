@@ -62,8 +62,7 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
               <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Your Payout</p>
               {(() => {
                 const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-                const budgetAfterTax = job.budget - (job.sales_tax_amount ?? 0);
-                const perHelper = budgetAfterTax / helpers;
+                const perHelper = job.budget / helpers;
                 const payout = perHelper * (1 - effectiveFee / 100) + (job.urgent_fee ?? 0);
                 return (
                   <>

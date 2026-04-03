@@ -100,8 +100,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
-        return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        refresh_url: return_url || "https://www.louisianahelpr.com/profile",
+        return_url: return_url || "https://www.louisianahelpr.com/profile",
         type: "account_onboarding",
         collection_options: {
           fields: "currently_due",
@@ -230,8 +230,8 @@ serve(async (req) => {
       } else {
         const accountLink = await stripe.accountLinks.create({
           account: profile.stripe_account_id,
-          refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
-          return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+          refresh_url: return_url || "https://www.louisianahelpr.com/profile",
+          return_url: return_url || "https://www.louisianahelpr.com/profile",
           type: "account_onboarding",
           collection_options: {
             fields: "currently_due",
@@ -271,8 +271,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
-        return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        refresh_url: return_url || "https://www.louisianahelpr.com/profile",
+        return_url: return_url || "https://www.louisianahelpr.com/profile",
         type: "account_onboarding",
         collection_options: {
           fields: "currently_due",
@@ -299,8 +299,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: profile.stripe_account_id,
-        refresh_url: return_url || "https://louisianahelpr.lovable.app/profile",
-        return_url: return_url || "https://louisianahelpr.lovable.app/profile",
+        refresh_url: return_url || "https://www.louisianahelpr.com/profile",
+        return_url: return_url || "https://www.louisianahelpr.com/profile",
         type: "account_onboarding",
         collection_options: {
           fields: "currently_due",

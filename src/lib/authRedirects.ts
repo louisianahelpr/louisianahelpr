@@ -1,5 +1,5 @@
 export const getPublicResetPasswordUrl = () => {
-  const publishedUrl = "https://louisianahelpr.lovable.app";
+  const publishedUrl = "https://www.louisianahelpr.com";
 
   return `${publishedUrl}/reset-password`;
 };

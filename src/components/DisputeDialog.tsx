@@ -67,8 +67,8 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           console.error("Upload error:", uploadError);
           continue;
         }
-        const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
-        evidenceUrls.push(urlData.publicUrl);
+        const { data: urlData } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (urlData?.signedUrl) evidenceUrls.push(urlData.signedUrl);
       }
 
       // Update job status to disputed

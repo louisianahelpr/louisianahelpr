@@ -215,12 +215,12 @@ export const PostedJobsTab = ({
                       </div>
                     )}
                     {!(job as any).revision_completed_at && (job as any).revision_deadline && (
-                      <p className={`text-[10px] flex items-center gap-1 ${differenceInHours(new Date((job as any).revision_deadline), new Date()) < 12 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                        <Timer className="w-3 h-3" />
-                        {new Date((job as any).revision_deadline) <= new Date()
-                          ? "Revision deadline passed"
-                          : `Helpr has ${formatDistanceToNow(new Date((job as any).revision_deadline), { addSuffix: false })} to fix`}
-                      </p>
+                      <DeadlineCountdown
+                        deadline={(job as any).revision_deadline}
+                        expiredText="Revision deadline passed — you can now dispute or complete"
+                        consequenceText="Helpr must fix the revision before this deadline. After that, you can dispute or mark complete."
+                        variant="warning"
+                      />
                     )}
                   </div>
                 )}

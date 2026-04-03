@@ -101,7 +101,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-};
+});
+AnimatedRoutes.displayName = "AnimatedRoutes";
 
 const SessionManager = () => {
   useSessionTimeout();

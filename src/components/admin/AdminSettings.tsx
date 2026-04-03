@@ -166,26 +166,52 @@ const AdminSettings = () => {
     <div className="space-y-8">
       
 
-      {/* Platform Fee */}
+      {/* Split Fee Settings */}
       <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="fee">Platform fee percentage (%)</Label>
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
           <p className="text-xs text-muted-foreground">
-            This is the percentage Helpr takes from each job payment. Applied at time of escrow.
+            The platform earns from both sides: a service fee from customers and a commission from helpers.
           </p>
-          <Input
-            id="fee"
-            type="number"
-            min="0"
-            max="100"
-            step="0.5"
-            value={feePercent}
-            onChange={(e) => setFeePercent(e.target.value)}
-            className="max-w-[120px]"
-          />
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="custFee">Customer service fee (%)</Label>
+            <p className="text-xs text-muted-foreground">Added as a line item at checkout (e.g. 5% on a $100 job = $5 fee)</p>
+            <Input
+              id="custFee"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={customerFee}
+              onChange={(e) => setCustomerFee(e.target.value)}
+              className="max-w-[120px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="helpFee">Helper commission (%)</Label>
+            <p className="text-xs text-muted-foreground">Deducted from the helper's payout (e.g. 10% on a $100 job = $10 deducted)</p>
+            <Input
+              id="helpFee"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={helperFee}
+              onChange={(e) => setHelperFee(e.target.value)}
+              className="max-w-[120px]"
+            />
+          </div>
+          <div className="rounded-lg bg-primary/5 p-3">
+            <p className="text-xs text-muted-foreground">
+              <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
+              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helper = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
+            </p>
+          </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? "Saving…" : "Save fee settings"}
         </Button>
       </div>
 

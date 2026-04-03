@@ -379,7 +379,7 @@ const PostJob = () => {
 
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
-  const customerFeeAmount = budgetNum * ((customerFee ?? 5) / 100);
+  const customerFeeAmount = budgetNum * ((customerFee ?? 10) / 100);
   const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 

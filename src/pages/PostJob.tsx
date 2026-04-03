@@ -65,8 +65,7 @@ const PostJob = () => {
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
-  const [salesTaxRate, setSalesTaxRate] = useState<number>(0);
-  const [salesTaxParish, setSalesTaxParish] = useState<string>("");
+  const [salesTaxRate] = useState<number>(10);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 

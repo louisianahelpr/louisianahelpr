@@ -64,6 +64,7 @@ const PostJob = () => {
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
+  const [customerFee, setCustomerFee] = useState<number | null>(null);
   const [salesTaxRate] = useState<number>(10);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -80,9 +81,12 @@ const PostJob = () => {
 
   useEffect(() => {
     // Auth is already checked by ProtectedRoute — just fetch platform fee
-    supabase.from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle()
+    supabase.from("platform_settings").select("platform_fee_percent, customer_fee_percent, helper_fee_percent").limit(1).maybeSingle()
       .then(({ data }) => {
-        if (data) setPlatformFee(data.platform_fee_percent);
+        if (data) {
+          setPlatformFee(data.platform_fee_percent);
+          setCustomerFee((data as any).customer_fee_percent ?? 5);
+        }
       });
   }, []);
 
@@ -375,8 +379,8 @@ const PostJob = () => {
 
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
-  const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
-  const totalCharge = budgetNum + urgentFeeNum; // Tax calculated automatically by Stripe at checkout
+  const customerFeeAmount = budgetNum * ((customerFee ?? 5) / 100);
+  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (
@@ -813,6 +817,10 @@ const PostJob = () => {
                     <span className="text-muted-foreground">Task budget</span>
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Service fee ({customerFee ?? 5}%)</span>
+                    <span className="font-medium text-foreground">${customerFeeAmount.toFixed(2)}</span>
+                  </div>
                   {isUrgent && urgentFeeNum > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent tip (goes to helpr)</span>
@@ -825,7 +833,7 @@ const PostJob = () => {
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">You pay</span>
+                    <span className="font-semibold text-foreground">Subtotal (before tax)</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>

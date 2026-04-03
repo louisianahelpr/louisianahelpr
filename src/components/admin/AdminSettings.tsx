@@ -14,7 +14,8 @@ import { logAdminAction } from "@/lib/adminAudit";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const AdminSettings = () => {
-  const [feePercent, setFeePercent] = useState("");
+  const [customerFee, setCustomerFee] = useState("");
+  const [helperFee, setHelperFee] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,7 +42,8 @@ const AdminSettings = () => {
       .limit(1)
       .maybeSingle();
     if (data) {
-      setFeePercent(String(data.platform_fee_percent));
+      setCustomerFee(String((data as any).customer_fee_percent ?? 5));
+      setHelperFee(String((data as any).helper_fee_percent ?? 10));
       setSettingsId(data.id);
     }
     setLoading(false);
@@ -78,21 +80,26 @@ const AdminSettings = () => {
 
   const handleSave = async () => {
     if (!settingsId) return;
-    const value = parseFloat(feePercent);
-    if (isNaN(value) || value < 0 || value > 100) {
-      toast.error("Fee must be between 0 and 100");
+    const custVal = parseFloat(customerFee);
+    const helpVal = parseFloat(helperFee);
+    if (isNaN(custVal) || custVal < 0 || custVal > 100 || isNaN(helpVal) || helpVal < 0 || helpVal > 100) {
+      toast.error("Fees must be between 0 and 100");
       return;
     }
     setSaving(true);
     const { error } = await supabase
       .from("platform_settings")
-      .update({ platform_fee_percent: value })
+      .update({
+        platform_fee_percent: custVal,
+        customer_fee_percent: custVal,
+        helper_fee_percent: helpVal,
+      } as any)
       .eq("id", settingsId);
     setSaving(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Platform fee updated!");
-      await logAdminAction("update_settings", "platform_settings", settingsId, { platform_fee_percent: value });
+      toast.success("Fee settings updated!");
+      await logAdminAction("update_settings", "platform_settings", settingsId, { customer_fee_percent: custVal, helper_fee_percent: helpVal });
     }
   };
 
@@ -159,26 +166,52 @@ const AdminSettings = () => {
     <div className="space-y-8">
       
 
-      {/* Platform Fee */}
+      {/* Split Fee Settings */}
       <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="fee">Platform fee percentage (%)</Label>
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
           <p className="text-xs text-muted-foreground">
-            This is the percentage Helpr takes from each job payment. Applied at time of escrow.
+            The platform earns from both sides: a service fee from customers and a commission from helpers.
           </p>
-          <Input
-            id="fee"
-            type="number"
-            min="0"
-            max="100"
-            step="0.5"
-            value={feePercent}
-            onChange={(e) => setFeePercent(e.target.value)}
-            className="max-w-[120px]"
-          />
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="custFee">Customer service fee (%)</Label>
+            <p className="text-xs text-muted-foreground">Added as a line item at checkout (e.g. 5% on a $100 job = $5 fee)</p>
+            <Input
+              id="custFee"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={customerFee}
+              onChange={(e) => setCustomerFee(e.target.value)}
+              className="max-w-[120px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="helpFee">Helper commission (%)</Label>
+            <p className="text-xs text-muted-foreground">Deducted from the helper's payout (e.g. 10% on a $100 job = $10 deducted)</p>
+            <Input
+              id="helpFee"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={helperFee}
+              onChange={(e) => setHelperFee(e.target.value)}
+              className="max-w-[120px]"
+            />
+          </div>
+          <div className="rounded-lg bg-primary/5 p-3">
+            <p className="text-xs text-muted-foreground">
+              <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
+              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helper = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
+            </p>
+          </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? "Saving…" : "Save fee settings"}
         </Button>
       </div>
 
@@ -227,12 +260,12 @@ const AdminSettings = () => {
 
       {/* How fees work */}
       <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-3">
-        <h3 className="font-semibold text-foreground">How fees work</h3>
+        <h3 className="font-semibold text-foreground">How the split fee model works</h3>
         <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays the full job budget at time of posting (escrow)</li>
-          <li>When the job is completed, Helpr retains the platform fee</li>
-          <li>The remaining amount goes to the helpr</li>
-          <li>Current fee: <strong className="text-foreground">{feePercent}%</strong></li>
+          <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
+          <li>Helper receives: task budget − <strong className="text-foreground">{helperFee}%</strong> commission + urgent tip</li>
+          <li>Platform keeps: service fee from customer + commission from helper</li>
+          <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
         </ul>
       </div>
 

@@ -27,7 +27,7 @@ serve(async (req) => {
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       .lte("payout_scheduled_at", now);
@@ -42,9 +42,9 @@ serve(async (req) => {
 
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
-      const feeAmt = job.platform_fee_amount ? job.platform_fee_amount / helpersCount : 0;
-      const feeTax = feeAmt * 0.10; // 10% tax on platform fee
-      const helperPayout = perHelperBudget - feeAmt - feeTax + (job.urgent_fee ?? 0);
+      const jobHelperFeePercent = job.helper_fee_percent ?? 10;
+      const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
+      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
       if (helperPayout <= 0) continue;
 
       // ── Step 1: Get helper's connected Stripe account ──

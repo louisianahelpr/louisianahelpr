@@ -73,10 +73,16 @@ serve(async (req) => {
       }
 
       const { data: settings } = await supabaseAdmin
-        .from("platform_settings").select("platform_fee_percent").limit(1).single();
-      const feePercent = settings?.platform_fee_percent ?? 2;
+        .from("platform_settings")
+        .select("customer_fee_percent, helper_fee_percent, platform_fee_percent")
+        .limit(1).single();
+      const customerFeePercent = settings?.customer_fee_percent ?? 5;
+      const helperFeePercent = settings?.helper_fee_percent ?? 10;
 
-      const feeAmount = (job.budget * feePercent) / 100;
+      // Customer service fee (added as a line item)
+      const customerFeeAmount = (job.budget * customerFeePercent) / 100;
+      // Helper commission (deducted at payout, stored on job for reference)
+      const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
       const lineItems: any[] = [
         {
@@ -91,6 +97,21 @@ serve(async (req) => {
           quantity: 1,
         },
       ];
+
+      // Add customer service fee as a separate line item
+      if (customerFeeAmount > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Service Fee",
+              description: `${customerFeePercent}% platform service fee`,
+            },
+            unit_amount: Math.round(customerFeeAmount * 100),
+          },
+          quantity: 1,
+        });
+      }
 
       // Add urgent tip line item if applicable
       if ((job.urgent_fee ?? 0) > 0) {
@@ -116,7 +137,8 @@ serve(async (req) => {
           metadata: {
             job_id: jobId,
             customer_id: user.id,
-            platform_fee_percent: String(feePercent),
+            customer_fee_percent: String(customerFeePercent),
+            helper_fee_percent: String(helperFeePercent),
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
@@ -124,12 +146,13 @@ serve(async (req) => {
         metadata: { job_id: jobId, customer_id: user.id },
       });
 
-      // Don't set payment_status to "escrow" yet — wait for Stripe webhook
-      // confirmation to avoid orphaned escrow status on abandoned checkouts
+      // Store both fee structures on the job
       await supabaseAdmin.from("jobs").update({
         stripe_session_id: session.id,
-        platform_fee_percent: feePercent,
-        platform_fee_amount: feeAmount,
+        platform_fee_percent: customerFeePercent,
+        platform_fee_amount: helperFeeAmount,
+        customer_fee_amount: customerFeeAmount,
+        helper_fee_percent: helperFeePercent,
       }).eq("id", jobId);
 
       return new Response(JSON.stringify({ url: session.url }), {
@@ -212,12 +235,13 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      // Calculate helper payout: (budget / helpers) - fee - feeTax + urgent_fee
+      // Calculate helper payout: budget/helpers - helperCommission + urgent_fee
+      // Helper commission = budget * helper_fee_percent (default 10%)
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
-      const feeAmountCalc = job.platform_fee_amount ? job.platform_fee_amount / helpersCount : 0;
-      const feeTaxCalc = feeAmountCalc * 0.10; // 10% tax on platform fee
-      const helperPayout = perHelperBudget - feeAmountCalc - feeTaxCalc + (job.urgent_fee ?? 0);
+      const jobHelperFeePercent = job.helper_fee_percent ?? 10;
+      const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
+      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

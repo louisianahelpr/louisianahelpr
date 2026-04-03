@@ -216,12 +216,12 @@ export const AppliedJobsTab = ({
                     </div>
                   )}
                   {(app.job as any)?.revision_deadline && !(app.job as any)?.revision_completed_at && (
-                    <div className={`flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((app.job as any).revision_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
-                      <Timer className="w-3.5 h-3.5" />
-                      {new Date((app.job as any).revision_deadline) <= new Date()
-                        ? "Revision deadline passed — poster can dispute or complete"
-                        : `${formatDistanceToNow(new Date((app.job as any).revision_deadline), { addSuffix: false })} to fix the revision`}
-                    </div>
+                    <DeadlineCountdown
+                      deadline={(app.job as any).revision_deadline}
+                      expiredText="Revision deadline passed — poster can dispute or complete"
+                      consequenceText="Fix the revision before the deadline. If not completed, the poster can file a dispute."
+                      variant="warning"
+                    />
                   )}
                   {(app.job as any)?.revision_completed_at ? (
                     <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ You marked this as fixed — waiting for poster to accept</div>

@@ -42,7 +42,8 @@ const AdminSettings = () => {
       .limit(1)
       .maybeSingle();
     if (data) {
-      setFeePercent(String(data.platform_fee_percent));
+      setCustomerFee(String((data as any).customer_fee_percent ?? 5));
+      setHelperFee(String((data as any).helper_fee_percent ?? 10));
       setSettingsId(data.id);
     }
     setLoading(false);

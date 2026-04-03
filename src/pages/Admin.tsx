@@ -371,7 +371,7 @@ interface DashboardHomeProps {
   stats: {
     totalUsers: number; pendingApprovals: number; openReports: number;
     supportTickets: number; activeJobs: number; completedJobs: number;
-    totalRevenue: number; totalFees: number; pendingReviews: number;
+    totalRevenue: number; totalFees: number;
     disputedJobs: number; activeSubscriptions: number;
   };
   statsLoading: boolean;

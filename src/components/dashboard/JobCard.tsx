@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send, Users, Repeat,
+  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
 import { getCityState } from "@/lib/locationUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -21,6 +24,8 @@ interface JobCardProps {
   index?: number;
   isExpanded?: boolean;
   onToggleExpand?: (jobId: string) => void;
+  isSaved?: boolean;
+  onToggleSave?: (jobId: string, saved: boolean) => void;
 }
 
 const categoryColors: Record<string, { badge: string; title: string; accent: string }> = {

@@ -130,6 +130,7 @@ serve(async (req) => {
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
+        customer_update: { address: 'auto' },
         line_items: lineItems,
         mode: "payment",
         automatic_tax: { enabled: true },

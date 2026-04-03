@@ -85,7 +85,7 @@ const PostJob = () => {
       .then(({ data }) => {
         if (data) {
           setPlatformFee(data.platform_fee_percent);
-          setCustomerFee((data as any).customer_fee_percent ?? 5);
+          setCustomerFee((data as any).customer_fee_percent ?? 10);
         }
       });
   }, []);

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, forwardRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 
@@ -64,7 +64,9 @@ const PageFallback = () => (
   </div>
 );
 
-const AnimatedRoutes = () => {
+
+
+const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>
@@ -99,7 +101,8 @@ const AnimatedRoutes = () => {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-};
+});
+AnimatedRoutes.displayName = "AnimatedRoutes";
 
 const SessionManager = () => {
   useSessionTimeout();

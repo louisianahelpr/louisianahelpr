@@ -55,12 +55,11 @@ const Jobs = () => {
     else setLoadingMore(true);
     const today = new Date().toISOString().split("T")[0];
     const { data } = await supabase
-      .from("jobs")
+      .from("open_jobs_safe" as any)
       .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
-      .eq("status", "open")
       .gte("date_needed", today)
       .order("created_at", { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1);
+      .range(offset, offset + PAGE_SIZE - 1) as { data: PublicJob[] | null };
     const newJobs = data || [];
     setHasMore(newJobs.length === PAGE_SIZE);
     if (append) {

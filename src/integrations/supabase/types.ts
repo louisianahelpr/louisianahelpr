@@ -715,6 +715,8 @@ export type Database = {
           revision_deadline: string | null
           revision_note: string | null
           revision_requested_at: string | null
+          sales_tax_amount: number | null
+          sales_tax_rate: number | null
           special_requirements: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["job_status"]
@@ -786,6 +788,8 @@ export type Database = {
           revision_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
+          sales_tax_amount?: number | null
+          sales_tax_rate?: number | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -857,6 +861,8 @@ export type Database = {
           revision_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
+          sales_tax_amount?: number | null
+          sales_tax_rate?: number | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -1034,6 +1040,33 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      parish_tax_rates: {
+        Row: {
+          id: string
+          local_rate: number
+          parish_name: string
+          state_rate: number
+          total_rate: number | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          local_rate?: number
+          parish_name: string
+          state_rate?: number
+          total_rate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          local_rate?: number
+          parish_name?: string
+          state_rate?: number
+          total_rate?: number | null
+          updated_at?: string
         }
         Relationships: []
       }

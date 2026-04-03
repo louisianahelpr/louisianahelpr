@@ -44,7 +44,7 @@ const PublicJobsPreview = () => {
         .select("id, title, category, location, budget, date_needed, is_urgent")
         .gte("date_needed", today)
         .order("created_at", { ascending: false })
-        .limit(6);
+        .limit(6) as { data: PublicJob[] | null };
       setJobs(data || []);
       setLoading(false);
     };

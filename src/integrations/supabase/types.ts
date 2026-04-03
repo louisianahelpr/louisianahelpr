@@ -53,6 +53,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "addon_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       admin_audit_log: {
@@ -122,6 +129,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -362,6 +376,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fraud_flags_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       group_job_helpers: {
@@ -392,6 +413,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_job_helpers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -530,6 +558,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "job_checkins_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       job_milestones: {
@@ -574,6 +609,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "job_milestones_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       job_scope_items: {
@@ -604,6 +646,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_scope_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -648,6 +697,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tracking_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -886,6 +942,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       login_history: {
@@ -946,6 +1009,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1434,6 +1504,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reviews_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       saved_jobs: {
@@ -1461,6 +1538,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1526,6 +1610,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1620,11 +1711,95 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_violations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      open_jobs_safe: {
+        Row: {
+          boost_expires_at: string | null
+          boosted_at: string | null
+          budget: number | null
+          category: Database["public"]["Enums"]["job_category"] | null
+          created_at: string | null
+          customer_id: string | null
+          date_needed: string | null
+          description: string | null
+          estimated_hours: number | null
+          expires_at: string | null
+          helpers_needed: number | null
+          id: string | null
+          is_flexible_schedule: boolean | null
+          is_group_job: boolean | null
+          is_recurring: boolean | null
+          is_urgent: boolean | null
+          location: string | null
+          photos: string[] | null
+          special_requirements: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          title: string | null
+          urgent_fee: number | null
+        }
+        Insert: {
+          boost_expires_at?: string | null
+          boosted_at?: string | null
+          budget?: number | null
+          category?: Database["public"]["Enums"]["job_category"] | null
+          created_at?: string | null
+          customer_id?: string | null
+          date_needed?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          expires_at?: string | null
+          helpers_needed?: number | null
+          id?: string | null
+          is_flexible_schedule?: boolean | null
+          is_group_job?: boolean | null
+          is_recurring?: boolean | null
+          is_urgent?: boolean | null
+          location?: string | null
+          photos?: string[] | null
+          special_requirements?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          title?: string | null
+          urgent_fee?: number | null
+        }
+        Update: {
+          boost_expires_at?: string | null
+          boosted_at?: string | null
+          budget?: number | null
+          category?: Database["public"]["Enums"]["job_category"] | null
+          created_at?: string | null
+          customer_id?: string | null
+          date_needed?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          expires_at?: string | null
+          helpers_needed?: number | null
+          id?: string | null
+          is_flexible_schedule?: boolean | null
+          is_group_job?: boolean | null
+          is_recurring?: boolean | null
+          is_urgent?: boolean | null
+          location?: string | null
+          photos?: string[] | null
+          special_requirements?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          title?: string | null
+          urgent_fee?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }

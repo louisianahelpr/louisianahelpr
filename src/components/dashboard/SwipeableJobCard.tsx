@@ -102,6 +102,8 @@ const SwipeableJobCard = ({
             index={index}
             isExpanded={isExpanded}
             onToggleExpand={onToggleExpand}
+            isSaved={isSaved}
+            onToggleSave={onToggleSave}
           />
         </div>
       </motion.div>

@@ -4,7 +4,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck } from "lucide-react";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";

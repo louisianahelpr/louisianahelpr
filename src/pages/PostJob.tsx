@@ -817,6 +817,10 @@ const PostJob = () => {
                     <span className="text-muted-foreground">Task budget</span>
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Service fee ({customerFee ?? 5}%)</span>
+                    <span className="font-medium text-foreground">${customerFeeAmount.toFixed(2)}</span>
+                  </div>
                   {isUrgent && urgentFeeNum > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent tip (goes to helpr)</span>
@@ -829,7 +833,7 @@ const PostJob = () => {
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">You pay</span>
+                    <span className="font-semibold text-foreground">Subtotal (before tax)</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>

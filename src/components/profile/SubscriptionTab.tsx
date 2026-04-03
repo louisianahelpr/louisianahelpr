@@ -97,7 +97,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
     try {
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, billing_cycle, ...(billing_cycle === "monthly" ? { billing_day: billingDay } : {}) },
+        body: { tier, billing_cycle },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

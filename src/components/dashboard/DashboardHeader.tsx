@@ -16,9 +16,23 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
-  const { isAdmin } = useCurrentUser();
+  const { isAdmin, user } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadUnread = () => {
+      supabase.from("messages").select("*", { count: "exact", head: true }).eq("receiver_id", user.id).eq("read", false)
+        .then(({ count }) => setUnreadMessages(count || 0));
+    };
+    loadUnread();
+    const channel = supabase.channel(`header-unread-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, () => loadUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const handleLogout = async () => {
     setLoggingOut(true);

@@ -95,6 +95,7 @@ const AnimatedRoutes = () => {
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
       <Route path="/jobs" element={<PageTransition><Jobs /></PageTransition>} />
       <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
+      <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<NotFound />} />

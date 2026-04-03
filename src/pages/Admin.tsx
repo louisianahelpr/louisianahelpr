@@ -141,7 +141,7 @@ const Admin = () => {
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes, subsRes] = await Promise.all([
+    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, feesRes, subsRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -149,7 +149,6 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
-      supabase.from("reviews").select("id", { count: "exact", head: true }),
       supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed"),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
     ]);

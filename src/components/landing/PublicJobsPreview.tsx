@@ -40,9 +40,8 @@ const PublicJobsPreview = () => {
     const fetchJobs = async () => {
       const today = new Date().toISOString().split("T")[0];
       const { data } = await supabase
-        .from("jobs")
+        .from("open_jobs_safe" as any)
         .select("id, title, category, location, budget, date_needed, is_urgent")
-        .eq("status", "open")
         .gte("date_needed", today)
         .order("created_at", { ascending: false })
         .limit(6);

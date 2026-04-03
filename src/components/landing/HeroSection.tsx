@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, CheckCircle } from "lucide-react";
-import heroImg from "@/assets/hero-illustration-v6.webp";
+import heroImg from "@/assets/hero-illustration-v5.webp";
 
 const HeroSection = () => {
   const navigate = useNavigate();

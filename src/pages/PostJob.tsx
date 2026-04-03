@@ -81,9 +81,12 @@ const PostJob = () => {
 
   useEffect(() => {
     // Auth is already checked by ProtectedRoute — just fetch platform fee
-    supabase.from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle()
+    supabase.from("platform_settings").select("platform_fee_percent, customer_fee_percent, helper_fee_percent").limit(1).maybeSingle()
       .then(({ data }) => {
-        if (data) setPlatformFee(data.platform_fee_percent);
+        if (data) {
+          setPlatformFee(data.platform_fee_percent);
+          setCustomerFee((data as any).customer_fee_percent ?? 5);
+        }
       });
   }, []);
 

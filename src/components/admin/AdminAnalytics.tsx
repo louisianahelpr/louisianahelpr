@@ -228,14 +228,14 @@ const AdminAnalytics = () => {
         <MetricCard
           label="Gross Revenue"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${completedJobs.length} completed jobs`}
+          sub={`${capturedJobs.length} captured payments`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />
         <MetricCard
           label="Platform Profit"
           value={`$${totalFees.toFixed(2)}`}
-          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of revenue`}
+          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of captured payments`}
           icon={TrendingUp}
           accent
           onClick={() => openDrillDown("fees")}
@@ -243,7 +243,7 @@ const AdminAnalytics = () => {
         <MetricCard
           label="Helper Payouts"
           value={`$${totalHelperPayouts.toFixed(2)}`}
-          sub={`Avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0"}/job`}
+          sub={`Avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0"}/completed job`}
           icon={CreditCard}
           onClick={() => openDrillDown("payouts")}
         />

@@ -80,21 +80,26 @@ const AdminSettings = () => {
 
   const handleSave = async () => {
     if (!settingsId) return;
-    const value = parseFloat(feePercent);
-    if (isNaN(value) || value < 0 || value > 100) {
-      toast.error("Fee must be between 0 and 100");
+    const custVal = parseFloat(customerFee);
+    const helpVal = parseFloat(helperFee);
+    if (isNaN(custVal) || custVal < 0 || custVal > 100 || isNaN(helpVal) || helpVal < 0 || helpVal > 100) {
+      toast.error("Fees must be between 0 and 100");
       return;
     }
     setSaving(true);
     const { error } = await supabase
       .from("platform_settings")
-      .update({ platform_fee_percent: value })
+      .update({
+        platform_fee_percent: custVal,
+        customer_fee_percent: custVal,
+        helper_fee_percent: helpVal,
+      } as any)
       .eq("id", settingsId);
     setSaving(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Platform fee updated!");
-      await logAdminAction("update_settings", "platform_settings", settingsId, { platform_fee_percent: value });
+      toast.success("Fee settings updated!");
+      await logAdminAction("update_settings", "platform_settings", settingsId, { customer_fee_percent: custVal, helper_fee_percent: helpVal });
     }
   };
 

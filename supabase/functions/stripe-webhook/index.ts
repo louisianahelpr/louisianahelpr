@@ -254,6 +254,96 @@ serve(async (req) => {
         break;
       }
 
+      case "payment_intent.payment_failed": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const failedEmail = pi.receipt_email || (pi as any).last_payment_error?.charge?.billing_details?.email;
+        logStep("Payment intent failed", { id: pi.id, email: failedEmail });
+
+        // Find the job linked to this PI and notify the poster
+        const { data: failedJob } = await supabase
+          .from("jobs")
+          .select("id, customer_id, title")
+          .eq("stripe_payment_intent_id", pi.id)
+          .maybeSingle();
+
+        if (failedJob) {
+          await supabase.from("notifications").insert({
+            user_id: failedJob.customer_id,
+            title: "⚠️ Payment failed",
+            message: `Your payment for "${failedJob.title}" could not be processed. Please update your payment method and try again.`,
+            type: "warning",
+            link: "/activity?tab=posted",
+          });
+          await supabase.from("jobs").update({ payment_status: "failed" }).eq("id", failedJob.id);
+          logStep("Notified poster of payment failure", { jobId: failedJob.id });
+        }
+        break;
+      }
+
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const refundPiId = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : (charge.payment_intent as any)?.id;
+        logStep("Charge refunded", { chargeId: charge.id, pi: refundPiId });
+
+        if (refundPiId) {
+          const { data: refundedJob } = await supabase
+            .from("jobs")
+            .select("id, customer_id, title")
+            .eq("stripe_payment_intent_id", refundPiId)
+            .maybeSingle();
+
+          if (refundedJob) {
+            await supabase.from("jobs").update({ payment_status: "refunded" }).eq("id", refundedJob.id);
+            await supabase.from("notifications").insert({
+              user_id: refundedJob.customer_id,
+              title: "💸 Refund processed",
+              message: `Your payment for "${refundedJob.title}" has been refunded.`,
+              type: "payment",
+              link: "/activity?tab=posted",
+            });
+            logStep("Job marked as refunded", { jobId: refundedJob.id });
+          }
+        }
+        break;
+      }
+
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        logStep("Connect account updated", { accountId: account.id, chargesEnabled: account.charges_enabled, payoutsEnabled: account.payouts_enabled });
+
+        // Find the helper with this Stripe account
+        const { data: helperProfile } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("stripe_account_id", account.id)
+          .maybeSingle();
+
+        if (helperProfile) {
+          if (account.charges_enabled && account.payouts_enabled) {
+            await supabase.from("notifications").insert({
+              user_id: helperProfile.user_id,
+              title: "✅ Payout account verified",
+              message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+              type: "success",
+              link: "/profile",
+            });
+            logStep("Helper payout account verified", { userId: helperProfile.user_id });
+          } else if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
+            await supabase.from("notifications").insert({
+              user_id: helperProfile.user_id,
+              title: "⚠️ Payout account needs attention",
+              message: "Your payout account requires additional information. Please update your details to continue receiving payments.",
+              type: "warning",
+              link: "/profile",
+            });
+            logStep("Helper account needs attention", { userId: helperProfile.user_id, due: account.requirements.currently_due });
+          }
+        }
+        break;
+      }
+
       default:
         logStep("Unhandled event type", { type: event.type });
     }

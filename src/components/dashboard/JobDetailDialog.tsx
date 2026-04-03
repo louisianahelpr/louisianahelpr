@@ -63,12 +63,14 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
               {(() => {
                 const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
                 const perHelper = job.budget / helpers;
-                const payout = perHelper * (1 - effectiveFee / 100) + (job.urgent_fee ?? 0);
+                const fee = perHelper * (effectiveFee / 100);
+                const feeTax = fee * 0.10;
+                const payout = perHelper - fee - feeTax + (job.urgent_fee ?? 0);
                 return (
                   <>
                     <p className="font-semibold text-primary">${payout.toFixed(2)}</p>
                     <p className="text-[9px] text-muted-foreground mt-0.5">
-                      After {effectiveFee}% platform fee{helpers > 1 ? ` · Split ${helpers} ways` : ""}
+                      After {effectiveFee}% fee + tax{helpers > 1 ? ` · Split ${helpers} ways` : ""}
                     </p>
                   </>
                 );

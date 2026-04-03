@@ -376,8 +376,7 @@ const PostJob = () => {
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const feeAmount = budgetNum * ((platformFee ?? 0) / 100);
-  const salesTaxAmount = budgetNum * (salesTaxRate / 100);
-  const totalCharge = budgetNum + urgentFeeNum + salesTaxAmount;
+  const totalCharge = budgetNum + urgentFeeNum; // Tax calculated automatically by Stripe at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (
@@ -821,15 +820,15 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">LA Sales Tax (10%)</span>
-                    <span className="font-medium text-foreground">${salesTaxAmount.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Sales Tax</span>
+                    <span className="font-medium text-muted-foreground italic">Calculated at checkout</span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">You pay</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Sales tax is collected and remitted to Louisiana. Payment is held securely until both parties confirm job completion.</p>
+                  <p className="text-[10px] text-muted-foreground">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
                 </div>
               </div>
 

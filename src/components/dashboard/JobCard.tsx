@@ -74,7 +74,8 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelperBudget = job.budget / helpersCount;
   const feeAmt = perHelperBudget * (effectiveFee / 100);
-  const netEarnings = perHelperBudget - feeAmt;
+  const feeTax = feeAmt * 0.10; // 10% tax on platform fee
+  const netEarnings = perHelperBudget - feeAmt - feeTax;
   const earnings = netEarnings.toFixed(2);
   const urgentTip = job.urgent_fee ?? 0;
   const catStyle = categoryColors[job.category] || categoryColors.other;

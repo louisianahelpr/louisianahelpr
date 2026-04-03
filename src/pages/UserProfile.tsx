@@ -67,14 +67,16 @@ const UserProfile = () => {
       // Step 2: Remaining queries in parallel
       const isHelper = prof.role === "helper";
       const t1 = performance.now();
-      const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
         isHelper
           ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId)
           : Promise.resolve({ data: null }),
+        supabase.from("profiles").select("id_document_url").eq("user_id", userId).single(),
       ]);
+      setIsIdVerified(!!idCheckRes.data?.id_document_url);
       console.log(`[UserProfile] parallel batch: ${(performance.now() - t1).toFixed(0)}ms`);
 
       if (postedRes.data) setPostedJobs(postedRes.data);

@@ -282,7 +282,7 @@ const Admin = () => {
   );
 
   const viewLabels: Record<View, string> = {
-    home: "Dashboard", analytics: "Analytics", reviews: "Reviews", people: "Users",
+    home: "Dashboard", analytics: "Analytics", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
     notifications: "Notifications", reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",

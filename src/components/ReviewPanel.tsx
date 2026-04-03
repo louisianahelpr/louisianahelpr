@@ -181,6 +181,14 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
           </div>
         ))}
       </div>
+      {reportReviewId && (
+        <ReportDialog
+          open={!!reportReviewId}
+          onClose={() => setReportReviewId(null)}
+          reportedType="review"
+          reportedId={reportReviewId}
+        />
+      )}
     </div>
   );
 };

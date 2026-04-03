@@ -100,6 +100,7 @@ const AdminReports = () => {
   const typeIcon = (type: string) => {
     if (type === "user") return <User className="w-4 h-4" />;
     if (type === "job") return <Briefcase className="w-4 h-4" />;
+    if (type === "review") return <Clock className="w-4 h-4" />;
     return <MessageSquare className="w-4 h-4" />;
   };
 

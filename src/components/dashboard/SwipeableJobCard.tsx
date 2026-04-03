@@ -17,6 +17,8 @@ interface SwipeableJobCardProps {
   index?: number;
   isExpanded?: boolean;
   onToggleExpand?: (jobId: string) => void;
+  isSaved?: boolean;
+  onToggleSave?: (jobId: string, saved: boolean) => void;
 }
 
 const SWIPE_THRESHOLD = -100;

@@ -582,7 +582,7 @@ const Dashboard = () => {
                         })()}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Platform fee is deducted from your payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""} Sales tax is paid by the customer separately.
+                        Commission is deducted from your payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""} Sales tax is paid by the customer separately.
                       </p>
                     </div>
                   </div>

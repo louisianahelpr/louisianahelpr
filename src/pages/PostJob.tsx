@@ -824,9 +824,7 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      LA Sales Tax ({salesTaxRate}%{salesTaxParish ? ` — ${salesTaxParish} Parish` : ""})
-                    </span>
+                    <span className="text-muted-foreground">LA Sales Tax (10%)</span>
                     <span className="font-medium text-foreground">${salesTaxAmount.toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-border" />
@@ -834,33 +832,7 @@ const PostJob = () => {
                     <span className="font-semibold text-foreground">You pay</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
-
-                  {/* What the helper earns */}
-                  <div className="h-px bg-border" />
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Helpr payout breakdown</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">From task budget</span>
-                    <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform fee ({platformFee}%)</span>
-                    <span className="font-medium text-destructive/70">−${feeAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax on fee (8.5%)</span>
-                    <span className="font-medium text-destructive/70">−${feeTax.toFixed(2)}</span>
-                  </div>
-                  {isUrgent && urgentFeeNum > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Urgent tip</span>
-                      <span className="font-medium text-accent">+${urgentFeeNum.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span className="text-foreground">Helpr earns</span>
-                    <span className="text-primary">${helperEarns.toFixed(2)}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Sales tax is collected from you and remitted to Louisiana. Platform fee & tax on fee are deducted from the helpr's payout.</p>
+                  <p className="text-[10px] text-muted-foreground">Sales tax is collected and remitted to Louisiana. Payment is held securely until both parties confirm job completion.</p>
                 </div>
               </div>
 

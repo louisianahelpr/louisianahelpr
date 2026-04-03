@@ -72,16 +72,17 @@ const AdminAnalytics = () => {
   const helpers = profiles.filter(p => p.role === "helper");
   const customers = profiles.filter(p => p.role === "customer");
   const completedJobs = allJobs.filter(j => j.status === "completed");
+  const capturedJobs = allJobs.filter(j => ["escrow", "payout_pending", "released"].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");
   const activeJobs = allJobs.filter(j => ["accepted", "in_progress"].includes(j.status));
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
 
-  const totalRevenue = completedJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  const totalFees = completedJobs.reduce((s, j) => s + (j.platform_fee_amount || 0), 0);
-  const totalHelperPayouts = totalRevenue - totalFees;
+  const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0), 0);
+  const totalFees = capturedJobs.reduce((s, j) => s + (j.platform_fee_amount || 0), 0);
+  const totalHelperPayouts = completedJobs.reduce((s, j) => s + ((j.budget || 0) - (j.platform_fee_amount || 0)), 0);
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + t.amount, 0);
-  const avgJobValue = completedJobs.length > 0 ? totalRevenue / completedJobs.length : 0;
+  const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;
 
@@ -168,7 +169,7 @@ const AdminAnalytics = () => {
       setDrillUsers(data || []);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
       const query = supabase.from("jobs").select("*").order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query.eq("status", "completed");
+      if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       const { data } = await query;
       setDrillJobs(data || []);
@@ -227,14 +228,14 @@ const AdminAnalytics = () => {
         <MetricCard
           label="Gross Revenue"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${completedJobs.length} completed jobs`}
+          sub={`${capturedJobs.length} captured payments`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />
         <MetricCard
           label="Platform Profit"
           value={`$${totalFees.toFixed(2)}`}
-          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of revenue`}
+          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of captured payments`}
           icon={TrendingUp}
           accent
           onClick={() => openDrillDown("fees")}
@@ -242,7 +243,7 @@ const AdminAnalytics = () => {
         <MetricCard
           label="Helper Payouts"
           value={`$${totalHelperPayouts.toFixed(2)}`}
-          sub={`Avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0"}/job`}
+          sub={`Avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0"}/completed job`}
           icon={CreditCard}
           onClick={() => openDrillDown("payouts")}
         />

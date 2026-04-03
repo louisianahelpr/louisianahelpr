@@ -50,7 +50,7 @@ export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | 
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("one_time");
-  const [billingDay, setBillingDay] = useState<number>(1);
+  
   const [refreshing, setRefreshing] = useState(false);
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();

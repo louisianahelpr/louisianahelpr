@@ -26,8 +26,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce((sum, j) => {
-    const fee = j.platform_fee_amount || 0;
-    return sum + (j.budget - fee + (j.urgent_fee ?? 0));
+    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
+    const perHelper = j.budget / helpers;
+    const fee = (j.platform_fee_amount || 0) / helpers;
+    return sum + (perHelper - fee + (j.urgent_fee ?? 0));
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 

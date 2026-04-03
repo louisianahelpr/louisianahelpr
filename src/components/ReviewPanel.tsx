@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Star } from "lucide-react";
+import { Star, Flag } from "lucide-react";
 import { toast } from "sonner";
+import ReportDialog from "@/components/ReportDialog";
 
 interface ReviewFormProps {
   open: boolean;

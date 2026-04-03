@@ -820,8 +820,8 @@ const PostJob = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">LA Sales Tax (10%)</span>
-                    <span className="font-medium text-foreground">${salesTaxAmount.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Sales Tax</span>
+                    <span className="font-medium text-muted-foreground italic">Calculated at checkout</span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between">

@@ -41,16 +41,16 @@ const HeroSection = () => {
               Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
             </p>
 
-            {/* Social proof */}
-            {stats && (stats.users > 0 || stats.completed > 0) && (
+            {/* Social proof — only show when numbers are meaningful */}
+            {stats && (stats.users >= 50 || stats.completed >= 20) && (
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {stats.users > 0 && (
+                {stats.users >= 50 && (
                   <span className="flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> community members
                   </span>
                 )}
-                {stats.completed > 0 && (
+                {stats.completed >= 20 && (
                   <span className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> tasks completed

@@ -71,7 +71,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const shareLink = () => {
     if (!referralCode) return;
-    const url = `https://louisianahelpr.lovable.app/signup?ref=${referralCode}`;
+    const url = `https://www.louisianahelpr.com/signup?ref=${referralCode}`;
     if (navigator.share) {
       navigator.share({
         title: "Join Helpr!",

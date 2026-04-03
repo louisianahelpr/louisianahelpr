@@ -64,7 +64,6 @@ serve(async (req) => {
       const feePercent = settings?.platform_fee_percent ?? 2;
 
       const feeAmount = (job.budget * feePercent) / 100;
-      const feeTax = feeAmount * 0.085;
 
       // Sales tax from the job (locked at creation time)
       const salesTaxAmount = job.sales_tax_amount ?? 0;

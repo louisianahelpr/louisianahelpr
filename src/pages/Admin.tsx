@@ -14,7 +14,7 @@ import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
-import AdminReviews from "@/components/admin/AdminReviews";
+
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
@@ -29,7 +29,7 @@ import AdminExport from "@/components/admin/AdminExport";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
-type View = "home" | "analytics" | "reviews" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -70,7 +70,6 @@ const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: "Engagement",
     items: [
-      { id: "reviews", label: "Reviews", icon: ClipboardCheck },
       { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
       { id: "notifications", label: "Notifications", icon: BellRing },
     ],
@@ -96,7 +95,7 @@ const Admin = () => {
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    pendingReviews: 0, disputedJobs: 0, activeSubscriptions: 0,
+    disputedJobs: 0, activeSubscriptions: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -105,7 +104,7 @@ const Admin = () => {
     const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [
       { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending" } },
       { key: "jobs", table: "jobs", dateCol: "created_at" },
-      { key: "reviews", table: "reviews", dateCol: "created_at" },
+      
       { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" } },
       { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
       { key: "support", table: "reports", dateCol: "created_at", filter: { status: "pending", reported_type: "support" } },
@@ -142,7 +141,7 @@ const Admin = () => {
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, reviewsRes, feesRes, subsRes] = await Promise.all([
+    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, feesRes, subsRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -150,7 +149,6 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
-      supabase.from("reviews").select("id", { count: "exact", head: true }),
       supabase.from("jobs").select("budget, platform_fee_amount").eq("status", "completed"),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
     ]);
@@ -164,7 +162,7 @@ const Admin = () => {
       completedJobs: completedRes.count || 0,
       totalRevenue: feeRows.reduce((s, j) => s + (j.budget || 0), 0),
       totalFees: feeRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
-      pendingReviews: reviewsRes.count || 0,
+      
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
     });
@@ -180,7 +178,7 @@ const Admin = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => { loadStats(); loadUnreadCounts(); })
+      
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loading]);
@@ -283,7 +281,7 @@ const Admin = () => {
   );
 
   const viewLabels: Record<View, string> = {
-    home: "Dashboard", analytics: "Analytics", reviews: "Reviews", people: "Users",
+    home: "Dashboard", analytics: "Analytics", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
     notifications: "Notifications", reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
@@ -293,7 +291,6 @@ const Admin = () => {
   const renderContent = () => {
     switch (view) {
       case "analytics": return <AdminAnalytics />;
-      case "reviews": return <AdminReviews />;
       case "people": return <AdminUsers />;
       case "jobs": return <AdminJobs />;
       case "settings": return <AdminSettings />;
@@ -374,7 +371,7 @@ interface DashboardHomeProps {
   stats: {
     totalUsers: number; pendingApprovals: number; openReports: number;
     supportTickets: number; activeJobs: number; completedJobs: number;
-    totalRevenue: number; totalFees: number; pendingReviews: number;
+    totalRevenue: number; totalFees: number;
     disputedJobs: number; activeSubscriptions: number;
   };
   statsLoading: boolean;

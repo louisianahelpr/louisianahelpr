@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Star } from "lucide-react";
+import { Star, Flag } from "lucide-react";
 import { toast } from "sonner";
+import ReportDialog from "@/components/ReportDialog";
 
 interface ReviewFormProps {
   open: boolean;
@@ -112,6 +113,7 @@ type Review = {
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -157,19 +159,36 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       <div className="space-y-3">
         {reviews.map((r) => (
           <div key={r.id} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                ))}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">by {r.reviewerName || "User"}</span>
               </div>
-              <span className="text-xs text-muted-foreground">by {r.reviewerName || "User"}</span>
+              <button
+                onClick={() => setReportReviewId(r.id)}
+                className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                title="Report this review"
+              >
+                <Flag className="w-3.5 h-3.5" />
+              </button>
             </div>
             {r.feedback && <p className="text-sm text-foreground">{r.feedback}</p>}
             <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
           </div>
         ))}
       </div>
+      {reportReviewId && (
+        <ReportDialog
+          open={!!reportReviewId}
+          onClose={() => setReportReviewId(null)}
+          reportedType="review"
+          reportedId={reportReviewId}
+        />
+      )}
     </div>
   );
 };

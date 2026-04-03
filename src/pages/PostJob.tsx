@@ -87,7 +87,7 @@ const PostJob = () => {
       });
   }, []);
 
-  }, [city]);
+  
 
   // One-tap rebook: load from query params
   useEffect(() => {

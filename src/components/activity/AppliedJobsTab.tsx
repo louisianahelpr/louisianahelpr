@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
+import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { JobCheckins } from "@/components/JobCheckins";
@@ -215,15 +216,25 @@ export const AppliedJobsTab = ({
                     </div>
                   )}
                   {(app.job as any)?.revision_deadline && !(app.job as any)?.revision_completed_at && (
-                    <div className={`flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((app.job as any).revision_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
-                      <Timer className="w-3.5 h-3.5" />
-                      {new Date((app.job as any).revision_deadline) <= new Date()
-                        ? "Revision deadline passed — poster can dispute or complete"
-                        : `${formatDistanceToNow(new Date((app.job as any).revision_deadline), { addSuffix: false })} to fix the revision`}
-                    </div>
+                    <DeadlineCountdown
+                      deadline={(app.job as any).revision_deadline}
+                      expiredText="Revision deadline passed — poster can dispute or complete"
+                      consequenceText="Fix the revision before the deadline. If not completed, the poster can file a dispute."
+                      variant="warning"
+                    />
                   )}
                   {(app.job as any)?.revision_completed_at ? (
-                    <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ You marked this as fixed — waiting for poster to accept</div>
+                    <div className="space-y-2">
+                      <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ You marked this as fixed — waiting for poster to accept</div>
+                      {(app.job as any)?.revision_acceptance_deadline && (
+                        <DeadlineCountdown
+                          deadline={(app.job as any).revision_acceptance_deadline}
+                          expiredText="Poster didn't respond — payment auto-releasing to you"
+                          consequenceText="If the poster doesn't accept or dispute, payment auto-releases to you."
+                          variant="warning"
+                        />
+                      )}
+                    </div>
                   ) : (
                     <Button size="sm" variant="outline" className="w-full" onClick={() => onResolveRevision(app.job_id)}><RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed</Button>
                   )}
@@ -257,12 +268,12 @@ export const AppliedJobsTab = ({
                   <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date((app.job as any).disputed_at), { addSuffix: true })}</p>
                 )}
                 {(app.job as any)?.dispute_deadline && (
-                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((app.job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
-                    <Timer className="w-3.5 h-3.5" />
-                    {new Date((app.job as any).dispute_deadline) <= new Date()
-                      ? "Deadline passed — payment releasing to you"
-                      : `${formatDistanceToNow(new Date((app.job as any).dispute_deadline), { addSuffix: false })} left to resolve`}
-                  </div>
+                  <DeadlineCountdown
+                    deadline={(app.job as any).dispute_deadline}
+                    expiredText="Deadline passed — payment auto-releasing to you"
+                    consequenceText="If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline."
+                    variant="destructive"
+                  />
                 )}
               </div>
               {/* Helper's existing response */}

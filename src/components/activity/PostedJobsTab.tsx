@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
+import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
@@ -204,22 +205,22 @@ export const PostedJobsTab = ({
                       <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
                         <p className="text-xs text-emerald-600 font-medium">✓ Helpr marked revision as fixed</p>
                         {(job as any).revision_acceptance_deadline && (
-                          <p className={`text-[10px] mt-0.5 flex items-center gap-1 ${differenceInHours(new Date((job as any).revision_acceptance_deadline), new Date()) < 12 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                            <Timer className="w-3 h-3" />
-                            {new Date((job as any).revision_acceptance_deadline) <= new Date()
-                              ? "Acceptance deadline passed — payment releasing"
-                              : `${formatDistanceToNow(new Date((job as any).revision_acceptance_deadline), { addSuffix: false })} to accept or dispute`}
-                          </p>
+                          <DeadlineCountdown
+                            deadline={(job as any).revision_acceptance_deadline}
+                            expiredText="Acceptance deadline passed — payment releasing to helpr"
+                            consequenceText="Accept the fix, or dispute. If no action is taken, payment auto-releases to the helpr."
+                            variant="warning"
+                          />
                         )}
                       </div>
                     )}
                     {!(job as any).revision_completed_at && (job as any).revision_deadline && (
-                      <p className={`text-[10px] flex items-center gap-1 ${differenceInHours(new Date((job as any).revision_deadline), new Date()) < 12 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                        <Timer className="w-3 h-3" />
-                        {new Date((job as any).revision_deadline) <= new Date()
-                          ? "Revision deadline passed"
-                          : `Helpr has ${formatDistanceToNow(new Date((job as any).revision_deadline), { addSuffix: false })} to fix`}
-                      </p>
+                      <DeadlineCountdown
+                        deadline={(job as any).revision_deadline}
+                        expiredText="Revision deadline passed — you can now dispute or complete"
+                        consequenceText="Helpr must fix the revision before this deadline. After that, you can dispute or mark complete."
+                        variant="warning"
+                      />
                     )}
                   </div>
                 )}
@@ -434,12 +435,12 @@ export const PostedJobsTab = ({
                             </div>
                           )}
                           {(job as any).dispute_deadline && disputeStatus !== "resolved" && (
-                            <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${differenceInHours(new Date((job as any).dispute_deadline), new Date()) < 12 ? "text-destructive" : "text-muted-foreground"}`}>
-                              <Timer className="w-3.5 h-3.5" />
-                              {new Date((job as any).dispute_deadline) <= new Date()
-                                ? "Deadline passed — auto-resolving"
-                                : `${formatDistanceToNow(new Date((job as any).dispute_deadline), { addSuffix: false })} left to resolve`}
-                            </div>
+                            <DeadlineCountdown
+                              deadline={(job as any).dispute_deadline}
+                              expiredText="Deadline passed — payment auto-releasing to helpr"
+                              consequenceText="Confirm the issue is fixed or escalate to admin. If no action is taken, payment auto-releases to the helpr."
+                              variant="destructive"
+                            />
                           )}
                         </div>
                         <div className="p-2 rounded-lg bg-muted/50 border border-border">

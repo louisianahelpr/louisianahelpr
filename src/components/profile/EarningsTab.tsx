@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, MapPin, AlertTriangle } from "lucide-react";
+import { ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, MapPin } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];

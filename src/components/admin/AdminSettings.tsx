@@ -14,7 +14,8 @@ import { logAdminAction } from "@/lib/adminAudit";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const AdminSettings = () => {
-  const [feePercent, setFeePercent] = useState("");
+  const [customerFee, setCustomerFee] = useState("");
+  const [helperFee, setHelperFee] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -313,9 +313,11 @@ const PostJob = () => {
       }
     }
 
-    // Lock platform fee at creation time so admin changes don't retroactively affect this job
+    // Lock platform fee and sales tax at creation time
     const lockedFeePercent = platformFee ?? 0;
     const lockedFeeAmount = parseFloat(budget) * (lockedFeePercent / 100);
+    const lockedSalesTaxRate = salesTaxRate;
+    const lockedSalesTaxAmount = parseFloat(budget) * (lockedSalesTaxRate / 100);
 
     const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
@@ -339,6 +341,8 @@ const PostJob = () => {
       urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
       platform_fee_percent: lockedFeePercent,
       platform_fee_amount: lockedFeeAmount,
+      sales_tax_rate: lockedSalesTaxRate,
+      sales_tax_amount: lockedSalesTaxAmount,
     } as any).select("id").single();
 
     if (error || !jobData) {

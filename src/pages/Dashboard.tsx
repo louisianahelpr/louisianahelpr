@@ -115,6 +115,7 @@ const Dashboard = () => {
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("helpr_dismissed_jobs");

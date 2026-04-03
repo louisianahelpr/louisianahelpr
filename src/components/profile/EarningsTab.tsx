@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, MapPin, AlertTriangle } from "lucide-react";
+import { ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, MapPin } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -72,19 +72,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
             </div>
           </div>
 
-          {/* Tax Reminder */}
-          {totalEarnings > 0 && (
-            <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Tax Reminder</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  As an independent contractor, we recommend setting aside <strong className="text-foreground">25–30%</strong> of your earnings for self-employment tax, federal income tax, and state income tax. 
-                  That's roughly <strong className="text-foreground">${(totalEarnings * 0.275).toFixed(2)}</strong> from your current earnings.
-                </p>
-              </div>
-            </div>
-          )}
+
           <div>
             <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
             {earningsJobs.length === 0 ? (

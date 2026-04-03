@@ -120,6 +120,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       </div>
     </nav>
   );
-};
+});
+MobileNav.displayName = "MobileNav";
 
 export default MobileNav;

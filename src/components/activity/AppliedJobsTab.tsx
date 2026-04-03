@@ -224,7 +224,17 @@ export const AppliedJobsTab = ({
                     />
                   )}
                   {(app.job as any)?.revision_completed_at ? (
-                    <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ You marked this as fixed — waiting for poster to accept</div>
+                    <div className="space-y-2">
+                      <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ You marked this as fixed — waiting for poster to accept</div>
+                      {(app.job as any)?.revision_acceptance_deadline && (
+                        <DeadlineCountdown
+                          deadline={(app.job as any).revision_acceptance_deadline}
+                          expiredText="Poster didn't respond — payment auto-releasing to you"
+                          consequenceText="If the poster doesn't accept or dispute, payment auto-releases to you."
+                          variant="warning"
+                        />
+                      )}
+                    </div>
                   ) : (
                     <Button size="sm" variant="outline" className="w-full" onClick={() => onResolveRevision(app.job_id)}><RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed</Button>
                   )}

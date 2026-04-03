@@ -828,7 +828,7 @@ const PostJob = () => {
                     <span className="font-semibold text-foreground">You pay</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Sales tax is collected and remitted to Louisiana. Payment is held securely until both parties confirm job completion.</p>
+                  <p className="text-[10px] text-muted-foreground">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
                 </div>
               </div>
 

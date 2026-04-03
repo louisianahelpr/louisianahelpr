@@ -113,6 +113,7 @@ type Review = {
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {

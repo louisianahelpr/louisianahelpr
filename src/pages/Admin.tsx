@@ -292,7 +292,6 @@ const Admin = () => {
   const renderContent = () => {
     switch (view) {
       case "analytics": return <AdminAnalytics />;
-      case "reviews": return <AdminReviews />;
       case "people": return <AdminUsers />;
       case "jobs": return <AdminJobs />;
       case "settings": return <AdminSettings />;

@@ -71,7 +71,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const shareLink = () => {
     if (!referralCode) return;
-    const url = `${window.location.origin}/signup?ref=${referralCode}`;
+    const url = `https://louisianahelpr.lovable.app/signup?ref=${referralCode}`;
     if (navigator.share) {
       navigator.share({
         title: "Join Helpr!",
@@ -137,7 +137,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <p className="text-xs text-muted-foreground mb-2 text-center">Or share on social media</p>
           <div className="flex justify-center">
             <SocialShare
-              url={`${window.location.origin}/signup?ref=${referralCode}`}
+              url={`https://louisianahelpr.lovable.app/signup?ref=${referralCode}`}
               text={`Join me on Helpr! Use my referral code ${referralCode} — once your first job is completed, we both earn $5.`}
               compact
             />

@@ -296,21 +296,13 @@ const PostJob = () => {
 
     let photoUrls: string[] = [];
 
-    // Calculate expiry: use date_needed + start_time as the precise expiry
+    // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
     let expiresAt: string | null = null;
     if (startTime && dateNeeded) {
       expiresAt = new Date(`${dateNeeded}T${startTime}`).toISOString();
     } else if (dateNeeded) {
       // If no start_time, expire at end of the scheduled day
       expiresAt = new Date(`${dateNeeded}T23:59:59`).toISOString();
-    }
-    // If a listing duration was also set, use the earlier of the two
-    if (jobDuration !== "none") {
-      const durationExpiry = new Date();
-      durationExpiry.setDate(durationExpiry.getDate() + parseInt(jobDuration));
-      if (!expiresAt || durationExpiry < new Date(expiresAt)) {
-        expiresAt = durationExpiry.toISOString();
-      }
     }
 
     // Lock platform fee and sales tax at creation time

@@ -191,8 +191,15 @@ serve(async (req) => {
         } else {
           results.push({ job_id: job.id, title: job.title, status: `pi_status_${pi.status}`, skipped: true });
         }
-      } catch (e) {
-        results.push({ job_id: job.id, title: job.title, status: "error", error: e.message });
+      } catch (e: any) {
+        // Handle "already refunded" gracefully
+        if (e.message?.includes("already been refunded")) {
+          await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
+          refunded++;
+          results.push({ job_id: job.id, title: job.title, status: "already_refunded" });
+        } else {
+          results.push({ job_id: job.id, title: job.title, status: "error", error: e.message });
+        }
       }
     }
 

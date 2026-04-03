@@ -382,7 +382,7 @@ const AdminJobs = () => {
               </div>
 
               {/* Admin actions */}
-              {detailJob.status !== "cancelled" && !(detailJob as any).removal_reason && (
+              {!(detailJob as any).removal_reason && (
                 <div className="pt-3 border-t border-border">
                   <Button
                     variant="destructive"

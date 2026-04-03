@@ -73,6 +73,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       )}
     </nav>
   );
-};
+});
+Navbar.displayName = "Navbar";
 
 export default Navbar;

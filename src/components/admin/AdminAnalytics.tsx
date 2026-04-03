@@ -79,9 +79,15 @@ const AdminAnalytics = () => {
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
 
   const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  const totalFees = capturedJobs.reduce((s, j) => s + (j.platform_fee_amount || 0), 0);
-  const totalHelperPayouts = completedJobs.reduce((s, j) => s + ((j.budget || 0) - (j.platform_fee_amount || 0)), 0);
-  const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + t.amount, 0);
+  // Platform profit = customer service fee + helper commission (stored as platform_fee_amount)
+  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  const totalHelperPayouts = completedJobs.reduce((s, j) => {
+    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
+    const perHelper = (j.budget || 0) / helpers;
+    const commissionPercent = j.helper_fee_percent ?? 10;
+    const commission = (perHelper * commissionPercent) / 100;
+    return s + (perHelper - commission + (j.urgent_fee ?? 0));
+  }, 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;

@@ -818,7 +818,7 @@ const PostJob = () => {
                     <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Service fee ({customerFee ?? 5}%)</span>
+                    <span className="text-muted-foreground">Service fee ({customerFee ?? 10}%)</span>
                     <span className="font-medium text-foreground">${customerFeeAmount.toFixed(2)}</span>
                   </div>
                   {isUrgent && urgentFeeNum > 0 && (

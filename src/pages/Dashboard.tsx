@@ -130,6 +130,21 @@ const Dashboard = () => {
 
   const effectiveFee = platformFee;
 
+  // Load saved job IDs
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("saved_jobs").select("job_id").eq("user_id", user.id).then(({ data }) => {
+      if (data) setSavedJobIds(new Set(data.map((d: any) => d.job_id)));
+    });
+  }, [user?.id]);
+
+  const handleToggleSave = useCallback((jobId: string, saved: boolean) => {
+    setSavedJobIds(prev => {
+      const next = new Set(prev);
+      if (saved) next.add(jobId); else next.delete(jobId);
+      return next;
+    });
+  }, []);
   const handleApplyRequest = useCallback((jobId: string) => {
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);

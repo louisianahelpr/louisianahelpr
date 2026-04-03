@@ -556,11 +556,18 @@ const Dashboard = () => {
                       <div className="h-px bg-border my-1" />
                       <div className="flex justify-between">
                         <span className="font-semibold text-foreground text-sm">Your Payout</span>
-                        <span className="font-bold text-primary text-sm">
-                          ${((confirmApplyJob.budget * (1 - platformFee / 100)) + (confirmApplyJob.urgent_fee ?? 0)).toFixed(2)}
-                        </span>
+                        {(() => {
+                          const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
+                          const perHelper = confirmApplyJob.budget / helpers;
+                          const payout = perHelper * (1 - platformFee / 100) + (confirmApplyJob.urgent_fee ?? 0);
+                          return (
+                            <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
+                          );
+                        })()}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">Platform fee is deducted from your payout. Sales tax is paid by the customer separately.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Platform fee is deducted from your payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""} Sales tax is paid by the customer separately.
+                      </p>
                     </div>
                   </div>
                 : <p>Are you sure you want to apply for this task?</p>}

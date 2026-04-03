@@ -39,9 +39,22 @@ serve(async (req) => {
 
     // Get or create Stripe customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string | undefined;
+    let customerId: string;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+    } else {
+      // Fetch user's profile name for the Stripe customer record
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .single();
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        name: profile?.full_name || user.email,
+        metadata: { supabase_user_id: user.id },
+      });
+      customerId = newCustomer.id;
     }
 
     // ─── ESCROW: Create checkout with manual capture ───

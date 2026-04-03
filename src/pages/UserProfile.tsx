@@ -4,7 +4,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck } from "lucide-react";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
@@ -40,6 +40,7 @@ const UserProfile = () => {
   const [postedJobs, setPostedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
   const [workedJobs, setWorkedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
   const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
+  const [isIdVerified, setIsIdVerified] = useState(false);
   
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
@@ -66,14 +67,16 @@ const UserProfile = () => {
       // Step 2: Remaining queries in parallel
       const isHelper = prof.role === "helper";
       const t1 = performance.now();
-      const [reviewsRes, postedRes, workedRes, appsRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
         supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
         isHelper
           ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId)
           : Promise.resolve({ data: null }),
+        supabase.from("profiles").select("id_document_url").eq("user_id", userId).single(),
       ]);
+      setIsIdVerified(!!idCheckRes.data?.id_document_url);
       console.log(`[UserProfile] parallel batch: ${(performance.now() - t1).toFixed(0)}ms`);
 
       if (postedRes.data) setPostedJobs(postedRes.data);
@@ -201,7 +204,14 @@ const UserProfile = () => {
               </div>
             )}
             <div>
-              <h1 className="text-xl font-display font-bold text-foreground">{displayName}</h1>
+              <div className="flex items-center justify-center gap-1.5">
+                <h1 className="text-xl font-display font-bold text-foreground">{displayName}</h1>
+                {isIdVerified && (
+                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider" title="ID Verified">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                  </span>
+                )}
+              </div>
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
                 <div className="flex items-center justify-center gap-3 mt-1.5 text-xs text-muted-foreground">

@@ -1,9 +1,30 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Users, CheckCircle } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v5.webp";
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [stats, setStats] = useState<{ users: number; completed: number } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setLoggedIn(true);
+    });
+    // Fetch social proof stats
+    Promise.all([
+      supabase.rpc("count_profiles"),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
+    ]).then(([profilesRes, jobsRes]) => {
+      setStats({
+        users: typeof profilesRes.data === "number" ? profilesRes.data : 0,
+        completed: jobsRes.count || 0,
+      });
+    });
+  }, []);
 
   return (
     <section className="pt-32 pb-20 px-4">
@@ -19,13 +40,45 @@ const HeroSection = () => {
             <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
               Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
             </p>
+
+            {/* Social proof */}
+            {stats && (stats.users > 0 || stats.completed > 0) && (
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                {stats.users > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> community members
+                  </span>
+                )}
+                {stats.completed > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> tasks completed
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button variant="hero" size="xl" onClick={() => navigate("/signup")}>
-                Post your first task
-              </Button>
-              <Button variant="hero-outline" size="xl" onClick={() => navigate("/login")}>
-                Offer help today
-              </Button>
+              {loggedIn ? (
+                <>
+                  <Button variant="hero" size="xl" onClick={() => navigate("/dashboard")}>
+                    Browse jobs
+                  </Button>
+                  <Button variant="hero-outline" size="xl" onClick={() => navigate("/post-job")}>
+                    Post a task
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="hero" size="xl" onClick={() => navigate("/signup")}>
+                    Post your first task
+                  </Button>
+                  <Button variant="hero-outline" size="xl" onClick={() => navigate("/login")}>
+                    Offer help today
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           <div className="animate-fade-in [animation-delay:200ms] opacity-0">

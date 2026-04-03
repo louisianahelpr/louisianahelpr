@@ -10,7 +10,7 @@ interface SocialShareProps {
 }
 
 const SocialShare = ({ 
-  url = "https://louisianahelpr.lovable.app", 
+  url = "https://www.louisianahelpr.com", 
   text = "Check out Helpr — Louisiana's helping hand for everyday tasks!",
   compact = false,
 }: SocialShareProps) => {

@@ -5,5 +5,5 @@ export const getPublicResetPasswordUrl = () => {
 };
 
 export const getPublicSiteUrl = () => {
-  return "https://louisianahelpr.lovable.app";
+  return "https://www.louisianahelpr.com";
 };

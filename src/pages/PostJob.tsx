@@ -967,7 +967,7 @@ const PostJob = () => {
                   disabled={saving || uploading || !confirmed}
                 >
                   {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${(budgetNum + urgentFeeNum).toFixed(2)}`}
+                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${totalCharge.toFixed(2)}`}
                 </Button>
                 <Button
                   variant="ghost"

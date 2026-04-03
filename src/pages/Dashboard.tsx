@@ -538,18 +538,33 @@ const Dashboard = () => {
                 ? <div className="space-y-3">
                     <p>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span>?</p>
                     <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-sm">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Payout Breakdown</p>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Task budget</span>
+                        <span>${confirmApplyJob.budget.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Platform fee ({platformFee}%)</span>
+                        <span className="text-destructive/70">−${(confirmApplyJob.budget * platformFee / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Tax on fee (8.5%)</span>
+                        <span className="text-destructive/70">−${(confirmApplyJob.budget * platformFee / 100 * 0.085).toFixed(2)}</span>
+                      </div>
+                      {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Urgent tip</span>
+                          <span className="text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="h-px bg-border my-1" />
                       <div className="flex justify-between">
-                        <span className="font-semibold text-foreground">Your Payout</span>
-                        <span className="font-bold text-primary">
+                        <span className="font-semibold text-foreground text-sm">Your Payout</span>
+                        <span className="font-bold text-primary text-sm">
                           ${((confirmApplyJob.budget * (1 - platformFee / 100) - (confirmApplyJob.budget * platformFee / 100 * 0.085)) + (confirmApplyJob.urgent_fee ?? 0)).toFixed(2)}
                         </span>
                       </div>
-                      {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground text-xs">Includes Urgent Tip</span>
-                          <span className="text-xs text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
-                        </div>
-                      )}
+                      <p className="text-[10px] text-muted-foreground mt-1">Platform fee & tax on fee are deducted from your payout. Sales tax is paid by the customer separately.</p>
                     </div>
                   </div>
                 : <p>Are you sure you want to apply for this task?</p>}

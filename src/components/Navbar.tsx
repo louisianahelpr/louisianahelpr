@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 
-const Navbar = () => {
+const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 

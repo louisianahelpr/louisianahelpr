@@ -3,7 +3,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { 
   Shield, DollarSign, Clock, AlertTriangle, Ban, 
-  Scale, ArrowLeft, CheckCircle, XCircle, Timer 
+  Scale, ArrowLeft, CheckCircle, XCircle, Timer, Receipt
 } from "lucide-react";
 
 const PlatformRules = () => {

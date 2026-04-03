@@ -14,7 +14,7 @@ const rightItems = [
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
-const MobileNav = () => {
+const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useCurrentUser();

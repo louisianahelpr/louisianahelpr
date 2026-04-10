@@ -543,26 +543,35 @@ const AdminUsers = () => {
                       <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry — Move to Pending
                     </Button>
                   )}
-                  {viewProfile.bio && <p className="text-sm text-foreground leading-relaxed">{viewProfile.bio}</p>}
+                  <div className="mt-1">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bio</p>
+                    <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
+                      {viewProfile.bio || "Not provided"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Info Grid */}
+              {/* Info Grid — always show all fields */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-secondary/30 border border-border p-4">
                 <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Role</p>
+                  <p className="text-sm font-medium text-foreground capitalize">{viewProfile.role}</p>
+                </div>
+                <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
-                  <p className="text-sm font-medium text-foreground">{viewProfile.phone || "—"}</p>
+                  <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
-                  <p className="text-sm font-medium text-foreground">{viewProfile.location || "—"}</p>
+                  <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
                     {(viewProfile as any).date_of_birth
                       ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                      : "—"}
+                      : "Not provided"}
                   </p>
                 </div>
                 <div>
@@ -575,19 +584,21 @@ const AdminUsers = () => {
                 </div>
               </div>
 
-              {/* Skills */}
-              {viewProfile.skills && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Skills</p>
+              {/* Skills — always show */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Skills</p>
+                {viewProfile.skills ? (
                   <div className="flex flex-wrap gap-1.5">
                     {viewProfile.skills.split(",").map((skill, i) => (
                       <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Not provided</p>
+                )}
+              </div>
 
-              {/* Signup Answers */}
+              {/* Signup Answers — always show all fields */}
               {(() => {
                 const p = viewProfile as any;
                 const fields = [
@@ -599,20 +610,20 @@ const AdminUsers = () => {
                   { label: "How They Heard About Us", value: p.hear_about_us },
                   { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
                   { label: "Extra Comments", value: p.extra_comments },
-                ].filter(f => f.value);
-                return fields.length > 0 ? (
+                ];
+                return (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Signup Answers</p>
                     <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-4">
                       {fields.map((f, i) => (
                         <div key={i}>
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
-                          <p className="text-sm font-medium text-foreground">{f.value}</p>
+                          <p className={`text-sm font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
                         </div>
                       ))}
                     </div>
                   </div>
-                ) : null;
+                );
               })()}
 
               {/* ID Document */}

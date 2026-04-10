@@ -626,12 +626,12 @@ const AdminUsers = () => {
                 );
               })()}
 
-              {/* ID Document */}
-              {viewProfile.id_document_url && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> ID Document
-                  </p>
+              {/* ID Document — always show */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> ID Document
+                </p>
+                {viewProfile.id_document_url ? (
                   <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
                     {idDocSignedUrl ? (
                       /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
@@ -655,15 +655,27 @@ const AdminUsers = () => {
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Not provided</p>
+                )}
+              </div>
 
-              {/* Portfolio */}
-              {((viewProfile as any).portfolio_urls as string[] || []).length > 0 && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[]).length})
-                  </p>
+              {/* Profile Picture — always show */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Profile Picture</p>
+                {viewProfile.avatar_url ? (
+                  <p className="text-sm text-primary">✓ Uploaded</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Not provided</p>
+                )}
+              </div>
+
+              {/* Portfolio — always show */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
+                </p>
+                {((viewProfile as any).portfolio_urls as string[] || []).length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
@@ -680,8 +692,10 @@ const AdminUsers = () => {
                       );
                     })}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Not provided</p>
+                )}
+              </div>
 
               {/* Violations History */}
               {profileViolations.length > 0 && (

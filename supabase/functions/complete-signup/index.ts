@@ -17,28 +17,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Validate the caller's JWT to ensure they can only modify their own profile
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!
-    );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: authData, error: authError } = await anonClient.auth.getUser(token);
-    if (authError || !authData.user) {
-      return new Response(JSON.stringify({ error: "Invalid authentication" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    const body = await req.json();
     const {
+      userId: bodyUserId,
       avatarBase64,
       avatarExt,
       avatarContentType,
@@ -60,20 +41,70 @@ serve(async (req) => {
       emergencyContactPhone,
       jobRadius,
       extraComments,
-    } = await req.json();
+    } = body;
 
-    // Use the authenticated user's ID — ignore any userId from the body
-    const userId = authData.user.id;
+    let userId: string | null = null;
+
+    // Try JWT auth first (for resubmissions from logged-in users)
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: authData, error: authError } = await anonClient.auth.getUser(token);
+      if (!authError && authData.user) {
+        userId = authData.user.id;
+      }
+    }
+
+    // If no valid JWT, allow initial signup completion by verifying the user
+    // exists and the profile is still in its initial empty state
+    if (!userId && bodyUserId) {
+      // Verify user exists in auth.users via service role
+      const { data: authUser, error: authCheckErr } = await supabase.auth.admin.getUserById(bodyUserId);
+      if (authCheckErr || !authUser?.user) {
+        return new Response(JSON.stringify({ error: "Invalid user" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Only allow if profile is in initial empty state (no bio set yet)
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("bio, approval_status")
+        .eq("user_id", bodyUserId)
+        .single();
+
+      if (!existingProfile) {
+        return new Response(JSON.stringify({ error: "Profile not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Only allow unauthenticated completion if profile is truly empty
+      if (existingProfile.bio && existingProfile.bio.trim().length > 0) {
+        return new Response(JSON.stringify({ error: "Profile already completed. Please log in." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      userId = bodyUserId;
+    }
 
     if (!userId) {
-      return new Response(JSON.stringify({ error: "userId is required" }), {
-        status: 400,
+      return new Response(JSON.stringify({ error: "Not authenticated and no valid userId provided" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Enforce file size limits (5 MB max per file)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB in bytes
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const checkBase64Size = (b64: string | null, label: string) => {
       if (!b64) return;
       const sizeBytes = Math.ceil(b64.length * 3 / 4);
@@ -244,7 +275,6 @@ serve(async (req) => {
       }
     } catch (notifErr) {
       console.error("Failed to notify admins:", notifErr);
-      // Don't fail the signup if notification fails
     }
 
     return new Response(

@@ -87,6 +87,7 @@ export function useDashboardData() {
       const now = new Date();
       const enriched: EnrichedJob[] = rawJobs
         .filter((j) => !appliedJobIds.has(j.id))
+        .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
         .map((j) => {
           const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
           const stats = reviewStatsMap.get(j.customer_id);

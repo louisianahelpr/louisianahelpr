@@ -64,8 +64,9 @@ export function useDashboardData() {
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         supabase
           .from("reviews")
-          .select("reviewee_id, rating")
-          .in("reviewee_id", posterIds),
+          .select("reviewee_id, rating, jobs!inner(status)")
+          .in("reviewee_id", posterIds)
+          .neq("jobs.status", "cancelled"),
       ]);
 
       const nameMap = new Map(

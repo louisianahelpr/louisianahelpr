@@ -217,8 +217,9 @@ const ProfilePage = () => {
     setReviewsLoading(true);
     const { data } = await supabase
       .from("reviews")
-      .select("rating, feedback, created_at, reviewer_id, job_id")
+      .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
       .eq("reviewee_id", user.id)
+      .neq("jobs.status", "cancelled")
       .order("created_at", { ascending: false });
 
     if (data && data.length > 0) {

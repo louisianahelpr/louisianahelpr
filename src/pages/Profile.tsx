@@ -286,7 +286,7 @@ const ProfilePage = () => {
     if (!user) return;
     setEarningsLoading(true);
     const [jobsRes, tipsRes] = await Promise.all([
-      supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("helper_id", user.id).neq("status", "cancelled").order("created_at", { ascending: false }),
       supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", user.id),
     ]);
     if (jobsRes.data) {

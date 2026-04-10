@@ -116,7 +116,7 @@ const AdminNotifications = () => {
 
     const { error } = await supabase
       .from("notification_preferences")
-      .update({ [key]: value })
+      .update({ [key]: value } as any)
       .eq("id", prefs.id);
 
     if (error) {

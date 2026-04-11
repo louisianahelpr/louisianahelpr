@@ -664,7 +664,9 @@ const AdminUsers = () => {
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Profile Picture</p>
                 {viewProfile.avatar_url ? (
-                  <p className="text-sm text-primary">✓ Uploaded</p>
+                  <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
+                    <img src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
+                  </a>
                 ) : (
                   <p className="text-sm text-muted-foreground italic">Not provided</p>
                 )}

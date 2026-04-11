@@ -506,7 +506,7 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-bold text-foreground">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
-                    {viewProfile.role !== 'customer' && <Badge variant="outline" className="text-xs capitalize">{viewProfile.role}</Badge>}
+                    
                     {((viewProfile as any).application_count || 1) > 1 && (
                       <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-accent/30">
                         Applied {(viewProfile as any).application_count} times
@@ -554,10 +554,6 @@ const AdminUsers = () => {
 
               {/* Info Grid — always show all fields */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-secondary/30 border border-border p-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Role</p>
-                  <p className="text-sm font-medium text-foreground capitalize">{viewProfile.role}</p>
-                </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
                   <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
@@ -726,31 +722,6 @@ const AdminUsers = () => {
                 </div>
               )}
 
-              {/* Reviews */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
-                  <Star className="w-3.5 h-3.5" /> Reviews ({profileReviews.length})
-                </p>
-                {profileReviews.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No reviews yet.</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {profileReviews.map((r, i) => (
-                      <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} className={`w-3 h-3 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                            ))}
-                          </div>
-                          <span className="text-xs text-muted-foreground">by {r.reviewer_name}</span>
-                        </div>
-                        {r.feedback && <p className="text-xs text-foreground">{r.feedback}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               {/* Approval email tracking */}
               {viewProfile.approval_status === "approved" && (

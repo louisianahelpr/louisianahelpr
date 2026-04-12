@@ -318,6 +318,17 @@ const Activity = () => {
     refresh();
   };
 
+  const confirmWorking = async (jobId: string) => {
+    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: new Date().toISOString() } as any).eq("id", jobId);
+    if (error) { toast.error("Failed to confirm"); return; }
+    const job = postedJobs.find(j => j.id === jobId);
+    if (job?.helper_id) {
+      await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/activity?tab=applied&filter=in_progress" });
+    }
+    toast.success("Confirmed helpr is working!");
+    refresh();
+  };
+
   const markOnTheWay = async (jobId: string) => {
     if (!user || onTheWayLoading) return;
     setOnTheWayLoading(jobId);

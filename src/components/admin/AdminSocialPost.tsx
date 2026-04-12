@@ -1,15 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Send, Loader2, Facebook } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+
+interface Draft {
+  id: string;
+  content: string;
+  style: string | null;
+  status: string;
+  created_at: string;
+  published_at: string | null;
+}
 
 const AdminSocialPost = () => {
   const [postText, setPostText] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+  const [publishing, setPublishing] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+
+  const fetchDrafts = async () => {
+    const { data, error } = await supabase
+      .from("social_post_drafts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!error && data) setDrafts(data as Draft[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchDrafts(); }, []);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -28,37 +55,81 @@ const AdminSocialPost = () => {
     }
   };
 
-  const handlePublish = async () => {
-    if (!postText.trim()) {
-      toast.error("Generate or write a post first");
-      return;
-    }
-    setPublishing(true);
+  const handleSaveDraft = async () => {
+    if (!postText.trim()) { toast.error("Write or generate a post first"); return; }
+    const { error } = await supabase
+      .from("social_post_drafts")
+      .insert({ content: postText.trim(), style: "manual", status: "draft" } as any);
+    if (error) { toast.error("Failed to save draft"); return; }
+    toast.success("Draft saved!");
+    setPostText("");
+    fetchDrafts();
+  };
+
+  const handlePublish = async (draft: Draft) => {
+    setPublishing(draft.id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-social-post", {
-        body: { action: "publish", message: postText },
+        body: { action: "publish", message: draft.content },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Posted to Facebook via Make!");
-      setPostText("");
+
+      await supabase
+        .from("social_post_drafts")
+        .update({ status: "published", published_at: new Date().toISOString() } as any)
+        .eq("id", draft.id);
+
+      toast.success("Posted to Facebook!");
+      fetchDrafts();
     } catch (e: any) {
-      toast.error(e.message || "Failed to publish post");
+      toast.error(e.message || "Failed to publish");
     } finally {
-      setPublishing(false);
+      setPublishing(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    await supabase
+      .from("social_post_drafts")
+      .update({ status: "rejected" } as any)
+      .eq("id", id);
+    toast.success("Draft rejected");
+    fetchDrafts();
+  };
+
+  const handleUpdateDraft = async (id: string) => {
+    if (!editText.trim()) return;
+    await supabase
+      .from("social_post_drafts")
+      .update({ content: editText.trim() } as any)
+      .eq("id", id);
+    toast.success("Draft updated");
+    setEditingId(null);
+    setEditText("");
+    fetchDrafts();
+  };
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "draft": return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pending Review</Badge>;
+      case "published": return <Badge className="gap-1 bg-green-600"><Check className="h-3 w-3" />Published</Badge>;
+      case "rejected": return <Badge variant="destructive" className="gap-1"><Trash2 className="h-3 w-3" />Rejected</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Generator */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Facebook className="h-5 w-5 text-blue-600" />
+            <Facebook className="h-5 w-5" />
             Facebook Post Generator
           </CardTitle>
           <CardDescription>
-            Use AI to generate a Facebook post, edit it if needed, then publish via Make.
+            Generate AI posts, review them, then approve to publish. Auto-generated drafts appear every 3 days for your review.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -68,26 +139,105 @@ const AdminSocialPost = () => {
               {generating ? "Generating…" : "Generate Post"}
             </Button>
           </div>
-
           <Textarea
             placeholder="Your post will appear here. You can also type or edit manually…"
             value={postText}
             onChange={(e) => setPostText(e.target.value)}
-            rows={6}
+            rows={5}
             className="text-base"
           />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{postText.length} characters</p>
+            <Button onClick={handleSaveDraft} disabled={!postText.trim()} variant="secondary" className="gap-2">
+              <Eye className="h-4 w-4" />
+              Save as Draft
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-          <p className="text-xs text-muted-foreground">{postText.length} characters</p>
+      {/* Drafts Queue */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Post Queue</CardTitle>
+          <CardDescription>Review and approve posts before they go live on Facebook.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : drafts.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No drafts yet. Generate one above or wait for the auto-scheduler.</p>
+          ) : (
+            <div className="space-y-4">
+              {drafts.map((draft) => (
+                <div key={draft.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {statusBadge(draft.status)}
+                      {draft.style && <span className="text-xs text-muted-foreground capitalize">{draft.style}</span>}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(draft.created_at), "MMM d, yyyy h:mm a")}
+                    </span>
+                  </div>
 
-          <Button
-            onClick={handlePublish}
-            disabled={publishing || !postText.trim()}
-            variant="default"
-            className="gap-2"
-          >
-            {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {publishing ? "Posting…" : "Post to Facebook"}
-          </Button>
+                  {editingId === draft.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        rows={4}
+                        className="text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleUpdateDraft(draft.id)}>Save Edit</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{draft.content}</p>
+                  )}
+
+                  {draft.status === "draft" && editingId !== draft.id && (
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        onClick={() => handlePublish(draft)}
+                        disabled={publishing === draft.id}
+                        className="gap-1"
+                      >
+                        {publishing === draft.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                        Approve & Post
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { setEditingId(draft.id); setEditText(draft.content); }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => handleReject(draft.id)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+
+                  {draft.status === "published" && draft.published_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Published {format(new Date(draft.published_at), "MMM d, yyyy h:mm a")}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

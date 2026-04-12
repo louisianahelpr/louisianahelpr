@@ -28,10 +28,11 @@ const AdminFraudDashboard = lazy(() => import("@/components/admin/AdminFraudDash
 const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
 const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
 const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
+const AdminSocialPost = lazy(() => import("@/components/admin/AdminSocialPost"));
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -73,6 +74,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
       { id: "notifications", label: "Notifications", icon: BellRing },
+      { id: "social", label: "Social Post", icon: TrendingUp },
     ],
   },
   {
@@ -225,7 +227,7 @@ const Admin = () => {
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
     notifications: "Notifications", reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
-    audit: "Audit Log", health: "Health", export: "Export",
+    audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
   };
 
   const renderContent = () => {
@@ -245,6 +247,7 @@ const Admin = () => {
       case "audit": return <AdminAuditLog />;
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
+      case "social": return <AdminSocialPost />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} getBadge={getBadge} getBadgeColor={getBadgeColor} />;
     }
   };

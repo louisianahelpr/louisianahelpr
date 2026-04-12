@@ -28,6 +28,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   // Flat 5% cancellation fee when a helper has been selected, regardless of timing
   const cancellationFeePercent = hasHelper ? 5 : 0;
   const cancellationFee = Math.round((jobBudget * cancellationFeePercent)) / 100;
+  const platformCut = Math.round(cancellationFee * 10) / 100;
+  const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
 
   const handleCancel = async () => {
     setCancelling(true);

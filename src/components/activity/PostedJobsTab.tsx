@@ -81,8 +81,15 @@ export const PostedJobsTab = ({
       <div className="space-y-3">
         {jobs.map((job) => {
           const catStyle = categoryColors[job.category] || categoryColors.other;
+          const meta = completedJobMeta[job.id];
+          const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
+          const isExpanded = expandedJobId === job.id;
           return (
-            <div key={job.id} className="group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200">
+            <div
+              key={job.id}
+              className={`group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200 ${isFullyCompleted ? "cursor-pointer" : ""}`}
+              onClick={isFullyCompleted ? () => setExpandedJobId(isExpanded ? null : job.id) : undefined}
+            >
               {/* Top bar */}
               <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
                 <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>

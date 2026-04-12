@@ -634,6 +634,41 @@ const Dashboard = () => {
                 className="text-sm"
               />
             </div>
+            {/* File attachments */}
+            <div className="space-y-1.5 mt-2">
+              <label className="text-xs text-muted-foreground">Attach certs or previous work (optional)</label>
+              <div className="space-y-1.5">
+                {applyFiles.map((file, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                    <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="truncate flex-1">{file.name}</span>
+                    <span className="text-muted-foreground shrink-0">{(file.size / 1024).toFixed(0)}KB</span>
+                    <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} className="text-destructive hover:text-destructive/80">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {applyFiles.length < 5 && (
+                  <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span>Add file</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+                          setApplyFiles(f => [...f, file]);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={applyLoading}>Cancel</AlertDialogCancel>

@@ -64,9 +64,9 @@ export const AppliedJobsTab = ({
     <div className="space-y-3">
       {apps.map((app) => {
         return (
-        <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
+        <div key={app.id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200">
           {/* Top bar */}
-          <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
+          <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
             <h3 className={`font-bold text-[15px] leading-snug min-w-0 truncate ${(categoryColors[app.job?.category || "other"] || categoryColors.other).title}`}>
               {app.job?.title || "Task"}
             </h3>
@@ -89,8 +89,8 @@ export const AppliedJobsTab = ({
 
           {/* Summary */}
           {app.job && (
-            <div className="px-4 py-3 space-y-2">
-              <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+            <div className="px-4 py-3 space-y-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3 shrink-0" />
                   {new Date(app.job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -132,7 +132,7 @@ export const AppliedJobsTab = ({
 
           {/* Offered: accept/decline */}
           {app.status === "accepted" && app.job?.status === "accepted" && !(app.job as any)?.helper_confirmed_at && (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 pb-3 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {(app.job as any)?.response_deadline && (
                 <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
                   <Clock className="w-3 h-3 inline mr-1" />
@@ -148,7 +148,7 @@ export const AppliedJobsTab = ({
 
           {/* Accepted: On My Way / Arrived */}
           {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 pb-3 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">✓ You accepted this job</div>
               {!(app.job as any)?.helper_on_the_way_at && (
                 <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onMarkOnTheWay(app.job_id)} disabled={onTheWayLoading === app.job_id}>
@@ -166,7 +166,7 @@ export const AppliedJobsTab = ({
 
           {/* In Progress / Revision */}
           {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 pb-3 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {!startRequestedJobIds.has(app.job_id) && (app.job as any)?.helper_arrived_at && (
                 <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onStartJob(app.job_id)} disabled={startJobLoading === app.job_id}>
                   <Rocket className="w-4 h-4 mr-1" /> {startJobLoading === app.job_id ? "Starting…" : "Start Job"}
@@ -237,7 +237,7 @@ export const AppliedJobsTab = ({
             const disputeStatus = (app.job as any)?.dispute_status || "open";
             const hasResponded = !!(app.job as any)?.dispute_helper_response;
             return (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 pb-3 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {(app.job as any)?.helper_arrived_at && (
                 <PhotoProofGroup
                   jobId={app.job_id}
@@ -327,7 +327,7 @@ export const AppliedJobsTab = ({
 
           {/* Completed */}
           {app.status === "accepted" && app.job?.status === "completed" && (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 pb-3 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               <PhotoProofGroup
                 jobId={app.job_id}
                 beforeUrls={(app.job as any)?.proof_before_urls || []}
@@ -390,8 +390,8 @@ export const AppliedJobsTab = ({
               {/* Completion status */}
               {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && ((app.job as any)?.poster_completed_at || (app.job as any)?.helper_completed_at) && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  {(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
-                  {(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ Poster confirmed</span>}
+                  {(app.job as any)?.helper_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ You confirmed</span>}
+                  {(app.job as any)?.poster_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ Poster confirmed</span>}
                   {!(app.job as any)?.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
                   {!(app.job as any)?.poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for poster</span>}
                 </div>

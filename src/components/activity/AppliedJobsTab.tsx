@@ -147,8 +147,8 @@ export const AppliedJobsTab = ({
         return (
           <div
             key={app.id}
-            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard && (isFullyDone || isPending) ? "cursor-pointer" : ""}`}
-            onClick={!isMinimalCard && (isFullyDone || isPending) ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
+            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer" : ""}`}
+            onClick={!isMinimalCard ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
           >
             {/* Header - matches poster layout */}
             <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
@@ -191,18 +191,31 @@ export const AppliedJobsTab = ({
                 })()}
               </div>
 
-              {/* For non-minimal cards: show description & special requirements */}
-              {!isMinimalCard && !isPending && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                <p className="text-xs text-muted-foreground leading-relaxed">{job.description}</p>
-              )}
-              {!isMinimalCard && !isPending && job.special_requirements?.trim() && (
-                <div className="rounded-lg bg-secondary/30 p-2">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                  <p className="text-xs text-foreground">{job.special_requirements}</p>
+              {/* Description & special requirements — collapsible */}
+              {!isMinimalCard && (job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() || job.special_requirements?.trim()) && (
+                <div className="space-y-1.5">
+                  {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
+                    <p className={`text-xs text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
+                  )}
+                  {isExpanded && job.special_requirements?.trim() && (
+                    <div className="rounded-lg bg-secondary/30 p-2">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
+                      <p className="text-xs text-foreground">{job.special_requirements}</p>
+                    </div>
+                  )}
+                  {(job.description.length > 100 || job.special_requirements?.trim()) && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-primary hover:underline"
+                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                    >
+                      {isExpanded ? "▲ Less" : "▼ More details"}
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* Poster name - always visible */}
+              {/* Poster name */}
               {!isMinimalCard && app.posterName && (
                 <p className="text-xs text-muted-foreground">
                   Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
@@ -216,18 +229,6 @@ export const AppliedJobsTab = ({
             {/* Pending expandable section */}
             {!isMinimalCard && isPending && isExpanded && (
               <div className="px-4 pb-3 space-y-2">
-                {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                    <p className="text-xs text-foreground leading-relaxed">{job.description}</p>
-                  </div>
-                )}
-                {job.special_requirements?.trim() && (
-                  <div className="rounded-lg bg-secondary/30 p-2">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-xs text-foreground">{job.special_requirements}</p>
-                  </div>
-                )}
                 {(job.photos || []).length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {(job.photos || []).map((url, i) => (
@@ -319,12 +320,9 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Pending expand hint + withdraw */}
+            {/* Pending withdraw */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-                <span className="text-xs text-muted-foreground cursor-pointer" onClick={() => setExpandedJobId(isExpanded ? null : app.job_id)}>
-                  {isExpanded ? "▲ Less" : "▼ Details"}
-                </span>
+              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="sm"
                   variant="outline"

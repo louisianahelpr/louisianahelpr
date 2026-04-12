@@ -468,7 +468,7 @@ export const PostedJobsTab = ({
                           <DeadlineCountdown
                             deadline={new Date(new Date((job as any).helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
                             expiredText="72 hours passed — payment auto-released to helpr"
-                            consequenceText="Approve, complete, or request a revision before the timer expires or payment will auto-release to the helpr."
+                            consequenceText="Approve & complete or request a revision before the timer expires, or payment will auto-release to the helpr."
                             variant="warning"
                           />
                         )}

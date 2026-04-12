@@ -88,9 +88,7 @@ serve(async (req) => {
 
       const helperFeePercent = 10;
       const helperCommission = job.budget * helperFeePercent / 100;
-      const commissionTaxRate = 0.085;
-      const commissionTax = helperCommission * commissionTaxRate;
-      const helperPayout = job.budget - helperCommission - commissionTax + (job.urgent_fee ?? 0);
+      const helperPayout = job.budget - helperCommission + (job.urgent_fee ?? 0);
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

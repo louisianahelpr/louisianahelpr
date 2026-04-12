@@ -147,8 +147,8 @@ export const AppliedJobsTab = ({
         return (
           <div
             key={app.id}
-            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard && (isFullyDone || isPending) ? "cursor-pointer" : ""}`}
-            onClick={!isMinimalCard && (isFullyDone || isPending) ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
+            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer" : ""}`}
+            onClick={!isMinimalCard ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
           >
             {/* Header - matches poster layout */}
             <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">

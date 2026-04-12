@@ -98,10 +98,11 @@ const AdminAnalytics = () => {
   const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && capturedPaymentStatuses.includes(j.payment_status || ""));
 
   // Gross Revenue = total amount collected via Stripe (budget + customer fee) for jobs with captured payments
-  const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0);
+  const totalRevenue = capturedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);
   // Platform Profit = only fees from jobs where payment is still held (escrow/payout_pending/released)
   // Does NOT include refunded or cancelled-payment jobs since those fees were returned
-  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  const totalFees = capturedJobs.reduce((s, j) => s + Number(j.customer_fee_amount || 0) + Number(j.platform_fee_amount || 0), 0);
+  console.log("[AdminAnalytics] capturedJobs:", capturedJobs.length, "statuses:", capturedJobs.map(j => j.payment_status), "totalFees:", totalFees, "allJobs:", allJobs.length);
   // Late cancellation revenue the platform retains (cancellation fee commission)
   const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
     const cancFee = j.cancellation_fee || 0;

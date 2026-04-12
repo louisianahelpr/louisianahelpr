@@ -50,6 +50,18 @@ export const AppliedJobsTab = ({
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
+
+  const handleWithdraw = async (appId: string, jobTitle: string) => {
+    setWithdrawingAppId(appId);
+    const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
+    if (error) {
+      toast.error("Failed to withdraw application");
+    } else {
+      toast.success(`Withdrawn from "${jobTitle}"`);
+    }
+    setWithdrawingAppId(null);
+  };
 
   if (apps.length === 0) {
     return (

@@ -28,11 +28,13 @@ export function JobTracking({
   helperId,
   isHelper,
   isOwner,
+  jobDateNeeded,
 }: {
   jobId: string;
   helperId: string | null;
   isHelper: boolean;
   isOwner: boolean;
+  jobDateNeeded?: string;
 }) {
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -224,23 +226,37 @@ export function JobTracking({
       )}
 
       {/* Helper controls */}
-      {isHelper && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          {STATUSES.filter((_, idx) => idx > currentStatusIdx).map((s) => (
-            <Button
-              key={s.key}
-              size="sm"
-              variant={s.key === STATUSES[currentStatusIdx + 1]?.key ? "default" : "outline"}
-              onClick={() => updateStatus(s.key)}
-              disabled={updating}
-              className="text-xs"
-            >
-              <s.icon className="w-3.5 h-3.5 mr-1" />
-              {s.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {isHelper && (() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const jobDate = jobDateNeeded ? new Date(jobDateNeeded + "T00:00:00") : null;
+        const isJobDay = !jobDate || jobDate <= today;
+
+        return (
+          <div className="pt-2 border-t border-border space-y-2">
+            {!isJobDay && (
+              <p className="text-xs text-muted-foreground text-center">
+                Actions available on {jobDate!.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {STATUSES.filter((_, idx) => idx > currentStatusIdx).map((s) => (
+                <Button
+                  key={s.key}
+                  size="sm"
+                  variant={s.key === STATUSES[currentStatusIdx + 1]?.key ? "default" : "outline"}
+                  onClick={() => updateStatus(s.key)}
+                  disabled={updating || !isJobDay}
+                  className="text-xs"
+                >
+                  <s.icon className="w-3.5 h-3.5 mr-1" />
+                  {s.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

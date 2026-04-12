@@ -363,7 +363,7 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Confirmed: On My Way / Arrived flow */}
+            {/* Confirmed: show tracking + message */}
             {isConfirmed && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 {/* Progress steps */}
@@ -373,21 +373,10 @@ export const AppliedJobsTab = ({
                   {jobAny.helper_arrived_at && !jobAny.poster_confirmed_working_at && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrived</span>}
                 </div>
 
-                {/* Next action */}
-                {!jobAny.helper_on_the_way_at && (
-                  <Button size="sm" className="w-full" onClick={() => onMarkOnTheWay(app.job_id)} disabled={onTheWayLoading === app.job_id}>
-                    <NavigationIcon className="w-4 h-4 mr-1" /> {onTheWayLoading === app.job_id ? "Updating…" : "On My Way"}
-                  </Button>
-                )}
-                {jobAny.helper_on_the_way_at && !jobAny.helper_arrived_at && (
-                  <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => onMarkArrived(app.job_id)} disabled={arrivedLoading === app.job_id}>
-                    <MapPin className="w-4 h-4 mr-1" /> {arrivedLoading === app.job_id ? "Updating…" : "I've Arrived"}
-                  </Button>
-                )}
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
 
-                {/* Tracking */}
-                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} />
+                {/* Tracking — only active on the day of the job */}
+                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} />
               </div>
             )}
 

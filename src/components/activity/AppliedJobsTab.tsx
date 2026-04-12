@@ -177,8 +177,8 @@ export const AppliedJobsTab = ({
                 {/* Progress steps */}
                 <div className="flex items-center gap-1.5 text-xs">
                   <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ Accepted</span>
-                  {jobAny.helper_on_the_way_at && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ On the way</span>}
-                  {jobAny.helper_arrived_at && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrived</span>}
+                  {jobAny.helper_on_the_way_at && !jobAny.poster_confirmed_working_at && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ On the way</span>}
+                  {jobAny.helper_arrived_at && !jobAny.poster_confirmed_working_at && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrived</span>}
                 </div>
 
                 {/* Next action */}

@@ -40,6 +40,7 @@ interface PostedJobsTabProps {
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
+  onConfirmArrival: (jobId: string) => void;
   onLoadApplications: (job: Job) => void;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;

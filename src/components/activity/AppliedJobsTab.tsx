@@ -79,7 +79,7 @@ export const AppliedJobsTab = ({
                 const commission = (perHelper * commissionPercent) / 100;
                 const payout = perHelper - commission + (app.job.urgent_fee ?? 0);
                 return (
-                  <span className="flex items-center gap-0.5 font-bold text-primary text-sm" title={`Budget: $${app.job.budget} · Commission: ${commissionPercent}%`}>
+                  <span className="flex items-center gap-0.5 font-bold text-primary text-sm" title={`Budget: $${app.job.budget} · Platform Fee: ${commissionPercent}%`}>
                     <DollarSign className="w-3.5 h-3.5" />{payout.toFixed(2)}
                   </span>
                 );

@@ -70,7 +70,7 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
                   <>
                     <p className="font-semibold text-primary">${payout.toFixed(2)}</p>
                     <p className="text-[9px] text-muted-foreground mt-0.5">
-                      After {commissionPercent}% commission{helpers > 1 ? ` · Split ${helpers} ways` : ""}
+                      After {commissionPercent}% platform fee{helpers > 1 ? ` · Split ${helpers} ways` : ""}
                     </p>
                   </>
                 );

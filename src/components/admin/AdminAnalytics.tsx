@@ -47,13 +47,24 @@ const AdminAnalytics = () => {
 
   useEffect(() => {
     const load = async () => {
-      const [profilesRes, jobsRes, tipsRes] = await Promise.all([
+      // Paginate jobs to avoid 1000-row limit
+      let allJobsData: Job[] = [];
+      let page = 0;
+      const PAGE_SIZE = 999;
+      while (true) {
+        const { data } = await supabase.from("jobs").select("*").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        allJobsData = [...allJobsData, ...data];
+        if (data.length < PAGE_SIZE) break;
+        page++;
+      }
+
+      const [profilesRes, tipsRes] = await Promise.all([
         supabase.from("profiles").select("*"),
-        supabase.from("jobs").select("*"),
         supabase.from("tips").select("*"),
       ]);
       setProfiles(profilesRes.data || []);
-      setAllJobs(jobsRes.data || []);
+      setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
       setLoading(false);
     };

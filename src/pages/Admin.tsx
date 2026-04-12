@@ -7,14 +7,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
-  BellRing, Headphones, Gift, Crown, Menu, X, TrendingUp, Activity,
+  BellRing, Headphones, Gift, Crown, TrendingUp, Activity,
+  ArrowLeft, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminJobs from "@/components/admin/AdminJobs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
-
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
 import AdminNotifications from "@/components/admin/AdminNotifications";
@@ -45,7 +45,6 @@ const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: "Overview",
     items: [
-      { id: "home", label: "Dashboard", icon: Activity },
       { id: "analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
@@ -91,11 +90,10 @@ const Admin = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    disputedJobs: 0, activeSubscriptions: 0,
+    disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -104,7 +102,6 @@ const Admin = () => {
     const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [
       { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending" } },
       { key: "jobs", table: "jobs", dateCol: "created_at" },
-      
       { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" } },
       { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
       { key: "support", table: "reports", dateCol: "created_at", filter: { status: "pending", reported_type: "support" } },
@@ -137,11 +134,10 @@ const Admin = () => {
       setUnreadCounts(prev => { const next = { ...prev }; delete next[newView]; return next; });
     }
     setView(newView);
-    setSidebarOpen(false);
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, paymentsRes, subsRes] = await Promise.all([
+    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, paymentsRes, subsRes, lateCancelRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -149,10 +145,20 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
-      supabase.from("jobs").select("budget, platform_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]),
+      // Revenue: captured payments that are NOT cancelled
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled" as any),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
+      // Late cancellation revenue: cancelled jobs with captured payment
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled" as any).in("payment_status", ["escrow", "payout_pending", "released"]),
     ]);
     const paymentRows = paymentsRes.data || [];
+    const lateCancelRows = lateCancelRes.data || [];
+    // Late cancellation profit: platform keeps its commission from the cancellation
+    const lateCancellationRevenue = lateCancelRows.reduce((s, j) => {
+      const fee = (j as any).customer_fee_amount || 0;
+      const platformFee = (j as any).platform_fee_amount || 0;
+      return s + fee + platformFee;
+    }, 0);
     setStats({
       totalUsers: profilesRes.count || 0,
       pendingApprovals: pendingRes.count || 0,
@@ -161,9 +167,10 @@ const Admin = () => {
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0), 0),
-      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0), 0),
+      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0),
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
+      lateCancellationRevenue,
     });
     setStatsLoading(false);
   };
@@ -177,7 +184,6 @@ const Admin = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
-      
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loading]);
@@ -210,75 +216,6 @@ const Admin = () => {
     return "bg-primary text-primary-foreground";
   };
 
-  // Sidebar content (shared between desktop sidebar & mobile drawer)
-  const sidebarContent = (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="p-4 pb-6 border-b border-border/50">
-        <Link to="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-            <span className="text-primary-foreground font-bold text-sm">H</span>
-          </div>
-          <div>
-            <span className="text-base font-display font-bold text-foreground block leading-tight">Helpr</span>
-            <span className="text-[10px] font-medium text-destructive uppercase tracking-wider">Admin</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-        {navGroups.map((group) => (
-          <div key={group.title}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-              {group.title}
-            </p>
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const isActive = view === item.id;
-                const badge = getBadge(item.id);
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleViewChange(item.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive && "text-primary")} />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {badge !== undefined && (
-                      <span className={cn(
-                        "text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",
-                        getBadgeColor(item.id)
-                      )}>
-                        {badge > 99 ? "99+" : badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      {/* Bottom actions */}
-      <div className="p-3 border-t border-border/50 space-y-1">
-        <button
-          onClick={() => setShowLogoutDialog(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Log out</span>
-        </button>
-      </div>
-    </div>
-  );
-
   const viewLabels: Record<View, string> = {
     home: "Dashboard", analytics: "Analytics", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
@@ -304,46 +241,26 @@ const Admin = () => {
       case "audit": return <AdminAuditLog />;
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
-      default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
+      default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} getBadge={getBadge} getBadgeColor={getBadgeColor} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top nav bar with menu trigger */}
-      <DashboardHeader title="Admin" onMenuClick={() => setSidebarOpen(true)} />
+      <DashboardHeader title="Admin" />
 
-
-
-
-      <div className="flex flex-1">
-        {/* Main content */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-            {renderContent()}
-          </main>
-        </div>
-
-        {/* Desktop sidebar — RIGHT side */}
-        <aside className="hidden lg:flex w-60 border-l border-border/50 bg-card/50 flex-col flex-shrink-0 sticky top-[57px] h-[calc(100vh-57px)]">
-          {sidebarContent}
-        </aside>
-      </div>
-
-      {/* Mobile drawer overlay — slides from RIGHT */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute right-0 top-0 bottom-0 w-64 bg-card border-l border-border shadow-xl flex flex-col">
-            <div className="absolute top-3 right-3">
-              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-8 w-8 rounded-lg">
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            {sidebarContent}
-          </aside>
-        </div>
-      )}
+      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+        {/* Back button + section title when not on home */}
+        {view !== "home" && (
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="icon" onClick={() => setView("home")} className="h-8 w-8 rounded-lg">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h2 className="text-xl font-display font-bold text-foreground">{viewLabels[view]}</h2>
+          </div>
+        )}
+        {renderContent()}
+      </main>
 
       {/* Logout dialog */}
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
@@ -372,9 +289,12 @@ interface DashboardHomeProps {
     supportTickets: number; activeJobs: number; completedJobs: number;
     totalRevenue: number; totalFees: number;
     disputedJobs: number; activeSubscriptions: number;
+    lateCancellationRevenue: number;
   };
   statsLoading: boolean;
   onNavigate: (v: View) => void;
+  getBadge: (id: View) => number | undefined;
+  getBadgeColor: (id: View) => string;
 }
 
 const StatCard = ({ label, value, icon: Icon, trend, onClick }: {
@@ -422,7 +342,7 @@ const AlertBanner = ({ label, count, color, onClick }: {
   </button>
 );
 
-const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
+const DashboardHome = ({ stats, statsLoading, onNavigate, getBadge, getBadgeColor }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
 
@@ -459,13 +379,45 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Key metrics</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Pending Accounts" value={v(stats.pendingApprovals)} icon={Users} onClick={() => onNavigate("people")} />
+          <StatCard label="Captured Revenue" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />
+          <StatCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} onClick={() => onNavigate("analytics")} />
+          {stats.lateCancellationRevenue > 0 && (
+            <StatCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} onClick={() => onNavigate("analytics")} />
+          )}
           <StatCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} onClick={() => onNavigate("subscriptions")} />
-          <StatCard label="Open Reports" value={v(stats.openReports)} icon={AlertTriangle} onClick={() => onNavigate("reports")} />
-          <StatCard label="Support Tickets" value={v(stats.supportTickets)} icon={Headphones} onClick={() => onNavigate("support")} />
-          <StatCard label="Active Disputes" value={v(stats.disputedJobs)} icon={ShieldAlert} onClick={() => onNavigate("disputes")} />
           <StatCard label="Active Jobs" value={v(stats.activeJobs)} icon={Briefcase} onClick={() => onNavigate("jobs")} />
-          <StatCard label="Captured Payments" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />
+          <StatCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} onClick={() => onNavigate("analytics")} />
+          <StatCard label="Active Disputes" value={v(stats.disputedJobs)} icon={ShieldAlert} onClick={() => onNavigate("disputes")} />
+        </div>
+      </div>
+
+      {/* All sections — inline grid navigation */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Manage</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {navGroups.flatMap(g => g.items).map((item) => {
+            const badge = getBadge(item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className="relative flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <item.icon className="w-5 h-5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">{item.label}</span>
+                {badge !== undefined && (
+                  <span className={cn(
+                    "absolute top-2 right-2 text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",
+                    getBadgeColor(item.id)
+                  )}>
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

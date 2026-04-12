@@ -294,7 +294,6 @@ const AdminAnalytics = () => {
           sub={`${refundedJobs.length} refunded ${refundedJobs.length === 1 ? "job" : "jobs"}`}
           icon={XCircle}
         />
-        />
       </div>
 
       {/* Late Cancellation Revenue */}

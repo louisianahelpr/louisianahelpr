@@ -191,11 +191,11 @@ export const AppliedJobsTab = ({
                 })()}
               </div>
 
-              {/* For pending: description is expandable. For others: always visible */}
-              {!isPending && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
+              {/* For non-minimal cards: show description & special requirements */}
+              {!isMinimalCard && !isPending && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
                 <p className="text-xs text-muted-foreground leading-relaxed">{job.description}</p>
               )}
-              {!isPending && job.special_requirements?.trim() && (
+              {!isMinimalCard && !isPending && job.special_requirements?.trim() && (
                 <div className="rounded-lg bg-secondary/30 p-2">
                   <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
                   <p className="text-xs text-foreground">{job.special_requirements}</p>
@@ -203,7 +203,7 @@ export const AppliedJobsTab = ({
               )}
 
               {/* Poster name - always visible */}
-              {app.posterName && (
+              {!isMinimalCard && app.posterName && (
                 <p className="text-xs text-muted-foreground">
                   Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
                 </p>

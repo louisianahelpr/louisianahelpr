@@ -22,21 +22,17 @@ import {
   categoryLabels, categories, categoryColors, statusBadge,
 } from "@/components/activity/activityConstants";
 
-const Activity = () => {
-  usePageTitle("My Activity — Helpr");
+const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
+  usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
-  const [tab, setTab] = useState<Tab>(() => {
-    const paramTab = searchParams.get("tab");
-    return paramTab === "applied" ? "applied" : "posted";
-  });
+  const tab = defaultTab as Tab;
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const paramFilter = searchParams.get("filter");
     if (paramFilter) return paramFilter;
-    const paramTab = searchParams.get("tab");
-    return paramTab === "applied" ? "pending" : "open";
+    return defaultTab === "applied" ? "pending" : "open";
   });
 
   const {

@@ -1648,6 +1648,36 @@ export type Database = {
           },
         ]
       }
+      social_post_drafts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          published_at: string | null
+          reviewed_by: string | null
+          status: string
+          style: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          style?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          style?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string

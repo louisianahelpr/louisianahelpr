@@ -127,13 +127,26 @@ export const PostedJobsTab = ({
                     <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
                   )}
                 </div>
-              {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-                <p className="text-xs text-muted-foreground leading-relaxed">{job.description}</p>
-              )}
-              {job.special_requirements?.trim() && (
-                <div className="rounded-lg bg-secondary/30 p-2">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                  <p className="text-xs text-foreground">{job.special_requirements}</p>
+              {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
+                <div className="space-y-1.5">
+                  {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+                    <p className={`text-xs text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
+                  )}
+                  {isExpanded && job.special_requirements?.trim() && (
+                    <div className="rounded-lg bg-secondary/30 p-2">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
+                      <p className="text-xs text-foreground">{job.special_requirements}</p>
+                    </div>
+                  )}
+                  {(job.description.length > 100 || job.special_requirements?.trim()) && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-primary hover:underline"
+                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
+                    >
+                      {isExpanded ? "▲ Less" : "▼ More details"}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -272,12 +285,6 @@ export const PostedJobsTab = ({
                           </a>
                         ))}
                       </div>
-                    </div>
-                  )}
-                  {job.special_requirements?.trim() && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5">
-                      <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                      <p className="text-sm text-foreground">{job.special_requirements}</p>
                     </div>
                   )}
                   {job.is_recurring && (

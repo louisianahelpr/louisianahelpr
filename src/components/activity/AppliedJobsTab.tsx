@@ -110,12 +110,18 @@ export const AppliedJobsTab = ({
                     </a>
                   );
                 })()}
+                {app.job.estimated_hours && (
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {app.job.estimated_hours}h</span>
+                )}
                 {app.job.expires_at && !app.job.helper_id && (() => {
                   const expiryText = new Date(app.job!.expires_at!) <= new Date() ? "Expired" : formatDistanceToNow(new Date(app.job!.expires_at!), { addSuffix: false }) + " left";
                   const isExpiringSoon = differenceInHours(new Date(app.job!.expires_at!), new Date()) < 24;
                   return (<span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}><Timer className="w-3 h-3 shrink-0" /> {expiryText}</span>);
                 })()}
               </div>
+              {app.job.description.trim().toLowerCase() !== (app.job.title || "").trim().toLowerCase() && (
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{app.job.description}</p>
+              )}
               {app.posterName && (
                 <div className="text-xs text-muted-foreground">
                   Posted by <a href={`/user/${app.job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
@@ -353,21 +359,6 @@ export const AppliedJobsTab = ({
             </div>
           )}
 
-          {/* Always-visible description & est. hours */}
-          {app.job && app.job.description.trim().toLowerCase() !== (app.job.title || "").trim().toLowerCase() && (
-            <div className="px-4 pt-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-              <p className="text-sm text-foreground leading-relaxed">{app.job.description}</p>
-            </div>
-          )}
-          {app.job?.estimated_hours && (
-            <div className="px-4">
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
-                <p className="font-semibold text-foreground text-sm">{app.job.estimated_hours}h</p>
-              </div>
-            </div>
-          )}
 
           {/* Additional details */}
           <div>

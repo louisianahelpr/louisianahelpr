@@ -72,15 +72,20 @@ const AdminAnalytics = () => {
   const helpers = profiles.filter(p => p.role === "helper");
   const customers = profiles.filter(p => p.role === "customer");
   const completedJobs = allJobs.filter(j => j.status === "completed");
-  const capturedJobs = allJobs.filter(j => ["escrow", "payout_pending", "released"].includes(j.payment_status || ""));
+  // Captured payments that are NOT cancelled — these are real revenue
+  const capturedJobs = allJobs.filter(j => ["escrow", "payout_pending", "released"].includes(j.payment_status || "") && j.status !== "cancelled");
   const openJobs = allJobs.filter(j => j.status === "open");
   const activeJobs = allJobs.filter(j => ["accepted", "in_progress"].includes(j.status));
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
+  // Late cancellations with captured payment — platform keeps fees
+  const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && ["escrow", "payout_pending", "released"].includes(j.payment_status || ""));
 
   const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0), 0);
   // Platform profit = customer service fee + helper commission (stored as platform_fee_amount)
   const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  // Late cancellation revenue the platform retains
+  const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
   const totalHelperPayouts = completedJobs.reduce((s, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = (j.budget || 0) / helpers;
@@ -267,6 +272,28 @@ const AdminAnalytics = () => {
           icon={Star}
         />
       </div>
+
+      {/* Late Cancellation Revenue */}
+      {lateCancelRevenue > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="w-4 h-4 text-destructive" />
+            <h3 className="text-sm font-semibold text-foreground">Late Cancellation Revenue</h3>
+          </div>
+          <p className="text-2xl font-bold text-foreground">${lateCancelRevenue.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Platform fees retained from {lateCancelledPaidJobs.length} late-cancelled {lateCancelledPaidJobs.length === 1 ? "job" : "jobs"} with captured payments
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {lateCancelledPaidJobs.map(j => (
+              <div key={j.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg px-3 py-2">
+                <span className="text-foreground font-medium truncate mr-2">{j.title}</span>
+                <span className="text-muted-foreground shrink-0">${((j.customer_fee_amount || 0) + (j.platform_fee_amount || 0)).toFixed(2)} retained</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Row 2: Subscription Revenue ── */}
       <div className="grid sm:grid-cols-2 gap-4">

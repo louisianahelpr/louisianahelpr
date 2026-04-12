@@ -89,7 +89,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <Label>Location</Label>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Date needed</Label>
               <Input type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} disabled={hasHelper} />

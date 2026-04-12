@@ -42,7 +42,7 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
   return (
     <div className={`flex items-center gap-1.5 ${className || ""}`}>
       <Select value={String(parsed.hour12)} onValueChange={(v) => update("hour", v)} disabled={disabled}>
-        <SelectTrigger className="w-[65px] h-9 text-sm">
+        <SelectTrigger className="w-[58px] h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -53,7 +53,7 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
       </Select>
       <span className="text-muted-foreground font-medium">:</span>
       <Select value={parsed.minute} onValueChange={(v) => update("minute", v)} disabled={disabled}>
-        <SelectTrigger className="w-[65px] h-9 text-sm">
+        <SelectTrigger className="w-[58px] h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -63,7 +63,7 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
         </SelectContent>
       </Select>
       <Select value={parsed.period} onValueChange={(v) => update("period", v)} disabled={disabled}>
-        <SelectTrigger className="w-[65px] h-9 text-sm">
+        <SelectTrigger className="w-[58px] h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

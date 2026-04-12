@@ -307,6 +307,17 @@ const Activity = () => {
     }
   };
 
+  const confirmArrival = async (jobId: string) => {
+    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: new Date().toISOString() } as any).eq("id", jobId);
+    if (error) { toast.error("Failed to confirm arrival"); return; }
+    const job = postedJobs.find(j => j.id === jobId);
+    if (job?.helper_id) {
+      await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/activity?tab=applied&filter=in_progress" });
+    }
+    toast.success("Arrival confirmed!");
+    refresh();
+  };
+
   const markOnTheWay = async (jobId: string) => {
     if (!user || onTheWayLoading) return;
     setOnTheWayLoading(jobId);
@@ -544,6 +555,7 @@ const Activity = () => {
                 onReview={openReviewForPosted}
                 onDispute={setDisputeJob}
                 onConfirmStart={confirmStartJob}
+                onConfirmArrival={confirmArrival}
                 onLoadApplications={loadApplications}
                 selectedJob={selectedJob}
                 setSelectedJob={setSelectedJob}

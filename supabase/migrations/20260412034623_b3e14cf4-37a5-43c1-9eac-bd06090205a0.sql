@@ -1,0 +1,1 @@
+ALTER TABLE public.jobs ADD COLUMN poster_confirmed_arrival_at timestamptz DEFAULT NULL;

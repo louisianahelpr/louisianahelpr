@@ -499,10 +499,21 @@ export const AppliedJobsTab = ({
                     const beforePhotos = jobAny.proof_before_urls || [];
                     const afterPhotos = jobAny.proof_after_urls || [];
                     const hasPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
+                    const workingStart = jobAny.poster_confirmed_working_at ? new Date(jobAny.poster_confirmed_working_at) : null;
+                    const minWorkMs = 30 * 60 * 1000;
+                    const tooEarly = workingStart ? (Date.now() - workingStart.getTime()) < minWorkMs : false;
+                    const minutesLeft = workingStart ? Math.ceil((minWorkMs - (Date.now() - workingStart.getTime())) / 60000) : 0;
+                    const disabled = completingJobId === app.job_id || !hasPhotos || tooEarly;
+                    const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
                     return (
-                      <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id || !hasPhotos}>
-                        <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : "Mark Complete"}
-                      </Button>
+                      <>
+                        <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={disabled}>
+                          <CheckCircle2 className="w-4 h-4 mr-1" />{label}
+                        </Button>
+                        {tooEarly && (
+                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after working begins to ensure quality.</p>
+                        )}
+                      </>
                     );
                   })()}
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>

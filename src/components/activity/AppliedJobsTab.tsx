@@ -178,16 +178,18 @@ export const AppliedJobsTab = ({
               {startRequestedJobIds.has(app.job_id) && (
                 <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">🚀 Job started</div>
               )}
-              {/* Photo proof during active job */}
-              <PhotoProofGroup
-                jobId={app.job_id}
-                beforeUrls={(app.job as any)?.proof_before_urls || []}
-                afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUploadBefore={true}
-                canUploadAfter={true}
-                requireAfter={true}
-                budget={app.job?.budget || 0}
-              />
+              {/* Photo proof during active job - only after arrived */}
+              {(app.job as any)?.helper_arrived_at && (
+                <PhotoProofGroup
+                  jobId={app.job_id}
+                  beforeUrls={(app.job as any)?.proof_before_urls || []}
+                  afterUrls={(app.job as any)?.proof_after_urls || []}
+                  canUploadBefore={true}
+                  canUploadAfter={true}
+                  requireAfter={true}
+                  budget={app.job?.budget || 0}
+                />
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id || !!(app.job as any)?.helper_completed_at}>
                   <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : (app.job as any)?.helper_completed_at ? "Confirmed ✓" : "Mark Complete"}
@@ -236,15 +238,17 @@ export const AppliedJobsTab = ({
             const hasResponded = !!(app.job as any)?.dispute_helper_response;
             return (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              <PhotoProofGroup
-                jobId={app.job_id}
-                beforeUrls={(app.job as any)?.proof_before_urls || []}
-                afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUploadBefore={true}
-                canUploadAfter={true}
-                requireAfter={true}
-                budget={app.job?.budget || 0}
-              />
+              {(app.job as any)?.helper_arrived_at && (
+                <PhotoProofGroup
+                  jobId={app.job_id}
+                  beforeUrls={(app.job as any)?.proof_before_urls || []}
+                  afterUrls={(app.job as any)?.proof_after_urls || []}
+                  canUploadBefore={true}
+                  canUploadAfter={true}
+                  requireAfter={true}
+                  budget={app.job?.budget || 0}
+                />
+              )}
               <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
                 <p className="text-xs font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
                   {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}

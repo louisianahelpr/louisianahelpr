@@ -44,9 +44,9 @@ serve(async (req) => {
       const perHelperBudget = job.budget / helpersCount;
       const jobHelperFeePercent = job.helper_fee_percent ?? 10;
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-
-      // Commission tax is already collected at checkout — no deduction here
-      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
+      const commissionTaxRate = job.sales_tax_rate ?? 0;
+      const commissionTax = helperCommission * commissionTaxRate;
+      const helperPayout = perHelperBudget - helperCommission - commissionTax + (job.urgent_fee ?? 0);
       if (helperPayout <= 0) continue;
 
       // ── Step 1: Get helper's connected Stripe account ──

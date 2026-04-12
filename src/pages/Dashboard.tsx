@@ -565,36 +565,41 @@ const Dashboard = () => {
                 ? <div className="space-y-3">
                     <p>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span>?</p>
                     <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-sm">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Payout Breakdown</p>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Task budget</span>
-                        <span>${confirmApplyJob.budget.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Platform Fee ({platformFee}%)</span>
-                        <span className="text-destructive/70">−${(confirmApplyJob.budget * platformFee / 100).toFixed(2)}</span>
-                      </div>
-                      {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Urgent tip</span>
-                          <span className="text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="h-px bg-border my-1" />
-                      <div className="flex justify-between">
-                        <span className="font-semibold text-foreground text-sm">Your Payout</span>
-                        {(() => {
-                          const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
-                          const perHelper = confirmApplyJob.budget / helpers;
-                          const payout = perHelper * (1 - platformFee / 100) + (confirmApplyJob.urgent_fee ?? 0);
-                          return (
-                            <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
-                          );
-                        })()}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Platform fee is deducted from your payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""} Sales tax is paid by the customer separately.
-                      </p>
+                      {(() => {
+                        const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
+                        const perHelper = confirmApplyJob.budget / helpers;
+                        const commission = perHelper * platformFee / 100;
+                        const taxRate = confirmApplyJob.sales_tax_rate ?? 0.085;
+                        const commissionTax = commission * taxRate;
+                        const payout = perHelper - commission - commissionTax + (confirmApplyJob.urgent_fee ?? 0);
+                        return (
+                          <>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Estimated Payout</p>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Platform Fee ({platformFee}%)</span>
+                              <span className="text-destructive/70">−${commission.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Fee Tax</span>
+                              <span className="text-destructive/70">−${commissionTax.toFixed(2)}</span>
+                            </div>
+                            {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Urgent tip</span>
+                                <span className="text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div className="h-px bg-border my-1" />
+                            <div className="flex justify-between">
+                              <span className="font-semibold text-foreground text-sm">Your Payout</span>
+                              <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              Platform fee + applicable tax deducted from payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""}
+                            </p>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 : <p>Are you sure you want to apply for this task?</p>}

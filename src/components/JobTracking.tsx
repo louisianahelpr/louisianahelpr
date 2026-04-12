@@ -272,37 +272,43 @@ export function JobTracking({
         const now = new Date();
         let jobStartDate: Date | null = null;
         if (jobDateNeeded) {
-          if (jobStartTime) {
-            jobStartDate = new Date(`${jobDateNeeded}T${jobStartTime}`);
-          } else {
-            jobStartDate = new Date(jobDateNeeded + "T23:59:59");
-          }
+          jobStartDate = jobStartTime
+            ? new Date(`${jobDateNeeded}T${jobStartTime}`)
+            : new Date(jobDateNeeded + "T23:59:59");
         }
-        const unlockTime = jobStartDate ? new Date(jobStartDate.getTime() - 24 * 60 * 60 * 1000) : null;
-        const isUnlocked = !unlockTime || now >= unlockTime;
+        const confirmUnlock = jobStartDate ? new Date(jobStartDate.getTime() - 24 * 60 * 60 * 1000) : null;
+        const jobDay = jobDateNeeded ? new Date(jobDateNeeded + "T00:00:00") : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const nextStatus = STATUSES[currentStatusIdx + 1];
+        if (!nextStatus) return null;
+
+        const isConfirmStep = nextStatus.key === "job_confirmed";
+        const isLocked = isConfirmStep
+          ? (confirmUnlock ? now < confirmUnlock : false)
+          : (jobDay ? today < jobDay : false);
+
+        const lockMessage = isConfirmStep && confirmUnlock
+          ? `Confirm available ${confirmUnlock.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${confirmUnlock.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+          : jobDay
+            ? `Actions available on ${jobDay.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
+            : null;
 
         return (
           <div className="pt-2 border-t border-border space-y-2">
-            {!isUnlocked && unlockTime && (
-              <p className="text-xs text-muted-foreground text-center">
-                Actions available {unlockTime.toLocaleDateString([], { month: 'short', day: 'numeric' })} at {unlockTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </p>
+            {isLocked && lockMessage && (
+              <p className="text-xs text-muted-foreground text-center">{lockMessage}</p>
             )}
-            {(() => {
-              const nextStatus = STATUSES[currentStatusIdx + 1];
-              if (!nextStatus) return null;
-              return (
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() => updateStatus(nextStatus.key)}
-                  disabled={updating || !isUnlocked}
-                >
-                  <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
-                  {nextStatus.label}
-                </Button>
-              );
-            })()}
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => updateStatus(nextStatus.key)}
+              disabled={updating || isLocked}
+            >
+              <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
+              {nextStatus.label}
+            </Button>
           </div>
         );
       })()}

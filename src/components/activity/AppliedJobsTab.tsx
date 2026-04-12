@@ -348,11 +348,14 @@ export const AppliedJobsTab = ({
                     <p className="text-foreground">{(app as any).offer_message}</p>
                   </div>
                 )}
+                {/* Job countdown */}
+                <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                 {jobAny.response_deadline && (
-                  <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
-                    <Clock className="w-3 h-3 inline mr-1" />
-                    Respond by {new Date(jobAny.response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  <DeadlineCountdown
+                    deadline={jobAny.response_deadline}
+                    expiredText="Response deadline expired"
+                    consequenceText="Accept or decline before the deadline"
+                  />
                 )}
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onHelperResponse(app, false)}><ThumbsDown className="w-4 h-4 mr-1" /> Decline</Button>

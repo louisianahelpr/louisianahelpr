@@ -318,6 +318,7 @@ const Activity = () => {
     refresh();
   };
 
+  const markOnTheWay = async (jobId: string) => {
     if (!user || onTheWayLoading) return;
     setOnTheWayLoading(jobId);
     const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: new Date().toISOString() } as any).eq("id", jobId);

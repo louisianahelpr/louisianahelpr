@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw,
   Star, MessageSquare, Users, Pencil, AlertTriangle, RefreshCw,
-  Rocket, Clock, Calendar, Timer, Navigation as NavigationIcon,
+  Rocket, Clock, Calendar, Timer, Navigation as NavigationIcon, Wrench,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
@@ -41,6 +41,7 @@ interface PostedJobsTabProps {
   onDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
+  onConfirmWorking: (jobId: string) => void;
   onLoadApplications: (job: Job) => void;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
@@ -55,7 +56,7 @@ export const PostedJobsTab = ({
   jobs, applicantCounts, expandedJobId, setExpandedJobId,
   helperNames, completedJobMeta, startRequestedJobIds, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival,
+  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   onAcceptApplication, onLoadInlineApplicants, inlineApplicants, loadingApplicants,
 }: PostedJobsTabProps) => {
@@ -324,10 +325,30 @@ export const PostedJobsTab = ({
                           requireAfter={true}
                           budget={job.budget}
                         />
+                        {/* Confirm Working */}
+                        {job.status === "in_progress" && !(job as any).poster_confirmed_working_at && (job as any).poster_confirmed_arrival_at && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-600">
+                              <Wrench className="w-3.5 h-3.5 shrink-0" />
+                              <span className="font-medium">Is the helpr working?</span>
+                            </div>
+                            <Button size="sm" className="w-full" onClick={() => onConfirmWorking(job.id)}>
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Working
+                            </Button>
+                          </div>
+                        )}
+                        {(job as any).poster_confirmed_working_at && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">✓ Working confirmed</span>
+                        )}
+                        {/* Approve/Complete - only after helper marks complete */}
                         <div className="flex items-center gap-2">
-                          <Button size="sm" className="flex-1" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Confirmed ✓" : "Mark Complete"}
-                          </Button>
+                          {(job as any).helper_completed_at ? (
+                            <Button size="sm" className="flex-1" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                              <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
+                            </Button>
+                          ) : (
+                            <span className="flex-1 text-xs text-center text-muted-foreground py-1">Waiting for helpr to mark complete…</span>
+                          )}
                           <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                         </div>
                         {job.status === "in_progress" && !(job as any).poster_completed_at && (

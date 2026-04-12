@@ -99,7 +99,8 @@ serve(async (req) => {
         },
       ];
 
-      // Add customer service fee as a separate line item
+      // Add customer service fee as a separate line item (non-taxable at checkout;
+      // commission tax is applied at payout on the platform's retained fees)
       if (customerFeeAmount > 0) {
         lineItems.push({
           price_data: {
@@ -107,6 +108,7 @@ serve(async (req) => {
             product_data: {
               name: "Service Fee",
               description: `${customerFeePercent}% platform service fee`,
+              tax_code: "txcd_00000000", // Non-taxable at checkout — tax applied on platform revenue at payout
             },
             unit_amount: Math.round(customerFeeAmount * 100),
           },

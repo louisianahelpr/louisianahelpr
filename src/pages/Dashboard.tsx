@@ -170,7 +170,29 @@ const Dashboard = () => {
       return;
     }
 
-    const { error } = await supabase.from("applications").insert({ job_id: confirmApplyJobId, helper_id: user.id, message: applyMessage.trim() || null });
+    // Upload attachments
+    let attachmentUrls: string[] = [];
+    if (applyFiles.length > 0) {
+      for (const file of applyFiles) {
+        const ext = file.name.split('.').pop();
+        const path = `${user.id}/${confirmApplyJobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
+        if (uploadErr) {
+          toast.error(`Failed to upload ${file.name}`);
+          setApplyLoading(false);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from("application-attachments").getPublicUrl(path);
+        attachmentUrls.push(urlData.publicUrl);
+      }
+    }
+
+    const { error } = await supabase.from("applications").insert({
+      job_id: confirmApplyJobId,
+      helper_id: user.id,
+      message: applyMessage.trim() || null,
+      attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+    });
     if (error) {
       if (error.code === "23505") toast.error("You've already applied.");
       else toast.error(error.message);
@@ -183,7 +205,8 @@ const Dashboard = () => {
     setConfirmApplyJobId(null);
     setApplyLoading(false);
     setApplyMessage("");
-  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading]);
+    setApplyFiles([]);
+  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading, applyFiles]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

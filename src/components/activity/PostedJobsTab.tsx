@@ -455,14 +455,6 @@ export const PostedJobsTab = ({
                             </Button>
                           </div>
                         )}
-                        {(job as any).poster_confirmed_working_at && (
-                          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${(job as any).helper_completed_at ? 'bg-primary/10 border-primary/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-                            <CheckCircle2 className={`w-4 h-4 shrink-0 ${(job as any).helper_completed_at ? 'text-primary' : 'text-emerald-600'}`} />
-                            <span className={`text-sm font-medium ${(job as any).helper_completed_at ? 'text-primary' : 'text-emerald-600'}`}>
-                              {(job as any).helper_completed_at ? 'Helpr marked complete — please review' : 'Working confirmed'}
-                            </span>
-                          </div>
-                        )}
                         {/* 72h countdown after helper marks complete */}
                         {(job as any).helper_completed_at && !(job as any).poster_completed_at && !(job as any).revision_requested_at && (
                           <DeadlineCountdown

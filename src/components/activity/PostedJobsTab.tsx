@@ -170,7 +170,7 @@ export const PostedJobsTab = ({
                 )}
 
 
-                {(job.status === "in_progress" || job.status === "revision_requested") && (job as any).poster_confirmed_arrival_at && (
+                {(job.status === "in_progress" || job.status === "revision_requested") && (job as any).poster_confirmed_arrival_at && !(job as any).poster_confirmed_working_at && (
                   <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
                 )}
 

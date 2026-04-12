@@ -431,16 +431,20 @@ export const PostedJobsTab = ({
                           <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
                             <RotateCcw className="w-4 h-4 mr-1" /> Rebook
                           </Button>
-                          {(job as any).revision_requested_at ? (
-                            <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
-                              <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
-                            </Button>
-                          ) : (
+                          {!(job as any).poster_completed_at && (
                             <>
-                              <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
-                                <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
-                              </Button>
-                              <p className="text-[10px] text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
+                              {(job as any).revision_requested_at ? (
+                                <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
+                                  <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
+                                    <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
+                                  </Button>
+                                  <p className="text-[10px] text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
+                                </>
+                              )}
                             </>
                           )}
                         </div>

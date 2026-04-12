@@ -109,10 +109,36 @@ export function JobTracking({
     });
   };
 
+  const getDistanceFt = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 20902231; // Earth radius in feet
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
   const updateStatus = async (newStatus: string) => {
     if (!helperId) return;
     setUpdating(true);
     const loc = await getLocation();
+
+    // GPS proximity check for "arrived" — must be within 500ft of job location
+    if (newStatus === "arrived") {
+      if (!loc) {
+        toast.error("Location access is required to mark Arrived. Please enable GPS and try again.");
+        setUpdating(false);
+        return;
+      }
+      const { data: job } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
+      if (job?.latitude && job?.longitude) {
+        const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
+        if (dist > 500) {
+          toast.error(`You must be within 500ft of the job location to mark Arrived. You're about ${Math.round(dist)}ft away.`);
+          setUpdating(false);
+          return;
+        }
+      }
+    }
 
     const now = new Date().toISOString();
     setTracking(prev => prev ? { ...prev, status: newStatus, latitude: loc?.lat || prev.latitude, longitude: loc?.lng || prev.longitude, updated_at: now } : {

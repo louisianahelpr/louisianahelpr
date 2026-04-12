@@ -91,6 +91,7 @@ serve(async (req) => {
             product_data: {
               name: `Helpr Task: ${job.title}`,
               description: `Secure payment — funds are charged now and released to the helpr once both parties confirm completion.`,
+              tax_code: "txcd_00000000", // Non-taxable: passes through to worker
             },
             unit_amount: Math.round(job.budget * 100),
           },

@@ -171,6 +171,13 @@ export const AppliedJobsTab = ({
             </div>
           )}
 
+          {/* Visible live tracking */}
+          {app.status === "accepted" && (app.job?.status === "accepted" || app.job?.status === "in_progress") && (
+            <div className="px-4 pb-3" onClick={(e) => e.stopPropagation()}>
+              <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} />
+            </div>
+          )}
+
           {/* In Progress / Revision */}
           {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
@@ -245,170 +252,7 @@ export const AppliedJobsTab = ({
               )}
             </div>
           )}
-
-          {/* Disputed */}
-          {app.status === "accepted" && app.job?.status === "disputed" && (() => {
-            const disputeStatus = (app.job as any)?.dispute_status || "open";
-            const hasResponded = !!(app.job as any)?.dispute_helper_response;
-            return (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              <PhotoProofGroup
-                jobId={app.job_id}
-                beforeUrls={(app.job as any)?.proof_before_urls || []}
-                afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUpload={true}
-                requireAfter={true}
-                budget={app.job?.budget || 0}
-              />
-              <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-xs font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
-                  {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}
-                </p>
-                {(app.job as any)?.dispute_reason && (
-                  <p className="text-xs text-muted-foreground mt-1">Reason: {(app.job as any).dispute_reason}</p>
-                )}
-                {(app.job as any)?.disputed_at && (
-                  <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date((app.job as any).disputed_at), { addSuffix: true })}</p>
-                )}
-                {(app.job as any)?.dispute_deadline && (
-                  <DeadlineCountdown
-                    deadline={(app.job as any).dispute_deadline}
-                    expiredText="Deadline passed — payment auto-releasing to you"
-                    consequenceText="If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline."
-                    variant="destructive"
-                  />
-                )}
-              </div>
-              {/* Helper's existing response */}
-              {hasResponded && (
-                <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
-                  <p className="text-[10px] text-muted-foreground font-medium">Your response:</p>
-                  <p className="text-xs text-foreground mt-0.5">"{(app.job as any).dispute_helper_response}"</p>
-                </div>
-              )}
-              {/* Helper respond form */}
-              {!hasResponded && disputeStatus === "open" && (
-                <div className="space-y-2">
-                  {respondingJobId === app.job_id ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        placeholder="Explain your side — what work was done, any issues, etc."
-                        value={disputeResponse}
-                        onChange={(e) => setDisputeResponse(e.target.value)}
-                        rows={3}
-                        maxLength={500}
-                        className="text-xs"
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1" disabled={!disputeResponse.trim() || submittingResponse} onClick={async () => {
-                          setSubmittingResponse(true);
-                          const { error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" } as any).eq("id", app.job_id);
-                          if (error) { toast.error("Failed to submit response"); setSubmittingResponse(false); return; }
-                          if (app.job?.customer_id) await createNotification({ user_id: app.job.customer_id, title: "Helpr responded to dispute", message: `The helpr has responded to the dispute on "${app.job?.title}". Please review and mark resolved or escalate.`, type: "info", link: "/activity?tab=posted&filter=disputed" });
-                          toast.success("Response submitted — poster will review");
-                          setSubmittingResponse(false);
-                          setRespondingJobId(null);
-                          setDisputeResponse("");
-                          window.location.reload();
-                        }}>
-                          <Send className="w-3.5 h-3.5 mr-1" /> {submittingResponse ? "Sending…" : "Submit Response"}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setRespondingJobId(null); setDisputeResponse(""); }}>Cancel</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => setRespondingJobId(app.job_id)}>
-                      <MessageSquare className="w-4 h-4 mr-1" /> Respond to Dispute
-                    </Button>
-                  )}
-                </div>
-              )}
-              <div className="p-2 rounded-lg bg-muted/50 border border-border">
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  <strong>Policy:</strong> If this dispute is not resolved within 72 hours, payment is automatically released to you. Respond with your side to help resolve it faster.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${app.job?.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Poster</Button>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
-              </div>
-            </div>
-            );
-          })()}
-
-          {/* Completed */}
-          {app.status === "accepted" && app.job?.status === "completed" && (
-            <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              <PhotoProofGroup
-                jobId={app.job_id}
-                beforeUrls={(app.job as any)?.proof_before_urls || []}
-                afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUpload={false}
-              />
-              {helperReviewedJobIds.has(app.job_id) ? (
-                <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
-              ) : (
-                <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, app.job!.customer_id, app.posterName || "Poster")}>
-                  <Star className="w-4 h-4 mr-1" /> Review Poster
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Expandable details */}
-          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
-            <div className="px-4 pb-4 space-y-3 border-t border-border/40">
-              {app.job && app.job.description.trim().toLowerCase() !== (app.job.title || "").trim().toLowerCase() && (
-                <div className="pt-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                  <p className="text-sm text-foreground leading-relaxed">{app.job.description}</p>
-                </div>
-              )}
-              {app.job && (app.job.photos || []).length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {(app.job.photos || []).map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                        <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {app.job?.estimated_hours && (
-                <div className="rounded-lg bg-secondary/30 p-2.5">
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
-                  <p className="font-semibold text-foreground text-sm">{app.job.estimated_hours}h</p>
-                </div>
-              )}
-              {app.job?.special_requirements && (
-                <div className="rounded-lg bg-secondary/30 p-2.5">
-                  <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                  <p className="text-sm text-foreground">{app.job.special_requirements}</p>
-                </div>
-              )}
-              {app.job?.is_recurring && (
-                <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Recurring Task</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {app.job.recurrence_interval ? `Every ${app.job.recurrence_interval}` : "Yes"}
-                      {app.job.recurrence_end_date && ` until ${new Date(app.job.recurrence_end_date).toLocaleDateString()}`}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {app.job?.is_group_job && (
-                <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-                  <Users className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Group Task</p>
-                    <p className="text-sm font-medium text-foreground">{app.job.helpers_needed ? `${app.job.helpers_needed} helprs needed` : "Multiple helprs needed"}</p>
-                  </div>
-                </div>
-              )}
+...
               {/* Completion status */}
               {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && ((app.job as any)?.poster_completed_at || (app.job as any)?.helper_completed_at) && (
                 <div className="flex items-center gap-2 flex-wrap">
@@ -422,7 +266,6 @@ export const AppliedJobsTab = ({
               {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "accepted") && (
                 <div className="space-y-3">
                   <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={(app.job as any)?.poster_confirmed_at} helperConfirmedAt={(app.job as any)?.helper_confirmed_at} dateNeeded={app.job?.date_needed || ""} jobStatus={app.job?.status} />
-                  <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} />
                   <JobCheckins jobId={app.job_id} userId={userId} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
                 </div>
               )}

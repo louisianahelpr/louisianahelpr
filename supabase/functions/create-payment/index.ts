@@ -107,6 +107,7 @@ serve(async (req) => {
             product_data: {
               name: "Service Fee",
               description: `${customerFeePercent}% platform service fee`,
+              tax_code: "txcd_10103001", // SaaS / electronic services — taxable
             },
             unit_amount: Math.round(customerFeeAmount * 100),
           },
@@ -122,6 +123,7 @@ serve(async (req) => {
             product_data: {
               name: "Helpr Platform Fee",
               description: `${helperFeePercent}% platform fee on worker payout`,
+              tax_code: "txcd_10103001", // SaaS / electronic services — taxable
             },
             unit_amount: Math.round(helperFeeAmount * 100),
           },

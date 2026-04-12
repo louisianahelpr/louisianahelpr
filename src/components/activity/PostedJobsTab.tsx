@@ -16,7 +16,7 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
-import { JobCheckins } from "@/components/JobCheckins";
+
 import { getCityState } from "@/lib/locationUtils";
 import { type Job, type Application, type EnrichedApplication, categoryColors } from "./activityConstants";
 
@@ -318,7 +318,7 @@ export const PostedJobsTab = ({
                   <div className="px-4 pb-3 space-y-3">
                     <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
                     {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
-                    <JobCheckins jobId={job.id} userId={userId} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
+                    
                   </div>
                 )}
 

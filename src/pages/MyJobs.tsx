@@ -12,7 +12,7 @@ import { ScopeAgreement } from "@/components/ScopeAgreement";
 import { AddonRequests } from "@/components/AddonRequests";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobMilestones } from "@/components/JobMilestones";
-import { JobCheckins } from "@/components/JobCheckins";
+
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
@@ -261,7 +261,7 @@ const MyJobs = () => {
                           <ScopeAgreement jobId={job.id} isOwner={true} isHelper={false} />
                           <AddonRequests jobId={job.id} isOwner={true} isHelper={false} userId={currentUserId} />
                           <JobMilestones jobId={job.id} isOwner={true} isHelper={false} totalBudget={job.budget} />
-                          <JobCheckins jobId={job.id} userId={currentUserId} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />
+                          
                         </div>
                       )}
                     </div>

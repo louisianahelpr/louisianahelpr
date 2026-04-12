@@ -446,7 +446,7 @@ export const AppliedJobsTab = ({
             )}
 
             {/* Footer: extra details (photos, requirements, group/recurring) */}
-            {(!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.special_requirements || job.is_recurring || job.is_group_job) && (
+            {(!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring || job.is_group_job) && (
               <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
                 {(job.photos || []).length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">
@@ -455,12 +455,6 @@ export const AppliedJobsTab = ({
                         <img src={url} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                       </a>
                     ))}
-                  </div>
-                )}
-                {job.special_requirements && (
-                  <div className="rounded-lg bg-secondary/30 p-2">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-xs text-foreground">{job.special_requirements}</p>
                   </div>
                 )}
                 {job.is_recurring && (

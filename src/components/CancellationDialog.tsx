@@ -157,43 +157,56 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             Are you sure you want to cancel <strong className="text-foreground">"{jobTitle}"</strong>?
           </p>
 
-          {/* All cancellation rules — highlight which applies */}
+          {/* Full Cancellation Policy */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Cancellation Policy</p>
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
-            {/* Rule 1: No helper */}
-            <div className={`flex items-start gap-2.5 p-2.5 rounded-lg border ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-60"}`}>
-              <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${!hasHelper ? "text-primary" : "text-muted-foreground"}`} />
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-medium text-foreground">No helpr selected</p>
-                  {!hasHelper && <span className="text-[10px] font-semibold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">THIS APPLIES TO YOU</span>}
+            {/* Step 1: Before helpr selected */}
+            <div className={`flex items-start gap-2.5 p-3 rounded-lg border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-xs font-semibold text-foreground">Before a helpr is selected</p>
+                  {!hasHelper && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
-                <p className="text-[11px] text-muted-foreground">No fee. Full refund. Cancel freely anytime before selecting a helpr.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <CheckCircle className="w-3 h-3 text-primary shrink-0" />
+                  <span className="text-[11px] text-primary font-medium">$0 fee · Full refund · No consequences</span>
+                </div>
               </div>
             </div>
 
-            {/* Rule 2: Helper selected */}
-            <div className={`p-2.5 rounded-lg border space-y-2 ${hasHelper ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-muted/20 border-border opacity-60"}`}>
+            <div className="flex justify-center"><ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 rotate-90" /></div>
+
+            {/* Step 2: After helpr selected */}
+            <div className={`p-3 rounded-lg border space-y-2 transition-all ${hasHelper ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-muted/20 border-border opacity-50"}`}>
               <div className="flex items-start gap-2.5">
-                <DollarSign className={`w-4 h-4 mt-0.5 shrink-0 ${hasHelper ? "text-accent" : "text-muted-foreground"}`} />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-medium text-foreground">Helpr has been selected</p>
-                    {hasHelper && <span className="text-[10px] font-semibold bg-accent/20 text-accent px-1.5 py-0.5 rounded-full">THIS APPLIES TO YOU</span>}
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-xs font-semibold text-foreground">After a helpr is selected</p>
+                    {hasHelper && <span className="text-[10px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">5% cancellation fee charged. The helpr is compensated for their lost time (minus 10% platform fee).</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    A <strong className="text-foreground">5% cancellation fee</strong> is charged regardless of how much time is left before the job. The fee compensates the helpr for their lost time.
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <DollarSign className="w-3 h-3 text-accent shrink-0" />
+                    <span className="text-[11px] text-accent font-medium">5% fee · Helpr compensated · Strike recorded</span>
+                  </div>
                 </div>
               </div>
 
               {hasHelper && (
-                <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-6">
+                <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">You&apos;ll be charged (5% of ${jobBudget.toFixed(2)})</span>
+                    <span className="text-muted-foreground">Cancellation fee (5% of ${jobBudget.toFixed(2)})</span>
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Platform fee (10%)</span>
+                    <span className="text-muted-foreground">Platform commission (10%)</span>
                     <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-xs">
@@ -206,26 +219,26 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           </div>
 
           {/* Strike system — always visible */}
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-            <p className="text-xs font-semibold text-destructive uppercase tracking-wide flex items-center gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5" /> Account consequences (when helpr is selected)
+          <div className={`rounded-xl border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
+              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when helpr is selected)
             </p>
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">1st cancellation:</strong> Written warning recorded on your account. Admins are notified.</p>
+                <p><strong className="text-foreground">1st strike:</strong> Written warning on your account. Admins notified.</p>
               </div>
               <div className="flex items-start gap-2">
                 <ShieldAlert className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">2nd cancellation:</strong> Final warning. One more = permanent ban.</p>
+                <p><strong className="text-foreground">2nd strike:</strong> Final warning. One more cancellation = permanent ban.</p>
               </div>
               <div className="flex items-start gap-2">
                 <Ban className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">3rd cancellation:</strong> Permanent ban from Helpr. This cannot be reversed.</p>
+                <p><strong className="text-foreground">3rd strike:</strong> Permanent ban from Helpr. This cannot be undone.</p>
               </div>
             </div>
             {!hasHelper && (
-              <p className="text-[11px] text-muted-foreground italic">These consequences don&apos;t apply — no helpr has been selected.</p>
+              <p className="text-[11px] text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no helpr has been selected.</p>
             )}
           </div>
 

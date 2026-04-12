@@ -136,7 +136,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     setSelectedJob(null);
     setApplications([]);
     setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
-    refresh();
+    await refresh();
+    setStatusFilter("offered");
   };
 
   const handleHelperResponse = async (app: Application, accept: boolean) => {
@@ -292,7 +293,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
     }
     toast.success("Job started! You're now in progress.");
-    refresh();
+    await refresh();
+    setStatusFilter("in_progress");
     setStartJobLoading(null);
   };
 
@@ -305,7 +307,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
       toast.success("Job started! It's now in progress.");
-      refresh();
+      await refresh();
+      setStatusFilter("in_progress");
     }
   };
 

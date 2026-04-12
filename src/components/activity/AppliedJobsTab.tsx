@@ -480,13 +480,31 @@ export const AppliedJobsTab = ({
                   </div>
                 )}
 
+                {/* Photo proof - only when working */}
+                {jobAny.poster_confirmed_working_at && (
+                  <PhotoProofGroup
+                    jobId={app.job_id}
+                    beforeUrls={jobAny.proof_before_urls || []}
+                    afterUrls={jobAny.proof_after_urls || []}
+                    canUploadBefore={true}
+                    canUploadAfter={true}
+                    requireAfter={true}
+                    budget={job.budget || 0}
+                  />
+                )}
+
                 {/* Complete + Message */}
                 <div className="space-y-2">
-                  {!jobAny.helper_completed_at && jobAny.helper_arrived_at && jobAny.poster_confirmed_working_at && (
-                    <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id}>
-                      <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : "Mark Complete"}
-                    </Button>
-                  )}
+                  {!jobAny.helper_completed_at && jobAny.helper_arrived_at && jobAny.poster_confirmed_working_at && (() => {
+                    const beforePhotos = jobAny.proof_before_urls || [];
+                    const afterPhotos = jobAny.proof_after_urls || [];
+                    const hasPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
+                    return (
+                      <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id || !hasPhotos}>
+                        <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : "Mark Complete"}
+                      </Button>
+                    );
+                  })()}
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                 </div>
 
@@ -498,19 +516,6 @@ export const AppliedJobsTab = ({
                       {jobAny.poster_completed_at ? 'Job complete ✓' : 'Marked complete — waiting for poster'}
                     </span>
                   </div>
-                )}
-
-                {/* Photo proof - last */}
-                {jobAny.poster_confirmed_arrival_at && (
-                  <PhotoProofGroup
-                    jobId={app.job_id}
-                    beforeUrls={jobAny.proof_before_urls || []}
-                    afterUrls={jobAny.proof_after_urls || []}
-                    canUploadBefore={true}
-                    canUploadAfter={true}
-                    requireAfter={true}
-                    budget={job.budget || 0}
-                  />
                 )}
               </div>
             )}

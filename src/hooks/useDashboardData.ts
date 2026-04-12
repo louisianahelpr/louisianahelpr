@@ -28,7 +28,7 @@ export function useDashboardData() {
       const [openJobsRes, feeRes, availRes, appliedRes] = await Promise.all([
         supabase
           .from("jobs")
-          .select("*")
+          .select("id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, helper_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, helper_fee_percent, recurrence_interval, recurrence_end_date, parent_job_id, payment_status")
           .eq("status", "open")
           .neq("payment_status", "abandoned")
           .order("boosted_at", { ascending: false, nullsFirst: false })

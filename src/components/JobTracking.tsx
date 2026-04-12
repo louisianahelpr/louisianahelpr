@@ -29,12 +29,16 @@ export function JobTracking({
   isHelper,
   isOwner,
   jobDateNeeded,
+  jobStatus,
+  helperConfirmedAt,
 }: {
   jobId: string;
   helperId: string | null;
   isHelper: boolean;
   isOwner: boolean;
   jobDateNeeded?: string;
+  jobStatus?: string;
+  helperConfirmedAt?: string | null;
 }) {
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -158,7 +162,9 @@ export function JobTracking({
 
   const currentStatusIdx = tracking
     ? STATUSES.findIndex((s) => s.key === tracking.status)
-    : 0;
+    : helperConfirmedAt
+      ? STATUSES.findIndex((s) => s.key === "confirmed")
+      : (jobStatus === "accepted" ? STATUSES.findIndex((s) => s.key === "assigned") : 0);
 
   if (!helperId) return null;
 

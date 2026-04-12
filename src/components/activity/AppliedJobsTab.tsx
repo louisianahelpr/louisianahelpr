@@ -239,21 +239,21 @@ export const AppliedJobsTab = ({
 
                 {/* Complete + Message */}
                 <div className="grid grid-cols-2 gap-2">
-                  <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id || !!jobAny.helper_completed_at}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : jobAny.helper_completed_at ? "Completed ✓" : "Mark Complete"}
-                  </Button>
+                  {!jobAny.helper_completed_at && (
+                    <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id}>
+                      <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : "Mark Complete"}
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                 </div>
 
                 {/* Completion status */}
-                {(jobAny.poster_completed_at || jobAny.helper_completed_at) && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {jobAny.helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ You confirmed</span>}
-                    {jobAny.poster_completed_at ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ Poster confirmed</span>
-                    ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Waiting for poster</span>
-                    )}
+                {jobAny.helper_completed_at && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm font-medium text-primary">
+                      {jobAny.poster_completed_at ? 'Job complete ✓' : 'Marked complete — waiting for poster'}
+                    </span>
                   </div>
                 )}
 

@@ -101,6 +101,7 @@ export type Database = {
       }
       applications: {
         Row: {
+          attachment_urls: string[] | null
           created_at: string
           helper_id: string
           id: string
@@ -111,6 +112,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attachment_urls?: string[] | null
           created_at?: string
           helper_id: string
           id?: string
@@ -121,6 +123,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attachment_urls?: string[] | null
           created_at?: string
           helper_id?: string
           id?: string

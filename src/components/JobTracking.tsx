@@ -29,6 +29,7 @@ export function JobTracking({
   isHelper,
   isOwner,
   jobDateNeeded,
+  jobStartTime,
   jobStatus,
   helperConfirmedAt,
 }: {
@@ -37,6 +38,7 @@ export function JobTracking({
   isHelper: boolean;
   isOwner: boolean;
   jobDateNeeded?: string;
+  jobStartTime?: string | null;
   jobStatus?: string;
   helperConfirmedAt?: string | null;
 }) {
@@ -233,16 +235,23 @@ export function JobTracking({
 
       {/* Helper controls */}
       {isHelper && (() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const jobDate = jobDateNeeded ? new Date(jobDateNeeded + "T00:00:00") : null;
-        const isJobDay = !jobDate || jobDate <= today;
+        const now = new Date();
+        let jobStartDate: Date | null = null;
+        if (jobDateNeeded) {
+          if (jobStartTime) {
+            jobStartDate = new Date(`${jobDateNeeded}T${jobStartTime}`);
+          } else {
+            jobStartDate = new Date(jobDateNeeded + "T23:59:59");
+          }
+        }
+        const unlockTime = jobStartDate ? new Date(jobStartDate.getTime() - 24 * 60 * 60 * 1000) : null;
+        const isUnlocked = !unlockTime || now >= unlockTime;
 
         return (
           <div className="pt-2 border-t border-border space-y-2">
-            {!isJobDay && (
+            {!isUnlocked && unlockTime && (
               <p className="text-xs text-muted-foreground text-center">
-                Actions available on {jobDate!.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                Actions available {unlockTime.toLocaleDateString([], { month: 'short', day: 'numeric' })} at {unlockTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               </p>
             )}
             {(() => {

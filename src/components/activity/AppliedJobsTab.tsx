@@ -233,13 +233,42 @@ export const AppliedJobsTab = ({
                   </div>
                 )}
 
-                {/* Your application message */}
-                {app.message && (
-                  <div className="rounded-lg bg-primary/5 border border-primary/15 p-2">
-                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Your message</p>
-                    <p className="text-xs text-foreground">{app.message}</p>
+                {/* Your application message — editable */}
+                <div className="rounded-lg bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] text-muted-foreground font-medium">Your Message</p>
+                    {editingMessageAppId !== app.id && (
+                      <button
+                        type="button"
+                        className="text-primary hover:text-primary/80"
+                        onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
-                )}
+                  {editingMessageAppId === app.id ? (
+                    <div className="space-y-1.5">
+                      <Textarea
+                        value={editMessageText}
+                        onChange={(e) => setEditMessageText(e.target.value)}
+                        placeholder="Introduce yourself or share relevant experience…"
+                        rows={3}
+                        className="text-xs"
+                      />
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingMessageAppId(null)} disabled={savingMessage}>
+                          <X className="w-3 h-3 mr-0.5" /> Cancel
+                        </Button>
+                        <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleSaveMessage(app.id)} disabled={savingMessage}>
+                          <Check className="w-3 h-3 mr-0.5" /> {savingMessage ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-foreground">{app.message || <span className="text-muted-foreground italic">No message — tap the pencil to add one</span>}</p>
+                  )}
+                </div>
 
                 {/* Your attachments */}
                 <div className="space-y-1.5">

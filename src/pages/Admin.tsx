@@ -11,21 +11,23 @@ import {
   ArrowLeft, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AdminUsers from "@/components/admin/AdminUsers";
-import AdminJobs from "@/components/admin/AdminJobs";
-import AdminSettings from "@/components/admin/AdminSettings";
-import AdminAnalytics from "@/components/admin/AdminAnalytics";
-import AdminDisputes from "@/components/admin/AdminDisputes";
-import AdminBroadcasts from "@/components/admin/AdminBroadcasts";
-import AdminNotifications from "@/components/admin/AdminNotifications";
-import AdminReports from "@/components/admin/AdminReports";
-import AdminSupport from "@/components/admin/AdminSupport";
-import AdminReferrals from "@/components/admin/AdminReferrals";
-import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
-import AdminFraudDashboard from "@/components/admin/AdminFraudDashboard";
-import AdminAuditLog from "@/components/admin/AdminAuditLog";
-import AdminHealth from "@/components/admin/AdminHealth";
-import AdminExport from "@/components/admin/AdminExport";
+import { lazy, Suspense } from "react";
+
+const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
+const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
+const AdminSettings = lazy(() => import("@/components/admin/AdminSettings"));
+const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics"));
+const AdminDisputes = lazy(() => import("@/components/admin/AdminDisputes"));
+const AdminBroadcasts = lazy(() => import("@/components/admin/AdminBroadcasts"));
+const AdminNotifications = lazy(() => import("@/components/admin/AdminNotifications"));
+const AdminReports = lazy(() => import("@/components/admin/AdminReports"));
+const AdminSupport = lazy(() => import("@/components/admin/AdminSupport"));
+const AdminReferrals = lazy(() => import("@/components/admin/AdminReferrals"));
+const AdminSubscriptions = lazy(() => import("@/components/admin/AdminSubscriptions"));
+const AdminFraudDashboard = lazy(() => import("@/components/admin/AdminFraudDashboard"));
+const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
+const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
+const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
@@ -261,7 +263,9 @@ const Admin = () => {
             <h2 className="text-xl font-display font-bold text-foreground">{viewLabels[view]}</h2>
           </div>
         )}
-        {renderContent()}
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+          {renderContent()}
+        </Suspense>
       </main>
 
       {/* Logout dialog */}

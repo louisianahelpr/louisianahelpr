@@ -82,13 +82,23 @@ const AdminReviews = () => {
     setActionLoading(null);
   };
 
-  const getIdDocumentUrl = (profile: PendingProfile) => {
-    if (!profile.id_document_url) return null;
-    // Check if it's already a full URL
-    if (profile.id_document_url.startsWith("http")) return profile.id_document_url;
-    const { data } = supabase.storage.from("id-documents").getPublicUrl(profile.id_document_url);
-    return data.publicUrl;
-  };
+  const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedProfile?.id_document_url) {
+      setIdDocSignedUrl(null);
+      return;
+    }
+    const url = selectedProfile.id_document_url;
+    if (url.startsWith("http")) {
+      setIdDocSignedUrl(url);
+      return;
+    }
+    supabase.storage
+      .from("id-documents")
+      .createSignedUrl(url, 3600)
+      .then(({ data }) => setIdDocSignedUrl(data?.signedUrl ?? null));
+  }, [selectedProfile?.id_document_url]);
 
   const portfolioUrls = selectedProfile?.portfolio_urls || [];
 
@@ -284,17 +294,16 @@ const AdminReviews = () => {
                 {selectedProfile.id_document_url ? (
                   <div className="space-y-2">
                     <a
-                      href={getIdDocumentUrl(selectedProfile) || "#"}
+                      href={idDocSignedUrl || "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
                     >
                       <Eye className="w-4 h-4" /> View uploaded document
                     </a>
-                    {/* Try to show image preview if it looks like an image */}
-                    {getIdDocumentUrl(selectedProfile) && /\.(jpg|jpeg|png|gif|webp)/i.test(getIdDocumentUrl(selectedProfile)!) && (
+                    {idDocSignedUrl && /\.(jpg|jpeg|png|gif|webp)/i.test(selectedProfile.id_document_url) && (
                       <img
-                        src={getIdDocumentUrl(selectedProfile)!}
+                        src={idDocSignedUrl}
                         alt="ID Document"
                         className="max-w-full max-h-48 rounded-lg border border-border object-contain"
                       />

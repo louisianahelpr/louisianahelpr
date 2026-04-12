@@ -486,10 +486,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     );
   }
 
-  const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "posted", label: "Posted", count: postedJobs.length },
-    { key: "applied", label: "Applied", count: appliedApps.length },
-  ];
   const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 

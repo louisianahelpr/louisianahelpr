@@ -177,6 +177,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               <Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h
             </span>
           )}
+          {job.is_recurring && (
+            <span className="flex items-center gap-1">
+              <Repeat className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}
+            </span>
+          )}
+          {job.is_group_job && (
+            <span className="flex items-center gap-1">
+              <Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group task"}
+            </span>
+          )}
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw,
   Star, MessageSquare, Users, Pencil, AlertTriangle, RefreshCw,
-  Rocket, Clock, ChevronDown, Calendar, Timer, Navigation as NavigationIcon,
+  Rocket, Clock, Calendar, Timer, Navigation as NavigationIcon,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";

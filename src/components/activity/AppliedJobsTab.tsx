@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   MapPin, DollarSign, CheckCircle2, RotateCcw,
   Star, MessageSquare, Users, AlertTriangle, RefreshCw,
-  Rocket, Clock, ChevronDown, Calendar, Timer, ThumbsUp, ThumbsDown,
+  Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
   Navigation as NavigationIcon, Send,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";

@@ -255,6 +255,7 @@ const MyJobs = () => {
                             posterConfirmedAt={(job as any).poster_confirmed_at}
                             helperConfirmedAt={(job as any).helper_confirmed_at}
                             dateNeeded={job.date_needed}
+                            helperOnTheWayAt={(job as any).helper_on_the_way_at}
                           />
                           <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={(job as any).helper_confirmed_at} posterConfirmedAt={(job as any).poster_confirmed_at} />
                           {(job as any).is_group_job && (

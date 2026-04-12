@@ -432,7 +432,7 @@ export const AppliedJobsTab = ({
                 {/* Tracking — only active on the day of the job */}
                 <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} posterConfirmedAt={jobAny.poster_confirmed_at} />
                 {/* Job confirmation for helper */}
-                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
+                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={jobAny.helper_on_the_way_at} />
 
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
               </div>
@@ -442,7 +442,7 @@ export const AppliedJobsTab = ({
             {isActive && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 {/* Job confirmation for helper during active job */}
-                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
+                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={jobAny.helper_on_the_way_at} />
                 {/* Revision notice */}
                 {status === "revision_requested" && (
                   <div className="space-y-2">

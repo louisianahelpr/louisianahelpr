@@ -84,9 +84,7 @@ export function JobConfirmation({
           <AlertTriangle className="w-4 h-4 text-primary" /> Job Confirmation
         </h3>
         <p className="text-xs text-muted-foreground">
-          {isOwner
-            ? "Please confirm this job is still on so the helpr knows you're ready."
-            : "Please confirm you'll work this job so the poster knows you're committed."}
+          Please confirm this job is still on so both parties know everything is good to go.
           {hoursUntilJob > 0 && ` Job is in ${urgencyText}.`}
         </p>
         <p className="text-[10px] text-muted-foreground italic">
@@ -118,7 +116,7 @@ export function JobConfirmation({
         {!myConfirmed && (isOwner || isHelper) && (
           <Button size="sm" onClick={() => setShowConfirmDialog(true)} className="w-full">
             <CheckCircle2 className="w-4 h-4 mr-1" />
-            {isOwner ? "Confirm Job Is On" : "Confirm I'll Work This Job"}
+            Confirm Job
           </Button>
         )}
       </div>
@@ -129,14 +127,12 @@ export function JobConfirmation({
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-primary" />
-              {isOwner ? "Confirm This Job" : "Confirm You'll Work This Job"}
+              Confirm This Job
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {isOwner
-                ? "By confirming, you're letting the helpr know this job is still on and you'll be ready on the scheduled date."
-                : "By confirming, you're committing to show up and complete this job on the scheduled date."}
+              By confirming, you're letting the other party know this job is still on and you'll be ready on the scheduled date.
             </p>
             <div className="rounded-lg bg-muted/50 p-3 space-y-1">
               <p className="text-xs text-muted-foreground">📅 Scheduled for</p>
@@ -144,14 +140,12 @@ export function JobConfirmation({
                 {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
-            {!isOwner && (
-              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-                <p className="text-xs text-amber-700 flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  Declining after confirming may result in a warning or ban.
-                </p>
-              </div>
-            )}
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+              <p className="text-xs text-amber-700 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowConfirmDialog(false)}>Cancel</Button>

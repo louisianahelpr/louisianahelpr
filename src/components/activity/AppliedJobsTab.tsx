@@ -657,14 +657,8 @@ export const AppliedJobsTab = ({
               );
             })()}
 
-            {isCompleted && (
-              <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> {isFullyDone ? "Reviewed ✓" : "Completed"}</span>
-                <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
-              </div>
-            )}
-
-            {isCompleted && isExpanded && (
+            {/* Completed - not yet reviewed: always show photo proof + review button */}
+            {isCompleted && !isFullyDone && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 <PhotoProofGroup
                   jobId={app.job_id}
@@ -672,15 +666,31 @@ export const AppliedJobsTab = ({
                   afterUrls={jobAny.proof_after_urls || []}
                   canUpload={false}
                 />
-                {!isFullyDone && (
-                  helperReviewedJobIds.has(app.job_id) ? (
-                    <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
-                  ) : (
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
-                      <Star className="w-4 h-4 mr-1" /> Review Poster
-                    </Button>
-                  )
+                {helperReviewedJobIds.has(app.job_id) ? (
+                  <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
+                    <Star className="w-4 h-4 mr-1" /> Review Poster
+                  </Button>
                 )}
+              </div>
+            )}
+
+            {/* Fully done (reviewed) - collapsible */}
+            {isFullyDone && (
+              <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed ✓</span>
+                <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+              </div>
+            )}
+            {isFullyDone && isExpanded && (
+              <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                <PhotoProofGroup
+                  jobId={app.job_id}
+                  beforeUrls={jobAny.proof_before_urls || []}
+                  afterUrls={jobAny.proof_after_urls || []}
+                  canUpload={false}
+                />
               </div>
             )}
 

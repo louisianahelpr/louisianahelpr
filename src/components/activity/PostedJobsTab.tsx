@@ -309,7 +309,7 @@ export const PostedJobsTab = ({
                 {/* Features for active jobs */}
                 {(job.status === "in_progress" || job.status === "accepted") && (
                   <div className="px-4 pb-3 space-y-3">
-                    <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_completed_at} helperConfirmedAt={(job as any).helper_completed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
+                    <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
                     <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} />
                     {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
                     <JobCheckins jobId={job.id} userId={userId} isHelper={false} isOwner={true} jobStatus={job.status} jobLatitude={(job as any).latitude} jobLongitude={(job as any).longitude} />

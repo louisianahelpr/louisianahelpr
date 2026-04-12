@@ -331,14 +331,14 @@ export const PostedJobsTab = ({
                         {/* Confirm Arrival + No-Show side by side */}
                         {job.status === "in_progress" && (
                           <div className="flex items-center gap-2">
-                            {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
-                              <Button size="sm" className="flex-1" onClick={() => onConfirmArrival(job.id)}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
-                              </Button>
-                            )}
                             {!(job as any).poster_completed_at && (
                               <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
                                 <XCircle className="w-4 h-4 mr-1" /> No-Show
+                              </Button>
+                            )}
+                            {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
+                              <Button size="sm" className="flex-1" onClick={() => onConfirmArrival(job.id)}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
                               </Button>
                             )}
                           </div>

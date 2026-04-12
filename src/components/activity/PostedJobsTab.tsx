@@ -574,11 +574,11 @@ export const PostedJobsTab = ({
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">
                 {applications.map((app) => (
-                  <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-2">
+                  <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>
-                        {app.profiles?.skills && <p className="text-xs text-muted-foreground">{app.profiles.skills}</p>}
+                        {app.profiles?.skills && <p className="text-xs text-muted-foreground mt-0.5">{app.profiles.skills}</p>}
                         {app.reviewCount !== undefined && app.reviewCount > 0 && (
                           <div className="flex items-center gap-1 mt-1">
                             <Star className="w-3 h-3 fill-accent text-accent" />
@@ -590,15 +590,19 @@ export const PostedJobsTab = ({
                       {app.status === "accepted" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
                       {app.status === "rejected" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
                     </div>
+
+                    {/* Applicant message */}
                     {app.message && (
-                      <div className="rounded-lg bg-secondary/30 p-3 mt-2">
-                        <p className="text-xs text-muted-foreground mb-0.5">Their message to you:</p>
-                        <p className="text-sm text-foreground">{app.message}</p>
+                      <div className="rounded-lg bg-primary/5 border border-primary/15 p-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
+                        <p className="text-sm text-foreground leading-relaxed">{app.message}</p>
                       </div>
                     )}
+
+                    {/* Applicant attachments */}
                     {(app.attachment_urls || []).length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <p className="text-xs text-muted-foreground">Attached files:</p>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
                         <div className="flex flex-wrap gap-1.5">
                           {(app.attachment_urls || []).map((url, i) => {
                             const filename = decodeURIComponent(url.split('/').pop() || `File ${i + 1}`);

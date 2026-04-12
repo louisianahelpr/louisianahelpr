@@ -98,7 +98,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
 
       {/* Helper reviewing poster */}
       {props.helperReviewJob && (
-        <ReviewForm open={!!props.helperReviewJob} onClose={() => props.setHelperReviewJob(null)} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
+        <ReviewForm open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
       )}
 
       {/* Revision Request Dialog */}

@@ -125,8 +125,14 @@ export const PostedJobsTab = ({
                   })()}
                   {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
                     <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
-                  )}
-                </div>
+                   )}
+                   {job.is_recurring && (
+                     <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}</span>
+                   )}
+                   {job.is_group_job && (
+                     <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group task"}</span>
+                   )}
+                 </div>
               {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
                 <div className="space-y-1.5">
                   {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
@@ -287,27 +293,8 @@ export const PostedJobsTab = ({
                       </div>
                     </div>
                   )}
-                  {job.is_recurring && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-                      <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Recurring Task</p>
-                        <p className="text-sm font-medium text-foreground">
-                          {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Yes"}
-                          {job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {job.is_group_job && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-                      <Users className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Group Task</p>
-                        <p className="text-sm font-medium text-foreground">{job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Multiple helprs needed"}</p>
-                      </div>
-                    </div>
-                  )}
+
+
                 </div>
 
                 {/* Features for active jobs */}

@@ -257,15 +257,25 @@ export const PostedJobsTab = ({
               })()}
 
 
+              {/* Always-visible description & est. hours */}
+              {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+                <div className="px-4 pt-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+                  <p className="text-sm text-foreground leading-relaxed">{job.description}</p>
+                </div>
+              )}
+              {job.estimated_hours && (
+                <div className="px-4">
+                  <div className="rounded-lg bg-secondary/30 p-2.5">
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                    <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
+                  </div>
+                </div>
+              )}
+
               {/* Expandable section */}
               <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === job.id ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
                 <div className="px-4 pb-3 space-y-3 border-t border-border/40">
-                  {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-                    <div className="pt-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                      <p className="text-sm text-foreground leading-relaxed">{job.description}</p>
-                    </div>
-                  )}
                   {(job.photos || []).length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
@@ -276,12 +286,6 @@ export const PostedJobsTab = ({
                           </a>
                         ))}
                       </div>
-                    </div>
-                  )}
-                  {job.estimated_hours && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5">
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
-                      <p className="font-semibold text-foreground text-sm">{job.estimated_hours}h</p>
                     </div>
                   )}
                   {job.special_requirements?.trim() && (

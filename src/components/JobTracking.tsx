@@ -199,12 +199,7 @@ export function JobTracking({
           jobStart = base;
         }
 
-        const getSubtext = (key: string): string | null => {
-          if (key === "job_confirmed") {
-            if (bothConfirmed) return "Both confirmed ✓";
-            if (eitherConfirmed) return helperConfirmedAt ? "Helpr confirmed" : "Poster confirmed";
-            return "Pending confirmation";
-          }
+        const getSubtext = (_key: string): string | null => {
           return null;
         };
 

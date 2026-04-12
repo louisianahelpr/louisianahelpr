@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 const STATUSES = [
   { key: "assigned", label: "Assigned", icon: Clock, color: "text-muted-foreground" },
+  { key: "confirmed", label: "Confirmed", icon: CheckCircle2, color: "text-primary" },
   { key: "on_the_way", label: "On the Way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", icon: Wrench, color: "text-primary" },

@@ -436,7 +436,8 @@ export const PostedJobsTab = ({
                             canUploadAfter={false}
                             requireAfter={true}
                             budget={job.budget}
-                        />
+                          />
+                        )}
                         <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                           <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
                             {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}

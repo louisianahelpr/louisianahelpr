@@ -16,7 +16,7 @@ import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
-import { JobCheckins } from "@/components/JobCheckins";
+
 import { type Job, type Application, type AppliedApp, categoryColors } from "./activityConstants";
 
 interface AppliedJobsTabProps {
@@ -194,7 +194,6 @@ export const AppliedJobsTab = ({
               {startRequestedJobIds.has(app.job_id) && (
                 <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">🚀 Job started</div>
               )}
-              <JobCheckins jobId={app.job_id} userId={userId} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
               {/* Photo proof during active job */}
               <PhotoProofGroup
                 jobId={app.job_id}
@@ -423,7 +422,7 @@ export const AppliedJobsTab = ({
                 <div className="space-y-3">
                   <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={(app.job as any)?.poster_confirmed_at} helperConfirmedAt={(app.job as any)?.helper_confirmed_at} dateNeeded={app.job?.date_needed || ""} jobStatus={app.job?.status} />
                   <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} />
-                  <JobCheckins jobId={app.job_id} userId={userId} isHelper={true} isOwner={false} jobStatus={app.job?.status || ""} jobLatitude={(app.job as any)?.latitude} jobLongitude={(app.job as any)?.longitude} />
+                  
                 </div>
               )}
               {/* Revision notice */}

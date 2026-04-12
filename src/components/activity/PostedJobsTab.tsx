@@ -484,7 +484,7 @@ export const PostedJobsTab = ({
                           </Button>
                         )}
                         {/* Photo Proof — last */}
-                        {(job as any).helper_arrived_at && (
+                        {(job as any).poster_confirmed_working_at && (
                           <PhotoProofGroup
                             jobId={job.id}
                             beforeUrls={(job as any).proof_before_urls || []}

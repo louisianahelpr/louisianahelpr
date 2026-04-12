@@ -550,7 +550,7 @@ export const AppliedJobsTab = ({
                   )}
 
                   {/* Photo proof */}
-                  {jobAny.helper_arrived_at && (
+                  {jobAny.poster_confirmed_working_at && (
                     <PhotoProofGroup
                       jobId={app.job_id}
                       beforeUrls={jobAny.proof_before_urls || []}

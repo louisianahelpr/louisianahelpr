@@ -317,7 +317,7 @@ export const AppliedJobsTab = ({
             )}
 
             {/* Pending expand hint + withdraw */}
-            {isPending && (
+            {!isMinimalCard && isPending && (
               <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
                 <span className="text-xs text-muted-foreground cursor-pointer" onClick={() => setExpandedJobId(isExpanded ? null : app.job_id)}>
                   {isExpanded ? "▲ Less" : "▼ Details"}

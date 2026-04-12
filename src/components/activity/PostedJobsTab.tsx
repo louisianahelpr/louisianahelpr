@@ -268,8 +268,8 @@ export const PostedJobsTab = ({
                 </div>
               )}
 
-              {/* Expandable section */}
-              <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === job.id ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
+              {/* Additional details */}
+              <div>
                 <div className="px-4 pb-3 space-y-3 border-t border-border/40">
                   {(job.photos || []).length > 0 && (
                     <div>

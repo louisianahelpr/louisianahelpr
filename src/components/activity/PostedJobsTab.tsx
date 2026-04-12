@@ -326,12 +326,18 @@ export const PostedJobsTab = ({
                       </div>
                     )}
                     {job.status === "accepted" && (
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground text-center">
+                          <Clock className="w-3 h-3 inline mr-1" />
+                          Live tracking starts the day of the job — actions will be available then
+                        </p>
                         {startRequestedJobIds.has(job.id) && !(job as any).helper_confirmed_at && (
-                          <Button size="sm" onClick={() => onConfirmStart(job.id)}><CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start</Button>
+                          <Button size="sm" className="w-full" onClick={() => onConfirmStart(job.id)}><CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start</Button>
                         )}
-                        <Button size="sm" className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+                        </div>
                       </div>
                     )}
                     {(job.status === "in_progress" || job.status === "revision_requested") && (

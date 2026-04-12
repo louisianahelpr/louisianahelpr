@@ -157,10 +157,19 @@ export const PostedJobsTab = ({
                           <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to head out</span>
                         )}
                         {(job as any).helper_arrived_at && (
-                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                            <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} has arrived</span>
-                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
+                              <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            {(job as any).poster_confirmed_arrival_at ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">✓ Arrival confirmed</span>
+                            ) : (
+                              <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>

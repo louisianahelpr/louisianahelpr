@@ -4,7 +4,7 @@ import { createNotification } from "@/lib/notifications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock } from "lucide-react";
+import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 type CancellationDialogProps = {

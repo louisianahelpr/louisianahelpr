@@ -9,38 +9,33 @@ interface NotificationPayload {
 }
 
 /**
- * Creates an in-app notification and fires off an email notification
- * if the user has email enabled for that notification type.
+ * Creates an in-app notification via edge function (server-side insert)
+ * and fires off an email notification if the user has email enabled.
  * This is fire-and-forget for the email — it won't block or fail the in-app notification.
  * On email failure, an admin notification is created for visibility.
  */
 export async function createNotification(payload: NotificationPayload) {
   const { user_id, title, message, type = "info", link = null } = payload;
 
-  // 1. Always insert the in-app notification
-  const { error } = await supabase.from("notifications").insert({
-    user_id,
-    title,
-    message,
-    type,
-    link,
+  // 1. Insert notification via edge function (service_role)
+  const { error: fnError } = await supabase.functions.invoke("create-notification", {
+    body: { user_id, title, message, type, link },
   });
 
-  if (error) {
-    console.error("Failed to create notification:", error);
-    return { error };
+  if (fnError) {
+    console.error("Failed to create notification:", fnError);
+    return { error: fnError };
   }
 
   // 2. Fire-and-forget: invoke the email notification edge function
-  // This checks user preferences server-side and only sends if enabled
   supabase.functions
     .invoke("send-notification-email", {
       body: { user_id, title, message, type, link },
     })
-    .then(({ error: fnErr, data }) => {
-      if (fnErr) {
-        console.error("Notification email invoke failed:", fnErr);
-        notifyAdminsOfEmailFailure(user_id, title, fnErr.message);
+    .then(({ error: emailErr }) => {
+      if (emailErr) {
+        console.error("Notification email invoke failed:", emailErr);
+        notifyAdminsOfEmailFailure(user_id, title, emailErr.message);
       }
     })
     .catch((err) => {
@@ -64,34 +59,34 @@ export async function createNotifications(payloads: NotificationPayload[]) {
 
 /**
  * Fire-and-forget: notify admins when an email fails to send.
- * Uses a simple debounce key to avoid spamming admin notifications.
  */
-// In-memory debounce map (works in PWA/service workers unlike sessionStorage)
 const emailFailDebounce = new Map<string, number>();
 
 function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, errorMsg: string) {
   const debounceKey = `email_fail_alert_${targetUserId}`;
   const lastAlert = emailFailDebounce.get(debounceKey);
-  if (lastAlert && Date.now() - lastAlert < 60_000) return; // 1min debounce
+  if (lastAlert && Date.now() - lastAlert < 60_000) return;
   emailFailDebounce.set(debounceKey, Date.now());
 
-  // Get admin users and notify them
+  // Use edge function to create admin notifications too
   supabase
     .from("user_roles")
     .select("user_id")
     .eq("role", "admin")
     .then(({ data: admins }) => {
       if (!admins?.length) return;
-      const adminNotifications = admins.map((admin) => ({
-        user_id: admin.user_id,
-        title: "⚠️ Email delivery failed",
-        message: `Failed to send "${emailTitle}" email for user ${targetUserId.slice(0, 8)}…: ${errorMsg}`,
-        type: "warning" as const,
-        link: "/admin",
-      }));
-      // Insert directly to avoid recursive createNotification calls
-      supabase.from("notifications").insert(adminNotifications).then(({ error }) => {
-        if (error) console.error("Failed to notify admins of email failure:", error);
-      });
+      for (const admin of admins) {
+        supabase.functions.invoke("create-notification", {
+          body: {
+            user_id: admin.user_id,
+            title: "⚠️ Email delivery failed",
+            message: `Failed to send "${emailTitle}" email for user ${targetUserId.slice(0, 8)}…: ${errorMsg}`,
+            type: "warning",
+            link: "/admin",
+          },
+        }).catch((err) => {
+          console.error("Failed to notify admin of email failure:", err);
+        });
+      }
     });
 }

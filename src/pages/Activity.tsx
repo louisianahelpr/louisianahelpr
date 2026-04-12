@@ -493,7 +493,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <div className="min-h-screen bg-background pb-20">
       <DashboardHeader />
       <main className="container mx-auto px-4 py-4">
-        <div className="max-w-3xl mx-auto space-y-4 overflow-x-hidden">
+        <div className="max-w-3xl mx-auto space-y-4 overflow-hidden">
           <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
 
           {/* Search */}

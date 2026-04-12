@@ -189,7 +189,9 @@ const MyJobs = () => {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-semibold text-foreground">{job.title}</h3>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
-                          {job.status.replace("_", " ")}
+                          {job.status === "accepted" && (job as any).poster_confirmed_at
+                            ? "confirmed"
+                            : job.status.replace("_", " ")}
                         </span>
                         {job.payment_status === "released" && (
                           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Paid</span>

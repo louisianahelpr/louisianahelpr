@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CheckCircle2, Clock, AlertTriangle, ShieldCheck } from "lucide-react";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 
 export function JobConfirmation({
@@ -26,7 +27,7 @@ export function JobConfirmation({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [localConfirmedAt, setLocalConfirmedAt] = useState<string | null>(null);
 
-  const jobDate = new Date(dateNeeded + "T00:00");
+  const jobDate = parseLocalDate(dateNeeded);
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 

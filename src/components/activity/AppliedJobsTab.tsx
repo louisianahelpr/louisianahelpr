@@ -18,6 +18,7 @@ import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 
 import { type Job, type Application, type AppliedApp, categoryColors } from "./activityConstants";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 
 const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
@@ -224,7 +225,7 @@ export const AppliedJobsTab = ({
               <div className="flex items-center gap-2.5 flex-wrap text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3 shrink-0" />
-                  {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   {!job.start_time ? " · Flexible" : ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
                 </span>
                 <a

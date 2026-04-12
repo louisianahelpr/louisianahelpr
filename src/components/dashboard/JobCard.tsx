@@ -8,6 +8,7 @@ import {
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { getCityState } from "@/lib/locationUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -148,7 +149,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
           ) : (
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3 shrink-0" />
-              {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+              {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               {!job.start_time ? " · Flexible time" : formattedTime ? ` · ${formattedTime}` : ""}
             </span>
           )}

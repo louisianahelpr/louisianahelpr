@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   MapPin, DollarSign, CheckCircle2, RotateCcw,
   Star, MessageSquare, Users, AlertTriangle, RefreshCw,
-  Rocket, Clock, ChevronDown, Calendar, Timer, ThumbsUp, ThumbsDown,
+  Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
   Navigation as NavigationIcon, Send,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -63,9 +63,8 @@ export const AppliedJobsTab = ({
   return (
     <div className="space-y-3">
       {apps.map((app) => {
-        const isNonExpandable = app.status === "rejected" || app.job?.status === "completed";
         return (
-        <div key={app.id} className={`rounded-2xl border border-border/60 bg-card overflow-hidden ${isNonExpandable ? "" : "cursor-pointer"} shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all`} onClick={() => !isNonExpandable && setExpandedJobId(expandedJobId === app.id ? null : app.id)}>
+        <div key={app.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
           {/* Top bar */}
           <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
             <h3 className={`font-bold text-[15px] leading-snug min-w-0 truncate ${(categoryColors[app.job?.category || "other"] || categoryColors.other).title}`}>
@@ -84,7 +83,7 @@ export const AppliedJobsTab = ({
                   </span>
                 );
               })()}
-              {!isNonExpandable && <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedJobId === app.id ? "rotate-180" : ""}`} />}
+              
             </div>
           </div>
 
@@ -370,8 +369,8 @@ export const AppliedJobsTab = ({
             </div>
           )}
 
-          {/* Expandable details */}
-          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
+          {/* Additional details */}
+          <div>
             <div className="px-4 pb-4 space-y-3 border-t border-border/40">
               {app.job && (app.job.photos || []).length > 0 && (
                 <div>

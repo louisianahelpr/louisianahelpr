@@ -320,6 +320,19 @@ export const PostedJobsTab = ({
                     )}
                     {(job.status === "in_progress" || job.status === "revision_requested") && (
                       <div className="space-y-2">
+                        {/* Confirm Arrival — top priority action */}
+                        {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
+                              <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
+                            </Button>
+                          </div>
+                        )}
                         {(job as any).helper_arrived_at && (
                           <PhotoProofGroup
                             jobId={job.id}

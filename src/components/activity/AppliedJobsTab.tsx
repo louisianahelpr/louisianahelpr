@@ -167,10 +167,13 @@ export const AppliedJobsTab = ({
           {/* In Progress / Revision */}
           {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              {!startRequestedJobIds.has(app.job_id) && (
+              {!startRequestedJobIds.has(app.job_id) && (app.job as any)?.helper_arrived_at && (
                 <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onStartJob(app.job_id)} disabled={startJobLoading === app.job_id}>
                   <Rocket className="w-4 h-4 mr-1" /> {startJobLoading === app.job_id ? "Starting…" : "Start Job"}
                 </Button>
+              )}
+              {!startRequestedJobIds.has(app.job_id) && !(app.job as any)?.helper_arrived_at && (
+                <p className="text-xs text-muted-foreground text-center py-1">Mark "Arrived" in live tracking before starting the job</p>
               )}
               {startRequestedJobIds.has(app.job_id) && (
                 <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">🚀 Job started</div>

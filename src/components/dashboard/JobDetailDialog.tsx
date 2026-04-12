@@ -82,7 +82,7 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
             </div>
             <div className="rounded-lg bg-secondary/30 p-3">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
-              <p className="font-semibold text-foreground">{new Date(job.date_needed).toLocaleDateString()}</p>
+              <p className="font-semibold text-foreground">{parseLocalDate(job.date_needed).toLocaleDateString()}</p>
             </div>
             {job.start_time && (
               <div className="rounded-lg bg-secondary/30 p-3">

@@ -236,6 +236,7 @@ export const PostedJobsTab = ({
                     </div>
                     {/* Job countdown */}
                     <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+                    {(job as any).helper_confirmed_at && (
                       <div className="space-y-1.5">
                         {(job as any).helper_arrived_at && (
                           <div className="space-y-1.5">

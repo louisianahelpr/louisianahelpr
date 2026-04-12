@@ -147,15 +147,6 @@ export const PostedJobsTab = ({
                     </div>
                     {(job as any).helper_confirmed_at && (
                       <div className="space-y-1.5">
-                        {(job as any).helper_on_the_way_at ? (
-                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
-                            <NavigationIcon className="w-3.5 h-3.5 shrink-0" />
-                            <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} is on the way</span>
-                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to head out</span>
-                        )}
                         {(job as any).helper_arrived_at && (
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">

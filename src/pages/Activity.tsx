@@ -493,7 +493,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <div className="min-h-screen bg-background pb-20">
       <DashboardHeader />
       <main className="container mx-auto px-4 py-4">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-4 overflow-hidden">
           <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
 
           {/* Search */}
@@ -507,12 +507,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             />
           </div>
 
-          <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-hide -mx-4 px-4">
+          <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-hide -mx-4 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {activeStatusFilters.map((f) => {
               const count = activeCounts[f.key] || 0;
               return (
                 <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter === f.key ? f.color : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"}`}>
+                  className={`flex-shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter === f.key ? f.color : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"}`}>
                   {f.label}
                   {count > 0 && (
                     <span className={`ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold ${statusFilter === f.key ? "bg-foreground/10" : "bg-muted-foreground/15"}`}>{count}</span>

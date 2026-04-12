@@ -443,6 +443,31 @@ export const AppliedJobsTab = ({
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 {/* Live tracking for in-progress jobs */}
                 <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} posterConfirmedAt={jobAny.poster_confirmed_at} />
+
+                {/* Completion status — right after tracker */}
+                {jobAny.helper_completed_at && !jobAny.poster_completed_at && !jobAny.revision_requested_at && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm font-semibold text-primary">Marked Complete</span>
+                    </div>
+                    <div className="px-3 pb-2.5 space-y-1">
+                      <p className="text-xs text-muted-foreground">Waiting for the poster to:</p>
+                      <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                        <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
+                        <li>Or <span className="text-foreground font-medium">request a revision</span></li>
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
+                    </div>
+                  </div>
+                )}
+                {jobAny.helper_completed_at && jobAny.poster_completed_at && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm font-medium text-primary">Job complete ✓</span>
+                  </div>
+                )}
+
                 {/* Job confirmation for helper during active job */}
                 <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={jobAny.helper_on_the_way_at} />
                 {/* Revision notice */}
@@ -518,30 +543,6 @@ export const AppliedJobsTab = ({
                   })()}
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                 </div>
-
-                {/* Completion status */}
-                {jobAny.helper_completed_at && !jobAny.poster_completed_at && !jobAny.revision_requested_at && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
-                    <div className="flex items-center gap-2 px-3 py-2">
-                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-sm font-semibold text-primary">Marked Complete</span>
-                    </div>
-                    <div className="px-3 pb-2.5 space-y-1">
-                      <p className="text-xs text-muted-foreground">Waiting for the poster to:</p>
-                      <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
-                        <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
-                        <li>Or <span className="text-foreground font-medium">request a revision</span></li>
-                      </ul>
-                      <p className="text-[10px] text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
-                    </div>
-                  </div>
-                )}
-                {jobAny.helper_completed_at && jobAny.poster_completed_at && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-sm font-medium text-primary">Job complete ✓</span>
-                  </div>
-                )}
               </div>
             )}
 

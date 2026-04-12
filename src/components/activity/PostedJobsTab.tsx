@@ -555,7 +555,7 @@ export const PostedJobsTab = ({
                       const isDisputer = (job as any).disputed_by === userId;
                       return (
                       <div className="space-y-2">
-                        {(job as any).helper_arrived_at && (
+                        {(job as any).poster_confirmed_working_at && (
                           <PhotoProofGroup
                             jobId={job.id}
                             beforeUrls={(job as any).proof_before_urls || []}

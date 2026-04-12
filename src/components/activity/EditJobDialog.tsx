@@ -48,14 +48,12 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const save = async () => {
     if (!job) return;
     setSaving(true);
-    const isPaid = job.payment_status === "escrow" || job.payment_status === "released";
     const updateData: any = {
       title: title.trim(), description: description.trim(), category: category as any,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       special_requirements: specialReq.trim() || null,
     };
-    if (!isPaid) updateData.budget = parseFloat(budget);
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -68,7 +66,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const isPaid = job.payment_status === "escrow" || job.payment_status === "released";
-  const locked = hasHelper || isPaid;
+  const locked = hasHelper;
 
   return (
     <>
@@ -80,7 +78,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-4">
           {locked && (
             <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
-              {hasHelper ? "Fields are locked because a helpr has been accepted." : "Budget is locked after payment."}
+              Fields are locked because a helpr has been accepted.
             </p>
           )}
           <div className="space-y-2">
@@ -114,15 +112,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Est. hours</Label>
-              <Input type="number" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} />
-            </div>
-            <div className="space-y-2">
-              <Label>Budget ($)</Label>
-              <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} disabled={locked} />
-            </div>
+          <div className="space-y-2">
+            <Label>Est. hours</Label>
+            <Input type="number" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} />
           </div>
           <div className="space-y-2">
             <Label>Special requirements</Label>

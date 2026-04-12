@@ -1,0 +1,1 @@
+UPDATE public.jobs SET payment_status = 'refunded' WHERE id = '4825a27a-839c-4d72-b58f-edb0f2ffb42f';

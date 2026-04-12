@@ -267,16 +267,16 @@ const AdminAnalytics = () => {
       {/* ── Row 1: Key Financial Metrics ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          label="Gross Revenue"
+          label="Collected Revenue"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${capturedJobs.length} captured payments`}
+          sub={`${capturedJobs.length} active payments (excl. refunds)`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />
         <MetricCard
           label="Platform Profit"
           value={`$${totalFees.toFixed(2)}`}
-          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of captured payments`}
+          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of collected revenue`}
           icon={TrendingUp}
           accent
           onClick={() => openDrillDown("fees")}
@@ -289,10 +289,11 @@ const AdminAnalytics = () => {
           onClick={() => openDrillDown("payouts")}
         />
         <MetricCard
-          label="Tips Collected"
-          value={`$${totalTips.toFixed(2)}`}
-          sub={`${tips.length} total tips`}
-          icon={Star}
+          label="Refunded"
+          value={`$${totalRefunded.toFixed(2)}`}
+          sub={`${refundedJobs.length} refunded ${refundedJobs.length === 1 ? "job" : "jobs"}`}
+          icon={XCircle}
+        />
         />
       </div>
 

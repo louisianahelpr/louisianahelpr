@@ -170,7 +170,7 @@ export function JobTracking({
 
   const currentStatusIdx = tracking
     ? STATUSES.findIndex((s) => s.key === tracking.status)
-    : bothConfirmed
+    : eitherConfirmed
       ? STATUSES.findIndex((s) => s.key === "job_confirmed")
       : helperConfirmedAt
         ? STATUSES.findIndex((s) => s.key === "confirmed")

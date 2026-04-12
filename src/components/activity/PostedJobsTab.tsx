@@ -320,29 +320,28 @@ export const PostedJobsTab = ({
                     )}
                     {(job.status === "in_progress" || job.status === "revision_requested") && (
                       <div className="space-y-2">
-                        {/* Confirm Arrival — top priority action */}
+                        {/* Confirm Arrival notice */}
                         {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                              <MapPin className="w-3.5 h-3.5 shrink-0" />
-                              <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
-                              <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                            <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
-                            </Button>
+                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                         )}
-                        {(job as any).helper_arrived_at && (
-                          <PhotoProofGroup
-                            jobId={job.id}
-                            beforeUrls={(job as any).proof_before_urls || []}
-                            afterUrls={(job as any).proof_after_urls || []}
-                            canUploadBefore={false}
-                            canUploadAfter={false}
-                            requireAfter={true}
-                            budget={job.budget}
-                          />
+                        {/* Confirm Arrival + No-Show side by side */}
+                        {job.status === "in_progress" && (
+                          <div className="flex items-center gap-2">
+                            {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
+                              <Button size="sm" className="flex-1" onClick={() => onConfirmArrival(job.id)}>
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
+                              </Button>
+                            )}
+                            {!(job as any).poster_completed_at && (
+                              <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
+                                <XCircle className="w-4 h-4 mr-1" /> No-Show
+                              </Button>
+                            )}
+                          </div>
                         )}
                         {/* Confirm Working */}
                         {job.status === "in_progress" && !(job as any).poster_confirmed_working_at && (job as any).poster_confirmed_arrival_at && (
@@ -359,7 +358,7 @@ export const PostedJobsTab = ({
                         {(job as any).poster_confirmed_working_at && (
                           <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Working confirmed</span>
                         )}
-                        {/* Approve/Complete - only after helper marks complete */}
+                        {/* Approve/Complete + Message */}
                         <div className="flex items-center gap-2">
                           {(job as any).helper_completed_at && (
                             <Button size="sm" className="flex-1" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
@@ -368,23 +367,28 @@ export const PostedJobsTab = ({
                           )}
                           <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                         </div>
-                        {job.status === "in_progress" && !(job as any).poster_completed_at && (
-                          <div className="flex items-center gap-2">
-                            {(job as any).helper_completed_at && (
-                              <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
-                                <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
-                              <XCircle className="w-4 h-4 mr-1" /> No-Show
-                            </Button>
-                          </div>
+                        {job.status === "in_progress" && !(job as any).poster_completed_at && (job as any).helper_completed_at && (
+                          <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
+                            <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
+                          </Button>
                         )}
                         {/* Dispute available after revision requested */}
                         {(job.status === "revision_requested" || (job as any).revision_requested_at) && (
                           <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
                             <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
                           </Button>
+                        )}
+                        {/* Photo Proof — last */}
+                        {(job as any).helper_arrived_at && (
+                          <PhotoProofGroup
+                            jobId={job.id}
+                            beforeUrls={(job as any).proof_before_urls || []}
+                            afterUrls={(job as any).proof_after_urls || []}
+                            canUploadBefore={false}
+                            canUploadAfter={false}
+                            requireAfter={true}
+                            budget={job.budget}
+                          />
                         )}
                       </div>
                     )}

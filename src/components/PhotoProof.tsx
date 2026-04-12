@@ -188,7 +188,7 @@ export const PhotoProofGroup = ({
             ) : (
               <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
             )}
-            {canUpload && (
+            {showBeforeUpload && (
               <PhotoProof jobId={jobId} type="before" existingUrls={beforeUrls} onUploaded={onUploaded} />
             )}
           </div>

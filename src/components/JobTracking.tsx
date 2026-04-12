@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 const STATUSES = [
   { key: "assigned", label: "Offered", icon: Clock, color: "text-muted-foreground" },
@@ -32,6 +33,7 @@ export function JobTracking({
   jobStartTime,
   jobStatus,
   helperConfirmedAt,
+  posterConfirmedAt,
 }: {
   jobId: string;
   helperId: string | null;
@@ -41,6 +43,7 @@ export function JobTracking({
   jobStartTime?: string | null;
   jobStatus?: string;
   helperConfirmedAt?: string | null;
+  posterConfirmedAt?: string | null;
 }) {
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -94,7 +97,6 @@ export function JobTracking({
     setUpdating(true);
     const loc = await getLocation();
 
-    // Optimistic update
     const now = new Date().toISOString();
     setTracking(prev => prev ? { ...prev, status: newStatus, latitude: loc?.lat || prev.latitude, longitude: loc?.lng || prev.longitude, updated_at: now } : {
       id: "temp",
@@ -162,11 +164,17 @@ export function JobTracking({
     loadTracking();
   };
 
+  // Determine current status index based on tracking data + confirmation state
+  const bothConfirmed = !!helperConfirmedAt && !!posterConfirmedAt;
+  const eitherConfirmed = !!helperConfirmedAt || !!posterConfirmedAt;
+
   const currentStatusIdx = tracking
     ? STATUSES.findIndex((s) => s.key === tracking.status)
-    : helperConfirmedAt
-      ? STATUSES.findIndex((s) => s.key === "confirmed")
-      : (jobStatus === "accepted" ? STATUSES.findIndex((s) => s.key === "assigned") : 0);
+    : bothConfirmed
+      ? STATUSES.findIndex((s) => s.key === "job_confirmed")
+      : helperConfirmedAt
+        ? STATUSES.findIndex((s) => s.key === "confirmed")
+        : (jobStatus === "accepted" ? STATUSES.findIndex((s) => s.key === "assigned") : 0);
 
   if (!helperId) return null;
 
@@ -181,32 +189,21 @@ export function JobTracking({
         const now = new Date();
         let jobStart: Date | null = null;
         if (jobDateNeeded) {
-          jobStart = jobStartTime
-            ? new Date(`${jobDateNeeded}T${jobStartTime}`)
-            : new Date(jobDateNeeded + "T23:59:59");
+          const base = parseLocalDate(jobDateNeeded);
+          if (jobStartTime) {
+            const [h, m] = jobStartTime.split(":").map(Number);
+            base.setHours(h, m, 0, 0);
+          } else {
+            base.setHours(23, 59, 59, 0);
+          }
+          jobStart = base;
         }
-        const confirmBy = jobStart ? new Date(jobStart.getTime() - 24 * 60 * 60 * 1000) : null;
-
-        const formatCountdown = (diff: number): string => {
-          const hrs = Math.floor(diff / (1000 * 60 * 60));
-          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-          if (hrs > 48) return `${Math.ceil(hrs / 24)}d left`;
-          if (hrs > 0) return `${hrs}h ${mins}m left`;
-          return `${mins}m left`;
-        };
 
         const getSubtext = (key: string): string | null => {
-          if (key === "confirmed" && currentStatusIdx < STATUSES.findIndex(s => s.key === "confirmed")) {
-            // Countdown to response deadline (accept the job)
-            const responseDeadline = jobStart ? new Date(jobStart.getTime() - 48 * 60 * 60 * 1000) : null;
-            if (responseDeadline) {
-              const diff = responseDeadline.getTime() - now.getTime();
-              if (diff > 0) return formatCountdown(diff);
-            }
-          }
-          if (key === "job_confirmed" && confirmBy && currentStatusIdx < STATUSES.findIndex(s => s.key === "job_confirmed")) {
-            const diff = confirmBy.getTime() - now.getTime();
-            if (diff > 0) return formatCountdown(diff);
+          if (key === "job_confirmed") {
+            if (bothConfirmed) return "Both confirmed ✓";
+            if (eitherConfirmed) return helperConfirmedAt ? "Helpr confirmed" : "Poster confirmed";
+            return "Pending confirmation";
           }
           return null;
         };
@@ -274,33 +271,40 @@ export function JobTracking({
         </p>
       )}
 
-      {/* Helper controls */}
+      {/* Helper controls — skip the job_confirmed step since that's handled by JobConfirmation */}
       {isHelper && (() => {
         const now = new Date();
-        let jobStartDate: Date | null = null;
+        let jobDay: Date | null = null;
         if (jobDateNeeded) {
-          jobStartDate = jobStartTime
-            ? new Date(`${jobDateNeeded}T${jobStartTime}`)
-            : new Date(jobDateNeeded + "T23:59:59");
+          jobDay = parseLocalDate(jobDateNeeded);
         }
-        const confirmUnlock = jobStartDate ? new Date(jobStartDate.getTime() - 24 * 60 * 60 * 1000) : null;
-        const jobDay = jobDateNeeded ? new Date(jobDateNeeded + "T00:00:00") : null;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const nextStatus = STATUSES[currentStatusIdx + 1];
+        // Find next actionable status (skip job_confirmed — handled by JobConfirmation component)
+        let nextIdx = currentStatusIdx + 1;
+        if (nextIdx < STATUSES.length && STATUSES[nextIdx].key === "job_confirmed") {
+          // If both confirmed, skip to on_the_way; otherwise stay (no button shown)
+          if (bothConfirmed) {
+            nextIdx++;
+          } else {
+            return (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground text-center">
+                  Confirm the job below to unlock the next step
+                </p>
+              </div>
+            );
+          }
+        }
+
+        const nextStatus = STATUSES[nextIdx];
         if (!nextStatus) return null;
 
-        const isConfirmStep = nextStatus.key === "job_confirmed";
-        const isLocked = isConfirmStep
-          ? (confirmUnlock ? now < confirmUnlock : false)
-          : (jobDay ? today < jobDay : false);
-
-        const lockMessage = isConfirmStep && confirmUnlock
-          ? `Confirm available ${confirmUnlock.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${confirmUnlock.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-          : jobDay
-            ? `Actions available on ${jobDay.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
-            : null;
+        const isLocked = jobDay ? today < jobDay : false;
+        const lockMessage = jobDay && isLocked
+          ? `Actions available on ${jobDay.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
+          : null;
 
         return (
           <div className="pt-2 border-t border-border space-y-2">

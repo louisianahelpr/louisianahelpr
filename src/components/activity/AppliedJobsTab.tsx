@@ -373,10 +373,10 @@ export const AppliedJobsTab = ({
                   {jobAny.helper_arrived_at && !jobAny.poster_confirmed_working_at && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrived</span>}
                 </div>
 
-                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
-
                 {/* Tracking — only active on the day of the job */}
                 <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} />
+
+                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
               </div>
             )}
 

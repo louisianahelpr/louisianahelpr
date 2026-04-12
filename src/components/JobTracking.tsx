@@ -239,21 +239,21 @@ export function JobTracking({
                 Actions available on {jobDate!.toLocaleDateString([], { month: 'short', day: 'numeric' })}
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
-              {STATUSES.filter((_, idx) => idx > currentStatusIdx).map((s) => (
+            {(() => {
+              const nextStatus = STATUSES[currentStatusIdx + 1];
+              if (!nextStatus) return null;
+              return (
                 <Button
-                  key={s.key}
                   size="sm"
-                  variant={s.key === STATUSES[currentStatusIdx + 1]?.key ? "default" : "outline"}
-                  onClick={() => updateStatus(s.key)}
+                  className="w-full"
+                  onClick={() => updateStatus(nextStatus.key)}
                   disabled={updating || !isJobDay}
-                  className="text-xs"
                 >
-                  <s.icon className="w-3.5 h-3.5 mr-1" />
-                  {s.label}
+                  <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
+                  {nextStatus.label}
                 </Button>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         );
       })()}

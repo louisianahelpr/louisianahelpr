@@ -220,6 +220,56 @@ export const AppliedJobsTab = ({
                     ))}
                   </div>
                 )}
+
+                {/* Your application message */}
+                {app.message && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/15 p-2">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Your message</p>
+                    <p className="text-xs text-foreground">{app.message}</p>
+                  </div>
+                )}
+
+                {/* Your attachments */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Your Attachments</p>
+                  {(app.attachment_urls || []).map((url, i) => {
+                    const filename = decodeURIComponent(url.split('/').pop() || `File ${i + 1}`);
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                        <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="truncate flex-1 text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                          {filename.length > 30 ? filename.slice(-30) : filename}
+                        </a>
+                        <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                          <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                        </a>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }} className="text-destructive hover:text-destructive/80">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(app.attachment_urls || []).length < 5 && (
+                    <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>{uploadingAttachment === app.id ? "Uploading…" : "Add cert or work sample"}</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf,.doc,.docx"
+                        disabled={uploadingAttachment === app.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAddAttachment(app.id, app.job_id, app.attachment_urls || [], file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                  {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
+                    <p className="text-[10px] text-muted-foreground">No attachments yet</p>
+                  )}
+                </div>
               </div>
             )}
 

@@ -586,7 +586,7 @@ const PostJob = () => {
                   </label>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
                     <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
@@ -617,7 +617,7 @@ const PostJob = () => {
                     <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
                   </div>
                   {isRecurring && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div className="space-y-2">
                         <Label>Frequency</Label>
                         <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
@@ -768,7 +768,7 @@ const PostJob = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
                       <span>{`${streetAddress}, ${city}, ${addrState} ${zipCode}`}</span>

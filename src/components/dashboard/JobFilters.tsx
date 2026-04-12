@@ -108,7 +108,7 @@ const JobFilters = ({
         </div>
 
         {/* Location & Budget */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Location</p>
             <div className="relative">

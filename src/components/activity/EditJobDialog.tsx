@@ -99,7 +99,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Est. hours</Label>
               <Input type="number" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} />

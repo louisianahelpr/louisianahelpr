@@ -28,10 +28,11 @@ const AdminFraudDashboard = lazy(() => import("@/components/admin/AdminFraudDash
 const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
 const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
 const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
+const AdminSocialPost = lazy(() => import("@/components/admin/AdminSocialPost"));
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);

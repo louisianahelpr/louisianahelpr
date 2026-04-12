@@ -526,7 +526,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             filteredPostedJobs.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">{postedJobs.length === 0 ? "You haven't posted any tasks yet." : "No tasks match this filter."}</p>
-                {postedJobs.length === 0 && <Button onClick={() => navigate("/post-job")}>Post your first task</Button>}
+                <Button onClick={() => navigate("/post-job")}>Post a Job</Button>
               </div>
             ) : (
               <PostedJobsTab

@@ -72,20 +72,28 @@ const AdminAnalytics = () => {
   const helpers = profiles.filter(p => p.role === "helper");
   const customers = profiles.filter(p => p.role === "customer");
   const completedJobs = allJobs.filter(j => j.status === "completed");
-  // Captured payments that are NOT cancelled — these are real revenue
-  const capturedJobs = allJobs.filter(j => ["escrow", "payout_pending", "released"].includes(j.payment_status || "") && j.status !== "cancelled");
+  // All jobs with captured payments (escrow/pending/released) — includes cancelled jobs since platform fees were already collected
+  const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
+  const capturedJobs = allJobs.filter(j => capturedPaymentStatuses.includes(j.payment_status || "") && j.status !== "cancelled");
+  // Cancelled jobs that were paid (refunded or cancelled payment) — platform keeps its service fees from these
+  const cancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && ["refunded", "cancelled", ...capturedPaymentStatuses].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");
   const activeJobs = allJobs.filter(j => ["accepted", "in_progress"].includes(j.status));
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
   // Late cancellations with captured payment — platform keeps fees
-  const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && ["escrow", "payout_pending", "released"].includes(j.payment_status || ""));
+  const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && capturedPaymentStatuses.includes(j.payment_status || ""));
 
   const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  // Platform profit = customer service fee + helper commission (stored as platform_fee_amount)
-  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
-  // Late cancellation revenue the platform retains
-  const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  // Platform profit = fees from active/completed jobs + fees from cancelled-but-paid jobs
+  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0)
+    + cancelledPaidJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  // Late cancellation revenue the platform retains (cancellation fee commission)
+  const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
+    const cancFee = j.cancellation_fee || 0;
+    const commissionPercent = j.helper_fee_percent ?? 10;
+    return s + (cancFee * commissionPercent / 100) + (j.customer_fee_amount || 0);
+  }, 0);
   const totalHelperPayouts = completedJobs.reduce((s, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = (j.budget || 0) / helpers;

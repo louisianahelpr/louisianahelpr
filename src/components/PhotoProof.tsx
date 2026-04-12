@@ -137,7 +137,7 @@ export const PhotoProofGroup = ({
   const [viewOpen, setViewOpen] = useState(false);
 
   // If no photos at all and can't upload, show a minimal empty state
-  if (!hasBefore && !hasAfter && !canUpload) {
+  if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
     return (
       <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
         <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center gap-1.5">

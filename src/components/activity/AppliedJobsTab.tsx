@@ -369,8 +369,8 @@ export const AppliedJobsTab = ({
             </div>
           )}
 
-          {/* Expandable details */}
-          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expandedJobId === app.id ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`} onClick={(e) => e.stopPropagation()}>
+          {/* Additional details */}
+          <div>
             <div className="px-4 pb-4 space-y-3 border-t border-border/40">
               {app.job && (app.job.photos || []).length > 0 && (
                 <div>

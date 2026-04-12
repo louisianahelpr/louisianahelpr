@@ -98,28 +98,29 @@ const AdminAnalytics = () => {
   const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && capturedPaymentStatuses.includes(j.payment_status || ""));
 
   // Gross Revenue = total amount collected via Stripe (budget + customer fee) for jobs with captured payments
-  const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0);
+  const totalRevenue = capturedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);
   // Platform Profit = only fees from jobs where payment is still held (escrow/payout_pending/released)
   // Does NOT include refunded or cancelled-payment jobs since those fees were returned
-  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  const totalFees = capturedJobs.reduce((s, j) => s + Number(j.customer_fee_amount || 0) + Number(j.platform_fee_amount || 0), 0);
+  console.log("[AdminAnalytics] capturedJobs:", capturedJobs.length, "statuses:", capturedJobs.map(j => j.payment_status), "totalFees:", totalFees, "allJobs:", allJobs.length);
   // Late cancellation revenue the platform retains (cancellation fee commission)
   const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
-    const cancFee = j.cancellation_fee || 0;
-    const commissionPercent = j.helper_fee_percent ?? 10;
-    return s + (cancFee * commissionPercent / 100) + (j.customer_fee_amount || 0);
+    const cancFee = Number(j.cancellation_fee || 0);
+    const commissionPercent = Number(j.helper_fee_percent ?? 10);
+    return s + (cancFee * commissionPercent / 100) + Number(j.customer_fee_amount || 0);
   }, 0);
   const totalHelperPayouts = completedJobs.reduce((s, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
-    const perHelper = (j.budget || 0) / helpers;
-    const commissionPercent = j.helper_fee_percent ?? 10;
+    const perHelper = Number(j.budget || 0) / helpers;
+    const commissionPercent = Number(j.helper_fee_percent ?? 10);
     const commission = (perHelper * commissionPercent) / 100;
-    return s + (perHelper - commission + (j.urgent_fee ?? 0));
+    return s + (perHelper - commission + Number(j.urgent_fee ?? 0));
   }, 0);
-  const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + t.amount, 0);
+  const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + Number(t.amount), 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;
-  const totalRefunded = refundedJobs.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0);
+  const totalRefunded = refundedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);
 
   // Subscription breakdown
   const subBasic = helpers.filter(h => h.subscription_tier === "basic").length;

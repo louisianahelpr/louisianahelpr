@@ -274,12 +274,6 @@ export const PostedJobsTab = ({
                       </div>
                     </div>
                   )}
-                  {job.special_requirements?.trim() && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5">
-                      <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                      <p className="text-sm text-foreground">{job.special_requirements}</p>
-                    </div>
-                  )}
                   {job.is_recurring && (
                     <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
                       <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />

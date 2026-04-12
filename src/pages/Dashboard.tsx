@@ -175,7 +175,7 @@ const Dashboard = () => {
       else toast.error(error.message);
     } else {
       toast.success("Application sent! Track it in My Activity.", {
-        action: { label: "View", onClick: () => navigate("/activity") },
+        action: { label: "View", onClick: () => navigate("/my-posts") },
       });
       refresh();
     }

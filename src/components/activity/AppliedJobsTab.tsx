@@ -346,7 +346,7 @@ export const AppliedJobsTab = ({
                               setSubmittingResponse(true);
                               const { error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" } as any).eq("id", app.job_id);
                               if (error) { toast.error("Failed to submit response"); setSubmittingResponse(false); return; }
-                              if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/activity?tab=posted&filter=disputed" });
+                              if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
                               toast.success("Response submitted — poster will review");
                               setSubmittingResponse(false);
                               setRespondingJobId(null);

@@ -463,20 +463,20 @@ export const PostedJobsTab = ({
                             </span>
                           </div>
                         )}
-                        {/* Approve/Complete + Message */}
-                        <div className="flex items-center gap-2">
-                          {(job as any).helper_completed_at && (
-                            <Button size="sm" className="flex-1" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
-                              <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
-                            </Button>
-                          )}
-                          <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
-                        </div>
+                        {/* Approve & Complete */}
+                        {(job as any).helper_completed_at && (
+                          <Button size="sm" className="w-full" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
+                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
+                          </Button>
+                        )}
+                        {/* Request Revision */}
                         {job.status === "in_progress" && !(job as any).poster_completed_at && (job as any).helper_completed_at && (
                           <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
                             <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
                           </Button>
                         )}
+                        {/* Message */}
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                         {/* Dispute available after revision requested */}
                         {(job.status === "revision_requested" || (job as any).revision_requested_at) && (
                           <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>

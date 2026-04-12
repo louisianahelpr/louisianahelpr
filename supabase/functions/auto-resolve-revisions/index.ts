@@ -36,14 +36,14 @@ Deno.serve(async (req) => {
           title: "Revision deadline expired",
           message: `The helpr did not fix "${job.title}" within 72 hours. You can now mark it complete or file a dispute.`,
           type: "warning",
-          link: "/activity?tab=posted&filter=revision_requested",
+          link: "/my-posts?filter=revision_requested",
         },
         ...(job.helper_id ? [{
           user_id: job.helper_id,
           title: "Revision deadline expired",
           message: `You did not address the revision for "${job.title}" within 72 hours. The poster may now dispute or complete the job.`,
           type: "warning",
-          link: "/activity?tab=applied&filter=revision_requested",
+          link: "/my-jobs?filter=revision_requested",
         }] : []),
       ]);
       resolved.push(job.id);
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
           title: "Revision auto-accepted",
           message: `You did not respond within 72 hours after the helpr fixed "${job.title}". Per policy, the job is marked complete and payment released.`,
           type: "warning",
-          link: "/activity?tab=posted&filter=completed",
+          link: "/my-posts?filter=completed",
         },
       ];
 
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
           title: "Revision auto-accepted ✓",
           message: `The poster did not respond within 72 hours for "${job.title}". Payment will be released to you.`,
           type: "payment",
-          link: "/activity?tab=applied&filter=completed",
+          link: "/my-jobs?filter=completed",
         });
       }
 

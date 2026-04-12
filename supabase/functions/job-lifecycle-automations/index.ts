@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
           title: '📅 Job day is here!',
           message: `"${job.title}" is scheduled for today. Please confirm the job has started.`,
           type: 'info',
-          link: '/activity?tab=posted&filter=accepted',
+          link: '/my-posts?filter=accepted',
         })
 
         // Notify helper
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
             title: '📅 Job day is here!',
             message: `"${job.title}" is scheduled for today. Waiting for the poster to confirm start.`,
             type: 'info',
-            link: '/activity?tab=applied&filter=accepted',
+            link: '/my-jobs?filter=accepted',
           })
         }
         results.autoStarted++

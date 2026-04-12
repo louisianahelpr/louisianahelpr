@@ -513,7 +513,7 @@ export const PostedJobsTab = ({
                               e.stopPropagation();
                               const { error } = await supabase.from("jobs").update({ status: "completed" as any, dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() } as any).eq("id", job.id);
                               if (error) { toast.error("Failed to resolve"); return; }
-                              if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/activity?tab=applied&filter=completed" });
+                              if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                               toast.success("Dispute resolved — payment released to helpr");
                               window.location.reload();
                             }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>

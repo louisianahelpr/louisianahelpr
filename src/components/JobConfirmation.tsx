@@ -14,6 +14,7 @@ export function JobConfirmation({
   helperConfirmedAt,
   dateNeeded,
   jobStatus,
+  onConfirm,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -22,6 +23,7 @@ export function JobConfirmation({
   helperConfirmedAt: string | null;
   dateNeeded: string;
   jobStatus?: string;
+  onConfirm?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);

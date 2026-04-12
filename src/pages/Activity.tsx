@@ -475,7 +475,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20 pt-16">
+      <div className="min-h-screen bg-background pb-20">
         <DashboardHeader />
         <main className="container mx-auto px-4 py-4">
           <div className="max-w-3xl mx-auto space-y-3">
@@ -490,7 +490,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
+    <div className="min-h-screen bg-background pb-20">
       <DashboardHeader />
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">

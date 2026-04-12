@@ -1,0 +1,1 @@
+ALTER TABLE public.jobs ADD COLUMN commission_tax_amount numeric DEFAULT 0;

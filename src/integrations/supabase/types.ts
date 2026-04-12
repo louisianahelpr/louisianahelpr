@@ -775,6 +775,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
+          commission_tax_amount: number | null
           created_at: string
           customer_fee_amount: number | null
           customer_id: string
@@ -850,6 +851,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
+          commission_tax_amount?: number | null
           created_at?: string
           customer_fee_amount?: number | null
           customer_id: string
@@ -925,6 +927,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
+          commission_tax_amount?: number | null
           created_at?: string
           customer_fee_amount?: number | null
           customer_id?: string

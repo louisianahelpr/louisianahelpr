@@ -387,7 +387,7 @@ const PostJob = () => {
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
+    <div className="min-h-screen bg-background pb-20">
       <DashboardHeader />
 
       <main className="container mx-auto px-4 py-8">

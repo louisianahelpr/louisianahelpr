@@ -27,7 +27,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
   // Flat 5% cancellation fee when a helper has been selected, regardless of timing
   const cancellationFeePercent = hasHelper ? 5 : 0;
-  const cancellationFee = Math.round((jobBudget * cancellationFeePercent) / 100);
+  const cancellationFee = Math.round((jobBudget * cancellationFeePercent)) / 100;
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -37,7 +37,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       if (fetchError || !jobData) throw new Error("Could not verify job details");
 
       const serverHasHelper = !!jobData.helper_id;
-      const serverFee = serverHasHelper ? Math.round(jobData.budget * 0.05) : 0;
+      const serverFee = serverHasHelper ? Math.round(jobData.budget * 5) / 100 : 0;
 
       const jobDateTime = new Date(jobData.date_needed + "T00:00:00");
       const serverHoursUntil = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);

@@ -108,7 +108,7 @@ serve(async (req) => {
           // Server-side fee: flat 5% of budget when a helper was selected
           let cancellationFee = 0;
           if (job.helper_id) {
-            cancellationFee = Math.round(job.budget * 0.05);
+            cancellationFee = Math.round(job.budget * 5) / 100;
           }
           // Update the job record with the server-calculated fee and status
           await supabaseAdmin.from("jobs").update({

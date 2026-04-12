@@ -107,6 +107,7 @@ export type Database = {
           id: string
           job_id: string
           message: string | null
+          offer_message: string | null
           proposed_rate: number | null
           status: Database["public"]["Enums"]["application_status"]
           updated_at: string
@@ -118,6 +119,7 @@ export type Database = {
           id?: string
           job_id: string
           message?: string | null
+          offer_message?: string | null
           proposed_rate?: number | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
@@ -129,6 +131,7 @@ export type Database = {
           id?: string
           job_id?: string
           message?: string | null
+          offer_message?: string | null
           proposed_rate?: number | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string

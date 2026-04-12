@@ -54,7 +54,7 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
   if (loading || jobs.length === 0) return null;
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
+    <section ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
       <div className="container mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

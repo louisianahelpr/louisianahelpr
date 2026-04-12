@@ -211,7 +211,7 @@ export const AppliedJobsTab = ({
             </div>
 
             {/* Pending expandable section */}
-            {isPending && isExpanded && (
+            {!isMinimalCard && isPending && isExpanded && (
               <div className="px-4 pb-3 space-y-2">
                 {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
                   <div>

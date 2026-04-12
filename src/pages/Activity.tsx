@@ -22,21 +22,17 @@ import {
   categoryLabels, categories, categoryColors, statusBadge,
 } from "@/components/activity/activityConstants";
 
-const Activity = () => {
-  usePageTitle("My Activity — Helpr");
+const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
+  usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
-  const [tab, setTab] = useState<Tab>(() => {
-    const paramTab = searchParams.get("tab");
-    return paramTab === "applied" ? "applied" : "posted";
-  });
+  const tab = defaultTab as Tab;
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const paramFilter = searchParams.get("filter");
     if (paramFilter) return paramFilter;
-    const paramTab = searchParams.get("tab");
-    return paramTab === "applied" ? "pending" : "open";
+    return defaultTab === "applied" ? "pending" : "open";
   });
 
   const {
@@ -129,7 +125,7 @@ const Activity = () => {
     if (initialMessage) {
       await supabase.from("messages").insert({ job_id: selectedJob.id, sender_id: user.id, receiver_id: deadlineDialogApp.helper_id, content: initialMessage });
     }
-    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/activity?tab=applied&filter=offered" });
+    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
     toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
     setSelectedJob(null);
@@ -287,7 +283,7 @@ const Activity = () => {
     await supabase.from("job_checkins").insert({ job_id: jobId, user_id: user.id, type: "start_request", note: "Helper started the job" });
     await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
     if (job) {
-      await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/activity?tab=posted&filter=in_progress" });
+      await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
     }
     toast.success("Job started! You're now in progress.");
     refresh();
@@ -300,7 +296,7 @@ const Activity = () => {
     else {
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/activity?tab=applied&filter=in_progress" });
+        await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
       toast.success("Job started! It's now in progress.");
       refresh();
@@ -312,7 +308,7 @@ const Activity = () => {
     if (error) { toast.error("Failed to confirm arrival"); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
-      await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/activity?tab=applied&filter=in_progress" });
+      await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
     }
     toast.success("Arrival confirmed!");
     refresh();
@@ -323,7 +319,7 @@ const Activity = () => {
     if (error) { toast.error("Failed to confirm"); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
-      await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/activity?tab=applied&filter=in_progress" });
+      await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
     }
     toast.success("Confirmed helpr is working!");
     refresh();
@@ -336,7 +332,7 @@ const Activity = () => {
     if (error) { toast.error("Failed to update"); setOnTheWayLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
-      await createNotification({ user_id: job.customer_id, title: "🚗 Helpr is on the way!", message: `Your helpr is headed to "${job.title}".`, type: "info", link: "/activity?tab=posted&filter=accepted" });
+      await createNotification({ user_id: job.customer_id, title: "🚗 Helpr is on the way!", message: `Your helpr is headed to "${job.title}".`, type: "info", link: "/my-posts?filter=accepted" });
     }
     toast.success("You're on your way!");
     refresh();
@@ -350,7 +346,7 @@ const Activity = () => {
     if (error) { toast.error("Failed to update"); setArrivedLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
-      await createNotification({ user_id: job.customer_id, title: "📍 Helpr has arrived!", message: `Your helpr has arrived for "${job.title}".`, type: "success", link: "/activity?tab=posted&filter=in_progress" });
+      await createNotification({ user_id: job.customer_id, title: "📍 Helpr has arrived!", message: `Your helpr has arrived for "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
     }
     toast.success("You've arrived! Job is now in progress.");
     refresh();
@@ -490,10 +486,6 @@ const Activity = () => {
     );
   }
 
-  const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "posted", label: "Posted", count: postedJobs.length },
-    { key: "applied", label: "Applied", count: appliedApps.length },
-  ];
   const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
@@ -502,7 +494,7 @@ const Activity = () => {
       <DashboardHeader />
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
-          <h1 className="text-2xl font-display font-bold text-foreground">My Activity</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
 
           {/* Search */}
           <div className="relative">
@@ -513,15 +505,6 @@ const Activity = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-sm"
             />
-          </div>
-
-          <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-            {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(t.key === "posted" ? "open" : "pending"); }}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {t.label}
-              </button>
-            ))}
           </div>
 
           <div className="flex flex-wrap justify-center gap-1.5">

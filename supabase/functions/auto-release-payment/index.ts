@@ -94,7 +94,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Job auto-completed!",
           message: `"${job.title}" was auto-completed after 48 hours. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
-          type: "payment", link: "/activity?tab=applied&filter=completed",
+          type: "payment", link: "/my-jobs?filter=completed",
         });
       }
       if (job.customer_id) {
@@ -102,7 +102,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job auto-completed",
           message: `"${job.title}" was automatically marked complete after 48 hours. The helpr will be paid in 24 hours.`,
-          type: "info", link: "/activity?tab=posted&filter=completed",
+          type: "info", link: "/my-posts?filter=completed",
         });
       }
       released++;

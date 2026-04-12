@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
           title: "Dispute auto-resolved ✓",
           message: `The dispute on "${job.title}" expired after 72 hours without the poster resolving or escalating. Payment will be released to you.`,
           type: "payment",
-          link: "/activity?tab=applied&filter=completed",
+          link: "/my-jobs?filter=completed",
         });
       }
 
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
         title: "Dispute auto-resolved",
         message: `The dispute on "${job.title}" was not resolved or escalated within 72 hours. Per platform policy, payment has been released to the helper.`,
         type: "warning",
-        link: "/activity?tab=posted&filter=completed",
+        link: "/my-posts?filter=completed",
       });
 
       // Notify admins

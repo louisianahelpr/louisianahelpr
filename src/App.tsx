@@ -82,11 +82,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
       <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
       <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/my-jobs" element={<Navigate to="/activity" replace />} />
+      <Route path="/my-jobs" element={<ProtectedRoute><Activity defaultTab="applied" /></ProtectedRoute>} />
+      <Route path="/my-posts" element={<ProtectedRoute><Activity defaultTab="posted" /></ProtectedRoute>} />
       <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
       <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
-      <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+      <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />

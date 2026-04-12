@@ -142,7 +142,7 @@ export function JobTracking({
           title: `Helpr is ${statusLabel}`,
           message: `Your helpr updated their status to "${statusLabel}" for "${job.title}".`,
           type: "info",
-          link: `/activity?tab=posted&filter=in_progress`,
+          link: `/my-posts?filter=in_progress`,
         });
       }
     }

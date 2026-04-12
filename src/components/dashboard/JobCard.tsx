@@ -179,7 +179,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
         <div className="px-4 pb-4 space-y-3 border-t border-border/40">
           {/* Description */}
-          {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+          {job.description && (
             <div className="pt-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
               <p className="text-sm text-foreground leading-relaxed">{job.description}</p>

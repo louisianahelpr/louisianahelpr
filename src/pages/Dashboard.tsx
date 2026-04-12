@@ -569,20 +569,14 @@ const Dashboard = () => {
                         const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
                         const perHelper = confirmApplyJob.budget / helpers;
                         const commission = perHelper * platformFee / 100;
-                        const taxRate = confirmApplyJob.sales_tax_rate ?? 0.085;
-                        const commissionTax = commission * taxRate;
-                        const payout = perHelper - commission - commissionTax + (confirmApplyJob.urgent_fee ?? 0);
+                        const payout = perHelper - commission + (confirmApplyJob.urgent_fee ?? 0);
                         return (
                           <>
-                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Estimated Payout</p>
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Platform Fee ({platformFee}%)</span>
-                              <span className="text-destructive/70">−${commission.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Fee Tax</span>
-                              <span className="text-destructive/70">−${commissionTax.toFixed(2)}</span>
-                            </div>
+                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Estimated Payout</p>
+                             <div className="flex justify-between text-xs text-muted-foreground">
+                               <span>Platform Fee ({platformFee}%)</span>
+                               <span className="text-destructive/70">−${commission.toFixed(2)}</span>
+                             </div>
                             {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Urgent tip</span>
@@ -595,7 +589,7 @@ const Dashboard = () => {
                               <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
                             </div>
                             <p className="text-[10px] text-muted-foreground mt-1">
-                              Platform fee + applicable tax deducted from payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""}
+                              Platform fee deducted from payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""}
                             </p>
                           </>
                         );

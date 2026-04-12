@@ -262,7 +262,7 @@ export function JobTracking({
                   size="sm"
                   className="w-full"
                   onClick={() => updateStatus(nextStatus.key)}
-                  disabled={updating || !isJobDay}
+                  disabled={updating || !isUnlocked}
                 >
                   <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
                   {nextStatus.label}

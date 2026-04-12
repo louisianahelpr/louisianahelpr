@@ -499,10 +499,10 @@ export const AppliedJobsTab = ({
                     const beforePhotos = jobAny.proof_before_urls || [];
                     const afterPhotos = jobAny.proof_after_urls || [];
                     const hasPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
-                    const workingStart = jobAny.poster_confirmed_working_at ? new Date(jobAny.poster_confirmed_working_at) : null;
+                    const arrivalTime = jobAny.helper_arrived_at ? new Date(jobAny.helper_arrived_at) : null;
                     const minWorkMs = 30 * 60 * 1000;
-                    const tooEarly = workingStart ? (Date.now() - workingStart.getTime()) < minWorkMs : false;
-                    const minutesLeft = workingStart ? Math.ceil((minWorkMs - (Date.now() - workingStart.getTime())) / 60000) : 0;
+                    const tooEarly = arrivalTime ? (Date.now() - arrivalTime.getTime()) < minWorkMs : false;
+                    const minutesLeft = arrivalTime ? Math.ceil((minWorkMs - (Date.now() - arrivalTime.getTime())) / 60000) : 0;
                     const disabled = completingJobId === app.job_id || !hasPhotos || tooEarly;
                     const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
                     return (
@@ -511,7 +511,7 @@ export const AppliedJobsTab = ({
                           <CheckCircle2 className="w-4 h-4 mr-1" />{label}
                         </Button>
                         {tooEarly && (
-                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after working begins to ensure quality.</p>
+                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after arrival to ensure quality.</p>
                         )}
                       </>
                     );

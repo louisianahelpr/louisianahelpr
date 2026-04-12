@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper } from "lucide-react";
+import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES = [
   { key: "assigned", label: "Offered", icon: Clock, color: "text-muted-foreground" },
   { key: "confirmed", label: "Accepted", icon: CheckCircle2, color: "text-primary" },
+  { key: "job_confirmed", label: "Confirmed", icon: ShieldCheck, color: "text-primary" },
   { key: "on_the_way", label: "On the Way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", icon: Wrench, color: "text-primary" },

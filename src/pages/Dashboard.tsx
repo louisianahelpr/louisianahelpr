@@ -529,7 +529,15 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="divide-y divide-border/30">
-                {filters.filteredJobs.filter(j => !dismissedJobIds.has(j.id)).map((job, i) => (
+                {filters.filteredJobs.filter(j => !dismissedJobIds.has(j.id)).filter(j => {
+                  // Hide jobs already shown in Recommended or Nearby sections
+                  if (!filters.hasFilters) {
+                    const inRecommended = recommendedJobs.some(rj => rj.id === j.id);
+                    const inNearby = filters.nearbyJobs.some(nj => nj.id === j.id);
+                    if (inRecommended || inNearby) return false;
+                  }
+                  return true;
+                }).map((job, i) => (
                   <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
                     <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                   </div>

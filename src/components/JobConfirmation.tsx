@@ -30,10 +30,9 @@ export function JobConfirmation({
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-  // Show on accepted jobs always, or within 48hrs for in_progress
-  const isAccepted = jobStatus === "accepted";
-  const showForInProgress = hoursUntilJob <= 48 && hoursUntilJob > 0;
-  if (!isAccepted && !showForInProgress) return null;
+  // Show for accepted/in_progress jobs within 24 hours of job date
+  const showConfirmation = (jobStatus === "accepted" || jobStatus === "in_progress") && hoursUntilJob <= 24 && hoursUntilJob > -12;
+  if (!showConfirmation) return null;
 
   const handleConfirm = async () => {
     setConfirming(true);

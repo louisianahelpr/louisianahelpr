@@ -254,7 +254,7 @@ const MyJobs = () => {
                             helperConfirmedAt={(job as any).helper_confirmed_at}
                             dateNeeded={job.date_needed}
                           />
-                          <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStatus={job.status} helperConfirmedAt={(job as any).helper_confirmed_at} />
+                          <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={(job as any).helper_confirmed_at} />
                           {(job as any).is_group_job && (
                             <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />
                           )}

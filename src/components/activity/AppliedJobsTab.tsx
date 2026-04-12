@@ -229,18 +229,6 @@ export const AppliedJobsTab = ({
             {/* Pending expandable section */}
             {!isMinimalCard && isPending && isExpanded && (
               <div className="px-4 pb-3 space-y-2">
-                {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                    <p className="text-xs text-foreground leading-relaxed">{job.description}</p>
-                  </div>
-                )}
-                {job.special_requirements?.trim() && (
-                  <div className="rounded-lg bg-secondary/30 p-2">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-xs text-foreground">{job.special_requirements}</p>
-                  </div>
-                )}
                 {(job.photos || []).length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {(job.photos || []).map((url, i) => (
@@ -332,12 +320,9 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Pending expand hint + withdraw */}
+            {/* Pending withdraw */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-                <span className="text-xs text-muted-foreground cursor-pointer" onClick={() => setExpandedJobId(isExpanded ? null : app.job_id)}>
-                  {isExpanded ? "▲ Less" : "▼ Details"}
-                </span>
+              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="sm"
                   variant="outline"

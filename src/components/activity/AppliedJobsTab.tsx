@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,6 +18,63 @@ import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 
 import { type Job, type Application, type AppliedApp, categoryColors } from "./activityConstants";
+
+
+const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const jobDate = new Date(dateNeeded + "T00:00");
+  if (startTime) {
+    const [h, m] = startTime.split(":").map(Number);
+    jobDate.setHours(h, m, 0, 0);
+  } else {
+    jobDate.setHours(23, 59, 59, 0);
+  }
+
+  const diffMs = jobDate.getTime() - now.getTime();
+  if (diffMs <= 0) {
+    return (
+      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10">
+        <Timer className="w-4 h-4 text-primary shrink-0" />
+        <p className="text-xs font-semibold text-primary">Job time has arrived!</p>
+      </div>
+    );
+  }
+
+  const totalMin = Math.floor(diffMs / 60_000);
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  const minutes = totalMin % 60;
+
+  const timeStr = days > 0 ? `${days}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  const isUrgent = totalMin < 720;
+  const isCritical = totalMin < 120;
+
+  const colorClasses = isCritical
+    ? "border-destructive/30 bg-destructive/10 text-destructive"
+    : isUrgent
+    ? "border-accent/30 bg-accent/10 text-accent"
+    : "border-primary/20 bg-primary/5 text-primary";
+
+  return (
+    <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${colorClasses}`}>
+      <Timer className="w-4 h-4 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-xs font-semibold tabular-nums">{label}: {timeStr}</p>
+        <p className="text-[10px] opacity-80 mt-0.5">
+          {startTime
+            ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+            : new Date(jobDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
+          }
+        </p>
+      </div>
+    </div>
+  );
+};
 
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
@@ -348,11 +405,14 @@ export const AppliedJobsTab = ({
                     <p className="text-foreground">{(app as any).offer_message}</p>
                   </div>
                 )}
+                {/* Job countdown */}
+                <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                 {jobAny.response_deadline && (
-                  <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
-                    <Clock className="w-3 h-3 inline mr-1" />
-                    Respond by {new Date(jobAny.response_deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  <DeadlineCountdown
+                    deadline={jobAny.response_deadline}
+                    expiredText="Response deadline expired"
+                    consequenceText="Accept or decline before the deadline"
+                  />
                 )}
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onHelperResponse(app, false)}><ThumbsDown className="w-4 h-4 mr-1" /> Decline</Button>
@@ -364,6 +424,8 @@ export const AppliedJobsTab = ({
             {/* Confirmed: show tracking + message */}
             {isConfirmed && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                {/* Job countdown */}
+                <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                 {/* Tracking — only active on the day of the job */}
                 <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} />
 

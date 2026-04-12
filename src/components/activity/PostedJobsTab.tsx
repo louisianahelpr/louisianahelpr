@@ -219,7 +219,7 @@ export const PostedJobsTab = ({
                 {/* Visible live tracking */}
                 {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
                   <div onClick={(e) => e.stopPropagation()}>
-                    <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStatus={job.status} helperConfirmedAt={(job as any).helper_confirmed_at} />
+                    <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={(job as any).helper_confirmed_at} />
                   </div>
                 )}
 
@@ -329,7 +329,7 @@ export const PostedJobsTab = ({
                       <div className="space-y-2">
                         <p className="text-xs text-muted-foreground text-center">
                           <Clock className="w-3 h-3 inline mr-1" />
-                          Live tracking starts the day of the job — actions will be available then
+                          Helpr must confirm 24 hours before the job starts — tracking actions unlock then
                         </p>
                         {startRequestedJobIds.has(job.id) && !(job as any).helper_confirmed_at && (
                           <Button size="sm" className="w-full" onClick={() => onConfirmStart(job.id)}><CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start</Button>

@@ -359,9 +359,11 @@ export const PostedJobsTab = ({
                         </div>
                         {job.status === "in_progress" && !(job as any).poster_completed_at && (
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
-                              <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
-                            </Button>
+                            {(job as any).helper_completed_at && (
+                              <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
+                                <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
                               <XCircle className="w-4 h-4 mr-1" /> No-Show
                             </Button>

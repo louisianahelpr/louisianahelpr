@@ -136,7 +136,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     setSelectedJob(null);
     setApplications([]);
     setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
-    refresh();
+    await refresh();
+    setStatusFilter("offered");
   };
 
   const handleHelperResponse = async (app: Application, accept: boolean) => {
@@ -147,7 +148,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
-      refresh();
+      await refresh();
+      setStatusFilter("accepted");
     } else {
       const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
       const priorCount = existing?.length || 0;
@@ -238,9 +240,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.bothDone) toast.success("Job completed! Payment released.");
-      else toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
-      refresh();
+      if (data?.bothDone) {
+        toast.success("Job completed! Payment released.");
+        await refresh();
+        setStatusFilter("completed");
+      } else {
+        toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
+        await refresh();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to complete job");
     } finally {
@@ -291,7 +298,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
     }
     toast.success("Job started! You're now in progress.");
-    refresh();
+    await refresh();
+    setStatusFilter("in_progress");
     setStartJobLoading(null);
   };
 
@@ -304,7 +312,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
       toast.success("Job started! It's now in progress.");
-      refresh();
+      await refresh();
+      setStatusFilter("in_progress");
     }
   };
 

@@ -157,11 +157,7 @@ const Admin = () => {
     ]);
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
-    // Platform fees from cancelled-but-paid jobs
-    const cancelledFees = cancelledPaidRows.reduce((s, j) => {
-      return s + ((j as any).customer_fee_amount || 0) + ((j as any).platform_fee_amount || 0);
-    }, 0);
-    // Late cancellation revenue (cancellation fee commission)
+    // Late cancellation revenue is shown separately and should not inflate platform profit
     const lateCancellationRevenue = cancelledPaidRows.filter((j: any) => j.cancellation_fee > 0).reduce((s, j) => {
       return s + ((j as any).cancellation_fee || 0);
     }, 0);
@@ -173,7 +169,7 @@ const Admin = () => {
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0), 0),
-      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0) + cancelledFees,
+      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0),
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,

@@ -511,7 +511,7 @@ export const AppliedJobsTab = ({
                           <CheckCircle2 className="w-4 h-4 mr-1" />{label}
                         </Button>
                         {tooEarly && (
-                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after working begins to ensure quality.</p>
+                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after arrival to ensure quality.</p>
                         )}
                       </>
                     );

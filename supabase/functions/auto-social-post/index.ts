@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,12 +8,12 @@ const corsHeaders = {
 
 const POST_STYLES = [
   "Launch / Awareness: Introduce Louisiana Helpr, explain what it does, keep it simple and inviting. End with a link to www.louisianahelpr.com",
-  "Problem → Solution: Start with a relatable problem (needing help, can't find anyone), then position Louisiana Helpr as the easy answer. High engagement style.",
+  "Problem → Solution: Start with a relatable problem (needing help, can't find anyone), then position Louisiana Helpr as the easy answer.",
   "Relatable / Viral: Use humor or a very relatable 'Louisiana problems' angle. Keep it casual, meme-like energy. Short and punchy.",
   "Trust-Building: List reasons people use Louisiana Helpr (find help fast, real local people, simple). Build credibility without being salesy.",
   "Call-to-Action: Direct and clear — need help? Post a job on Louisiana Helpr. Link to www.louisianahelpr.com. Urgency without pressure.",
-  "Engagement: Ask the audience a question to boost comments. Example: 'What's something you wish you had help with right now?' Keep it conversational.",
-  "Testimonial Style: Write as if sharing someone's experience (even generic). Focus on the relief of finding help quickly through the app.",
+  "Engagement: Ask the audience a question to boost comments. Example: 'What's something you wish you had help with right now?'",
+  "Testimonial Style: Write as if sharing someone's experience. Focus on the relief of finding help quickly through the app.",
   "Short & Punchy: Ultra-short post, 2-3 lines max. Like a reel caption. Post → Match → Done energy.",
 ];
 
@@ -22,10 +23,11 @@ serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-    const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
-    if (!MAKE_WEBHOOK_URL) throw new Error("MAKE_WEBHOOK_URL is not configured");
 
-    // Pick a random style
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const style = POST_STYLES[Math.floor(Math.random() * POST_STYLES.length)];
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -39,7 +41,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a social media copywriter for Louisiana Helpr — a local app that connects people with nearby help for small jobs and tasks. You only output the post text, nothing else. No labels, no quotes, no commentary. Include 1-2 relevant hashtags at the end.`,
+            content: "You are a social media copywriter for Louisiana Helpr — a local app that connects people with nearby help for small jobs and tasks. You only output the post text, nothing else. No labels, no quotes, no commentary. Include 1-2 relevant hashtags at the end.",
           },
           {
             role: "user",
@@ -55,21 +57,16 @@ serve(async (req) => {
     const postText = aiData.choices?.[0]?.message?.content?.trim();
     if (!postText) throw new Error("AI returned empty content");
 
-    // Send to Make webhook
-    const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: postText }),
-    });
+    // Save as draft instead of posting directly
+    const { error: insertError } = await supabase
+      .from("social_post_drafts")
+      .insert({ content: postText, style, status: "draft" });
 
-    if (!webhookResp.ok) {
-      const body = await webhookResp.text();
-      throw new Error(`Make webhook failed [${webhookResp.status}]: ${body}`);
-    }
+    if (insertError) throw new Error(`Failed to save draft: ${insertError.message}`);
 
-    console.log("Auto-posted successfully:", postText.substring(0, 80) + "...");
+    console.log("Draft saved:", postText.substring(0, 80) + "...");
 
-    return new Response(JSON.stringify({ success: true, post: postText, style }), {
+    return new Response(JSON.stringify({ success: true, draft: postText, style }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -487,9 +487,6 @@ export const AppliedJobsTab = ({
                       <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : "Mark Complete"}
                     </Button>
                   )}
-                  {!jobAny.helper_completed_at && !jobAny.helper_arrived_at && (
-                    <p className="text-xs text-muted-foreground text-center">You must mark Arrived (GPS verified) before you can complete the job.</p>
-                  )}
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                 </div>
 

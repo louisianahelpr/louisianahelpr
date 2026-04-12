@@ -616,6 +616,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         setReviewTarget={setReviewTarget}
         helperReviewJob={helperReviewJob}
         setHelperReviewJob={setHelperReviewJob}
+        helperNames={helperNames}
         onRefresh={refresh}
       />
     </div>

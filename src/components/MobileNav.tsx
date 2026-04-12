@@ -1,15 +1,16 @@
 import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, MessageSquare, User, Plus } from "lucide-react";
+import { Home, Send, MessageSquare, User, Plus, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/activity", icon: ClipboardList, label: "Activity", badgeKey: "activity" as const },
+  { path: "/my-posts", icon: Send, label: "My Posts" },
 ];
 
 const rightItems = [
+  { path: "/my-jobs", icon: ClipboardList, label: "My Jobs" },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -61,7 +62,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/my-jobs", "/job-history"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/job-history"];
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-pending", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
@@ -71,8 +72,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
-    const active = location.pathname === path;
-    const badgeCount = badgeKey === "messages" ? unreadCount : badgeKey === "activity" ? unreadNotifCount : 0;
+    const active = location.pathname === path || (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) || (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied");
+    const badgeCount = badgeKey === "messages" ? unreadCount : 0;
     const showBadge = badgeCount > 0;
     return (
       <button

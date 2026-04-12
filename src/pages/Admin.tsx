@@ -226,7 +226,7 @@ const Admin = () => {
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
     notifications: "Notifications", reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
-    audit: "Audit Log", health: "Health", export: "Export",
+    audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
   };
 
   const renderContent = () => {

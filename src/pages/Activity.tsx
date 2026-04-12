@@ -512,7 +512,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const count = activeCounts[f.key] || 0;
               return (
                 <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter === f.key ? f.color : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"}`}>
+                  className={`flex-shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter === f.key ? f.color : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"}`}>
                   {f.label}
                   {count > 0 && (
                     <span className={`ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold ${statusFilter === f.key ? "bg-foreground/10" : "bg-muted-foreground/15"}`}>{count}</span>

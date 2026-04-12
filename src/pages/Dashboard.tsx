@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, MapPin, Star, Briefcase, X, Search, SlidersHorizontal } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, Briefcase, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
@@ -114,6 +114,7 @@ const Dashboard = () => {
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
+  const [applyFiles, setApplyFiles] = useState<File[]>([]);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
@@ -169,7 +170,29 @@ const Dashboard = () => {
       return;
     }
 
-    const { error } = await supabase.from("applications").insert({ job_id: confirmApplyJobId, helper_id: user.id, message: applyMessage.trim() || null });
+    // Upload attachments
+    let attachmentUrls: string[] = [];
+    if (applyFiles.length > 0) {
+      for (const file of applyFiles) {
+        const ext = file.name.split('.').pop();
+        const path = `${user.id}/${confirmApplyJobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
+        if (uploadErr) {
+          toast.error(`Failed to upload ${file.name}`);
+          setApplyLoading(false);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from("application-attachments").getPublicUrl(path);
+        attachmentUrls.push(urlData.publicUrl);
+      }
+    }
+
+    const { error } = await supabase.from("applications").insert({
+      job_id: confirmApplyJobId,
+      helper_id: user.id,
+      message: applyMessage.trim() || null,
+      attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+    });
     if (error) {
       if (error.code === "23505") toast.error("You've already applied.");
       else toast.error(error.message);
@@ -182,7 +205,8 @@ const Dashboard = () => {
     setConfirmApplyJobId(null);
     setApplyLoading(false);
     setApplyMessage("");
-  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading]);
+    setApplyFiles([]);
+  }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading, applyFiles]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
@@ -609,6 +633,41 @@ const Dashboard = () => {
                 rows={3}
                 className="text-sm"
               />
+            </div>
+            {/* File attachments */}
+            <div className="space-y-1.5 mt-2">
+              <label className="text-xs text-muted-foreground">Attach certs or previous work (optional)</label>
+              <div className="space-y-1.5">
+                {applyFiles.map((file, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                    <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="truncate flex-1">{file.name}</span>
+                    <span className="text-muted-foreground shrink-0">{(file.size / 1024).toFixed(0)}KB</span>
+                    <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} className="text-destructive hover:text-destructive/80">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {applyFiles.length < 5 && (
+                  <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span>Add file</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+                          setApplyFiles(f => [...f, file]);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>

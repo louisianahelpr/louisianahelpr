@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw,
   Star, MessageSquare, Users, Pencil, AlertTriangle, RefreshCw,
-  Rocket, Clock, Calendar, Timer, Navigation as NavigationIcon, Wrench,
+  Rocket, Clock, Calendar, Timer, Navigation as NavigationIcon, Wrench, FileText,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
@@ -592,6 +592,27 @@ export const PostedJobsTab = ({
                       <div className="rounded-lg bg-secondary/30 p-3 mt-2">
                         <p className="text-xs text-muted-foreground mb-0.5">Their message to you:</p>
                         <p className="text-sm text-foreground">{app.message}</p>
+                      </div>
+                    )}
+                    {(app.attachment_urls || []).length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-muted-foreground">Attached files:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(app.attachment_urls || []).map((url, i) => {
+                            const filename = decodeURIComponent(url.split('/').pop() || `File ${i + 1}`);
+                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                            return isImage ? (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                <img src={url} alt={`Attachment ${i + 1}`} className="w-20 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                              </a>
+                            ) : (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                                <FileText className="w-3.5 h-3.5" />
+                                <span className="truncate max-w-[120px]">{filename.length > 20 ? filename.slice(-20) : filename}</span>
+                              </a>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

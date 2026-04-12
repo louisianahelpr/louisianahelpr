@@ -9,7 +9,7 @@ import {
   MapPin, DollarSign, CheckCircle2,
   Star, MessageSquare, Users, AlertTriangle, RefreshCw,
   Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
-  Navigation as NavigationIcon, Send, XCircle,
+  Navigation as NavigationIcon, Send, XCircle, Paperclip, FileText, Trash2, ExternalLink,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -51,6 +51,7 @@ export const AppliedJobsTab = ({
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
 
   const handleWithdraw = async (appId: string, jobTitle: string) => {
     setWithdrawingAppId(appId);
@@ -61,6 +62,28 @@ export const AppliedJobsTab = ({
       toast.success(`Withdrawn from "${jobTitle}"`);
     }
     setWithdrawingAppId(null);
+  };
+
+  const handleAddAttachment = async (appId: string, jobId: string, currentUrls: string[], file: File) => {
+    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+    setUploadingAttachment(appId);
+    const ext = file.name.split('.').pop();
+    const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
+    if (uploadErr) { toast.error("Upload failed"); setUploadingAttachment(null); return; }
+    const { data: urlData } = supabase.storage.from("application-attachments").getPublicUrl(path);
+    const newUrls = [...currentUrls, urlData.publicUrl];
+    const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
+    if (error) toast.error("Failed to save attachment");
+    else toast.success("Attachment added");
+    setUploadingAttachment(null);
+  };
+
+  const handleRemoveAttachment = async (appId: string, currentUrls: string[], urlToRemove: string) => {
+    const newUrls = currentUrls.filter(u => u !== urlToRemove);
+    const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
+    if (error) toast.error("Failed to remove attachment");
+    else toast.success("Attachment removed");
   };
 
   if (apps.length === 0) {
@@ -197,6 +220,56 @@ export const AppliedJobsTab = ({
                     ))}
                   </div>
                 )}
+
+                {/* Your application message */}
+                {app.message && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/15 p-2">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Your message</p>
+                    <p className="text-xs text-foreground">{app.message}</p>
+                  </div>
+                )}
+
+                {/* Your attachments */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Your Attachments</p>
+                  {(app.attachment_urls || []).map((url, i) => {
+                    const filename = decodeURIComponent(url.split('/').pop() || `File ${i + 1}`);
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                        <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="truncate flex-1 text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                          {filename.length > 30 ? filename.slice(-30) : filename}
+                        </a>
+                        <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                          <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                        </a>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }} className="text-destructive hover:text-destructive/80">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(app.attachment_urls || []).length < 5 && (
+                    <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>{uploadingAttachment === app.id ? "Uploading…" : "Add cert or work sample"}</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf,.doc,.docx"
+                        disabled={uploadingAttachment === app.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAddAttachment(app.id, app.job_id, app.attachment_urls || [], file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                  {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
+                    <p className="text-[10px] text-muted-foreground">No attachments yet</p>
+                  )}
+                </div>
               </div>
             )}
 

@@ -344,12 +344,10 @@ export const PostedJobsTab = ({
                         )}
                         {/* Approve/Complete - only after helper marks complete */}
                         <div className="flex items-center gap-2">
-                          {(job as any).helper_completed_at ? (
+                          {(job as any).helper_completed_at && (
                             <Button size="sm" className="flex-1" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
                               <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
                             </Button>
-                          ) : (
-                            <span className="flex-1 text-xs text-center text-muted-foreground py-1">Waiting for helpr to mark complete…</span>
                           )}
                           <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                         </div>

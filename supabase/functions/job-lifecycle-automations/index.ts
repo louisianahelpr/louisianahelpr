@@ -556,7 +556,7 @@ Deno.serve(async (req) => {
                 title: '⏰ Job will auto-complete in ~24 hours',
                 message: `"${job.title}" will be automatically marked complete if you don't respond. If there's an issue, dispute now.`,
                 type: 'warning',
-                link: '/activity',
+                link: '/my-posts',
               })
               results.autoReleaseReminders++
             }
@@ -586,7 +586,7 @@ Deno.serve(async (req) => {
                 title: '🚨 FINAL: Job will auto-complete in ~4 hours',
                 message: `"${job.title}" will auto-complete and payment will be released very soon. Dispute NOW if there's a problem.`,
                 type: 'warning',
-                link: '/activity',
+                link: '/my-posts',
               })
               results.autoReleaseReminders++
             }

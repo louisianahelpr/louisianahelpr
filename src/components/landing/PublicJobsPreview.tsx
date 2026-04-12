@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Calendar, DollarSign, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const categoryLabels: Record<string, string> = {
   other: "Other",
 };
 
-const PublicJobsPreview = () => {
+const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
   const [jobs, setJobs] = useState<PublicJob[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ const PublicJobsPreview = () => {
   if (loading || jobs.length === 0) return null;
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
+    <section ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
       <div className="container mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -137,6 +137,7 @@ const PublicJobsPreview = () => {
       </div>
     </section>
   );
-};
+});
+PublicJobsPreview.displayName = "PublicJobsPreview";
 
 export default PublicJobsPreview;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Star, MapPin, Briefcase, Award } from "lucide-react";
@@ -18,7 +18,7 @@ interface SpotlightHelper {
   completedJobs: number;
 }
 
-const HelperSpotlightSection = () => {
+const HelperSpotlightSection = forwardRef<HTMLDivElement>((_props, ref) => {
   const navigate = useNavigate();
   const [helpers, setHelpers] = useState<SpotlightHelper[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -72,7 +72,7 @@ const HelperSpotlightSection = () => {
   if (!loaded || helpers.length === 0) return null;
 
   return (
-    <section className="py-24 px-4 bg-secondary/50">
+    <section ref={ref} className="py-24 px-4 bg-secondary/50">
       <div className="container mx-auto text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Award className="w-6 h-6 text-primary" />
@@ -140,6 +140,7 @@ const HelperSpotlightSection = () => {
       </div>
     </section>
   );
-};
+});
+HelperSpotlightSection.displayName = "HelperSpotlightSection";
 
 export default HelperSpotlightSection;

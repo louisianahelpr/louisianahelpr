@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,11 +11,12 @@ export function useDashboardData() {
   const queryClient = useQueryClient();
   const { user, profile, isAdmin, isLoading: userLoading } = useCurrentUser();
 
-  // Redirect denied/pending users (non-admin)
-  const shouldRedirect = !isAdmin && profile?.approval_status === "pending";
-  const shouldRedirectDenied = !isAdmin && profile?.approval_status === "denied";
-  if (shouldRedirect) navigate("/account-pending");
-  if (shouldRedirectDenied) navigate("/account-denied");
+  // Redirect denied/pending users (non-admin) — in an effect, not during render
+  useEffect(() => {
+    if (userLoading || isAdmin || !profile) return;
+    if (profile.approval_status === "pending") navigate("/account-pending");
+    if (profile.approval_status === "denied") navigate("/account-denied");
+  }, [profile, isAdmin, userLoading, navigate]);
 
   // Core dashboard data query — cached & deduped
   const { data, isLoading: dataLoading } = useQuery({
@@ -28,7 +29,7 @@ export function useDashboardData() {
       const [openJobsRes, feeRes, availRes, appliedRes] = await Promise.all([
         supabase
           .from("jobs")
-          .select("id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, helper_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, helper_fee_percent, recurrence_interval, recurrence_end_date, parent_job_id, payment_status")
+          .select("id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status")
           .eq("status", "open")
           .neq("payment_status", "abandoned")
           .order("boosted_at", { ascending: false, nullsFirst: false })

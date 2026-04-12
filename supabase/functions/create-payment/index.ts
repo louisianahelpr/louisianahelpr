@@ -79,9 +79,9 @@ serve(async (req) => {
       const customerFeePercent = settings?.customer_fee_percent ?? 10;
       const helperFeePercent = settings?.helper_fee_percent ?? 10;
 
-      // Customer service fee (added as a line item)
+      // Customer service fee (added as a line item — taxable, it's platform revenue)
       const customerFeeAmount = (job.budget * customerFeePercent) / 100;
-      // Helper commission (deducted at payout, stored on job for reference)
+      // Helper commission (also platform revenue — taxed at checkout)
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
       const lineItems: any[] = [
@@ -99,8 +99,7 @@ serve(async (req) => {
         },
       ];
 
-      // Add customer service fee as a separate line item (non-taxable at checkout;
-      // commission tax is applied at payout on the platform's retained fees)
+      // Service fee — taxable (platform revenue)
       if (customerFeeAmount > 0) {
         lineItems.push({
           price_data: {
@@ -108,7 +107,6 @@ serve(async (req) => {
             product_data: {
               name: "Service Fee",
               description: `${customerFeePercent}% platform service fee`,
-              tax_code: "txcd_00000000", // Non-taxable at checkout — tax applied on platform revenue at payout
             },
             unit_amount: Math.round(customerFeeAmount * 100),
           },
@@ -116,7 +114,22 @@ serve(async (req) => {
         });
       }
 
-      // Add urgent tip line item if applicable
+      // Worker commission — taxable (platform revenue, deducted from worker's share at payout)
+      if (helperFeeAmount > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Worker Commission",
+              description: `${helperFeePercent}% platform commission on worker payout`,
+            },
+            unit_amount: Math.round(helperFeeAmount * 100),
+          },
+          quantity: 1,
+        });
+      }
+
+      // Urgent tip — non-taxable (passes through to helper)
       if ((job.urgent_fee ?? 0) > 0) {
         lineItems.push({
           price_data: {
@@ -240,14 +253,13 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      // Calculate helper payout: budget/helpers - helperCommission - commissionTax + urgent_fee
+      // Calculate helper payout: budget/helpers - helperCommission + urgent_fee
+      // Commission tax is already collected at checkout — no deduction here
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
       const jobHelperFeePercent = job.helper_fee_percent ?? 10;
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      const commissionTaxRate = job.sales_tax_rate ?? 0;
-      const commissionTax = (helperCommission * commissionTaxRate) / 100;
-      const helperPayout = perHelperBudget - helperCommission - commissionTax + (job.urgent_fee ?? 0);
+      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

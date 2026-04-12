@@ -78,7 +78,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-4">
           {locked && (
             <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
-              {hasHelper ? "Fields are locked because a helpr has been accepted." : "Budget is locked after payment."}
+              Fields are locked because a helpr has been accepted.
             </p>
           )}
           <div className="space-y-2">
@@ -112,15 +112,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Est. hours</Label>
-              <Input type="number" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} />
-            </div>
-            <div className="space-y-2">
-              <Label>Budget ($)</Label>
-              <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} disabled={locked} />
-            </div>
+          <div className="space-y-2">
+            <Label>Est. hours</Label>
+            <Input type="number" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} />
           </div>
           <div className="space-y-2">
             <Label>Special requirements</Label>

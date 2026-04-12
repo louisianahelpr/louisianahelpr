@@ -52,6 +52,18 @@ export const AppliedJobsTab = ({
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
+  const [editingMessageAppId, setEditingMessageAppId] = useState<string | null>(null);
+  const [editMessageText, setEditMessageText] = useState("");
+  const [savingMessage, setSavingMessage] = useState(false);
+
+  const handleSaveMessage = async (appId: string) => {
+    setSavingMessage(true);
+    const { error } = await supabase.from("applications").update({ message: editMessageText.trim() || null }).eq("id", appId);
+    if (error) toast.error("Failed to save message");
+    else toast.success("Message updated");
+    setSavingMessage(false);
+    setEditingMessageAppId(null);
+  };
 
   const handleWithdraw = async (appId: string, jobTitle: string) => {
     setWithdrawingAppId(appId);

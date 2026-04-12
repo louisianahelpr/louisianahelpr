@@ -366,13 +366,6 @@ export const AppliedJobsTab = ({
             {/* Confirmed: show tracking + message */}
             {isConfirmed && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
-                {/* Progress steps */}
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ Accepted</span>
-                  {jobAny.helper_on_the_way_at && !jobAny.poster_confirmed_working_at && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">✓ On the way</span>}
-                  {jobAny.helper_arrived_at && !jobAny.poster_confirmed_working_at && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrived</span>}
-                </div>
-
                 {/* Tracking — only active on the day of the job */}
                 <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} />
 

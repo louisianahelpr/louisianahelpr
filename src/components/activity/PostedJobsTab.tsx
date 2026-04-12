@@ -60,13 +60,8 @@ export const PostedJobsTab = ({
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
 
-  const isExpandable = (job: Job) => job.status !== "completed" && job.status !== "cancelled";
-
-  const handleExpandJob = (jobId: string, job: Job) => {
-    if (!isExpandable(job)) return;
-    const newId = expandedJobId === jobId ? null : jobId;
-    setExpandedJobId(newId);
-    if (newId && (job.status === "open" || job.status === "accepted")) {
+  const handleCardClick = (jobId: string, job: Job) => {
+    if (job.status === "open" || job.status === "accepted") {
       onLoadInlineApplicants(jobId);
     }
   };

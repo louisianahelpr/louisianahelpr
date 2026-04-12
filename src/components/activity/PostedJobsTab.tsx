@@ -219,7 +219,7 @@ export const PostedJobsTab = ({
                 {/* Visible live tracking */}
                 {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
                   <div onClick={(e) => e.stopPropagation()}>
-                    <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} />
+                    <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStatus={job.status} helperConfirmedAt={(job as any).helper_confirmed_at} />
                   </div>
                 )}
 

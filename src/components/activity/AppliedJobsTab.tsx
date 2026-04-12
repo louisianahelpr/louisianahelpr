@@ -374,7 +374,7 @@ export const AppliedJobsTab = ({
                 </div>
 
                 {/* Tracking — only active on the day of the job */}
-                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} />
+                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} />
 
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
               </div>

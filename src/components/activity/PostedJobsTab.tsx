@@ -423,7 +423,6 @@ export const PostedJobsTab = ({
                                 canNoShow = now.getTime() - new Date(jobAny.helper_on_the_way_at).getTime() >= 60 * 60 * 1000;
                               }
                               if (job.start_time && job.date_needed) {
-                                const { parseLocalDate } = require("@/lib/dateUtils");
                                 const base = parseLocalDate(job.date_needed);
                                 const [h, m] = job.start_time.split(":").map(Number);
                                 base.setHours(h, m, 0, 0);

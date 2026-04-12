@@ -256,6 +256,19 @@ export const AppliedJobsTab = ({
                     )}
                   </div>
                 )}
+
+                {/* Photo proof - last */}
+                {jobAny.helper_arrived_at && (
+                  <PhotoProofGroup
+                    jobId={app.job_id}
+                    beforeUrls={jobAny.proof_before_urls || []}
+                    afterUrls={jobAny.proof_after_urls || []}
+                    canUploadBefore={true}
+                    canUploadAfter={true}
+                    requireAfter={true}
+                    budget={job.budget || 0}
+                  />
+                )}
               </div>
             )}
 

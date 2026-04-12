@@ -6,11 +6,11 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/my-posts", icon: Send, label: "My Posts" },
+  { path: "/my-posts", icon: Send, label: "Posts" },
 ];
 
 const rightItems = [
-  { path: "/my-jobs", icon: ClipboardList, label: "My Jobs" },
+  { path: "/my-jobs", icon: ClipboardList, label: "Jobs" },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: User, label: "Profile" },
 ];

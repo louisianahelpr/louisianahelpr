@@ -1,46 +1,43 @@
 
 
-## Problem: Stripe Balance Shows $0
+## Problem: Jobs stuck on "unpaid" despite successful Stripe payments
 
-The payment intent for the completed test job was **never captured** — it still shows `requires_capture` in Stripe. The root cause is a chain of failures:
+### Root Cause
+The Stripe webhook (`stripe-webhook` edge function) is **not receiving events** from Stripe. The edge function logs show zero webhook calls. This means when a customer completes checkout on Stripe, the `checkout.session.completed` event never reaches your backend, so the job's `payment_status` stays "unpaid" and `stripe_payment_intent_id` stays null.
 
-1. When the escrow checkout session is created, only `stripe_session_id` is saved on the job — **not** the `stripe_payment_intent_id`
-2. When the job completes, `captureEscrowPayment` tries to retrieve the payment intent from the session but **silently fails** (logs confirm: "No payment intent found")
-3. The Stripe webhook only handles subscription tier updates — it **ignores** escrow job payments entirely
+Specifically for "Help Zander": Stripe confirms payment intent `pi_3TLBZCKp2H4b7tEC0pAdFzsk` for $5.50 succeeded, but the job record was never updated.
 
-So the payment is authorized but never captured, and Stripe balance stays at $0.
+### Plan
 
----
+#### 1. Fix the immediate data — Patch unpaid jobs that were actually paid
+- Query Stripe for all checkout sessions with job metadata
+- Update the "Help Zander" job (and any others) with the correct `stripe_payment_intent_id` and `payment_status: 'escrow'`
+- This is a one-time data fix via database migration
 
-## Plan
+#### 2. Verify and fix Stripe webhook configuration
+- Check whether the webhook endpoint `https://steigdwrpkosbiycshwz.supabase.co/functions/v1/stripe-webhook` is properly registered in Stripe
+- Ensure the `STRIPE_WEBHOOK_SECRET` matches the configured endpoint
+- Test the webhook by sending a test event
 
-### 1. Update Stripe webhook to store payment intent on escrow jobs
-In `supabase/functions/stripe-webhook/index.ts`, add handling inside the `checkout.session.completed` case: when the session metadata contains a `job_id`, store `session.payment_intent` as `stripe_payment_intent_id` on the job record. This ensures the PI is always stored reliably.
+#### 3. Add a client-side fallback for checkout completion
+- After Stripe redirects the user back to the success URL, call a new verification step that checks the checkout session status and updates the job if the webhook was missed
+- This acts as a safety net so jobs are never stuck on "unpaid" even if a webhook is delayed or lost
 
-### 2. Fix `captureEscrowPayment` to use `expand` parameter
-In `supabase/functions/create-payment/index.ts`, update the session retrieval call to use `expand: ["payment_intent"]` so it reliably gets the PI even if the webhook hasn't fired yet. This is a safety net.
-
-### 3. Fix the existing stuck job
-Run a data update to set `stripe_payment_intent_id = 'pi_3TDuQyKp2H4b7tEC1L7jGZj1'` on job `7cbe65e1-...` and then manually trigger the `process-scheduled-payouts` function to capture and transfer the payment.
-
-### 4. Redeploy affected edge functions
-- `stripe-webhook`
-- `create-payment`
-
----
+#### 4. Add a polling fallback edge function
+- Create a scheduled function that finds jobs with `payment_status = 'unpaid'` that have a `stripe_session_id`, checks their status with Stripe, and updates accordingly
+- Prevents future "stuck unpaid" scenarios
 
 ### Technical Details
 
-**Webhook change** (stripe-webhook/index.ts): Inside `checkout.session.completed`, after the existing tier logic, add:
-```typescript
-// Store payment intent for escrow jobs
-const jobId = (session.metadata as any)?.job_id;
-if (jobId && session.payment_intent) {
-  await supabase.from("jobs").update({
-    stripe_payment_intent_id: session.payment_intent as string,
-  }).eq("id", jobId);
-}
+**Step 1** — Database migration to fix existing data:
+```sql
+UPDATE jobs SET stripe_payment_intent_id = 'pi_3TLBZCKp2H4b7tEC0pAdFzsk', payment_status = 'escrow'
+WHERE id = '4061f951-eb84-49bd-ac43-5d25e3c2a0d7';
 ```
 
-**captureEscrowPayment fix**: Change `stripe.checkout.sessions.retrieve(job.stripe_session_id)` to include expand parameter to reliably get the payment_intent string.
+**Step 3** — In `PostJob.tsx` (or payment success page), after redirect from Stripe:
+- Extract `session_id` from URL params
+- Call an edge function to verify the session and update the job
+
+**Step 4** — New `sync-unpaid-jobs` edge function that runs on a schedule, queries jobs with `payment_status = 'unpaid'` + non-null `stripe_session_id`, checks each session in Stripe, and updates payment status if paid.
 

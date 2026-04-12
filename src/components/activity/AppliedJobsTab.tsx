@@ -136,6 +136,16 @@ export const AppliedJobsTab = ({
                   {job.estimated_hours && (
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.estimated_hours}h</span>
                   )}
+                  {isPending && job.expires_at && !job.helper_id && (() => {
+                    const expired = new Date(job.expires_at!) <= new Date();
+                    const expiringSoon = differenceInHours(new Date(job.expires_at!), new Date()) < 24;
+                    const text = expired ? "Expired" : formatDistanceToNow(new Date(job.expires_at!), { addSuffix: false }) + " left";
+                    return (
+                      <span className={`flex items-center gap-1 ${expiringSoon ? "text-destructive font-medium" : ""}`}>
+                        <Timer className="w-3 h-3" /> {text}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0" title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}>
@@ -143,11 +153,17 @@ export const AppliedJobsTab = ({
               </span>
             </div>
 
-            {/* Description + poster */}
-            {(job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() || app.posterName) && (
-              <div className="px-4 pb-2 space-y-1">
+            {/* Description + special requirements + poster */}
+            {(job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() || job.special_requirements || app.posterName) && (
+              <div className="px-4 pb-2 space-y-1.5">
                 {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{job.description}</p>
+                )}
+                {job.special_requirements?.trim() && (
+                  <div className="rounded-lg bg-secondary/30 p-2">
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
+                    <p className="text-xs text-foreground">{job.special_requirements}</p>
+                  </div>
                 )}
                 {app.posterName && (
                   <p className="text-xs text-muted-foreground">
@@ -156,20 +172,6 @@ export const AppliedJobsTab = ({
                 )}
               </div>
             )}
-
-            {/* Expiry warning for pending */}
-            {isPending && job.expires_at && !job.helper_id && (() => {
-              const expired = new Date(job.expires_at!) <= new Date();
-              const expiringSoon = differenceInHours(new Date(job.expires_at!), new Date()) < 24;
-              const text = expired ? "Expired" : formatDistanceToNow(new Date(job.expires_at!), { addSuffix: false }) + " left";
-              return (
-                <div className="px-4 pb-2">
-                  <span className={`text-xs flex items-center gap-1 ${expiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                    <Timer className="w-3 h-3" /> {text}
-                  </span>
-                </div>
-              );
-            })()}
 
             {/* Withdraw for pending */}
             {isPending && (

@@ -67,7 +67,7 @@ export function JobConfirmation({
     setShowConfirmDialog(false);
   };
 
-  const myConfirmed = isOwner ? posterConfirmedAt : helperConfirmedAt;
+  const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperConfirmedAt);
   const otherConfirmed = isOwner ? helperConfirmedAt : posterConfirmedAt;
   const otherLabel = isOwner ? "Helpr" : "Poster";
 

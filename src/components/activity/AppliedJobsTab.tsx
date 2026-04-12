@@ -150,18 +150,6 @@ export const AppliedJobsTab = ({
           {app.status === "accepted" && app.job?.status === "accepted" && !!(app.job as any)?.helper_confirmed_at && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
               <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">✓ You accepted this job</div>
-              {(app.job as any)?.helper_on_the_way_at && (
-                <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary">
-                  <NavigationIcon className="w-3.5 h-3.5 shrink-0" /><span className="font-medium">On the way</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground">{new Date((app.job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              )}
-              {(app.job as any)?.helper_arrived_at && (
-                <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                  <MapPin className="w-3.5 h-3.5 shrink-0" /><span className="font-medium">Arrived</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground">{new Date((app.job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              )}
               {!(app.job as any)?.helper_on_the_way_at && (
                 <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onMarkOnTheWay(app.job_id)} disabled={onTheWayLoading === app.job_id}>
                   <NavigationIcon className="w-4 h-4 mr-1" /> {onTheWayLoading === app.job_id ? "Updating…" : "On My Way"}
@@ -179,18 +167,6 @@ export const AppliedJobsTab = ({
           {/* In Progress / Revision */}
           {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              {(app.job as any)?.helper_on_the_way_at && (
-                <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
-                  <NavigationIcon className="w-3 h-3 shrink-0" /><span>On the way</span>
-                  <span className="ml-auto text-[10px]">{new Date((app.job as any).helper_on_the_way_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              )}
-              {(app.job as any)?.helper_arrived_at && (
-                <div className="flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground">
-                  <MapPin className="w-3 h-3 shrink-0" /><span>Arrived</span>
-                  <span className="ml-auto text-[10px]">{new Date((app.job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              )}
               {!startRequestedJobIds.has(app.job_id) && (
                 <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onStartJob(app.job_id)} disabled={startJobLoading === app.job_id}>
                   <Rocket className="w-4 h-4 mr-1" /> {startJobLoading === app.job_id ? "Starting…" : "Start Job"}

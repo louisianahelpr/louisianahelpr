@@ -241,9 +241,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
+        toast.success("Job completed! Payment released.");
         await refresh();
         setStatusFilter("completed");
       } else {
+        toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
         await refresh();
       }
     } catch (err: any) {

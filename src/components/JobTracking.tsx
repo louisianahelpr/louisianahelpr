@@ -156,6 +156,9 @@ export function JobTracking({
     ? STATUSES.findIndex((s) => s.key === tracking.status)
     : 0;
 
+  // Only show current and future statuses (hide already completed ones)
+  const visibleStatuses = STATUSES.filter((_, idx) => idx >= currentStatusIdx);
+
   if (!helperId) return null;
 
   return (

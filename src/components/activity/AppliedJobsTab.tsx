@@ -658,6 +658,13 @@ export const AppliedJobsTab = ({
             })()}
 
             {isCompleted && !isFullyDone && (
+              <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Completed — tap to review</span>
+                <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+              </div>
+            )}
+
+            {isCompleted && !isFullyDone && isExpanded && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 <PhotoProofGroup
                   jobId={app.job_id}

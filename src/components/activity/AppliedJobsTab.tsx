@@ -180,7 +180,8 @@ export const AppliedJobsTab = ({
                 jobId={app.job_id}
                 beforeUrls={(app.job as any)?.proof_before_urls || []}
                 afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUpload={true}
+                canUploadBefore={false}
+                canUploadAfter={true}
                 requireAfter={true}
                 budget={app.job?.budget || 0}
               />
@@ -236,7 +237,8 @@ export const AppliedJobsTab = ({
                 jobId={app.job_id}
                 beforeUrls={(app.job as any)?.proof_before_urls || []}
                 afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUpload={true}
+                canUploadBefore={false}
+                canUploadAfter={true}
                 requireAfter={true}
                 budget={app.job?.budget || 0}
               />

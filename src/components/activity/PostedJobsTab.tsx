@@ -319,7 +319,8 @@ export const PostedJobsTab = ({
                           jobId={job.id}
                           beforeUrls={(job as any).proof_before_urls || []}
                           afterUrls={(job as any).proof_after_urls || []}
-                          canUpload={true}
+                          canUploadBefore={true}
+                          canUploadAfter={false}
                           requireAfter={true}
                           budget={job.budget}
                         />
@@ -407,7 +408,8 @@ export const PostedJobsTab = ({
                           jobId={job.id}
                           beforeUrls={(job as any).proof_before_urls || []}
                           afterUrls={(job as any).proof_after_urls || []}
-                          canUpload={true}
+                          canUploadBefore={true}
+                          canUploadAfter={false}
                           requireAfter={true}
                           budget={job.budget}
                         />

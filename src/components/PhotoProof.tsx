@@ -119,19 +119,25 @@ type PhotoProofGroupProps = {
   afterUrls: string[];
   onUploaded?: () => void;
   canUpload?: boolean;
+  /** Fine-grained: allow uploading before photos (defaults to canUpload) */
+  canUploadBefore?: boolean;
+  /** Fine-grained: allow uploading after photos (defaults to canUpload) */
+  canUploadAfter?: boolean;
   requireAfter?: boolean;
   budget?: number;
 };
 
 export const PhotoProofGroup = ({
-  jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, requireAfter = false, budget = 0,
+  jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, canUploadBefore, canUploadAfter, requireAfter = false, budget = 0,
 }: PhotoProofGroupProps) => {
+  const showBeforeUpload = canUploadBefore ?? canUpload;
+  const showAfterUpload = canUploadAfter ?? canUpload;
   const hasBefore = beforeUrls.length > 0;
   const hasAfter = afterUrls.length > 0;
   const [viewOpen, setViewOpen] = useState(false);
 
   // If no photos at all and can't upload, show a minimal empty state
-  if (!hasBefore && !hasAfter && !canUpload) {
+  if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
     return (
       <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
         <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center gap-1.5">
@@ -182,7 +188,7 @@ export const PhotoProofGroup = ({
             ) : (
               <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
             )}
-            {canUpload && (
+            {showBeforeUpload && (
               <PhotoProof jobId={jobId} type="before" existingUrls={beforeUrls} onUploaded={onUploaded} />
             )}
           </div>
@@ -206,7 +212,7 @@ export const PhotoProofGroup = ({
             ) : (
               <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
             )}
-            {canUpload && (
+            {showAfterUpload && (
               <PhotoProof jobId={jobId} type="after" existingUrls={afterUrls} onUploaded={onUploaded} />
             )}
           </div>

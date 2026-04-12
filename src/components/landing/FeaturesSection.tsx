@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Shield, CreditCard, Star, CalendarDays, Bell, MapPin } from "lucide-react";
 
 const features = [
@@ -9,9 +10,9 @@ const features = [
   { icon: MapPin, title: "Louisiana local", desc: "Find helprs in your parish and neighborhood. Support your local Louisiana community." },
 ];
 
-const FeaturesSection = () => {
+const FeaturesSection = forwardRef<HTMLElement>((_props, ref) => {
   return (
-    <section id="features" className="py-24 px-4">
+    <section id="features" className="py-24 px-4" ref={ref}>
       <div className="container mx-auto text-center">
         <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-4">
           Built for trust & simplicity
@@ -38,6 +39,7 @@ const FeaturesSection = () => {
       </div>
     </section>
   );
-};
+});
+FeaturesSection.displayName = "FeaturesSection";
 
 export default FeaturesSection;

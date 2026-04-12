@@ -151,7 +151,11 @@ const AdminAnalytics = () => {
     const month = d.getMonth();
     const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
-    const monthJobs = completedJobs.filter(j => {
+    const monthCaptured = capturedJobs.filter(j => {
+      const jd = new Date(j.created_at);
+      return jd.getFullYear() === year && jd.getMonth() === month;
+    });
+    const monthCompleted = completedJobs.filter(j => {
       const jd = new Date(j.created_at);
       return jd.getFullYear() === year && jd.getMonth() === month;
     });
@@ -162,9 +166,9 @@ const AdminAnalytics = () => {
 
     monthlyData.push({
       month: label,
-      revenue: monthJobs.reduce((s, j) => s + (j.budget || 0), 0),
-      fees: monthJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0),
-      jobs: monthJobs.length,
+      revenue: monthCaptured.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0),
+      fees: monthCaptured.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0),
+      jobs: monthCompleted.length,
       signups: monthSignups.length,
     });
   }

@@ -47,13 +47,24 @@ const AdminAnalytics = () => {
 
   useEffect(() => {
     const load = async () => {
-      const [profilesRes, jobsRes, tipsRes] = await Promise.all([
+      // Paginate jobs to avoid 1000-row limit
+      let allJobsData: Job[] = [];
+      let page = 0;
+      const PAGE_SIZE = 999;
+      while (true) {
+        const { data } = await supabase.from("jobs").select("*").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        allJobsData = [...allJobsData, ...data];
+        if (data.length < PAGE_SIZE) break;
+        page++;
+      }
+
+      const [profilesRes, tipsRes] = await Promise.all([
         supabase.from("profiles").select("*"),
-        supabase.from("jobs").select("*"),
         supabase.from("tips").select("*"),
       ]);
       setProfiles(profilesRes.data || []);
-      setAllJobs(jobsRes.data || []);
+      setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
       setLoading(false);
     };
@@ -72,22 +83,25 @@ const AdminAnalytics = () => {
   const helpers = profiles.filter(p => p.role === "helper");
   const customers = profiles.filter(p => p.role === "customer");
   const completedJobs = allJobs.filter(j => j.status === "completed");
-  // All jobs with captured payments (escrow/pending/released) — includes cancelled jobs since platform fees were already collected
+  // Jobs where money is actually held or paid out (NOT refunded/cancelled)
   const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
-  const capturedJobs = allJobs.filter(j => capturedPaymentStatuses.includes(j.payment_status || "") && j.status !== "cancelled");
-  // Cancelled jobs that were paid (refunded or cancelled payment) — platform keeps its service fees from these
-  const cancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && ["refunded", "cancelled", ...capturedPaymentStatuses].includes(j.payment_status || ""));
+  const capturedJobs = allJobs.filter(j => capturedPaymentStatuses.includes(j.payment_status || ""));
+  // Cancelled jobs where payment was NOT refunded — platform keeps fees from these
+  const cancelledRetainedJobs = allJobs.filter(j => j.status === "cancelled" && capturedPaymentStatuses.includes(j.payment_status || ""));
+  // Refunded jobs — money was returned, platform does NOT keep fees
+  const refundedJobs = allJobs.filter(j => ["refunded"].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");
   const activeJobs = allJobs.filter(j => ["accepted", "in_progress"].includes(j.status));
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
-  // Late cancellations with captured payment — platform keeps fees
+  // Late cancellations where payment is still captured (not refunded)
   const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && capturedPaymentStatuses.includes(j.payment_status || ""));
 
-  const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  // Platform profit = fees from active/completed jobs + fees from cancelled-but-paid jobs
-  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0)
-    + cancelledPaidJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
+  // Gross Revenue = total amount collected via Stripe (budget + customer fee) for jobs with captured payments
+  const totalRevenue = capturedJobs.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0);
+  // Platform Profit = only fees from jobs where payment is still held (escrow/payout_pending/released)
+  // Does NOT include refunded or cancelled-payment jobs since those fees were returned
+  const totalFees = capturedJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0);
   // Late cancellation revenue the platform retains (cancellation fee commission)
   const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
     const cancFee = j.cancellation_fee || 0;
@@ -105,6 +119,7 @@ const AdminAnalytics = () => {
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;
+  const totalRefunded = refundedJobs.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0);
 
   // Subscription breakdown
   const subBasic = helpers.filter(h => h.subscription_tier === "basic").length;
@@ -136,7 +151,11 @@ const AdminAnalytics = () => {
     const month = d.getMonth();
     const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
-    const monthJobs = completedJobs.filter(j => {
+    const monthCaptured = capturedJobs.filter(j => {
+      const jd = new Date(j.created_at);
+      return jd.getFullYear() === year && jd.getMonth() === month;
+    });
+    const monthCompleted = completedJobs.filter(j => {
       const jd = new Date(j.created_at);
       return jd.getFullYear() === year && jd.getMonth() === month;
     });
@@ -147,9 +166,9 @@ const AdminAnalytics = () => {
 
     monthlyData.push({
       month: label,
-      revenue: monthJobs.reduce((s, j) => s + (j.budget || 0), 0),
-      fees: monthJobs.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0),
-      jobs: monthJobs.length,
+      revenue: monthCaptured.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0),
+      fees: monthCaptured.reduce((s, j) => s + (j.customer_fee_amount || 0) + (j.platform_fee_amount || 0), 0),
+      jobs: monthCompleted.length,
       signups: monthSignups.length,
     });
   }
@@ -252,16 +271,16 @@ const AdminAnalytics = () => {
       {/* ── Row 1: Key Financial Metrics ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          label="Gross Revenue"
+          label="Collected Revenue"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${capturedJobs.length} captured payments`}
+          sub={`${capturedJobs.length} active payments (excl. refunds)`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />
         <MetricCard
           label="Platform Profit"
           value={`$${totalFees.toFixed(2)}`}
-          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of captured payments`}
+          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of collected revenue`}
           icon={TrendingUp}
           accent
           onClick={() => openDrillDown("fees")}
@@ -274,14 +293,24 @@ const AdminAnalytics = () => {
           onClick={() => openDrillDown("payouts")}
         />
         <MetricCard
-          label="Tips Collected"
-          value={`$${totalTips.toFixed(2)}`}
-          sub={`${tips.length} total tips`}
-          icon={Star}
+          label="Refunded"
+          value={`$${totalRefunded.toFixed(2)}`}
+          sub={`${refundedJobs.length} refunded ${refundedJobs.length === 1 ? "job" : "jobs"}`}
+          icon={XCircle}
         />
       </div>
 
-      {/* Late Cancellation Revenue */}
+      {/* Tips */}
+      {totalTips > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+          <Star className="w-4 h-4 text-accent" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">{tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").length} paid tips</p>
+          </div>
+        </div>
+      )}
+
       {lateCancelRevenue > 0 && (
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-2">

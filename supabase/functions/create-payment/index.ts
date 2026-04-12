@@ -121,6 +121,7 @@ serve(async (req) => {
             product_data: {
               name: "Urgent Tip",
               description: "Urgent tip — goes directly to the helpr",
+              tax_code: "txcd_00000000", // Non-taxable: passes through to helper
             },
             unit_amount: Math.round(job.urgent_fee * 100),
           },

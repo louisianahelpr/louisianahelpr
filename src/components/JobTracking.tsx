@@ -32,8 +32,8 @@ export function JobTracking({
   jobDateNeeded,
   jobStartTime,
   jobStatus,
-  helperConfirmedAt,
-  posterConfirmedAt,
+  helperConfirmedAt: initialHelperConfirmedAt,
+  posterConfirmedAt: initialPosterConfirmedAt,
 }: {
   jobId: string;
   helperId: string | null;
@@ -47,6 +47,12 @@ export function JobTracking({
 }) {
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
+  const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
+
+  // Sync props
+  useEffect(() => { setHelperConfirmedAt(initialHelperConfirmedAt); }, [initialHelperConfirmedAt]);
+  useEffect(() => { setPosterConfirmedAt(initialPosterConfirmedAt); }, [initialPosterConfirmedAt]);
 
   const loadTracking = useCallback(async () => {
     if (!helperId) return;
@@ -73,6 +79,17 @@ export function JobTracking({
         (payload) => {
           if (payload.new && typeof payload.new === "object" && "id" in payload.new) {
             setTracking(payload.new as unknown as TrackingData);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "jobs", filter: `id=eq.${jobId}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            const updated = payload.new as any;
+            if (updated.helper_confirmed_at !== undefined) setHelperConfirmedAt(updated.helper_confirmed_at);
+            if (updated.poster_confirmed_at !== undefined) setPosterConfirmedAt(updated.poster_confirmed_at);
           }
         }
       )

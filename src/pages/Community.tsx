@@ -59,7 +59,7 @@ const Community = () => {
   const { user } = useCurrentUser();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-16">
       {/* Header */}
       {user ? (
         <DashboardHeader />

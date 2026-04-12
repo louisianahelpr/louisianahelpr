@@ -24,6 +24,7 @@ export function JobConfirmation({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [localConfirmedAt, setLocalConfirmedAt] = useState<string | null>(null);
 
   const jobDate = new Date(dateNeeded + "T00:00");
   const now = new Date();

@@ -414,11 +414,29 @@ export const PostedJobsTab = ({
                         {/* Confirm Arrival + No-Show side by side */}
                         {job.status === "in_progress" && (
                           <div className="flex items-center gap-2">
-                            {!(job as any).poster_completed_at && !(job as any).helper_arrived_at && (
-                              <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
-                                <XCircle className="w-4 h-4 mr-1" /> No-Show
-                              </Button>
-                            )}
+                            {!(job as any).poster_completed_at && !(job as any).helper_arrived_at && (() => {
+                              const now = new Date();
+                              const jobAny = job as any;
+                              // 1hr after start time OR 1hr after on_the_way
+                              let canNoShow = false;
+                              if (jobAny.helper_on_the_way_at) {
+                                canNoShow = now.getTime() - new Date(jobAny.helper_on_the_way_at).getTime() >= 60 * 60 * 1000;
+                              }
+                              if (job.start_time && job.date_needed) {
+                                const { parseLocalDate } = require("@/lib/dateUtils");
+                                const base = parseLocalDate(job.date_needed);
+                                const [h, m] = job.start_time.split(":").map(Number);
+                                base.setHours(h, m, 0, 0);
+                                const startPlus1h = new Date(base.getTime() + 60 * 60 * 1000);
+                                if (now >= startPlus1h) canNoShow = true;
+                              }
+                              if (!canNoShow) return null;
+                              return (
+                                <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
+                                  <XCircle className="w-4 h-4 mr-1" /> No-Show
+                                </Button>
+                              );
+                            })()}
                             {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
                               <Button size="sm" className="flex-1" onClick={() => onConfirmArrival(job.id)}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival

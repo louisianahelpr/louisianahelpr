@@ -75,8 +75,8 @@ const AdminAnalytics = () => {
   // All jobs with captured payments (escrow/pending/released) — includes cancelled jobs since platform fees were already collected
   const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
   const capturedJobs = allJobs.filter(j => capturedPaymentStatuses.includes(j.payment_status || "") && j.status !== "cancelled");
-  // Cancelled jobs that had captured payments — platform keeps its fees from these
-  const cancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && capturedPaymentStatuses.includes(j.payment_status || ""));
+  // Cancelled jobs that were paid (refunded or cancelled payment) — platform keeps its service fees from these
+  const cancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && ["refunded", "cancelled", ...capturedPaymentStatuses].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");
   const activeJobs = allJobs.filter(j => ["accepted", "in_progress"].includes(j.status));
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");

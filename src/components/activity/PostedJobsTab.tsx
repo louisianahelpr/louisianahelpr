@@ -541,6 +541,7 @@ export const PostedJobsTab = ({
                   </div>
                 </div>
               </div>
+              )}
             </div>
           );
         })}

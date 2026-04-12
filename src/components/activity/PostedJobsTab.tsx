@@ -234,14 +234,7 @@ export const PostedJobsTab = ({
                 )}
               </div>
 
-              {/* Applicants button */}
-              {job.status === "open" && (
-                <div className="px-4 py-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-                  <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => onLoadApplications(job)}>
-                    <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
-                  </Button>
-                </div>
-              )}
+              
 
               {/* Completed hint */}
               {job.status === "completed" && (() => {
@@ -316,6 +309,15 @@ export const PostedJobsTab = ({
                     <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={(job as any).poster_confirmed_at} helperConfirmedAt={(job as any).helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
                     {(job as any).is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={(job as any).helpers_needed || 2} isOwner={true} />}
                     
+                  </div>
+                )}
+
+                {/* Applicants button */}
+                {job.status === "open" && (
+                  <div className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => onLoadApplications(job)}>
+                      <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
+                    </Button>
                   </div>
                 )}
 

@@ -202,32 +202,6 @@ export const AppliedJobsTab = ({
             {/* In Progress / Revision */}
             {isActive && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
-                {/* Start job button */}
-                {!startRequestedJobIds.has(app.job_id) && jobAny.helper_arrived_at && (
-                  <Button size="sm" className="w-full" onClick={() => onStartJob(app.job_id)} disabled={startJobLoading === app.job_id}>
-                    <Rocket className="w-4 h-4 mr-1" /> {startJobLoading === app.job_id ? "Starting…" : "Start Job"}
-                  </Button>
-                )}
-                {!startRequestedJobIds.has(app.job_id) && !jobAny.helper_arrived_at && (
-                  <p className="text-xs text-muted-foreground text-center py-1">Mark "Arrived" before starting the job</p>
-                )}
-                {startRequestedJobIds.has(app.job_id) && (
-                  <div className="text-xs text-center px-2 py-1.5 rounded bg-primary/10 text-primary font-medium">🚀 Job started</div>
-                )}
-
-                {/* Photo proof - only after arrived */}
-                {jobAny.helper_arrived_at && (
-                  <PhotoProofGroup
-                    jobId={app.job_id}
-                    beforeUrls={jobAny.proof_before_urls || []}
-                    afterUrls={jobAny.proof_after_urls || []}
-                    canUploadBefore={true}
-                    canUploadAfter={true}
-                    requireAfter={true}
-                    budget={job.budget || 0}
-                  />
-                )}
-
                 {/* Revision notice */}
                 {status === "revision_requested" && (
                   <div className="space-y-2">

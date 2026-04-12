@@ -82,19 +82,19 @@ export const PostedJobsTab = ({
         {jobs.map((job) => {
           const catStyle = categoryColors[job.category] || categoryColors.other;
           return (
-            <div key={job.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden relative shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 transition-all">
+            <div key={job.id} className="group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200">
               {/* Top bar */}
-              <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between text-left">
+              <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
                 <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
-                  <span className="flex items-center gap-0.5 font-bold text-primary text-sm"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
+                  <span className="flex items-center gap-0.5 font-semibold text-primary text-sm bg-primary/8 px-2 py-0.5 rounded-full"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
                   
                 </div>
               </div>
 
               {/* Summary */}
-              <div className="px-4 py-3 space-y-2">
-                <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+              <div className="px-4 py-3 space-y-2.5">
+                <div className="flex items-center gap-2.5 flex-wrap text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3 shrink-0" />
                     {new Date(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -126,8 +126,8 @@ export const PostedJobsTab = ({
 
                 {/* Assigned helper display */}
                 {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
-                  <div className="flex items-center gap-2 py-1">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg bg-muted/40">
+                    <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                       {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                     </div>
                     <span className="text-xs text-muted-foreground">Assigned to</span>
@@ -142,8 +142,8 @@ export const PostedJobsTab = ({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {(job as any).helper_confirmed_at
-                        ? <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>
-                        : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
+                        ? <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>
+                        : <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to confirm</span>
                       }
                     </div>
                     {(job as any).helper_confirmed_at && (
@@ -156,7 +156,7 @@ export const PostedJobsTab = ({
                               <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                             {(job as any).poster_confirmed_arrival_at ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">✓ Arrival confirmed</span>
+                              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
                             ) : (
                               <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
@@ -173,10 +173,10 @@ export const PostedJobsTab = ({
                 {/* Completion confirmation */}
                 {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ You confirmed</span>}
-                    {(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
-                    {!(job as any).poster_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for you</span>}
-                    {!(job as any).helper_completed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
+                    {(job as any).poster_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ You confirmed</span>}
+                    {(job as any).helper_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
+                    {!(job as any).poster_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for you</span>}
+                    {!(job as any).helper_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
                   </div>
                 )}
 
@@ -244,7 +244,7 @@ export const PostedJobsTab = ({
 
               {/* Additional details */}
               <div>
-                <div className="px-4 pb-3 space-y-3 border-t border-border/40">
+                <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   {(job.photos || []).length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
@@ -296,7 +296,7 @@ export const PostedJobsTab = ({
                 )}
 
                 {/* Actions */}
-                <div className="border-t border-border/40 px-4 py-3">
+                <div className="border-t border-border/30 bg-muted/8 px-4 py-3">
                   <div className="space-y-2">
                     {job.status === "open" && (
                       <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export const PostedJobsTab = ({
                           </div>
                         )}
                         {(job as any).poster_confirmed_working_at && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">✓ Working confirmed</span>
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Working confirmed</span>
                         )}
                         {/* Approve/Complete - only after helper marks complete */}
                         <div className="flex items-center gap-2">

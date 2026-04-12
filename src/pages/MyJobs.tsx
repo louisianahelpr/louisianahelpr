@@ -210,7 +210,7 @@ const MyJobs = () => {
                           </Button>
                         </>
                       )}
-                      {job.status === "in_progress" && (
+                      {job.status === "in_progress" && (job as any).helper_arrived_at && (
                         <>
                           <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id}>
                             <CheckCircle2 className="w-4 h-4 mr-1" />

@@ -14,6 +14,7 @@ export function JobConfirmation({
   helperConfirmedAt,
   dateNeeded,
   jobStatus,
+  helperOnTheWayAt,
   onConfirm,
 }: {
   jobId: string;
@@ -23,6 +24,7 @@ export function JobConfirmation({
   helperConfirmedAt: string | null;
   dateNeeded: string;
   jobStatus?: string;
+  helperOnTheWayAt?: string | null;
   onConfirm?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -32,6 +34,9 @@ export function JobConfirmation({
   const jobDate = parseLocalDate(dateNeeded);
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  // Hide once helper is on the way or beyond
+  if (helperOnTheWayAt) return null;
 
   // Show for accepted/in_progress jobs within 24 hours of job date
   const showConfirmation = (jobStatus === "accepted" || jobStatus === "in_progress") && hoursUntilJob <= 24 && hoursUntilJob > -12;

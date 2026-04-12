@@ -105,17 +105,10 @@ serve(async (req) => {
           results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
         } else if (pi.status === "succeeded") {
           // Already captured — issue a refund (minus cancellation fee if applicable)
-          // Server-side fee calculation: ignore client-sent cancellation_fee
+          // Server-side fee: flat 5% of budget when a helper was selected
           let cancellationFee = 0;
-          if (job.helper_id && job.cancelled_at && job.date_needed) {
-            const jobDateTime = new Date(job.date_needed + "T00:00:00Z");
-            const cancelledAt = new Date(job.cancelled_at);
-            const hoursUntilJob = (jobDateTime.getTime() - cancelledAt.getTime()) / (1000 * 60 * 60);
-            if (hoursUntilJob < 2 && hoursUntilJob > 0) {
-              cancellationFee = Math.round(job.budget * 0.5);
-            } else if (hoursUntilJob < 24 && hoursUntilJob > 0) {
-              cancellationFee = Math.round(job.budget * 0.25);
-            }
+          if (job.helper_id) {
+            cancellationFee = Math.round(job.budget * 0.05);
           }
           // Update the job record with the server-calculated fee and status
           await supabaseAdmin.from("jobs").update({

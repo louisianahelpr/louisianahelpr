@@ -148,16 +148,18 @@ const Admin = () => {
       // Revenue: captured payments that are NOT cancelled
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled" as any),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
-      // Late cancellation revenue: cancelled jobs with captured payment
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled" as any).in("payment_status", ["escrow", "payout_pending", "released"]),
+      // Cancelled jobs that were paid — platform keeps service fees
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled" as any).in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]),
     ]);
     const paymentRows = paymentsRes.data || [];
-    const lateCancelRows = lateCancelRes.data || [];
-    // Late cancellation profit: platform keeps its commission from the cancellation
-    const lateCancellationRevenue = lateCancelRows.reduce((s, j) => {
-      const fee = (j as any).customer_fee_amount || 0;
-      const platformFee = (j as any).platform_fee_amount || 0;
-      return s + fee + platformFee;
+    const cancelledPaidRows = lateCancelRes.data || [];
+    // Platform fees from cancelled-but-paid jobs
+    const cancelledFees = cancelledPaidRows.reduce((s, j) => {
+      return s + ((j as any).customer_fee_amount || 0) + ((j as any).platform_fee_amount || 0);
+    }, 0);
+    // Late cancellation revenue (cancellation fee commission)
+    const lateCancellationRevenue = cancelledPaidRows.filter((j: any) => j.cancellation_fee > 0).reduce((s, j) => {
+      return s + ((j as any).cancellation_fee || 0);
     }, 0);
     setStats({
       totalUsers: profilesRes.count || 0,
@@ -167,7 +169,7 @@ const Admin = () => {
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0), 0),
-      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0),
+      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0) + cancelledFees,
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,

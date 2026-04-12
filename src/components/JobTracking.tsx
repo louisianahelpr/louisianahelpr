@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper } from "lucide-react";
@@ -35,36 +35,38 @@ export function JobTracking({
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [updating, setUpdating] = useState(false);
 
+  const loadTracking = useCallback(async () => {
+    if (!helperId) return;
+    const { data } = await supabase
+      .from("job_tracking")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) {
+      setTracking(data[0] as unknown as TrackingData);
+    }
+  }, [jobId, helperId]);
+
   useEffect(() => {
     if (!helperId) return;
     loadTracking();
 
-    // Subscribe to realtime updates
     const channel = supabase
       .channel(`tracking-${jobId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "job_tracking", filter: `job_id=eq.${jobId}` },
         (payload) => {
-          if (payload.new) setTracking(payload.new as TrackingData);
+          if (payload.new && typeof payload.new === "object" && "id" in payload.new) {
+            setTracking(payload.new as unknown as TrackingData);
+          }
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [jobId, helperId]);
-
-  const loadTracking = async () => {
-    const { data } = await supabase
-      .from("job_tracking" as any)
-      .select("*")
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (data && (data as any[]).length > 0) {
-      setTracking((data as any[])[0]);
-    }
-  };
+  }, [jobId, helperId, loadTracking]);
 
   const getLocation = (): Promise<{ lat: number; lng: number } | null> => {
     return new Promise((resolve) => {
@@ -82,37 +84,66 @@ export function JobTracking({
     setUpdating(true);
     const loc = await getLocation();
 
-    if (tracking) {
-      await (supabase.from("job_tracking" as any) as any)
+    // Optimistic update
+    const now = new Date().toISOString();
+    setTracking(prev => prev ? { ...prev, status: newStatus, latitude: loc?.lat || prev.latitude, longitude: loc?.lng || prev.longitude, updated_at: now } : {
+      id: "temp",
+      status: newStatus,
+      latitude: loc?.lat || null,
+      longitude: loc?.lng || null,
+      eta_minutes: null,
+      updated_at: now,
+    });
+
+    if (tracking && tracking.id !== "temp") {
+      await supabase
+        .from("job_tracking")
         .update({
           status: newStatus,
           latitude: loc?.lat || null,
           longitude: loc?.lng || null,
-          updated_at: new Date().toISOString(),
-        })
+          updated_at: now,
+        } as any)
         .eq("id", tracking.id);
     } else {
-      await (supabase.from("job_tracking" as any) as any).insert({
+      await supabase.from("job_tracking").insert({
         job_id: jobId,
         helper_id: helperId,
         status: newStatus,
         latitude: loc?.lat || null,
         longitude: loc?.lng || null,
-      });
+      } as any);
     }
 
-    // Auto-transition job status based on tracking
+    // Auto-transition job status
     if (newStatus === "done") {
-      // Only mark helper's side as complete — the dual-confirm payment flow handles the rest
-      await supabase.from("jobs").update({ helper_completed_at: new Date().toISOString() } as any).eq("id", jobId);
+      await supabase.from("jobs").update({ helper_completed_at: now } as any).eq("id", jobId);
     } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
-      const { data: job } = await supabase
-        .from("jobs")
-        .select("status")
-        .eq("id", jobId)
-        .single();
+      const { data: job } = await supabase.from("jobs").select("status").eq("id", jobId).single();
       if (job && job.status === "accepted") {
         await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+      }
+      if (newStatus === "arrived") {
+        await supabase.from("jobs").update({ helper_arrived_at: now } as any).eq("id", jobId);
+      }
+      if (newStatus === "on_the_way") {
+        await supabase.from("jobs").update({ helper_on_the_way_at: now } as any).eq("id", jobId);
+      }
+    }
+
+    // Send notification to poster
+    if (isHelper) {
+      const { data: job } = await supabase.from("jobs").select("title, customer_id").eq("id", jobId).single();
+      if (job?.customer_id) {
+        const statusLabel = STATUSES.find(s => s.key === newStatus)?.label || newStatus;
+        const { createNotification } = await import("@/lib/notifications");
+        await createNotification({
+          user_id: job.customer_id,
+          title: `Helpr is ${statusLabel}`,
+          message: `Your helpr updated their status to "${statusLabel}" for "${job.title}".`,
+          type: "info",
+          link: `/activity?tab=posted&filter=in_progress`,
+        });
       }
     }
 
@@ -157,9 +188,6 @@ export function JobTracking({
               }`}>
                 {s.label}
               </span>
-              {idx < STATUSES.length - 1 && (
-                <div className="sr-only">→</div>
-              )}
             </div>
           );
         })}

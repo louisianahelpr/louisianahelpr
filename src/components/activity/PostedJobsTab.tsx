@@ -41,6 +41,7 @@ interface PostedJobsTabProps {
   onDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
+  onConfirmWorking: (jobId: string) => void;
   onLoadApplications: (job: Job) => void;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
@@ -55,7 +56,7 @@ export const PostedJobsTab = ({
   jobs, applicantCounts, expandedJobId, setExpandedJobId,
   helperNames, completedJobMeta, startRequestedJobIds, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival,
+  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   onAcceptApplication, onLoadInlineApplicants, inlineApplicants, loadingApplicants,
 }: PostedJobsTabProps) => {

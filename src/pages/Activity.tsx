@@ -567,6 +567,7 @@ const Activity = () => {
                 onDispute={setDisputeJob}
                 onConfirmStart={confirmStartJob}
                 onConfirmArrival={confirmArrival}
+                onConfirmWorking={confirmWorking}
                 onLoadApplications={loadApplications}
                 selectedJob={selectedJob}
                 setSelectedJob={setSelectedJob}

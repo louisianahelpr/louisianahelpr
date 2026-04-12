@@ -424,6 +424,8 @@ export const AppliedJobsTab = ({
             {/* Confirmed: show tracking + message */}
             {isConfirmed && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                {/* Job countdown */}
+                <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                 {/* Tracking — only active on the day of the job */}
                 <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} />
 

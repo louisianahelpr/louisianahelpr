@@ -11,6 +11,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getCityState } from "@/lib/locationUtils";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface PublicJob {
   id: string;
@@ -189,7 +190,7 @@ const Jobs = () => {
                     </a>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3 h-3" />
-                      <span>{format(new Date(job.date_needed), "MMM d, yyyy")}</span>
+                      <span>{format(parseLocalDate(job.date_needed), "MMM d, yyyy")}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <DollarSign className="w-3 h-3" />

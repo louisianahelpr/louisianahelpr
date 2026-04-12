@@ -210,12 +210,14 @@ const MyJobs = () => {
                           </Button>
                         </>
                       )}
-                      {job.status === "in_progress" && (job as any).helper_arrived_at && (
+                      {job.status === "in_progress" && (
                         <>
-                          <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            {completingJobId === job.id ? "Completing…" : "Complete"}
-                          </Button>
+                          {(job as any).helper_arrived_at && (
+                            <Button size="sm" onClick={() => completeJob(job.id)} disabled={completingJobId === job.id}>
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              {completingJobId === job.id ? "Completing…" : "Complete"}
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}>
                             <MessageSquare className="w-4 h-4 mr-1" /> Message
                           </Button>

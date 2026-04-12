@@ -239,9 +239,17 @@ export const PostedJobsTab = ({
 
               {/* Completed hint */}
               {job.status === "completed" && (() => {
-                const meta = completedJobMeta[job.id];
-                const hasTipped = meta?.tipped;
-                const hasReviewed = meta?.reviewed;
+                const cMeta = completedJobMeta[job.id];
+                const hasTipped = cMeta?.tipped;
+                const hasReviewed = cMeta?.reviewed;
+                if (hasTipped && hasReviewed) {
+                  return (
+                    <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
+                      <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+                    </div>
+                  );
+                }
                 return (!hasTipped || !hasReviewed) ? (
                   <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
                     <span className="text-xs text-muted-foreground">
@@ -251,9 +259,8 @@ export const PostedJobsTab = ({
                 ) : null;
               })()}
 
-
-
-              {/* Additional details */}
+              {/* Additional details - collapsible for fully completed jobs */}
+              {(!isFullyCompleted || isExpanded) && (
               <div>
                 <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   {(job.photos || []).length > 0 && (

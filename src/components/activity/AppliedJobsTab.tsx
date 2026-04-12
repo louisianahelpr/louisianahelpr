@@ -9,7 +9,7 @@ import {
   MapPin, DollarSign, CheckCircle2,
   Star, MessageSquare, Users, AlertTriangle, RefreshCw,
   Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
-  Navigation as NavigationIcon, Send,
+  Navigation as NavigationIcon, Send, XCircle,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -50,6 +50,18 @@ export const AppliedJobsTab = ({
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
+
+  const handleWithdraw = async (appId: string, jobTitle: string) => {
+    setWithdrawingAppId(appId);
+    const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
+    if (error) {
+      toast.error("Failed to withdraw application");
+    } else {
+      toast.success(`Withdrawn from "${jobTitle}"`);
+    }
+    setWithdrawingAppId(null);
+  };
 
   if (apps.length === 0) {
     return (
@@ -158,6 +170,21 @@ export const AppliedJobsTab = ({
                 </div>
               );
             })()}
+
+            {/* Withdraw for pending */}
+            {isPending && (
+              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+                  disabled={withdrawingAppId === app.id}
+                  onClick={() => handleWithdraw(app.id, job.title || "Task")}
+                >
+                  <XCircle className="w-4 h-4 mr-1" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw Application"}
+                </Button>
+              </div>
+            )}
 
             {/* === ACTION SECTIONS === */}
 

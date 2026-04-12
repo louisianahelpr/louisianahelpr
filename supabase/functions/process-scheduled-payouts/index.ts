@@ -143,7 +143,6 @@ serve(async (req) => {
 
         await supabaseAdmin.from("jobs").update({
           payment_status: "released",
-          commission_tax_amount: commissionTax,
         }).eq("id", job.id);
 
         await supabaseAdmin.from("notifications").insert({

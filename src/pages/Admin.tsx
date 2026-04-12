@@ -246,6 +246,7 @@ const Admin = () => {
       case "audit": return <AdminAuditLog />;
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
+      case "social": return <AdminSocialPost />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} getBadge={getBadge} getBadgeColor={getBadgeColor} />;
     }
   };

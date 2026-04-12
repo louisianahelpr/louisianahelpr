@@ -106,6 +106,7 @@ export function useActivityData(user: SupaUser | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => loadData(user.id))
       .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking" }, () => loadData(user.id))
       .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, () => loadData(user.id))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, () => loadData(user.id))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins" }, () => loadData(user.id))
       .subscribe();
     return () => { supabase.removeChannel(channel); };

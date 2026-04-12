@@ -365,9 +365,6 @@ export const PostedJobsTab = ({
                             <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
                           </Button>
                         )}
-                        {job.status === "completed" && !(job as any).revision_requested_at && (
-                          <p className="text-[10px] text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
-                        )}
                       </div>
                     )}
                     {job.status === "completed" && (() => {

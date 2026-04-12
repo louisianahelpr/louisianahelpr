@@ -35,6 +35,9 @@ export function JobConfirmation({
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
+  // Hide once helper is on the way or beyond
+  if (helperOnTheWayAt) return null;
+
   // Show for accepted/in_progress jobs within 24 hours of job date
   const showConfirmation = (jobStatus === "accepted" || jobStatus === "in_progress") && hoursUntilJob <= 24 && hoursUntilJob > -12;
   if (!showConfirmation) return null;

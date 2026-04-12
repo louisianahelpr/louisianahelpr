@@ -57,7 +57,7 @@ export function JobConfirmation({
             title: isOwner ? "Poster confirmed the job!" : "Helpr confirmed the job!",
             message: `${isOwner ? "The poster" : "The helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
             type: "info",
-            link: `/activity?tab=${isOwner ? "applied" : "posted"}&filter=offered`,
+            link: isOwner ? `/my-jobs?filter=offered` : `/my-posts?filter=offered`,
           });
         }
       }

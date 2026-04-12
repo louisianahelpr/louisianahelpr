@@ -520,12 +520,26 @@ export const AppliedJobsTab = ({
                 </div>
 
                 {/* Completion status */}
-                {jobAny.helper_completed_at && (
+                {jobAny.helper_completed_at && !jobAny.poster_completed_at && !jobAny.revision_requested_at && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm font-semibold text-primary">Marked Complete</span>
+                    </div>
+                    <div className="px-3 pb-2.5 space-y-1">
+                      <p className="text-xs text-muted-foreground">Waiting for the poster to:</p>
+                      <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                        <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
+                        <li>Or <span className="text-foreground font-medium">request a revision</span></li>
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
+                    </div>
+                  </div>
+                )}
+                {jobAny.helper_completed_at && jobAny.poster_completed_at && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
                     <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-sm font-medium text-primary">
-                      {jobAny.poster_completed_at ? 'Job complete ✓' : 'Marked complete — waiting for poster'}
-                    </span>
+                    <span className="text-sm font-medium text-primary">Job complete ✓</span>
                   </div>
                 )}
               </div>

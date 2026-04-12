@@ -28,6 +28,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   // Flat 5% cancellation fee when a helper has been selected, regardless of timing
   const cancellationFeePercent = hasHelper ? 5 : 0;
   const cancellationFee = Math.round((jobBudget * cancellationFeePercent)) / 100;
+  const platformCut = Math.round(cancellationFee * 10) / 100;
+  const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -165,17 +167,27 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   <DollarSign className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
                   <div>
                     <p className="text-xs font-medium text-foreground">
-                      5% cancellation fee — <span className="text-accent">${cancellationFee}</span>
+                      5% cancellation fee — <span className="text-accent">${cancellationFee.toFixed(2)}</span>
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      A helpr has been selected for this job. A 5% fee (${cancellationFee} of ${jobBudget}) will be charged and paid to {helperName || "the helpr"} as compensation (minus platform fee).
+                      A helpr has been selected for this job. A 5% fee will be deducted from your refund.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 text-center">
-                  <p className="text-lg font-bold text-foreground">${cancellationFee}</p>
-                  <p className="text-xs text-muted-foreground">5% of ${jobBudget} budget</p>
+                <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">You&apos;ll be charged</span>
+                    <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Platform fee (10%)</span>
+                    <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-border pt-1.5 flex justify-between text-xs">
+                    <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
+                    <span className="font-semibold text-primary">${helperPayout.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             ) : (

@@ -147,7 +147,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
-      refresh();
+      await refresh();
+      setStatusFilter("accepted");
     } else {
       const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
       const priorCount = existing?.length || 0;

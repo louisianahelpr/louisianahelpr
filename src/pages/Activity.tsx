@@ -498,7 +498,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       <DashboardHeader />
       <main className="container mx-auto px-4 py-4">
         <div className="max-w-3xl mx-auto space-y-4">
-          <h1 className="text-2xl font-display font-bold text-foreground">My Activity</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
 
           {/* Search */}
           <div className="relative">
@@ -509,15 +509,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-sm"
             />
-          </div>
-
-          <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-            {tabs.map((t) => (
-              <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter(t.key === "posted" ? "open" : "pending"); }}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {t.label}
-              </button>
-            ))}
           </div>
 
           <div className="flex flex-wrap justify-center gap-1.5">

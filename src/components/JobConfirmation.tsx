@@ -30,10 +30,9 @@ export function JobConfirmation({
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-  // Show on accepted jobs always, or within 48hrs for in_progress
-  const isAccepted = jobStatus === "accepted";
-  const showForInProgress = hoursUntilJob <= 48 && hoursUntilJob > 0;
-  if (!isAccepted && !showForInProgress) return null;
+  // Show for accepted/in_progress jobs within 24 hours of job date
+  const showConfirmation = (jobStatus === "accepted" || jobStatus === "in_progress") && hoursUntilJob <= 24 && hoursUntilJob > -12;
+  if (!showConfirmation) return null;
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -84,11 +83,10 @@ export function JobConfirmation({
           <AlertTriangle className="w-4 h-4 text-primary" /> Job Confirmation
         </h3>
         <p className="text-xs text-muted-foreground">
-          {isAccepted
-            ? isOwner
-              ? "Please confirm this job is still on so the helpr knows you're ready."
-              : "Please confirm you'll work this job so the poster knows you're committed."
-            : `Job is in ${urgencyText}. ${isOwner ? "Please confirm this job is still on." : "Please confirm you're still available."}`}
+          {isOwner
+            ? "Please confirm this job is still on so the helpr knows you're ready."
+            : "Please confirm you'll work this job so the poster knows you're committed."}
+          {hoursUntilJob > 0 && ` Job is in ${urgencyText}.`}
         </p>
         <p className="text-[10px] text-muted-foreground italic">
           This is a reminder — if you don't confirm, the job is still scheduled as planned. However, not confirming may signal to the other party that you're uncertain, and repeated no-shows or last-minute cancellations can result in warnings or account restrictions.

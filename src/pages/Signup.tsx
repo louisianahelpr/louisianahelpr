@@ -278,7 +278,7 @@ const Signup = () => {
             p_new_user_id: userId,
           });
         } catch (refErr) {
-          console.log("Referral processing skipped:", refErr);
+          // Referral processing skipped silently
         }
       }
 

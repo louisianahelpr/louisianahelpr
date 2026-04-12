@@ -347,7 +347,7 @@ const PostJob = () => {
         body: { action: "escrow", jobId: jobData.id },
       });
 
-      console.log("Payment response:", { paymentData, paymentError });
+      
 
       setSaving(false);
 

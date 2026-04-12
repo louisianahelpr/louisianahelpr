@@ -430,7 +430,7 @@ export const AppliedJobsTab = ({
                 {/* Job countdown */}
                 <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                 {/* Tracking — only active on the day of the job */}
-                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} />
+                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} posterConfirmedAt={jobAny.poster_confirmed_at} />
                 {/* Job confirmation for helper */}
                 <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} />
 

@@ -161,10 +161,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <p className="text-xs font-semibold text-foreground uppercase tracking-wide">What happens if you cancel</p>
 
-            {hasHelper ? (() => {
-              const platformCut = Math.round(cancellationFee * 10) / 100;
-              const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
-              return (
+            {hasHelper ? (
               <div className="space-y-2">
                 <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-accent/10 border border-accent/20">
                   <DollarSign className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
@@ -180,7 +177,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
                 <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">You'll be charged</span>
+                    <span className="text-muted-foreground">You&apos;ll be charged</span>
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
@@ -193,8 +190,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   </div>
                 </div>
               </div>
-              );
-            })()
             ) : (
               <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-primary/10 border border-primary/20">
                 <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-primary" />

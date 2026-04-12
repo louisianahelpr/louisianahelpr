@@ -25,6 +25,15 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const [saving, setSaving] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [customTip, setCustomTip] = useState("");
+  const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
+
+  const toggleQuickOption = (option: string) => {
+    setFeedback(prev => {
+      const parts = prev.split(", ").filter(Boolean);
+      if (parts.includes(option)) return parts.filter(p => p !== option).join(", ");
+      return [...parts, option].join(", ");
+    });
+  };
 
   useEffect(() => {
     // Check if already reviewed
@@ -38,7 +47,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
 
   const submitReview = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
-    if (feedback.trim().length < 10) { toast.error("Feedback must be at least 10 characters"); return; }
     setSaving(true);
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
@@ -112,17 +120,27 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 </button>
               ))}
             </div>
-            <Textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Share your experience (required, at least 10 characters)…" rows={3} />
-            {feedback.trim().length > 0 && feedback.trim().length < 10 && (
-              <p className="text-xs text-destructive">Feedback must be at least 10 characters ({feedback.trim().length}/10)</p>
-            )}
-            {feedback.trim().length === 0 && (
-              <p className="text-xs text-muted-foreground">A review comment is required</p>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {quickOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleQuickOption(opt)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    feedback.includes(opt)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+            <Textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Add a comment (optional)…" rows={2} />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setStep("tip")}>Skip</Button>
-            <Button onClick={submitReview} disabled={saving || rating === 0 || feedback.trim().length < 10}>
+            <Button onClick={submitReview} disabled={saving || rating === 0}>
               {saving ? "Submitting…" : "Submit Review"}
             </Button>
           </DialogFooter>

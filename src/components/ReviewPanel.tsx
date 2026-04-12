@@ -21,9 +21,18 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
+
+  const toggleQuickOption = (option: string) => {
+    setFeedback(prev => {
+      const parts = prev.split(", ").filter(Boolean);
+      if (parts.includes(option)) return parts.filter(p => p !== option).join(", ");
+      return [...parts, option].join(", ");
+    });
+  };
+
   const handleSubmit = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
-    if (feedback.trim().length < 10) { toast.error("Please write at least 10 characters"); return; }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
@@ -33,7 +42,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       reviewer_id: user.id,
       reviewee_id: revieweeId,
       rating,
-      feedback: feedback.trim(),
+      feedback: feedback.trim() || null,
     });
 
     if (error) {
@@ -71,23 +80,32 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap gap-2">
+            {quickOptions.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => toggleQuickOption(opt)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  feedback.includes(opt)
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
           <Textarea
-            placeholder="Share your experience…"
+            placeholder="Add a comment (optional)…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
-            rows={3}
-            required
+            rows={2}
           />
-          {rating > 0 && feedback.trim().length > 0 && feedback.trim().length < 10 && (
-            <p className="text-xs text-destructive">{10 - feedback.trim().length} more characters needed</p>
-          )}
-          {rating > 0 && feedback.trim().length === 0 && (
-            <p className="text-xs text-destructive">A comment is required (min 10 characters)</p>
-          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || rating === 0 || feedback.trim().length < 10}>
+          <Button onClick={handleSubmit} disabled={submitting || rating === 0}>
             {submitting ? "Submitting…" : "Submit review"}
           </Button>
         </DialogFooter>

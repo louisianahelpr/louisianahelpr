@@ -27,7 +27,9 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     return () => clearInterval(interval);
   }, []);
 
-  const jobDate = new Date(dateNeeded + "T00:00");
+  // Parse date parts manually to avoid timezone shifts
+  const [year, month, day] = dateNeeded.split("-").map(Number);
+  const jobDate = new Date(year, month - 1, day);
   if (startTime) {
     const [h, m] = startTime.split(":").map(Number);
     jobDate.setHours(h, m, 0, 0);

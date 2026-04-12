@@ -85,6 +85,8 @@ export const AppliedJobsTab = ({
         const isCancelled = job.status === "cancelled";
         const isPending = app.status === "pending";
         const isRejected = app.status === "rejected";
+        const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
+        const isExpanded = expandedJobId === app.job_id;
 
         // Payout calc
         const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
@@ -94,7 +96,11 @@ export const AppliedJobsTab = ({
         const payout = perHelper - commission + (job.urgent_fee ?? 0);
 
         return (
-          <div key={app.id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+          <div
+            key={app.id}
+            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${isFullyDone ? "cursor-pointer" : ""}`}
+            onClick={isFullyDone ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
+          >
             {/* Header */}
             <div className="px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">

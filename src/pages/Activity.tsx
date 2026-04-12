@@ -555,6 +555,7 @@ const Activity = () => {
                 onReview={openReviewForPosted}
                 onDispute={setDisputeJob}
                 onConfirmStart={confirmStartJob}
+                onConfirmArrival={confirmArrival}
                 onLoadApplications={loadApplications}
                 selectedJob={selectedJob}
                 setSelectedJob={setSelectedJob}

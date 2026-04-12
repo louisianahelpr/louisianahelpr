@@ -238,15 +238,17 @@ export const AppliedJobsTab = ({
             const hasResponded = !!(app.job as any)?.dispute_helper_response;
             return (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-              <PhotoProofGroup
-                jobId={app.job_id}
-                beforeUrls={(app.job as any)?.proof_before_urls || []}
-                afterUrls={(app.job as any)?.proof_after_urls || []}
-                canUploadBefore={true}
-                canUploadAfter={true}
-                requireAfter={true}
-                budget={app.job?.budget || 0}
-              />
+              {(app.job as any)?.helper_arrived_at && (
+                <PhotoProofGroup
+                  jobId={app.job_id}
+                  beforeUrls={(app.job as any)?.proof_before_urls || []}
+                  afterUrls={(app.job as any)?.proof_after_urls || []}
+                  canUploadBefore={true}
+                  canUploadAfter={true}
+                  requireAfter={true}
+                  budget={app.job?.budget || 0}
+                />
+              )}
               <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
                 <p className="text-xs font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
                   {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}

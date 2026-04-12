@@ -178,6 +178,13 @@ export const AppliedJobsTab = ({
             </div>
           )}
 
+          {/* Visible live tracking */}
+          {app.status === "accepted" && (app.job?.status === "accepted" || app.job?.status === "in_progress") && (
+            <div className="px-4 pb-3" onClick={(e) => e.stopPropagation()}>
+              <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} />
+            </div>
+          )}
+
           {/* In Progress / Revision */}
           {app.status === "accepted" && (app.job?.status === "in_progress" || app.job?.status === "revision_requested") && (
             <div className="px-4 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>

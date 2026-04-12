@@ -507,7 +507,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             />
           </div>
 
-          <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-hide -mx-4 px-4">
+          <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-hide -mx-4 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {activeStatusFilters.map((f) => {
               const count = activeCounts[f.key] || 0;
               return (

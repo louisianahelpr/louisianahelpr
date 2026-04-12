@@ -1,7 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TimePickerSelectProps {
-  value: string; // "HH:mm" 24h format
+  value: string; // "HH:mm" 24h format or "" for unset
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
@@ -15,7 +15,6 @@ function parse24(time: string) {
   const period = h >= 12 ? "PM" : "AM";
   const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const minute = String(m || 0).padStart(2, "0");
-  // Snap to nearest 15-min
   const snapped = minutes.reduce((prev, curr) =>
     Math.abs(Number(curr) - Number(minute)) < Math.abs(Number(prev) - Number(minute)) ? curr : prev
   );
@@ -30,20 +29,23 @@ function to24(hour12: number, minute: string, period: string) {
 }
 
 export function TimePickerSelect({ value, onChange, disabled, className }: TimePickerSelectProps) {
-  const parsed = parse24(value || "09:00");
+  const hasValue = !!value;
+  const parsed = hasValue ? parse24(value) : null;
 
   const update = (field: "hour" | "minute" | "period", val: string) => {
-    const h = field === "hour" ? Number(val) : parsed.hour12;
-    const m = field === "minute" ? val : parsed.minute;
-    const p = field === "period" ? val : parsed.period;
+    // If no value yet, start from defaults (9:00 AM) and apply the selected field
+    const base = parsed || { hour12: 9, minute: "00", period: "AM" };
+    const h = field === "hour" ? Number(val) : base.hour12;
+    const m = field === "minute" ? val : base.minute;
+    const p = field === "period" ? val : base.period;
     onChange(to24(h, m, p));
   };
 
   return (
     <div className={`flex items-center gap-1.5 ${className || ""}`}>
-      <Select value={String(parsed.hour12)} onValueChange={(v) => update("hour", v)} disabled={disabled}>
+      <Select value={parsed ? String(parsed.hour12) : ""} onValueChange={(v) => update("hour", v)} disabled={disabled}>
         <SelectTrigger className="w-[58px] h-9 text-sm">
-          <SelectValue />
+          <SelectValue placeholder="Hr" />
         </SelectTrigger>
         <SelectContent>
           {hours12.map((h) => (
@@ -52,9 +54,9 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
         </SelectContent>
       </Select>
       <span className="text-muted-foreground font-medium">:</span>
-      <Select value={parsed.minute} onValueChange={(v) => update("minute", v)} disabled={disabled}>
+      <Select value={parsed ? parsed.minute : ""} onValueChange={(v) => update("minute", v)} disabled={disabled}>
         <SelectTrigger className="w-[58px] h-9 text-sm">
-          <SelectValue />
+          <SelectValue placeholder="Min" />
         </SelectTrigger>
         <SelectContent>
           {minutes.map((m) => (
@@ -62,9 +64,9 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
           ))}
         </SelectContent>
       </Select>
-      <Select value={parsed.period} onValueChange={(v) => update("period", v)} disabled={disabled}>
+      <Select value={parsed ? parsed.period : ""} onValueChange={(v) => update("period", v)} disabled={disabled}>
         <SelectTrigger className="w-[58px] h-9 text-sm">
-          <SelectValue />
+          <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="AM">AM</SelectItem>

@@ -51,7 +51,7 @@ const PostJob = () => {
   const [addrState, setAddrState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [dateNeeded, setDateNeeded] = useState("");
-  const [startTime, setStartTime] = useState("09:00");
+  const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");

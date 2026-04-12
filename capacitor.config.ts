@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.helpr',
-  appName: 'Helpr',
+  appId: 'com.louisianahelpr.app',
+  appName: 'Louisiana Helpr',
   webDir: 'dist',
   server: {
-    url: 'https://215189c5-272d-4716-babd-430ab4187c14.lovableproject.com?forceHideBadge=true',
+    url: 'https://louisianahelpr.com',
     cleartext: true
   }
 };

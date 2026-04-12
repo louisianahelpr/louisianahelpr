@@ -388,8 +388,8 @@ serve(async (req) => {
             destination: helperProfile.stripe_account_id,
           },
         } : undefined,
-        success_url: `${req.headers.get("origin")}/activity?tip=success`,
-        cancel_url: `${req.headers.get("origin")}/activity`,
+        success_url: `${req.headers.get("origin")}/my-posts?tip=success`,
+        cancel_url: `${req.headers.get("origin")}/my-posts`,
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
       });
 

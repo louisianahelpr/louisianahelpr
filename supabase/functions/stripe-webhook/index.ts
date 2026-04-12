@@ -272,7 +272,7 @@ serve(async (req) => {
             title: "⚠️ Payment failed",
             message: `Your payment for "${failedJob.title}" could not be processed. Please update your payment method and try again.`,
             type: "warning",
-            link: "/activity?tab=posted",
+            link: "/my-posts",
           });
           await supabase.from("jobs").update({ payment_status: "failed" }).eq("id", failedJob.id);
           logStep("Notified poster of payment failure", { jobId: failedJob.id });
@@ -301,7 +301,7 @@ serve(async (req) => {
               title: "💸 Refund processed",
               message: `Your payment for "${refundedJob.title}" has been refunded.`,
               type: "payment",
-              link: "/activity?tab=posted",
+              link: "/my-posts",
             });
             logStep("Job marked as refunded", { jobId: refundedJob.id });
           }

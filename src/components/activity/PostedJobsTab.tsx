@@ -127,9 +127,15 @@ export const PostedJobsTab = ({
                     <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
                   )}
                 </div>
-                {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
-                )}
+              {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
+                <p className="text-xs text-muted-foreground leading-relaxed">{job.description}</p>
+              )}
+              {job.special_requirements?.trim() && (
+                <div className="rounded-lg bg-secondary/30 p-2">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
+                  <p className="text-xs text-foreground">{job.special_requirements}</p>
+                </div>
+              )}
 
                 {/* Assigned helper display */}
                 {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (

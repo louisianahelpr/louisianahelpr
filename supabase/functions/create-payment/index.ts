@@ -81,7 +81,7 @@ serve(async (req) => {
 
       // Customer service fee (added as a line item — taxable, it's platform revenue)
       const customerFeeAmount = (job.budget * customerFeePercent) / 100;
-      // Helper commission (also platform revenue — taxed at checkout)
+      // Helper commission (internal platform split — NOT a separate taxable item)
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
       const lineItems: any[] = [
@@ -99,7 +99,7 @@ serve(async (req) => {
         },
       ];
 
-      // Service fee — taxable (platform revenue)
+      // Service fee — THE ONLY taxable line item (platform revenue)
       if (customerFeeAmount > 0) {
         lineItems.push({
           price_data: {
@@ -109,21 +109,6 @@ serve(async (req) => {
               description: `${customerFeePercent}% platform service fee`,
             },
             unit_amount: Math.round(customerFeeAmount * 100),
-          },
-          quantity: 1,
-        });
-      }
-
-      // Worker commission — taxable (platform revenue, deducted from worker's share at payout)
-      if (helperFeeAmount > 0) {
-        lineItems.push({
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Worker Commission",
-              description: `${helperFeePercent}% platform commission on worker payout`,
-            },
-            unit_amount: Math.round(helperFeeAmount * 100),
           },
           quantity: 1,
         });

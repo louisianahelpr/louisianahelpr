@@ -177,33 +177,67 @@ export function JobTracking({
       </h3>
 
       {/* Progress timeline */}
-      <div className="flex items-center gap-1">
-        {STATUSES.map((s, idx) => {
-          const isActive = idx <= currentStatusIdx;
-          const isCurrent = idx === currentStatusIdx;
-          const Icon = s.icon;
-          return (
-            <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                  isCurrent
-                    ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
-                    : isActive
-                    ? "bg-primary/20 text-primary"
-                    : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-              </div>
-              <span className={`text-[10px] font-medium text-center leading-tight ${
-                isCurrent ? "text-primary" : isActive ? "text-foreground" : "text-muted-foreground"
-              }`}>
-                {s.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {(() => {
+        const now = new Date();
+        let jobStart: Date | null = null;
+        if (jobDateNeeded) {
+          jobStart = jobStartTime
+            ? new Date(`${jobDateNeeded}T${jobStartTime}`)
+            : new Date(jobDateNeeded + "T23:59:59");
+        }
+        const confirmBy = jobStart ? new Date(jobStart.getTime() - 24 * 60 * 60 * 1000) : null;
+
+        const getSubtext = (key: string): string | null => {
+          if (key === "confirmed" && confirmBy && currentStatusIdx < STATUSES.findIndex(s => s.key === "confirmed")) {
+            const diff = confirmBy.getTime() - now.getTime();
+            if (diff > 0) {
+              const hrs = Math.floor(diff / (1000 * 60 * 60));
+              const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+              if (hrs > 24) return `in ${Math.ceil(hrs / 24)}d`;
+              if (hrs > 0) return `in ${hrs}h ${mins}m`;
+              return `in ${mins}m`;
+            }
+          }
+          if (key === "job_confirmed" && jobStart && currentStatusIdx < STATUSES.findIndex(s => s.key === "job_confirmed")) {
+            return jobStart.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          }
+          return null;
+        };
+
+        return (
+          <div className="flex items-center gap-1">
+            {STATUSES.map((s, idx) => {
+              const isActive = idx <= currentStatusIdx;
+              const isCurrent = idx === currentStatusIdx;
+              const Icon = s.icon;
+              const subtext = getSubtext(s.key);
+              return (
+                <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                      isCurrent
+                        ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                        : isActive
+                        ? "bg-primary/20 text-primary"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${
+                    isCurrent ? "text-primary" : isActive ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {s.label}
+                  </span>
+                  {subtext && (
+                    <span className="text-[9px] text-muted-foreground text-center leading-none">{subtext}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Progress bar */}
       <div className="h-1.5 rounded-full bg-secondary overflow-hidden">

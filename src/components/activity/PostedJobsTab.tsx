@@ -234,7 +234,8 @@ export const PostedJobsTab = ({
                         : <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to accept</span>
                       }
                     </div>
-                    {(job as any).helper_confirmed_at && (
+                    {/* Job countdown */}
+                    <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                       <div className="space-y-1.5">
                         {(job as any).helper_arrived_at && (
                           <div className="space-y-1.5">

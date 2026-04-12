@@ -316,15 +316,17 @@ export const PostedJobsTab = ({
                     )}
                     {(job.status === "in_progress" || job.status === "revision_requested") && (
                       <div className="space-y-2">
-                        <PhotoProofGroup
-                          jobId={job.id}
-                          beforeUrls={(job as any).proof_before_urls || []}
-                          afterUrls={(job as any).proof_after_urls || []}
-                          canUploadBefore={false}
-                          canUploadAfter={false}
-                          requireAfter={true}
-                          budget={job.budget}
-                        />
+                        {(job as any).helper_arrived_at && (
+                          <PhotoProofGroup
+                            jobId={job.id}
+                            beforeUrls={(job as any).proof_before_urls || []}
+                            afterUrls={(job as any).proof_after_urls || []}
+                            canUploadBefore={false}
+                            canUploadAfter={false}
+                            requireAfter={true}
+                            budget={job.budget}
+                          />
+                        )}
                         {/* Confirm Working */}
                         {job.status === "in_progress" && !(job as any).poster_confirmed_working_at && (job as any).poster_confirmed_arrival_at && (
                           <div className="space-y-1.5">
@@ -425,14 +427,15 @@ export const PostedJobsTab = ({
                       const isDisputer = (job as any).disputed_by === userId;
                       return (
                       <div className="space-y-2">
-                        <PhotoProofGroup
-                          jobId={job.id}
-                          beforeUrls={(job as any).proof_before_urls || []}
-                          afterUrls={(job as any).proof_after_urls || []}
-                          canUploadBefore={false}
-                          canUploadAfter={false}
-                          requireAfter={true}
-                          budget={job.budget}
+                        {(job as any).helper_arrived_at && (
+                          <PhotoProofGroup
+                            jobId={job.id}
+                            beforeUrls={(job as any).proof_before_urls || []}
+                            afterUrls={(job as any).proof_after_urls || []}
+                            canUploadBefore={false}
+                            canUploadAfter={false}
+                            requireAfter={true}
+                            budget={job.budget}
                         />
                         <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                           <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 

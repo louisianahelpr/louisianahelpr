@@ -240,9 +240,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.bothDone) toast.success("Job completed! Payment released.");
-      else toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
-      refresh();
+      if (data?.bothDone) {
+        await refresh();
+        setStatusFilter("completed");
+      } else {
+        await refresh();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to complete job");
     } finally {

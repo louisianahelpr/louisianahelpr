@@ -23,6 +23,8 @@ serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
+    if (!MAKE_WEBHOOK_URL) throw new Error("MAKE_WEBHOOK_URL is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -30,6 +32,7 @@ serve(async (req) => {
 
     const style = POST_STYLES[Math.floor(Math.random() * POST_STYLES.length)];
 
+    // Generate post with AI
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -57,16 +60,26 @@ serve(async (req) => {
     const postText = aiData.choices?.[0]?.message?.content?.trim();
     if (!postText) throw new Error("AI returned empty content");
 
-    // Save as draft instead of posting directly
-    const { error: insertError } = await supabase
+    // Post directly to Facebook via Make webhook
+    const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: postText }),
+    });
+
+    if (!webhookResp.ok) {
+      const body = await webhookResp.text();
+      throw new Error(`Make webhook failed [${webhookResp.status}]: ${body}`);
+    }
+
+    // Log the published post
+    await supabase
       .from("social_post_drafts")
-      .insert({ content: postText, style, status: "draft" });
+      .insert({ content: postText, style, status: "published", published_at: new Date().toISOString() });
 
-    if (insertError) throw new Error(`Failed to save draft: ${insertError.message}`);
+    console.log("Auto-posted to Facebook:", postText.substring(0, 80) + "...");
 
-    console.log("Draft saved:", postText.substring(0, 80) + "...");
-
-    return new Response(JSON.stringify({ success: true, draft: postText, style }), {
+    return new Response(JSON.stringify({ success: true, post: postText, style }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -46,6 +46,7 @@ export function JobConfirmation({
       toast.error("Failed to confirm");
     } else {
       toast.success("Confirmed! You're committed to this job.");
+      setLocalConfirmedAt(new Date().toISOString());
       // Notify the other party
       const { data: job } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
       if (job) {

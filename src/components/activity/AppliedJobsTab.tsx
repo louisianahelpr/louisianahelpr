@@ -208,6 +208,9 @@ export const AppliedJobsTab = ({
                   Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
                 </p>
               )}
+              {isMinimalCard && (
+                <p className="text-xs text-muted-foreground/70 italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
+              )}
             </div>
 
             {/* Pending expandable section */}

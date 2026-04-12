@@ -481,7 +481,7 @@ export const AppliedJobsTab = ({
                 )}
 
                 {/* Complete + Message */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   {!jobAny.helper_completed_at && jobAny.helper_arrived_at && jobAny.poster_confirmed_working_at && (
                     <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={completingJobId === app.job_id}>
                       <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === app.job_id ? "…" : "Mark Complete"}

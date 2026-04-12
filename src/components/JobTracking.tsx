@@ -183,7 +183,7 @@ export function JobTracking({
       {/* Last update */}
       {tracking && (
         <p className="text-[10px] text-muted-foreground text-center">
-          Last updated: {new Date(tracking.updated_at).toLocaleTimeString()}
+          Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           {tracking.latitude && (
             <span className="ml-2 inline-flex items-center gap-0.5">
               <MapPin className="w-2.5 h-2.5" />

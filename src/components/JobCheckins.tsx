@@ -281,7 +281,7 @@ export function JobCheckins({
                 </span>
               )}
               <span className="text-muted-foreground ml-auto">
-                {new Date(c.created_at).toLocaleTimeString()}
+                {new Date(c.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               </span>
               {c.note && <span className="text-muted-foreground italic">— {c.note}</span>}
             </div>

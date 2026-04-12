@@ -216,7 +216,7 @@ const MyJobs = () => {
                             <CheckCircle2 className="w-4 h-4 mr-1" />
                             {completingJobId === job.id ? "Completing…" : "Complete"}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/messages`)}>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}>
                             <MessageSquare className="w-4 h-4 mr-1" /> Message
                           </Button>
                           <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => cancelJob(job.id)}>

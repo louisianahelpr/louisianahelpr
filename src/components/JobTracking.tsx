@@ -222,13 +222,13 @@ export function JobTracking({
       )}
 
       {/* Helper controls */}
-      {isHelper && (
+      {isHelper && visibleStatuses.length > 1 && (
         <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          {STATUSES.filter((_, idx) => idx > currentStatusIdx).map((s) => (
+          {visibleStatuses.slice(1).map((s, idx) => (
             <Button
               key={s.key}
               size="sm"
-              variant={s.key === STATUSES[currentStatusIdx + 1]?.key ? "default" : "outline"}
+              variant={idx === 0 ? "default" : "outline"}
               onClick={() => updateStatus(s.key)}
               disabled={updating}
               className="text-xs"

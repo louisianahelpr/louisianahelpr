@@ -296,7 +296,17 @@ const AdminAnalytics = () => {
         />
       </div>
 
-      {/* Late Cancellation Revenue */}
+      {/* Tips */}
+      {totalTips > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+          <Star className="w-4 h-4 text-accent" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">{tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").length} paid tips</p>
+          </div>
+        </div>
+      )}
+
       {lateCancelRevenue > 0 && (
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-2">

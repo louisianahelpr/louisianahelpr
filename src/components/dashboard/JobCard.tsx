@@ -215,35 +215,8 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               </div>
           ) : null}
 
-          {/* Recurring info */}
-          {job.is_recurring && (
-            <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-              <Repeat className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground">Recurring Task</p>
-                <p className="text-sm font-medium text-foreground">
-                  {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Yes"}
-                  {job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* Group job info */}
-          {job.is_group_job && (
-            <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-              <Users className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground">Group Task</p>
-                <p className="text-sm font-medium text-foreground">
-                  {job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Multiple helprs needed"}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Each helpr earns ${earnings}{urgentTip > 0 ? ` + $${Number(urgentTip).toFixed(2)} urgent tip` : ""}
-                </p>
-              </div>
-            </div>
-          )}
+
 
 
           {/* Apply + Save + Flag */}

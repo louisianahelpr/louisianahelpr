@@ -7,6 +7,7 @@ import {
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
 import { getCityState } from "@/lib/locationUtils";
+import { parseLocalDate } from "@/lib/dateUtils";
 import type { EnrichedJob } from "./types";
 
 interface JobDetailDialogProps {

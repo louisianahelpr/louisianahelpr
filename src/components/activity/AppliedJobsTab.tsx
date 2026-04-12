@@ -18,6 +18,7 @@ import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 
 import { type Job, type Application, type AppliedApp, categoryColors } from "./activityConstants";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 
 const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {

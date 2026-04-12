@@ -18,6 +18,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 
 import { getCityState } from "@/lib/locationUtils";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { type Job, type Application, type EnrichedApplication, categoryColors } from "./activityConstants";
 
 const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {

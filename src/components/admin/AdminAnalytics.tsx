@@ -203,8 +203,8 @@ const AdminAnalytics = () => {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setDrillDown(null)}>
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="ghost" size="sm" onClick={() => setDrillDown(null)} className="text-xs text-muted-foreground">
+            ← Back to Analytics
           </Button>
           <h2 className="text-xl font-display font-bold text-foreground">
             {drillDown === "users" ? "All Users" :

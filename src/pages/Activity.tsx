@@ -507,7 +507,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             />
           </div>
 
-          <div className="flex flex-wrap justify-center gap-1.5">
+          <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-hide -mx-4 px-4">
             {activeStatusFilters.map((f) => {
               const count = activeCounts[f.key] || 0;
               return (

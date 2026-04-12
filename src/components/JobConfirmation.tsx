@@ -24,6 +24,7 @@ export function JobConfirmation({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [localConfirmedAt, setLocalConfirmedAt] = useState<string | null>(null);
 
   const jobDate = new Date(dateNeeded + "T00:00");
   const now = new Date();
@@ -45,6 +46,7 @@ export function JobConfirmation({
       toast.error("Failed to confirm");
     } else {
       toast.success("Confirmed! You're committed to this job.");
+      setLocalConfirmedAt(new Date().toISOString());
       // Notify the other party
       const { data: job } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
       if (job) {
@@ -65,7 +67,7 @@ export function JobConfirmation({
     setShowConfirmDialog(false);
   };
 
-  const myConfirmed = isOwner ? posterConfirmedAt : helperConfirmedAt;
+  const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperConfirmedAt);
   const otherConfirmed = isOwner ? helperConfirmedAt : posterConfirmedAt;
   const otherLabel = isOwner ? "Helpr" : "Poster";
 

@@ -171,6 +171,12 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
               <Timer className="w-3 h-3 shrink-0" /> {expiryText}
             </span>
           )}
+          {/* Est. Hours */}
+          {job.estimated_hours && (
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h
+            </span>
+          )}
         </div>
       </div>
 

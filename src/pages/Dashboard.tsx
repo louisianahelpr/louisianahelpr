@@ -572,7 +572,11 @@ const Dashboard = () => {
                         const payout = perHelper - commission + (confirmApplyJob.urgent_fee ?? 0);
                         return (
                           <>
-                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Estimated Payout</p>
+                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Earnings Breakdown</p>
+                             <div className="flex justify-between text-xs text-muted-foreground">
+                               <span>Job Budget{helpers > 1 ? ` (÷${helpers} helprs)` : ""}</span>
+                               <span className="text-foreground font-medium">${perHelper.toFixed(2)}</span>
+                             </div>
                              <div className="flex justify-between text-xs text-muted-foreground">
                                <span>Platform Fee ({platformFee}%)</span>
                                <span className="text-destructive/70">−${commission.toFixed(2)}</span>
@@ -588,9 +592,6 @@ const Dashboard = () => {
                               <span className="font-semibold text-foreground text-sm">Your Payout</span>
                               <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Platform fee deducted from payout.{confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed && confirmApplyJob.helpers_needed > 1 ? ` Budget split between ${confirmApplyJob.helpers_needed} helprs.` : ""}
-                            </p>
                           </>
                         );
                       })()}

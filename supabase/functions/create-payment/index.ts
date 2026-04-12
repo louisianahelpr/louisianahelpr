@@ -253,14 +253,13 @@ serve(async (req) => {
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
-      // Calculate helper payout: budget/helpers - helperCommission - commissionTax + urgent_fee
+      // Calculate helper payout: budget/helpers - helperCommission + urgent_fee
+      // Commission tax is already collected at checkout — no deduction here
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
       const jobHelperFeePercent = job.helper_fee_percent ?? 10;
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      const commissionTaxRate = job.sales_tax_rate ?? 0;
-      const commissionTax = (helperCommission * commissionTaxRate) / 100;
-      const helperPayout = perHelperBudget - helperCommission - commissionTax + (job.urgent_fee ?? 0);
+      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

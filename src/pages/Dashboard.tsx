@@ -111,6 +111,7 @@ const Dashboard = () => {
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
+  const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
@@ -167,7 +168,7 @@ const Dashboard = () => {
       return;
     }
 
-    const { error } = await supabase.from("applications").insert({ job_id: confirmApplyJobId, helper_id: user.id, message: "I'd like to help with this task!" });
+    const { error } = await supabase.from("applications").insert({ job_id: confirmApplyJobId, helper_id: user.id, message: applyMessage.trim() || null });
     if (error) {
       if (error.code === "23505") toast.error("You've already applied.");
       else toast.error(error.message);
@@ -179,6 +180,7 @@ const Dashboard = () => {
     }
     setConfirmApplyJobId(null);
     setApplyLoading(false);
+    setApplyMessage("");
   }, [user, confirmApplyJobId, navigate, refresh, profile, checkHelperStripeConnect, applyLoading]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
@@ -588,6 +590,17 @@ const Dashboard = () => {
                   </div>
                 : <p>Are you sure you want to apply for this task?</p>}
             </AlertDialogDescription>
+            <div className="space-y-1.5 mt-2">
+              <label htmlFor="apply-message" className="text-xs text-muted-foreground">Add a message (optional)</label>
+              <Textarea
+                id="apply-message"
+                value={applyMessage}
+                onChange={(e) => setApplyMessage(e.target.value)}
+                placeholder="Introduce yourself or share relevant experience…"
+                rows={3}
+                className="text-sm"
+              />
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={applyLoading}>Cancel</AlertDialogCancel>

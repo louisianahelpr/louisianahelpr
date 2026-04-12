@@ -125,8 +125,14 @@ export const PostedJobsTab = ({
                   })()}
                   {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
                     <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
-                  )}
-                </div>
+                   )}
+                   {job.is_recurring && (
+                     <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}</span>
+                   )}
+                   {job.is_group_job && (
+                     <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group task"}</span>
+                   )}
+                 </div>
               {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
                 <div className="space-y-1.5">
                   {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TimePickerSelect } from "@/components/TimePickerSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,17 +18,32 @@ interface EditJobDialogProps {
 }
 
 export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
-  const [title, setTitle] = useState(job?.title || "");
-  const [description, setDescription] = useState(job?.description || "");
-  const [category, setCategory] = useState<string>(job?.category || "other");
-  const [location, setLocation] = useState(job?.location || "");
-  const [dateNeeded, setDateNeeded] = useState(job?.date_needed || "");
-  const [startTime, setStartTime] = useState(job?.start_time || "");
-  const [estimatedHours, setEstimatedHours] = useState(job?.estimated_hours?.toString() || "");
-  const [budget, setBudget] = useState(job?.budget.toString() || "");
-  const [specialReq, setSpecialReq] = useState(job?.special_requirements || "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<string>("other");
+  const [location, setLocation] = useState("");
+  const [dateNeeded, setDateNeeded] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [budget, setBudget] = useState("");
+  const [specialReq, setSpecialReq] = useState("");
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Reset all fields when job changes (prepopulate)
+  useEffect(() => {
+    if (job) {
+      setTitle(job.title || "");
+      setDescription(job.description || "");
+      setCategory(job.category || "other");
+      setLocation(job.location || "");
+      setDateNeeded(job.date_needed || "");
+      setStartTime(job.start_time || "");
+      setEstimatedHours(job.estimated_hours?.toString() || "");
+      setBudget(job.budget?.toString() || "");
+      setSpecialReq(job.special_requirements || "");
+    }
+  }, [job]);
 
   const save = async () => {
     if (!job) return;

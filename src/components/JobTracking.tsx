@@ -169,9 +169,8 @@ export function JobTracking({
 
       {/* Progress timeline */}
       <div className="flex items-center gap-1">
-        {STATUSES.map((s, idx) => {
-          const isActive = idx <= currentStatusIdx;
-          const isCurrent = idx === currentStatusIdx;
+        {visibleStatuses.map((s, idx) => {
+          const isCurrent = idx === 0;
           const Icon = s.icon;
           return (
             <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
@@ -179,15 +178,13 @@ export function JobTracking({
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                   isCurrent
                     ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
-                    : isActive
-                    ? "bg-primary/20 text-primary"
                     : "bg-secondary text-muted-foreground"
                 }`}
               >
                 <Icon className="w-4 h-4" />
               </div>
               <span className={`text-[10px] font-medium text-center leading-tight ${
-                isCurrent ? "text-primary" : isActive ? "text-foreground" : "text-muted-foreground"
+                isCurrent ? "text-primary" : "text-muted-foreground"
               }`}>
                 {s.label}
               </span>
@@ -200,7 +197,7 @@ export function JobTracking({
       <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
         <div
           className="h-full bg-primary rounded-full transition-all duration-500"
-          style={{ width: `${((currentStatusIdx + 1) / STATUSES.length) * 100}%` }}
+          style={{ width: `${(1 / visibleStatuses.length) * 100}%` }}
         />
       </div>
 

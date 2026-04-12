@@ -48,14 +48,12 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const save = async () => {
     if (!job) return;
     setSaving(true);
-    const isPaid = job.payment_status === "escrow" || job.payment_status === "released";
     const updateData: any = {
       title: title.trim(), description: description.trim(), category: category as any,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       special_requirements: specialReq.trim() || null,
     };
-    if (!isPaid) updateData.budget = parseFloat(budget);
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -68,7 +66,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const isPaid = job.payment_status === "escrow" || job.payment_status === "released";
-  const locked = hasHelper || isPaid;
+  const locked = hasHelper;
 
   return (
     <>

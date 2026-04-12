@@ -162,7 +162,7 @@ export const PostedJobsTab = ({
                     <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                       {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                     </div>
-                    <span className="text-xs text-muted-foreground">Assigned to</span>
+                    <span className="text-xs text-muted-foreground">Offered to</span>
                     <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-xs font-medium text-primary hover:underline">
                       {helperNames[job.helper_id] || "Helpr"}
                     </a>

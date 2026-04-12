@@ -208,15 +208,6 @@ export const AppliedJobsTab = ({
                   Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
                 </p>
               )}
-
-              {/* Your application message — visible for non-pending, non-minimal cards */}
-              {!isMinimalCard && !isPending && app.message && (
-                <div className="rounded-lg bg-primary/5 border border-primary/15 p-2">
-                  <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Your Message</p>
-                  <p className="text-xs text-foreground">{app.message}</p>
-                </div>
-              )}
-
               {isMinimalCard && (
                 <p className="text-xs text-muted-foreground/70 italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
               )}

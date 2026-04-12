@@ -1,0 +1,1 @@
+ALTER TABLE public.applications ADD COLUMN offer_message text;

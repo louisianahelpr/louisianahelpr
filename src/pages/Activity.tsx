@@ -35,6 +35,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     return defaultTab === "applied" ? "pending" : "open";
   });
 
+  // Sync filter when URL search params change (e.g. navigating from a notification)
+  useEffect(() => {
+    const paramFilter = searchParams.get("filter");
+    if (paramFilter && paramFilter !== statusFilter) {
+      setStatusFilter(paramFilter);
+    }
+  }, [searchParams]);
+
   const {
     loading, postedJobs, appliedApps, applicantCounts,
     startRequestedJobIds, helperNames, completedJobMeta,

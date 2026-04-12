@@ -484,18 +484,6 @@ export const PostedJobsTab = ({
                             <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
                           </Button>
                         )}
-                        {/* Photo Proof — last */}
-                        {(job as any).poster_confirmed_working_at && (
-                          <PhotoProofGroup
-                            jobId={job.id}
-                            beforeUrls={(job as any).proof_before_urls || []}
-                            afterUrls={(job as any).proof_after_urls || []}
-                            canUploadBefore={false}
-                            canUploadAfter={false}
-                            requireAfter={true}
-                            budget={job.budget}
-                          />
-                        )}
                       </div>
                     )}
                     {job.status === "completed" && (() => {

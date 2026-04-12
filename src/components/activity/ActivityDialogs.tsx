@@ -59,6 +59,8 @@ interface ActivityDialogsProps {
   // Review (helper)
   helperReviewJob: { jobId: string; posterId: string; posterName: string } | null;
   setHelperReviewJob: (v: any) => void;
+  // Helper names lookup
+  helperNames?: Record<string, string>;
   // Refresh
   onRefresh: () => void;
 }

@@ -342,6 +342,14 @@ export const AppliedJobsTab = ({
             {/* Offered: accept/decline */}
             {isOffered && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                {(app as any).offer_message && (
+                  <div className="text-sm bg-primary/5 border border-primary/15 rounded-lg p-3">
+                    <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" /> Message from poster
+                    </p>
+                    <p className="text-foreground">{(app as any).offer_message}</p>
+                  </div>
+                )}
                 {jobAny.response_deadline && (
                   <div className="text-xs text-muted-foreground text-center px-2 py-1 rounded bg-muted/50">
                     <Clock className="w-3 h-3 inline mr-1" />

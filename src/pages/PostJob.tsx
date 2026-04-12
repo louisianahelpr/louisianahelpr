@@ -571,7 +571,7 @@ const PostJob = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
-                    <Input id="time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <TimePickerSelect value={startTime} onChange={setStartTime} />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 px-1">

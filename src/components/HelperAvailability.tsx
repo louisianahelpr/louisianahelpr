@@ -108,19 +108,9 @@ export function HelperAvailability({ userId }: { userId: string }) {
               </span>
               {slot.is_available && (
                 <div className="flex items-center gap-2 text-sm">
-                  <input
-                    type="time"
-                    value={slot.start_time}
-                    onChange={(e) => updateSlot(i, "start_time", e.target.value)}
-                    className="bg-secondary rounded px-2 py-1 text-xs text-foreground border-none"
-                  />
+                  <TimePickerSelect value={slot.start_time} onChange={(v) => updateSlot(i, "start_time", v)} />
                   <span className="text-muted-foreground">to</span>
-                  <input
-                    type="time"
-                    value={slot.end_time}
-                    onChange={(e) => updateSlot(i, "end_time", e.target.value)}
-                    className="bg-secondary rounded px-2 py-1 text-xs text-foreground border-none"
-                  />
+                  <TimePickerSelect value={slot.end_time} onChange={(v) => updateSlot(i, "end_time", v)} />
                 </div>
               )}
             </div>

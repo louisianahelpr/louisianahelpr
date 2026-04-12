@@ -187,19 +187,26 @@ export function JobTracking({
         }
         const confirmBy = jobStart ? new Date(jobStart.getTime() - 24 * 60 * 60 * 1000) : null;
 
+        const formatCountdown = (diff: number): string => {
+          const hrs = Math.floor(diff / (1000 * 60 * 60));
+          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          if (hrs > 48) return `${Math.ceil(hrs / 24)}d left`;
+          if (hrs > 0) return `${hrs}h ${mins}m left`;
+          return `${mins}m left`;
+        };
+
         const getSubtext = (key: string): string | null => {
-          if (key === "confirmed" && confirmBy && currentStatusIdx < STATUSES.findIndex(s => s.key === "confirmed")) {
-            const diff = confirmBy.getTime() - now.getTime();
-            if (diff > 0) {
-              const hrs = Math.floor(diff / (1000 * 60 * 60));
-              const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-              if (hrs > 24) return `in ${Math.ceil(hrs / 24)}d`;
-              if (hrs > 0) return `in ${hrs}h ${mins}m`;
-              return `in ${mins}m`;
+          if (key === "confirmed" && currentStatusIdx < STATUSES.findIndex(s => s.key === "confirmed")) {
+            // Countdown to response deadline (accept the job)
+            const responseDeadline = jobStart ? new Date(jobStart.getTime() - 48 * 60 * 60 * 1000) : null;
+            if (responseDeadline) {
+              const diff = responseDeadline.getTime() - now.getTime();
+              if (diff > 0) return formatCountdown(diff);
             }
           }
-          if (key === "job_confirmed" && jobStart && currentStatusIdx < STATUSES.findIndex(s => s.key === "job_confirmed")) {
-            return jobStart.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          if (key === "job_confirmed" && confirmBy && currentStatusIdx < STATUSES.findIndex(s => s.key === "job_confirmed")) {
+            const diff = confirmBy.getTime() - now.getTime();
+            if (diff > 0) return formatCountdown(diff);
           }
           return null;
         };

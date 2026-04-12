@@ -51,6 +51,7 @@ export const AppliedJobsTab = ({
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
 
   const handleWithdraw = async (appId: string, jobTitle: string) => {
     setWithdrawingAppId(appId);
@@ -61,6 +62,28 @@ export const AppliedJobsTab = ({
       toast.success(`Withdrawn from "${jobTitle}"`);
     }
     setWithdrawingAppId(null);
+  };
+
+  const handleAddAttachment = async (appId: string, jobId: string, currentUrls: string[], file: File) => {
+    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+    setUploadingAttachment(appId);
+    const ext = file.name.split('.').pop();
+    const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
+    if (uploadErr) { toast.error("Upload failed"); setUploadingAttachment(null); return; }
+    const { data: urlData } = supabase.storage.from("application-attachments").getPublicUrl(path);
+    const newUrls = [...currentUrls, urlData.publicUrl];
+    const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
+    if (error) toast.error("Failed to save attachment");
+    else toast.success("Attachment added");
+    setUploadingAttachment(null);
+  };
+
+  const handleRemoveAttachment = async (appId: string, currentUrls: string[], urlToRemove: string) => {
+    const newUrls = currentUrls.filter(u => u !== urlToRemove);
+    const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
+    if (error) toast.error("Failed to remove attachment");
+    else toast.success("Attachment removed");
   };
 
   if (apps.length === 0) {

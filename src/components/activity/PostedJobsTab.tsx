@@ -55,7 +55,7 @@ export const PostedJobsTab = ({
   jobs, applicantCounts, expandedJobId, setExpandedJobId,
   helperNames, completedJobMeta, startRequestedJobIds, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart,
+  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   onAcceptApplication, onLoadInlineApplicants, inlineApplicants, loadingApplicants,
 }: PostedJobsTabProps) => {

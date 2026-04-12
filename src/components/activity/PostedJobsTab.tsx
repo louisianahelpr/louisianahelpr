@@ -287,27 +287,8 @@ export const PostedJobsTab = ({
                       </div>
                     </div>
                   )}
-                  {job.is_recurring && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-                      <RefreshCw className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Recurring Task</p>
-                        <p className="text-sm font-medium text-foreground">
-                          {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Yes"}
-                          {job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {job.is_group_job && (
-                    <div className="rounded-lg bg-secondary/30 p-2.5 flex items-start gap-2">
-                      <Users className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Group Task</p>
-                        <p className="text-sm font-medium text-foreground">{job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Multiple helprs needed"}</p>
-                      </div>
-                    </div>
-                  )}
+
+
                 </div>
 
                 {/* Features for active jobs */}

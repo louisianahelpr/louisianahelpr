@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,11 +11,12 @@ export function useDashboardData() {
   const queryClient = useQueryClient();
   const { user, profile, isAdmin, isLoading: userLoading } = useCurrentUser();
 
-  // Redirect denied/pending users (non-admin)
-  const shouldRedirect = !isAdmin && profile?.approval_status === "pending";
-  const shouldRedirectDenied = !isAdmin && profile?.approval_status === "denied";
-  if (shouldRedirect) navigate("/account-pending");
-  if (shouldRedirectDenied) navigate("/account-denied");
+  // Redirect denied/pending users (non-admin) — in an effect, not during render
+  useEffect(() => {
+    if (userLoading || isAdmin || !profile) return;
+    if (profile.approval_status === "pending") navigate("/account-pending");
+    if (profile.approval_status === "denied") navigate("/account-denied");
+  }, [profile, isAdmin, userLoading, navigate]);
 
   // Core dashboard data query — cached & deduped
   const { data, isLoading: dataLoading } = useQuery({

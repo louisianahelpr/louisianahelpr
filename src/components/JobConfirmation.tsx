@@ -14,6 +14,7 @@ export function JobConfirmation({
   helperConfirmedAt,
   dateNeeded,
   jobStatus,
+  helperOnTheWayAt,
   onConfirm,
 }: {
   jobId: string;
@@ -23,6 +24,7 @@ export function JobConfirmation({
   helperConfirmedAt: string | null;
   dateNeeded: string;
   jobStatus?: string;
+  helperOnTheWayAt?: string | null;
   onConfirm?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);

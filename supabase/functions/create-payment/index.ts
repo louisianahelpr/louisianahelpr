@@ -81,7 +81,7 @@ serve(async (req) => {
 
       // Customer service fee (added as a line item — taxable, platform revenue)
       const customerFeeAmount = (job.budget * customerFeePercent) / 100;
-      // Helper commission fee (also taxable — separate platform service to worker)
+      // Helper commission is deducted at payout time, not charged to poster
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
       const lineItems: any[] = [
@@ -110,22 +110,6 @@ serve(async (req) => {
               tax_code: "txcd_10103001", // SaaS / electronic services — taxable
             },
             unit_amount: Math.round(customerFeeAmount * 100),
-          },
-          quantity: 1,
-        });
-      }
-
-      // Worker platform fee — taxable (platform revenue from worker, deducted from their share)
-      if (helperFeeAmount > 0) {
-        lineItems.push({
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Helpr Platform Fee",
-              description: `${helperFeePercent}% platform fee on worker payout`,
-              tax_code: "txcd_10103001", // SaaS / electronic services — taxable
-            },
-            unit_amount: Math.round(helperFeeAmount * 100),
           },
           quantity: 1,
         });

@@ -85,6 +85,8 @@ export const AppliedJobsTab = ({
         const isCancelled = job.status === "cancelled";
         const isPending = app.status === "pending";
         const isRejected = app.status === "rejected";
+        const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
+        const isExpanded = expandedJobId === app.job_id;
 
         // Payout calc
         const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
@@ -94,7 +96,11 @@ export const AppliedJobsTab = ({
         const payout = perHelper - commission + (job.urgent_fee ?? 0);
 
         return (
-          <div key={app.id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+          <div
+            key={app.id}
+            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${isFullyDone ? "cursor-pointer" : ""}`}
+            onClick={isFullyDone ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
+          >
             {/* Header */}
             <div className="px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -373,8 +379,7 @@ export const AppliedJobsTab = ({
               );
             })()}
 
-            {/* Completed */}
-            {isCompleted && (
+            {isCompleted && !isFullyDone && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 <PhotoProofGroup
                   jobId={app.job_id}
@@ -392,8 +397,27 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
+            {/* Fully done - collapsible with expand hint */}
+            {isFullyDone && (
+              <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed ✓</span>
+                <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+              </div>
+            )}
+
+            {isFullyDone && isExpanded && (
+              <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                <PhotoProofGroup
+                  jobId={app.job_id}
+                  beforeUrls={jobAny.proof_before_urls || []}
+                  afterUrls={jobAny.proof_after_urls || []}
+                  canUpload={false}
+                />
+              </div>
+            )}
+
             {/* Footer: extra details (photos, requirements, group/recurring) */}
-            {((job.photos || []).length > 0 || job.special_requirements || job.is_recurring || job.is_group_job) && (
+            {(!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.special_requirements || job.is_recurring || job.is_group_job) && (
               <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
                 {(job.photos || []).length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">

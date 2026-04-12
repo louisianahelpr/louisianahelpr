@@ -81,8 +81,15 @@ export const PostedJobsTab = ({
       <div className="space-y-3">
         {jobs.map((job) => {
           const catStyle = categoryColors[job.category] || categoryColors.other;
+          const meta = completedJobMeta[job.id];
+          const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
+          const isExpanded = expandedJobId === job.id;
           return (
-            <div key={job.id} className="group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200">
+            <div
+              key={job.id}
+              className={`group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200 ${isFullyCompleted ? "cursor-pointer" : ""}`}
+              onClick={isFullyCompleted ? () => setExpandedJobId(isExpanded ? null : job.id) : undefined}
+            >
               {/* Top bar */}
               <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
                 <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>
@@ -232,9 +239,17 @@ export const PostedJobsTab = ({
 
               {/* Completed hint */}
               {job.status === "completed" && (() => {
-                const meta = completedJobMeta[job.id];
-                const hasTipped = meta?.tipped;
-                const hasReviewed = meta?.reviewed;
+                const cMeta = completedJobMeta[job.id];
+                const hasTipped = cMeta?.tipped;
+                const hasReviewed = cMeta?.reviewed;
+                if (hasTipped && hasReviewed) {
+                  return (
+                    <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
+                      <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+                    </div>
+                  );
+                }
                 return (!hasTipped || !hasReviewed) ? (
                   <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
                     <span className="text-xs text-muted-foreground">
@@ -244,9 +259,8 @@ export const PostedJobsTab = ({
                 ) : null;
               })()}
 
-
-
-              {/* Additional details */}
+              {/* Additional details - collapsible for fully completed jobs */}
+              {(!isFullyCompleted || isExpanded) && (
               <div>
                 <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   {(job.photos || []).length > 0 && (
@@ -527,6 +541,7 @@ export const PostedJobsTab = ({
                   </div>
                 </div>
               </div>
+              )}
             </div>
           );
         })}

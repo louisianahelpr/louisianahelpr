@@ -119,13 +119,19 @@ type PhotoProofGroupProps = {
   afterUrls: string[];
   onUploaded?: () => void;
   canUpload?: boolean;
+  /** Fine-grained: allow uploading before photos (defaults to canUpload) */
+  canUploadBefore?: boolean;
+  /** Fine-grained: allow uploading after photos (defaults to canUpload) */
+  canUploadAfter?: boolean;
   requireAfter?: boolean;
   budget?: number;
 };
 
 export const PhotoProofGroup = ({
-  jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, requireAfter = false, budget = 0,
+  jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, canUploadBefore, canUploadAfter, requireAfter = false, budget = 0,
 }: PhotoProofGroupProps) => {
+  const showBeforeUpload = canUploadBefore ?? canUpload;
+  const showAfterUpload = canUploadAfter ?? canUpload;
   const hasBefore = beforeUrls.length > 0;
   const hasAfter = afterUrls.length > 0;
   const [viewOpen, setViewOpen] = useState(false);

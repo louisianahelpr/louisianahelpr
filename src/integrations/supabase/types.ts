@@ -815,6 +815,7 @@ export type Database = {
           platform_fee_amount: number | null
           platform_fee_percent: number | null
           poster_completed_at: string | null
+          poster_confirmed_arrival_at: string | null
           poster_confirmed_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
@@ -891,6 +892,7 @@ export type Database = {
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
           poster_completed_at?: string | null
+          poster_confirmed_arrival_at?: string | null
           poster_confirmed_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
@@ -967,6 +969,7 @@ export type Database = {
           platform_fee_amount?: number | null
           platform_fee_percent?: number | null
           poster_completed_at?: string | null
+          poster_confirmed_arrival_at?: string | null
           poster_confirmed_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null

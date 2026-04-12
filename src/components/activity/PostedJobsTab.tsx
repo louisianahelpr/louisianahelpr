@@ -463,6 +463,15 @@ export const PostedJobsTab = ({
                             </span>
                           </div>
                         )}
+                        {/* 72h countdown after helper marks complete */}
+                        {(job as any).helper_completed_at && !(job as any).poster_completed_at && !(job as any).revision_requested_at && (
+                          <DeadlineCountdown
+                            deadline={new Date(new Date((job as any).helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
+                            expiredText="72 hours passed — payment auto-released to helpr"
+                            consequenceText="Approve, complete, or request a revision before the timer expires or payment will auto-release to the helpr."
+                            variant="warning"
+                          />
+                        )}
                         {/* Approve & Complete */}
                         {(job as any).helper_completed_at && (
                           <Button size="sm" className="w-full" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>

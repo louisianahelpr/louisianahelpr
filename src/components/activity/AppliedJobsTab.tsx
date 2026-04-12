@@ -459,6 +459,16 @@ export const AppliedJobsTab = ({
                       </ul>
                       <p className="text-[10px] text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
                     </div>
+                    {jobAny.helper_completed_at && (
+                      <div className="px-3 pb-2.5">
+                        <DeadlineCountdown
+                          deadline={new Date(new Date(jobAny.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
+                          expiredText="72 hours passed — payment auto-releasing to you"
+                          consequenceText="Payment will auto-release to you when this timer expires."
+                          variant="warning"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 {jobAny.helper_completed_at && jobAny.poster_completed_at && (

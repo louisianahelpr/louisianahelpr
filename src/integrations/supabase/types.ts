@@ -817,6 +817,7 @@ export type Database = {
           poster_completed_at: string | null
           poster_confirmed_arrival_at: string | null
           poster_confirmed_at: string | null
+          poster_confirmed_working_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
           recurrence_end_date: string | null
@@ -894,6 +895,7 @@ export type Database = {
           poster_completed_at?: string | null
           poster_confirmed_arrival_at?: string | null
           poster_confirmed_at?: string | null
+          poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null
@@ -971,6 +973,7 @@ export type Database = {
           poster_completed_at?: string | null
           poster_confirmed_arrival_at?: string | null
           poster_confirmed_at?: string | null
+          poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
           recurrence_end_date?: string | null

@@ -9,7 +9,7 @@ import {
   MapPin, DollarSign, CheckCircle2,
   Star, MessageSquare, Users, AlertTriangle, RefreshCw,
   Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
-  Navigation as NavigationIcon, Send, XCircle, Paperclip, FileText, Trash2, ExternalLink,
+  Navigation as NavigationIcon, Send, XCircle, Paperclip, FileText, Trash2, ExternalLink, Pencil, Check, X,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";

@@ -15,8 +15,9 @@ serve(async (req) => {
 
   // Verify cron secret
   const cronSecret = Deno.env.get("CRON_SECRET");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const authHeader = req.headers.get("Authorization");
-  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
+  if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`))) {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 

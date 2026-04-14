@@ -130,6 +130,13 @@ function adminDigestEmail(stats: {
 // ─── Main Handler ──────────────────────────────────────────────────
 
 Deno.serve(async (_req) => {
+  // Verify cron secret
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const authHeader = _req.headers.get('Authorization');
+  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(supabaseUrl, supabaseKey)

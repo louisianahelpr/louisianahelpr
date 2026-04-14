@@ -90,7 +90,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-      <Route path="/support" element={<ProtectedRoute allowUnapproved><Support /></ProtectedRoute>} />
+      <Route path="/support" element={<PageTransition><Support /></PageTransition>} />
       
       <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
       <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />

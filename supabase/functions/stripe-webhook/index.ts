@@ -427,7 +427,11 @@ serve(async (req) => {
     }
   } catch (err) {
     logStep("ERROR processing event", { error: String(err) });
-    return new Response("Processing error", { status: 500 });
+    // Still return 200 so Stripe doesn't keep retrying — the error is logged for debugging
+    return new Response(JSON.stringify({ received: true, error: "processing_error" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   }
 
   return new Response(JSON.stringify({ received: true }), {

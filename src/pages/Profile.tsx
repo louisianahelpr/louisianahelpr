@@ -376,7 +376,27 @@ const ProfilePage = () => {
   };
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    setDeletingAccount(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-own-account", {
+        body: { confirmation: "DELETE MY ACCOUNT" },
+      });
+      if (error) throw error;
+      toast.success("Account deleted successfully");
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   if (loading) {
     return (

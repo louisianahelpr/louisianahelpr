@@ -29,6 +29,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Jobs
           </Link>
+          <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Support
+          </Link>
           <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in
@@ -58,6 +61,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           </a>
           <Link to="/jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Jobs
+          </Link>
+          <Link to="/support" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Support
           </Link>
           <div className="flex items-center justify-between pt-1">
             <span className="text-sm text-muted-foreground">Theme</span>

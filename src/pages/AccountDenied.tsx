@@ -81,7 +81,7 @@ const AccountDenied = () => {
               <RefreshCw className="w-4 h-4 mr-2" />
               Re-apply Now
             </Button>
-            <a href="mailto:support@louisianahelpr.com">
+            <a href="mailto:admin@louisianahelpr.com">
               <Button variant="ghost" className="w-full" size="sm">
                 <Mail className="w-4 h-4 mr-2" />
                 Email Support
@@ -91,8 +91,8 @@ const AccountDenied = () => {
 
           <p className="text-xs text-muted-foreground text-center pt-2">
             Need help? Email us at{" "}
-            <a href="mailto:support@louisianahelpr.com" className="text-primary font-medium hover:underline">
-              support@louisianahelpr.com
+            <a href="mailto:admin@louisianahelpr.com" className="text-primary font-medium hover:underline">
+              admin@louisianahelpr.com
             </a>
           </p>
         </div>

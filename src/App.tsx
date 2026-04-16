@@ -59,8 +59,10 @@ const queryClient = new QueryClient({
 });
 
 const PageFallback = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
+  <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+    <h1 className="text-3xl font-bold text-primary font-serif mb-4">Helpr</h1>
     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
   </div>
 );
 

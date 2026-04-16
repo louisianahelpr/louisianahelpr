@@ -376,7 +376,27 @@ const ProfilePage = () => {
   };
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    setDeletingAccount(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-own-account", {
+        body: { confirmation: "DELETE MY ACCOUNT" },
+      });
+      if (error) throw error;
+      toast.success("Account deleted successfully");
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -897,6 +917,23 @@ const ProfilePage = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Delete Account */}
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-4">
+                <h2 className="font-display font-semibold text-destructive flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" /> Delete Account
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteAccountDialog(true)}
+                >
+                  Delete My Account
+                </Button>
+              </div>
             </div>
           )}
 
@@ -935,6 +972,37 @@ const ProfilePage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteAccountDialog} onOpenChange={(open) => { setShowDeleteAccountDialog(open); if (!open) setDeleteConfirmText(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" /> Delete Account
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="block">This will permanently delete your account and all associated data including jobs, messages, reviews, and payment history. This cannot be undone.</span>
+              <span className="block text-sm font-medium text-foreground">Type <strong>DELETE MY ACCOUNT</strong> to confirm:</span>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE MY ACCOUNT"
+                className="mt-2"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAccount}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Delete Forever
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

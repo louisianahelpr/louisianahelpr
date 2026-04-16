@@ -6,6 +6,23 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Native app feel for iOS wrapper */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+}
+
+/* Allow text selection in inputs and textareas */
+input, textarea, [contenteditable="true"], .prose, pre, code {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 @layer base {

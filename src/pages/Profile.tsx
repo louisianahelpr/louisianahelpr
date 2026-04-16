@@ -897,6 +897,23 @@ const ProfilePage = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Delete Account */}
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-4">
+                <h2 className="font-display font-semibold text-destructive flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" /> Delete Account
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteAccountDialog(true)}
+                >
+                  Delete My Account
+                </Button>
+              </div>
             </div>
           )}
 

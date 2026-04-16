@@ -27,7 +27,7 @@ const faqItems = [
   { q: "How do I apply to help with a job?", a: "Browse available jobs on the Dashboard. Tap a job to view details, then tap \"Apply\" and include a message to the poster." },
   { q: "How do payments work?", a: "Payments are processed securely through Stripe. Funds are held until the job is completed and confirmed by both parties." },
   { q: "How do I cancel a job?", a: "Go to your Activity page, find the job, and tap \"Cancel.\" Note that late cancellations may incur a fee." },
-  { q: "How do I contact the admin?", a: "Use the support form on this page (sign in required), or email us at support@louisianahelpr.com." },
+  { q: "How do I contact the admin?", a: "Use the support form on this page (sign in required), or email us at admin@louisianahelpr.com." },
   { q: "Is my personal information safe?", a: "Yes. We use industry-standard encryption and never share your data with third parties. See our Privacy Policy for details." },
 ];
 
@@ -116,8 +116,8 @@ const SupportPage = () => {
                 <Mail className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-sm text-foreground">Email</p>
-                  <a href="mailto:support@louisianahelpr.com" className="text-sm text-primary hover:underline">
-                    support@louisianahelpr.com
+                  <a href="mailto:admin@louisianahelpr.com" className="text-sm text-primary hover:underline">
+                    admin@louisianahelpr.com
                   </a>
                 </div>
               </div>
@@ -241,8 +241,8 @@ const SupportPage = () => {
             <section className="rounded-xl border border-border bg-card p-5 text-center space-y-3">
               <p className="text-sm text-muted-foreground">
                 Sign in to send a message directly to our support team, or email us at{" "}
-                <a href="mailto:support@louisianahelpr.com" className="text-primary hover:underline">
-                  support@louisianahelpr.com
+                <a href="mailto:admin@louisianahelpr.com" className="text-primary hover:underline">
+                  admin@louisianahelpr.com
                 </a>
               </p>
               <Link to="/login">

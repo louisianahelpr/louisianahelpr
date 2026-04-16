@@ -29,6 +29,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Jobs
           </Link>
+          <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Support
+          </Link>
           <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
             Log in

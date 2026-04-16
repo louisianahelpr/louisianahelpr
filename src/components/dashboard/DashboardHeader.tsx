@@ -42,7 +42,7 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 glass border-b border-border/30">
+      <header className="sticky top-0 z-40 glass border-b border-border/30" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="container mx-auto flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-2">
             {title ? (

@@ -59,8 +59,10 @@ serve(async (req) => {
       }
     }
 
-    // If no valid JWT, allow initial signup completion by verifying the user
-    // exists and the profile is still in its initial empty state
+    // If no valid JWT, allow initial signup completion ONLY within a short
+    // window after account creation, and only if the profile is still empty.
+    // This prevents an attacker who learns another user's UUID (e.g. from
+    // job listings) from overwriting their unfinished profile.
     if (!userId && bodyUserId) {
       // Verify user exists in auth.users via service role
       const { data: authUser, error: authCheckErr } = await supabase.auth.admin.getUserById(bodyUserId);
@@ -69,6 +71,26 @@ serve(async (req) => {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Enforce a 30-minute window from account creation. After that, the
+      // user must log in (which provides a JWT) to complete/resubmit.
+      const createdAt = authUser.user.created_at ? new Date(authUser.user.created_at).getTime() : 0;
+      const ageMs = Date.now() - createdAt;
+      const WINDOW_MS = 30 * 60 * 1000;
+      if (!createdAt || ageMs > WINDOW_MS) {
+        return new Response(
+          JSON.stringify({ error: "Signup completion window expired. Please log in to finish your profile." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Reject if the user has ever signed in — a logged-in user must use their JWT.
+      if (authUser.user.last_sign_in_at) {
+        return new Response(
+          JSON.stringify({ error: "Account already active. Please log in to update your profile." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Only allow if profile is in initial empty state (no bio set yet)
@@ -91,6 +113,14 @@ serve(async (req) => {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Block resubmissions through the unauthenticated path — denied users must log in.
+      if (existingProfile.approval_status === "denied") {
+        return new Response(
+          JSON.stringify({ error: "Please log in to resubmit your application." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       userId = bodyUserId;

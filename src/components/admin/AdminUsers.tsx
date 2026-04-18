@@ -415,6 +415,8 @@ const AdminUsers = () => {
         ))}
       </div>
 
+      <p className="text-xs text-muted-foreground px-1">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
+
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">No users in this category.</p>
       ) : (

@@ -8,7 +8,7 @@ import {
   Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
-  X, Banknote, MapPin, Award, ChevronRight, Menu,
+  X, Banknote, MapPin, Award, ChevronRight, Menu, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -38,8 +38,9 @@ const AdminSocialPost = lazy(() => import("@/components/admin/AdminSocialPost"))
 const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatches"));
 const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
+const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -54,6 +55,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
     title: "Operations",
     items: [
       { id: "people", label: "Users", icon: Users },
+      { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
       { id: "disputes", label: "Disputes", icon: ShieldAlert },

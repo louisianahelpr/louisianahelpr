@@ -1288,14 +1288,14 @@ const AdminUsers = () => {
 
       {/* Ban / Warning Dialog */}
       <Dialog open={!!banProfile} onOpenChange={() => setBanProfile(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-4">
-          <DialogHeader className="pr-8">
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
+          <DialogHeader className="pr-8 space-y-1">
             <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
               <ShieldAlert className="w-5 h-5 text-destructive shrink-0" />
               <span className="truncate">Take Action: {banProfile?.full_name || "User"}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
               <div className="grid grid-cols-3 gap-2">

@@ -50,7 +50,7 @@ const AdminSidebar = ({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-2 gap-0">
+      <SidebarContent className="px-2 py-2 gap-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
         <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu>
@@ -59,7 +59,7 @@ const AdminSidebar = ({
                   onClick={() => handleSelect("home")}
                   isActive={activeView === "home"}
                   tooltip="Dashboard"
-                  className="font-medium h-9"
+                  className="font-medium group-data-[collapsible=icon]:!justify-center"
                 >
                   <Home className="w-4 h-4" />
                   {!collapsed && <span>Dashboard</span>}
@@ -87,7 +87,7 @@ const AdminSidebar = ({
                         onClick={() => handleSelect(item.id)}
                         isActive={activeView === item.id}
                         tooltip={item.label}
-                        className="font-medium relative h-9"
+                        className="font-medium relative group-data-[collapsible=icon]:!justify-center"
                       >
                         <item.icon className="w-4 h-4" />
                         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}

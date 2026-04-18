@@ -554,7 +554,7 @@ const AdminUsers = () => {
               </div>
 
               {/* Info Grid — always show all fields */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl bg-secondary/30 border border-border p-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
                   <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>

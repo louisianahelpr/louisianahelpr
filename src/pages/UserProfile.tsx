@@ -202,7 +202,24 @@ const UserProfile = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <h1 className="text-2xl font-display font-bold text-foreground">Profile Review</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground flex-1">Profile Review</h1>
+            {!isOwnProfile && currentUserId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowReport(true)}>
+                    <Flag className="w-4 h-4 mr-2" /> Report user
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowBlock(true)}>
+                    <Ban className="w-4 h-4 mr-2" /> Block user
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
           {/* Profile Card */}
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">

@@ -484,39 +484,39 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">User Profile</DialogTitle>
+            <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Header: Avatar + Basic Info */}
-              <div className="flex gap-5">
+              <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={viewProfile.avatar_url} alt="" className="w-28 h-28 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                    <img src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
                   </a>
                 ) : (
-                  <div className="w-28 h-28 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-3xl font-medium flex-shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-2xl font-medium flex-shrink-0">
                     {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-bold text-foreground">{formatName(viewProfile.full_name, "—")}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
-                    
+
                     {((viewProfile as any).application_count || 1) > 1 && (
-                      <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-accent/30">
-                        Applied {(viewProfile as any).application_count} times
+                      <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent-foreground border-accent/30">
+                        Applied {(viewProfile as any).application_count}x
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm text-muted-foreground">{(viewProfile as any).email || "No email"}</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
                     <button
                       onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
-                      className="text-muted-foreground hover:text-primary transition-colors"
+                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
                       title="Edit email"
                     >
                       <Pencil className="w-3 h-3" />
@@ -526,7 +526,7 @@ const AdminUsers = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-1"
+                      className="h-8"
                       onClick={async () => {
                         const currentCount = (viewProfile as any).application_count || 1;
                         await supabase.from("profiles").update({
@@ -539,16 +539,18 @@ const AdminUsers = () => {
                         setViewProfile(null);
                       }}
                     >
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry — Move to Pending
+                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Move to Pending
                     </Button>
                   )}
-                  <div className="mt-1">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bio</p>
-                    <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
-                      {viewProfile.bio || "Not provided"}
-                    </p>
-                  </div>
                 </div>
+              </div>
+
+              {/* Bio — full width below header */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Bio</p>
+                <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
+                  {viewProfile.bio || "Not provided"}
+                </p>
               </div>
 
               {/* Info Grid — always show all fields */}

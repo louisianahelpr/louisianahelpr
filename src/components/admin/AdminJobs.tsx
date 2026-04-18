@@ -94,7 +94,7 @@ const AdminJobs = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("all");
+  const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("flagged");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
@@ -232,13 +232,6 @@ const AdminJobs = () => {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={filter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("all")}
-            >
-              All ({jobs.length})
-            </Button>
-            <Button
               variant={filter === "flagged" ? "default" : "outline"}
               size="sm"
               onClick={() => setFilter("flagged")}
@@ -257,17 +250,6 @@ const AdminJobs = () => {
               Resolved ({resolvedCount})
             </Button>
           </div>
-          {flaggedCount > 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={markAllFlaggedResolved}
-              className="gap-1.5"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Mark all resolved
-            </Button>
-          )}
         </div>
       )}
 

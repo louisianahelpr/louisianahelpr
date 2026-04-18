@@ -693,7 +693,7 @@ const AdminUsers = () => {
                 return (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Signup Answers</p>
-                    <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-3 sm:p-4">
                       {fields.map((f, i) => (
                         <div key={i}>
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>

@@ -18,11 +18,11 @@ const AccountPending = () => {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { navigate("/login"); return; }
-      
+
       const isVerified = !!session.user.email_confirmed_at;
       setEmailVerified(isVerified);
       setUserEmail(session.user.email || "");
-      
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("approval_status, full_name, idv_status, legacy_manual_review")
@@ -35,10 +35,41 @@ const AccountPending = () => {
       if (profile.approval_status === "approved") navigate("/dashboard");
       if (profile.approval_status === "denied") navigate("/account-denied");
     };
+
     check();
 
+    // Real-time profile updates: redirect instantly when status flips to verified/approved/denied
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const subscribeRealtime = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      channel = supabase
+        .channel(`profile-status-${session.user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            const next = payload.new as { approval_status?: string; idv_status?: string };
+            if (next.idv_status) setIdvStatus(next.idv_status);
+            if (next.approval_status === "approved") navigate("/dashboard");
+            else if (next.approval_status === "denied") navigate("/account-denied");
+          }
+        )
+        .subscribe();
+    };
+    subscribeRealtime();
+
+    // Polling fallback (in case realtime drops)
     const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [navigate]);
 
   const handleResendVerification = async () => {

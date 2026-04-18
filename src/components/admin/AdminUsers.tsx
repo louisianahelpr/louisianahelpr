@@ -64,11 +64,16 @@ const AdminUsers = () => {
   // Formal warning dialog
   const [warningProfile, setWarningProfile] = useState<Profile | null>(null);
   const [warningNote, setWarningNote] = useState("");
+  const [warningCategory, setWarningCategory] = useState<string>("conduct");
+  const [warningBypass, setWarningBypass] = useState(false);
   // Manual verify confirm
   const [manualVerifyProfile, setManualVerifyProfile] = useState<Profile | null>(null);
   // Reset password confirm
   const [resetPwProfile, setResetPwProfile] = useState<Profile | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+
+  // Per-user admin notes summary: { [user_id]: { count, recent: [{note, created_at, category}] } }
+  const [notesSummary, setNotesSummary] = useState<Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }>>({});
 
   const loadProfiles = async () => {
     const { data } = await supabase

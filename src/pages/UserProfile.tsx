@@ -53,6 +53,8 @@ const UserProfile = () => {
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showBlock, setShowBlock] = useState(false);
 
   useEffect(() => {
     if (!userId) return;

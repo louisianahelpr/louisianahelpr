@@ -29,6 +29,7 @@ const FLAG_TYPES = [
   { value: "application_spam", label: "Application Spam" },
   { value: "review_manipulation", label: "Review Manipulation" },
   { value: "message_flooding", label: "Message Flooding" },
+  { value: "scope_creep", label: "Scope Creep (3+ revisions)" },
 ];
 
 const AdminFraudDashboard = () => {
@@ -88,6 +89,7 @@ const AdminFraudDashboard = () => {
     application_spam: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     review_manipulation: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
     message_flooding: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
+    scope_creep: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   };
 
   return (

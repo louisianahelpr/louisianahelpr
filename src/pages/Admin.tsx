@@ -140,7 +140,10 @@ const Admin = () => {
 
   const loadUnreadCounts = useCallback(async () => {
     const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [
-      { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending" } },
+      // Only flag pending users who have verified their email — matches the
+      // "Pending Review" rule in AdminUsers (Stripe-flagged or unprocessed,
+      // but always email-verified first).
+      { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending", email_verified: true } },
       { key: "jobs", table: "jobs", dateCol: "created_at" },
       { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" } },
       { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
@@ -190,7 +193,7 @@ const Admin = () => {
       newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),

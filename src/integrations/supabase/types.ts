@@ -1530,6 +1530,7 @@ export type Database = {
           denial_reason: string | null
           drip_step: number
           email: string | null
+          email_verified: boolean
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           experience_level: string | null
@@ -1581,6 +1582,7 @@ export type Database = {
           denial_reason?: string | null
           drip_step?: number
           email?: string | null
+          email_verified?: boolean
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           experience_level?: string | null
@@ -1632,6 +1634,7 @@ export type Database = {
           denial_reason?: string | null
           drip_step?: number
           email?: string | null
+          email_verified?: boolean
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           experience_level?: string | null

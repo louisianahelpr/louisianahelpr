@@ -8,7 +8,7 @@ import {
   Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
-  X, Banknote, MapPin, Award, ChevronRight, Menu, ShieldCheck,
+  X, Banknote, MapPin, Award, ChevronRight, Menu, ShieldCheck, Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -40,8 +40,9 @@ const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTax
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminMarketingHub = lazy(() => import("@/components/admin/AdminMarketingHub"));
+const AdminMarketingToolkit = lazy(() => import("@/components/admin/AdminMarketingToolkit"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "marketing" | "payouts" | "parishtax" | "tiers" | "idv";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "marketing" | "toolkit" | "payouts" | "parishtax" | "tiers" | "idv";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -81,6 +82,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "notifications", label: "Notifications", icon: BellRing },
       { id: "social", label: "Social Post", icon: TrendingUp },
       { id: "marketing", label: "Marketing Hub", icon: Megaphone },
+      { id: "toolkit", label: "Marketing Toolkit", icon: Wrench },
     ],
   },
   {
@@ -271,7 +273,7 @@ const Admin = () => {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
-    idv: "Identity Verify", marketing: "Marketing Hub",
+    idv: "Identity Verify", marketing: "Marketing Hub", toolkit: "Marketing Toolkit",
   };
 
   const renderContent = () => {
@@ -293,6 +295,7 @@ const Admin = () => {
       case "export": return <AdminExport />;
       case "social": return <AdminSocialPost />;
       case "marketing": return <AdminMarketingHub />;
+      case "toolkit": return <AdminMarketingToolkit />;
       case "payouts": return <AdminPayoutBatches />;
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;

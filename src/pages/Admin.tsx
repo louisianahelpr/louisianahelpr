@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
@@ -337,25 +337,24 @@ const Admin = () => {
           <header className="sticky top-0 z-40 glass border-b border-border/30" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
             <div className="container mx-auto flex items-center justify-between h-14 px-4">
               <div className="flex items-center gap-2 min-w-0">
-                <SidebarTrigger className="hover:bg-muted btn-press rounded-xl h-9 w-9 flex items-center justify-center">
-                  <Menu className="w-4 h-4" />
-                </SidebarTrigger>
-                <div className="flex items-center gap-2 text-sm min-w-0">
-                  <span className="text-muted-foreground hidden sm:inline">Admin</span>
-                  {view !== "home" && (
-                    <>
-                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground hidden sm:inline" />
-                      <span className="font-semibold text-foreground truncate">{viewLabels[view]}</span>
-                    </>
-                  )}
-                </div>
+                <Link to="/dashboard" className="flex items-center gap-2 group" aria-label="Go to Helpr">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
+                    <span className="text-primary-foreground font-bold text-sm">H</span>
+                  </div>
+                  <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    Helpr
+                  </span>
+                </Link>
               </div>
               <div className="flex items-center gap-1">
-                {/* Admin badge — only on admin header */}
-                <div className="flex items-center gap-1.5 px-2 h-9 rounded-xl bg-destructive/10 text-destructive mr-1" aria-label="Admin mode">
+                {/* Admin badge — click to open sidebar */}
+                <SidebarTrigger
+                  className="flex items-center gap-1.5 px-2 h-9 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
+                  aria-label="Toggle admin menu"
+                >
                   <Shield className="w-3.5 h-3.5" />
                   <span className="text-[11px] font-bold uppercase tracking-wide hidden sm:inline">Admin</span>
-                </div>
+                </SidebarTrigger>
 
                 <Button variant="ghost" size="icon" onClick={() => navigate("/messages")} className="relative hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Messages">
                   <MessageSquare className="w-4 h-4" />

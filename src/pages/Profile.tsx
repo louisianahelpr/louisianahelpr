@@ -27,6 +27,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { lookupParishByZip } from "@/lib/parishLookup";
 
 // Extracted tab components
 import { SupportInline } from "@/components/profile/SupportInline";
@@ -105,6 +106,8 @@ const ProfilePage = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [parish, setParish] = useState<string | null>(null);
   const [bio, setBio] = useState("");
   const [skills, setSkills] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
@@ -156,6 +159,8 @@ const ProfilePage = () => {
         setFullName(cachedProfile.full_name || "");
         setPhone(cachedProfile.phone || "");
         setLocation(cachedProfile.location || "");
+        setZipCode((cachedProfile as any).zip_code || "");
+        setParish((cachedProfile as any).parish || null);
         setBio(cachedProfile.bio || "");
         setSkills(cachedProfile.skills || "");
         setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
@@ -178,6 +183,8 @@ const ProfilePage = () => {
       setFullName(data.full_name || "");
       setPhone(data.phone || "");
       setLocation(data.location || "");
+      setZipCode((data as any).zip_code || "");
+      setParish((data as any).parish || null);
       setBio(data.bio || "");
       setSkills(data.skills || "");
       setHourlyRate(data.hourly_rate?.toString() || "");
@@ -185,6 +192,15 @@ const ProfilePage = () => {
     }
     setLoading(false);
   };
+
+  // Auto-lookup parish from zip (Louisiana sales tax)
+  useEffect(() => {
+    const cleaned = zipCode.replace(/\D/g, "");
+    if (cleaned.length !== 5) return;
+    let cancelled = false;
+    lookupParishByZip(cleaned).then((p) => { if (!cancelled && p) setParish(p); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
 
   const loadStats = async (userId: string) => {
     const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes, completedJobIdsRes] = await Promise.all([
@@ -332,7 +348,9 @@ const ProfilePage = () => {
       bio: bio.trim(), skills: skills.trim(),
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
       date_of_birth: dateOfBirth || null,
-    }).eq("user_id", user.id);
+      zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
+      parish: parish,
+    } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
     else toast.success("Profile updated!");
@@ -617,9 +635,25 @@ const ProfilePage = () => {
                       <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="location" className="text-xs">Location (city or ZIP)</Label>
-                    <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Louisiana" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="location" className="text-xs">City</Label>
+                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="zipCode" className="text-xs">ZIP code</Label>
+                      <Input
+                        id="zipCode"
+                        value={zipCode}
+                        onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                        placeholder="70801"
+                        inputMode="numeric"
+                        maxLength={5}
+                      />
+                      {parish && (
+                        <p className="text-xs text-primary">Parish: <span className="font-medium">{parish}</span></p>
+                      )}
+                    </div>
                   </div>
                 </div>
 

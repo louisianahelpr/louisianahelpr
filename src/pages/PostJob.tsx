@@ -19,6 +19,7 @@ import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { categoryPricing } from "@/lib/pricingGuide";
 import { compressImage } from "@/lib/imageCompression";
+import { lookupParishByZip } from "@/lib/parishLookup";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -50,6 +51,7 @@ const PostJob = () => {
   const [city, setCity] = useState("");
   const [addrState, setAddrState] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
@@ -133,6 +135,15 @@ const PostJob = () => {
       setDraftLoaded(true);
     }
   }, [searchParams, hasDraft, draftLoaded]);
+
+  // Auto-lookup parish from zip (for Louisiana sales tax)
+  useEffect(() => {
+    const cleaned = zipCode.replace(/\D/g, "");
+    if (cleaned.length !== 5) { setParish(null); return; }
+    let cancelled = false;
+    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setParish(p); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
 
   // Auto-save draft on field changes (debounced)
   const autoSave = useCallback(() => {
@@ -298,6 +309,8 @@ const PostJob = () => {
       description: description.trim(),
       category: category as any,
       location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`,
+      zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
+      parish: parish,
       date_needed: dateNeeded,
       start_time: startTime || null,
       is_flexible_schedule: isFlexibleSchedule,
@@ -559,6 +572,12 @@ const PostJob = () => {
                     <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} />
                     <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
                   </div>
+                  {parish && (
+                    <p className="text-xs text-primary flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Parish detected: <span className="font-medium">{parish}</span> · used for Louisiana sales tax
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Shield className="w-3 h-3" />
                     Only the city will be visible to applicants until you select a helper.

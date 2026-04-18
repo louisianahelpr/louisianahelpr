@@ -126,8 +126,17 @@ const Signup = () => {
     );
   };
 
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 10);
+    if (digits.length === 0) return "";
+    if (digits.length < 4) return `(${digits}`;
+    if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
   const validateStep1 = async () => {
-    if (!fullName.trim()) { toast.error("Full name is required"); return false; }
+    if (!firstName.trim()) { toast.error("First name is required"); return false; }
+    if (!lastName.trim()) { toast.error("Last name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }

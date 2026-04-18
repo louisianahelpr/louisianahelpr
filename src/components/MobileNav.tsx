@@ -71,16 +71,41 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
+  // Map each tab root to sub-routes that belong to its stack.
+  // Tapping the tab while inside one of these returns the user to the tab root.
+  const tabStacks: Record<string, string[]> = {
+    "/dashboard": ["/jobs", "/community"],
+    "/my-posts": ["/activity", "/post-job"],
+    "/my-jobs": ["/job-history", "/earnings", "/schedule"],
+    "/messages": [],
+    "/profile": ["/support", "/user", "/admin"],
+  };
+
+  const isInStack = (tabPath: string) => {
+    if (location.pathname === tabPath) return true;
+    const stack = tabStacks[tabPath] || [];
+    return stack.some((p) => location.pathname.startsWith(p));
+  };
+
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
     const active = location.pathname === path || (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) || (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied");
+    const inStack = isInStack(path);
     const badgeCount = badgeKey === "messages" ? unreadCount : 0;
     const showBadge = badgeCount > 0;
+    const handleClick = () => {
+      // If we're inside this tab's stack but not on its root, pop back to root.
+      if (inStack && location.pathname !== path) {
+        navigate(path);
+        return;
+      }
+      if (location.pathname !== path) navigate(path);
+    };
     return (
       <button
         key={path}
-        onClick={() => navigate(path)}
+        onClick={handleClick}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-all duration-200 btn-press ${
-          active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+          active || inStack ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
         <div className="relative">

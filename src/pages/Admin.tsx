@@ -9,6 +9,7 @@ import {
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, Menu, ShieldCheck,
+  Shield, MessageSquare, LogOut,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";

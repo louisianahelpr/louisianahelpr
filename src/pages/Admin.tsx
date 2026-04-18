@@ -307,7 +307,7 @@ const Admin = () => {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
-    idv: "Identity Verify",
+    idv: "Identity Verify", geography: "Geography",
   };
 
   const renderContent = () => {

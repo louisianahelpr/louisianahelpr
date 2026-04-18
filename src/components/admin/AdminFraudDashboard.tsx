@@ -29,6 +29,7 @@ const FLAG_TYPES = [
   { value: "application_spam", label: "Application Spam" },
   { value: "review_manipulation", label: "Review Manipulation" },
   { value: "message_flooding", label: "Message Flooding" },
+  { value: "scope_creep", label: "Scope Creep (3+ revisions)" },
 ];
 
 const AdminFraudDashboard = () => {

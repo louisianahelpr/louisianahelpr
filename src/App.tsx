@@ -36,6 +36,7 @@ const Support = lazy(() => import("./pages/Support"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Community = lazy(() => import("./pages/Community"));
+const CommunityValues = lazy(() => import("./pages/CommunityValues"));
 const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
@@ -98,6 +99,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
       <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
+      <Route path="/community-values" element={<PageTransition><CommunityValues /></PageTransition>} />
       <Route path="/jobs" element={<PageTransition><Jobs /></PageTransition>} />
       <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
       <Route path="/heroes" element={<PageTransition><Heroes /></PageTransition>} />

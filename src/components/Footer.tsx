@@ -10,6 +10,7 @@ const Footer = () => (
         </Link>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <a href="/#community" className="hover:text-primary transition-colors">Community</a>
+          <Link to="/community-values" className="hover:text-primary transition-colors">Our Values</Link>
           <Link to="/heroes" className="hover:text-primary transition-colors">Heroes</Link>
           <Link to="/rules" className="hover:text-primary transition-colors">Rules</Link>
           <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>

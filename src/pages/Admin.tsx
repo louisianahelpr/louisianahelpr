@@ -333,22 +333,46 @@ const Admin = () => {
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Top bar */}
-          <header className="sticky top-0 z-30 h-14 border-b border-border bg-card/80 backdrop-blur flex items-center gap-2 px-4">
-            <SidebarTrigger className="h-8 w-8 rounded-lg">
-              <Menu className="w-4 h-4" />
-            </SidebarTrigger>
-            <div className="flex items-center gap-2 text-sm flex-1 min-w-0">
-              <span className="text-muted-foreground hidden sm:inline">Admin</span>
-              {view !== "home" && (
-                <>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground hidden sm:inline" />
-                  <span className="font-semibold text-foreground truncate">{viewLabels[view]}</span>
-                </>
-              )}
+          {/* Top bar — matches user-facing DashboardHeader */}
+          <header className="sticky top-0 z-40 glass border-b border-border/30" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+            <div className="container mx-auto flex items-center justify-between h-14 px-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <SidebarTrigger className="hover:bg-muted btn-press rounded-xl h-9 w-9 flex items-center justify-center">
+                  <Menu className="w-4 h-4" />
+                </SidebarTrigger>
+                <div className="flex items-center gap-2 text-sm min-w-0">
+                  <span className="text-muted-foreground hidden sm:inline">Admin</span>
+                  {view !== "home" && (
+                    <>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground hidden sm:inline" />
+                      <span className="font-semibold text-foreground truncate">{viewLabels[view]}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {/* Admin badge — only on admin header */}
+                <div className="flex items-center gap-1.5 px-2 h-9 rounded-xl bg-destructive/10 text-destructive mr-1" aria-label="Admin mode">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-bold uppercase tracking-wide hidden sm:inline">Admin</span>
+                </div>
+
+                <Button variant="ghost" size="icon" onClick={() => navigate("/messages")} className="relative hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Messages">
+                  <MessageSquare className="w-4 h-4" />
+                  {unreadMessages > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  )}
+                </Button>
+
+                <ThemeToggle />
+                <NotificationPanel />
+                <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-            <ThemeToggle />
-            <NotificationPanel />
           </header>
 
           <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">

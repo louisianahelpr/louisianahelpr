@@ -43,6 +43,7 @@ const Heroes = lazy(() => import("./pages/Heroes"));
 
 // Lazy load less-critical global components
 const InstallPrompt = lazy(() => import("./components/InstallPrompt"));
+const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));

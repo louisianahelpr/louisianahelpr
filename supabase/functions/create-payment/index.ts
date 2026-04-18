@@ -84,14 +84,26 @@ serve(async (req) => {
       // Helper commission is deducted at payout time, not charged to poster
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
+      // ─── Louisiana Marketplace Facilitator tax logic ───
+      // Taxable categories: cleaning, yard_work, moving, handyman, painting, delivery, assembly
+      // Exempt categories: errands, pet_care, other (personal/professional services)
+      const TAXABLE_CATEGORIES = new Set([
+        "cleaning", "yard_work", "moving", "handyman", "painting", "delivery", "assembly",
+      ]);
+      const isLaborTaxable = TAXABLE_CATEGORIES.has(job.category);
+
       const lineItems: any[] = [
         {
           price_data: {
             currency: "usd",
             product_data: {
               name: `Helpr Task: ${job.title}`,
-              description: `Secure payment — funds are charged now and released to the helpr once both parties confirm completion.`,
-              tax_code: "txcd_00000000", // Non-taxable: passes through to worker
+              description: isLaborTaxable
+                ? `Secure escrow payment for taxable labor (${job.category}). Funds release once both parties confirm completion.`
+                : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
+              // Taxable services: apply LA repair/cleaning tax code so Stripe Tax computes parish tax on the labor
+              // Exempt services: pass-through (no tax on labor — only platform fee taxed)
+              tax_code: isLaborTaxable ? "txcd_20030000" : "txcd_00000000",
             },
             unit_amount: Math.round(job.budget * 100),
           },

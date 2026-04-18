@@ -1230,10 +1230,11 @@ const AdminUsers = () => {
 
       {/* Ban / Warning Dialog */}
       <Dialog open={!!banProfile} onOpenChange={() => setBanProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-destructive" /> Take Action: {banProfile?.full_name || "User"}
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-4">
+          <DialogHeader className="pr-8">
+            <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
+              <ShieldAlert className="w-5 h-5 text-destructive shrink-0" />
+              <span className="truncate">Take Action: {banProfile?.full_name || "User"}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -1248,7 +1249,7 @@ const AdminUsers = () => {
                   <button
                     key={opt.key}
                     onClick={() => setBanType(opt.key)}
-                    className={`p-3 rounded-xl border text-center space-y-1 transition-colors ${
+                    className={`p-2.5 rounded-xl border text-center space-y-1 transition-colors ${
                       banType === opt.key ? opt.color : "border-border bg-card hover:bg-secondary/30"
                     }`}
                   >
@@ -1280,18 +1281,20 @@ const AdminUsers = () => {
 
             {banType === "permanent" && (
               <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> This action is severe. The user will lose access permanently.
+                <p className="text-xs text-destructive flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>This action is severe. The user will lose access permanently.</span>
                 </p>
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setBanProfile(null)}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setBanProfile(null)} className="w-full sm:w-auto">Cancel</Button>
             <Button
               variant={banType === "warning" ? "default" : "destructive"}
               onClick={handleBanAction}
               disabled={banning || !banReason.trim()}
+              className="w-full sm:w-auto"
             >
               {banning ? "Processing…" : banType === "warning" ? "Issue Warning" : banType === "temporary" ? `Ban for ${banDuration} days` : "Permanently Ban"}
             </Button>
@@ -1448,14 +1451,15 @@ const AdminUsers = () => {
 
       {/* Formal Warning */}
       <Dialog open={!!warningProfile} onOpenChange={() => !actionBusy && setWarningProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Manual Strike
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-4">
+          <DialogHeader className="pr-8">
+            <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
+              <MessageSquareWarning className="w-5 h-5 text-accent shrink-0" />
+              <span className="truncate">Issue Manual Strike</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
             </p>
             <div className="space-y-2">
@@ -1481,23 +1485,24 @@ const AdminUsers = () => {
                 rows={3}
               />
             </div>
-            <label className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
+            <label className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
               <Checkbox
                 checked={warningBypass}
                 onCheckedChange={(v) => setWarningBypass(v === true)}
-                className="mt-0.5"
+                className="mt-0.5 shrink-0"
               />
-              <div className="space-y-0.5">
+              <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
-                <p className="text-[11px] text-muted-foreground">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
               </div>
             </label>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote, { reasonCategory: warningCategory, bypassStrike: warningBypass })}
               disabled={actionBusy || !warningNote.trim()}
+              className="w-full sm:w-auto"
             >
               {actionBusy ? "Issuing…" : warningBypass ? "Issue (no escalation)" : "Issue Strike"}
             </Button>

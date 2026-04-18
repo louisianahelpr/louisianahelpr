@@ -1292,9 +1292,6 @@ const AdminUsers = () => {
                   <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
                     <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
-                    <Camera className="w-4 h-4 mr-1.5 text-accent" /> Request ID Re-upload
-                  </Button>
                   <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
                     <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
                   </Button>

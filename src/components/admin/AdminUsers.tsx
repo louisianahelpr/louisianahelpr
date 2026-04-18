@@ -815,9 +815,6 @@ const AdminUsers = () => {
                 )}
                 {p.approval_status === "approved" && (
                   <>
-                    <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
-                      {resending === p.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><MailIcon className="w-3.5 h-3.5 mr-1" /> Resend</>}
-                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -1198,17 +1195,41 @@ const AdminUsers = () => {
                     <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                   </Button>
                 )}
-                {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <>
-                    <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
-                      <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
-                    </Button>
-                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                      <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
-                    </Button>
-                  </>
-                )}
+                {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (() => {
+                  const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
+                  const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+                  const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
+                  const idvVerified = (viewProfile as any).idv_status === 'verified';
+                  const isActive = hasLoggedIn || idvVerified || opens.length > 0 || clicks.length > 0;
+                  const sent = (viewProfile as any).approval_email_count || 0;
+                  const maxReached = sent >= 3;
+                  return (
+                    <>
+                      {!isActive && (
+                        <Button
+                          variant="outline"
+                          className="flex-1 min-w-[160px]"
+                          onClick={() => resendApprovalEmail(viewProfile)}
+                          disabled={resending === viewProfile.id || maxReached}
+                          title={maxReached ? "Max 3 follow-up emails reached" : "Send a follow-up reminder"}
+                        >
+                          <MailIcon className="w-4 h-4 mr-1" />
+                          {resending === viewProfile.id ? "Sending…" : `Send Follow-up (${sent}/3)`}
+                        </Button>
+                      )}
+                      {isActive && (
+                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {idvVerified ? "ID verified" : hasLoggedIn ? "Active — has logged in" : "Has opened approval email"}
+                        </div>
+                      )}
+                      <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                        onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                        <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
+                      </Button>
+                    </>
+                  );
+                })()}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban

@@ -143,8 +143,7 @@ export const AppliedJobsTab = ({
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
     if (uploadErr) { toast.error("Upload failed"); setUploadingAttachment(null); return; }
-    const { data: urlData } = supabase.storage.from("application-attachments").getPublicUrl(path);
-    const newUrls = [...currentUrls, urlData.publicUrl];
+    const newUrls = [...currentUrls, path];
     const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
     if (error) toast.error("Failed to save attachment");
     else toast.success("Attachment added");

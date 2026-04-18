@@ -170,7 +170,7 @@ const Dashboard = () => {
       return;
     }
 
-    // Upload attachments
+    // Upload attachments (store storage paths; resolve signed URLs at view time)
     let attachmentUrls: string[] = [];
     if (applyFiles.length > 0) {
       for (const file of applyFiles) {
@@ -182,8 +182,7 @@ const Dashboard = () => {
           setApplyLoading(false);
           return;
         }
-        const { data: urlData } = supabase.storage.from("application-attachments").getPublicUrl(path);
-        attachmentUrls.push(urlData.publicUrl);
+        attachmentUrls.push(path);
       }
     }
 

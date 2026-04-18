@@ -60,6 +60,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "people", label: "Users", icon: Users },
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "jobs", label: "Jobs", icon: Briefcase },
+      { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
       { id: "disputes", label: "Disputes", icon: ShieldAlert },
       { id: "reports", label: "Reports", icon: AlertTriangle },

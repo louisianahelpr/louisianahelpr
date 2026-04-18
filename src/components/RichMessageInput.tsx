@@ -27,6 +27,7 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingViolation, setPendingViolation] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,9 +70,7 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
     );
   };
 
-  const handleSend = async () => {
-    if (uploading) return;
-    
+  const performSend = async () => {
     if (imageFile) {
       const url = await uploadImage();
       if (url) {
@@ -86,6 +85,27 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
     if (!text.trim()) return;
     onSend(text.trim());
     setText("");
+  };
+
+  const handleSend = async () => {
+    if (uploading) return;
+
+    // Layer 1 (UX): warn before sending if message contains forbidden content.
+    // The server will still hide & flag if they bypass — this just educates first.
+    if (text.trim()) {
+      const violations = scanMessage(text);
+      if (violations.length > 0) {
+        setPendingViolation(violations[0].label);
+        return;
+      }
+    }
+
+    await performSend();
+  };
+
+  const confirmSendAnyway = async () => {
+    setPendingViolation(null);
+    await performSend();
   };
 
   return (

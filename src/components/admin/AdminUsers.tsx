@@ -566,9 +566,9 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-y-auto p-3 sm:p-6 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
+            <DialogTitle className="font-display text-base sm:text-xl pr-6">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
             <div className="space-y-4">
@@ -576,16 +576,16 @@ const AdminUsers = () => {
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                    <img src={viewProfile.avatar_url} alt="" className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
                   </a>
                 ) : (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-2xl font-medium flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-xl sm:text-2xl font-medium flex-shrink-0">
                     {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-sm sm:text-lg font-bold text-foreground break-words leading-tight w-full sm:w-auto sm:truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
 
                     {((viewProfile as any).application_count || 1) > 1 && (
@@ -595,10 +595,10 @@ const AdminUsers = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
+                    <p className="text-[11px] sm:text-sm text-muted-foreground truncate break-all">{(viewProfile as any).email || "No email"}</p>
                     <button
                       onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
-                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0 p-1 -m-1"
                       title="Edit email"
                     >
                       <Pencil className="w-3 h-3" />
@@ -608,7 +608,7 @@ const AdminUsers = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8"
+                      className="h-8 w-full sm:w-auto"
                       onClick={async () => {
                         const currentCount = (viewProfile as any).application_count || 1;
                         await supabase.from("profiles").update({
@@ -636,7 +636,7 @@ const AdminUsers = () => {
               </div>
 
               {/* Info Grid — always show all fields */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl bg-secondary/30 border border-border p-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl bg-secondary/30 border border-border p-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
                   <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
@@ -693,7 +693,7 @@ const AdminUsers = () => {
                 return (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Signup Answers</p>
-                    <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-3 sm:p-4">
                       {fields.map((f, i) => (
                         <div key={i}>
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
@@ -876,36 +876,36 @@ const AdminUsers = () => {
               )}
 
               {/* Action buttons — primary lifecycle */}
-              <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border sm:flex-wrap">
                 {viewProfile.approval_status === "pending" && (
                   <>
-                    <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
+                    <Button className="w-full sm:flex-1 sm:min-w-[140px] h-10" onClick={() => approveUser(viewProfile)}>
                       <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                     </Button>
-                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                  <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[160px] h-10" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
                     <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                   </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
-                    <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[160px] h-10" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
                       <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
                     </Button>
-                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
                       <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
                     </Button>
                   </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
+                  <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10" onClick={() => unbanUser(viewProfile)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}
@@ -917,24 +917,24 @@ const AdminUsers = () => {
               {/* Trust & Verification + Support actions */}
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
-                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => setManualVerifyProfile(viewProfile)}>
+                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary shrink-0" /> Manually Verify
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
-                    <Camera className="w-4 h-4 mr-1.5 text-accent" /> Request ID Re-upload
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
+                    <Camera className="w-4 h-4 mr-1.5 text-accent shrink-0" /> Request ID Re-upload
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
-                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent shrink-0" /> Formal Warning
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
-                    <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => setResetPwProfile(viewProfile)}>
+                    <KeyRound className="w-4 h-4 mr-1.5 text-primary shrink-0" /> Reset Password
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
-                    <History className="w-4 h-4 mr-1.5" /> View History
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => viewHistoryFor(viewProfile)}>
+                    <History className="w-4 h-4 mr-1.5 shrink-0" /> View History
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
-                    <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
+                    <Trash2 className="w-4 h-4 mr-1.5 shrink-0" /> Delete Account
                   </Button>
                 </div>
               </div>

@@ -72,9 +72,13 @@ const MyJobs = () => {
     setSelectedJob(job);
     const { data: apps } = await supabase.from("applications").select("*").eq("job_id", job.id);
     if (apps && apps.length > 0) {
-      const helperIds = apps.map(a => a.helper_id);
+      // Filter out applicants the current user has blocked or who blocked them
+      const { getBlockedUserIds } = await import("@/lib/userBlocks");
+      const blockedSet = currentUserId ? await getBlockedUserIds(currentUserId) : new Set<string>();
+      const visibleApps = apps.filter((a: any) => !blockedSet.has(a.helper_id));
+      const helperIds = visibleApps.map(a => a.helper_id);
       const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: helperIds });
-      setApplications(apps.map(app => ({ ...app, profiles: profiles?.find((p: any) => p.user_id === app.helper_id) || null })));
+      setApplications(visibleApps.map(app => ({ ...app, profiles: profiles?.find((p: any) => p.user_id === app.helper_id) || null })));
     } else {
       setApplications([]);
     }

@@ -481,6 +481,25 @@ const UserProfile = () => {
           </p>
         </div>
       </main>
+
+      {showReport && userId && (
+        <ReportDialog
+          open={showReport}
+          onClose={() => setShowReport(false)}
+          reportedType="user"
+          reportedId={userId}
+        />
+      )}
+
+      {showBlock && userId && profile && (
+        <BlockUserDialog
+          open={showBlock}
+          onClose={() => setShowBlock(false)}
+          blockedUserId={userId}
+          blockedUserName={formatName(profile.full_name) || "this user"}
+          onBlocked={() => navigate("/dashboard", { replace: true })}
+        />
+      )}
     </div>
   );
 };

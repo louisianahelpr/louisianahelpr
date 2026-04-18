@@ -1288,30 +1288,55 @@ const AdminUsers = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
-              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Formal Warning
+              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Manual Strike
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Per the Repeat Offender Policy: <strong>1st</strong> violation = warning, <strong>2nd</strong> = 7-day suspension, <strong>3rd</strong> = permanent ban. This adds a note to {formatName(warningProfile?.full_name)}'s file and sends them an email.
+              Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
             </p>
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Specific policy violation</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
+              <Select value={warningCategory} onValueChange={setWarningCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="conduct">Conduct (rude / disrespectful)</SelectItem>
+                  <SelectItem value="no_show">No-show / late cancellation</SelectItem>
+                  <SelectItem value="payment_policy">Payment policy (off-platform)</SelectItem>
+                  <SelectItem value="inappropriate_content">Inappropriate content</SelectItem>
+                  <SelectItem value="quality">Poor work quality</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
               <Textarea
                 value={warningNote}
                 onChange={(e) => setWarningNote(e.target.value)}
-                placeholder="e.g. Late cancellation under 2 hours before scheduled job."
+                placeholder="e.g. Customer complaint: helper left gate open. Verified via phone call."
                 rows={3}
               />
             </div>
+            <label className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
+              <Checkbox
+                checked={warningBypass}
+                onCheckedChange={(v) => setWarningBypass(v === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
+                <p className="text-[11px] text-muted-foreground">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
+              </div>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy}>Cancel</Button>
             <Button
-              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote)}
+              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote, { reasonCategory: warningCategory, bypassStrike: warningBypass })}
               disabled={actionBusy || !warningNote.trim()}
             >
-              {actionBusy ? "Issuing…" : "Issue Warning"}
+              {actionBusy ? "Issuing…" : warningBypass ? "Issue (no escalation)" : "Issue Strike"}
             </Button>
           </DialogFooter>
         </DialogContent>

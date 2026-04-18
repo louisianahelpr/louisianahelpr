@@ -1556,7 +1556,7 @@ const AdminUsers = () => {
               </div>
             </label>
           </div>
-          <DialogFooter className="gap-2 sm:gap-2">
+          <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
             <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote, { reasonCategory: warningCategory, bypassStrike: warningBypass })}

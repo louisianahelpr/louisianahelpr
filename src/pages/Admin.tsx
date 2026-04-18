@@ -120,6 +120,22 @@ const Admin = () => {
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const { user } = useCurrentUser();
+
+  useEffect(() => {
+    if (!user) return;
+    const loadUnread = () => {
+      supabase.from("messages").select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id).eq("read", false)
+        .then(({ count }) => setUnreadMessages(count || 0));
+    };
+    loadUnread();
+    const channel = supabase.channel(`admin-header-unread-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, () => loadUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const loadUnreadCounts = useCallback(async () => {
     const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any> }[] = [

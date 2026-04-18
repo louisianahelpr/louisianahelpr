@@ -36,7 +36,7 @@ const AdminSidebar = ({
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border h-14 flex flex-row items-center px-4">
+      <SidebarHeader className="border-b border-sidebar-border h-14 flex flex-row items-center px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-destructive to-destructive/70 flex items-center justify-center shadow-sm shrink-0">
             <Shield className="w-4 h-4 text-destructive-foreground" />

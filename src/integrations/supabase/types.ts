@@ -815,6 +815,7 @@ export type Database = {
           location: string
           longitude: number | null
           parent_job_id: string | null
+          parish: string | null
           payment_status: string | null
           payout_scheduled_at: string | null
           photos: string[] | null
@@ -848,6 +849,7 @@ export type Database = {
           title: string
           updated_at: string
           urgent_fee: number | null
+          zip_code: string | null
         }
         Insert: {
           boost_expires_at?: string | null
@@ -893,6 +895,7 @@ export type Database = {
           location: string
           longitude?: number | null
           parent_job_id?: string | null
+          parish?: string | null
           payment_status?: string | null
           payout_scheduled_at?: string | null
           photos?: string[] | null
@@ -926,6 +929,7 @@ export type Database = {
           title: string
           updated_at?: string
           urgent_fee?: number | null
+          zip_code?: string | null
         }
         Update: {
           boost_expires_at?: string | null
@@ -971,6 +975,7 @@ export type Database = {
           location?: string
           longitude?: number | null
           parent_job_id?: string | null
+          parish?: string | null
           payment_status?: string | null
           payout_scheduled_at?: string | null
           photos?: string[] | null
@@ -1004,6 +1009,7 @@ export type Database = {
           title?: string
           updated_at?: string
           urgent_fee?: number | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -1050,6 +1056,27 @@ export type Database = {
           ip_address?: string | null
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      louisiana_zip_parishes: {
+        Row: {
+          city: string | null
+          created_at: string
+          parish: string
+          zip_code: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          parish: string
+          zip_code: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          parish?: string
+          zip_code?: string
         }
         Relationships: []
       }
@@ -1287,6 +1314,7 @@ export type Database = {
           last_denial_email_at: string | null
           last_drip_at: string | null
           location: string | null
+          parish: string | null
           phone: string | null
           portfolio_urls: string[] | null
           role: string
@@ -1298,6 +1326,7 @@ export type Database = {
           transportation: string | null
           updated_at: string
           user_id: string
+          zip_code: string | null
         }
         Insert: {
           application_count?: number
@@ -1327,6 +1356,7 @@ export type Database = {
           last_denial_email_at?: string | null
           last_drip_at?: string | null
           location?: string | null
+          parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
           role?: string
@@ -1338,6 +1368,7 @@ export type Database = {
           transportation?: string | null
           updated_at?: string
           user_id: string
+          zip_code?: string | null
         }
         Update: {
           application_count?: number
@@ -1367,6 +1398,7 @@ export type Database = {
           last_denial_email_at?: string | null
           last_drip_at?: string | null
           location?: string | null
+          parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
           role?: string
@@ -1378,6 +1410,7 @@ export type Database = {
           transportation?: string | null
           updated_at?: string
           user_id?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
@@ -2175,6 +2208,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_parish_for_zip: { Args: { p_zip: string }; Returns: string }
       get_safe_profiles: {
         Args: { user_ids: string[] }
         Returns: {

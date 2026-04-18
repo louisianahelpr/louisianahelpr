@@ -110,6 +110,11 @@ const Messages = () => {
 
   const loadConversations = async (uid: string) => {
     setLoading(true);
+
+    // Fetch blocked-user IDs first so we can hide them from the list
+    const { getBlockedUserIds } = await import("@/lib/userBlocks");
+    const blockedSet = await getBlockedUserIds(uid);
+
     const { data: msgs } = await supabase
       .from("messages")
       .select("*")
@@ -118,6 +123,11 @@ const Messages = () => {
       .limit(200);
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
+
+    const filteredMsgs = msgs.filter((m: any) => {
+      const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
+      return !blockedSet.has(other);
+    });
 
     const convoMap = new Map<string, { otherUserId: string; jobId: string; messages: Message[] }>();
     for (const m of msgs) {

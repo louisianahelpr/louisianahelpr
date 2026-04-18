@@ -695,11 +695,20 @@ const AdminUsers = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-sm flex-1"
         />
+        <Select value={sortDir} onValueChange={(v) => setSortDir(v as "desc" | "asc")}>
+          <SelectTrigger className="h-9 text-sm sm:w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">Recently active first</SelectItem>
+            <SelectItem value="asc">Inactive longest first</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex items-center justify-between px-1">
         <p className="text-xs text-muted-foreground">
-          {filtered.length} {filtered.length === 1 ? "user" : "users"} · sorted by recently active
+          {filtered.length} {filtered.length === 1 ? "user" : "users"} · {sortDir === "desc" ? "recently active first" : "inactive longest first"}
         </p>
         {searchQuery && (
           <button

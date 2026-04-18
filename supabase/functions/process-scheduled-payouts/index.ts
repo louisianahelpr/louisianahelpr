@@ -45,6 +45,14 @@ serve(async (req) => {
     let processed = 0;
     const results: any[] = [];
 
+    // Load onboarding fee setting once
+    const { data: settingsRow } = await supabaseAdmin
+      .from("platform_settings")
+      .select("onboarding_fee_cents")
+      .limit(1)
+      .single();
+    const onboardingFeeCents = settingsRow?.onboarding_fee_cents ?? 200;
+
     for (const job of (jobs || [])) {
       if (!job.helper_id) continue;
 
@@ -52,15 +60,27 @@ serve(async (req) => {
       const perHelperBudget = job.budget / helpersCount;
       const jobHelperFeePercent = job.helper_fee_percent ?? 10;
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
-      if (helperPayout <= 0) continue;
+      let helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
 
-      // ── Step 1: Get helper's connected Stripe account ──
+      // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
       const { data: helperProfile } = await supabaseAdmin
         .from("profiles")
-        .select("stripe_account_id")
+        .select("stripe_account_id, onboarding_fee_paid")
         .eq("user_id", job.helper_id)
         .single();
+
+      // First-payout onboarding fee: deduct one-time fee from this payout
+      const owesOnboardingFee = !helperProfile?.onboarding_fee_paid && onboardingFeeCents > 0;
+      const onboardingFeeDollars = owesOnboardingFee ? onboardingFeeCents / 100 : 0;
+      if (owesOnboardingFee) {
+        helperPayout = Math.max(0, helperPayout - onboardingFeeDollars);
+      }
+
+      if (helperPayout <= 0) {
+        console.error(`Payout for job ${job.id} is $0 after onboarding fee — skipping transfer.`);
+        results.push({ job_id: job.id, status: "zero_after_onboarding_fee" });
+        continue;
+      }
 
       if (!helperProfile?.stripe_account_id) {
         console.error(`Helper ${job.helper_id} has no Stripe Connect for job ${job.id}`);

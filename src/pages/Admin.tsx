@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
 import AdminParishActivity from "@/components/admin/AdminParishActivity";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -347,14 +347,8 @@ const Admin = () => {
                 </Link>
               </div>
               <div className="flex items-center gap-1">
-                {/* Admin badge — click to open sidebar */}
-                <SidebarTrigger
-                  className="flex items-center gap-1.5 px-2 h-9 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
-                  aria-label="Toggle admin menu"
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-bold uppercase tracking-wide hidden sm:inline">Admin</span>
-                </SidebarTrigger>
+                {/* Admin badge — click to open/close sidebar */}
+                <AdminBadgeToggle />
 
 
                 <ThemeToggle />

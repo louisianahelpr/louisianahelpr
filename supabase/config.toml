@@ -31,3 +31,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.create-idv-session]
     verify_jwt = false
+  [functions.get-stripe-public-key]
+    verify_jwt = false

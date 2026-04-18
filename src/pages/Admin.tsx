@@ -466,11 +466,11 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl border border-border bg-card p-3 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-xl border border-border bg-card p-2.5 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
-      <div className="flex items-center justify-between mb-2 sm:mb-3">
-        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center", accentClasses)}>
-          <Icon className="w-4 h-4" />
+      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+        <div className={cn("w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center", accentClasses)}>
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
         {trend && (
           <span className={cn(
@@ -482,8 +482,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{label}</p>
+      <p className="text-lg sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{label}</p>
     </button>
   );
 };

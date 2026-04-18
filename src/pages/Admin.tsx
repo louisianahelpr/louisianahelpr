@@ -8,7 +8,7 @@ import {
   LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, Activity,
-  ArrowLeft, X,
+  ArrowLeft, X, Banknote, MapPin, Award,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";

@@ -99,7 +99,7 @@ const ProfilePage = () => {
   const [reviewCount, setReviewCount] = useState(0);
 
   // Reviews
-  const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
+  const [reviews, setReviews] = useState<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Profile fields
@@ -233,7 +233,7 @@ const ProfilePage = () => {
     setReviewsLoading(true);
     const { data } = await supabase
       .from("reviews")
-      .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
+      .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
       .eq("reviewee_id", user.id)
       .neq("jobs.status", "cancelled")
       .order("created_at", { ascending: false });
@@ -247,8 +247,11 @@ const ProfilePage = () => {
       ]);
       const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
-      setReviews(data.map((r) => ({
+      setReviews(data.map((r: any) => ({
         rating: r.rating,
+        punctuality: r.punctuality ?? null,
+        quality: r.quality ?? null,
+        communication: r.communication ?? null,
         feedback: r.feedback,
         created_at: r.created_at,
         reviewerName: nameMap.get(r.reviewer_id) || "User",

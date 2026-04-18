@@ -43,7 +43,7 @@ const UserProfile = () => {
   const currentUserId = currentAuthUser?.id ?? null;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<{ rating: number; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
+  const [reviews, setReviews] = useState<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
   const [stats, setStats] = useState({ completedJobs: 0, avgRating: 0, reviewCount: 0 });
   const [postedJobs, setPostedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
   const [workedJobs, setWorkedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
@@ -78,7 +78,7 @@ const UserProfile = () => {
       const isHelper = prof.role === "helper";
       const t1 = performance.now();
       const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
-        supabase.from("reviews").select("rating, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
+        supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
         isHelper
@@ -135,7 +135,12 @@ const UserProfile = () => {
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
         setReviews(reviewsRes.data.map((r: any) => ({
-          rating: r.rating, feedback: r.feedback, created_at: r.created_at,
+          rating: r.rating,
+          punctuality: r.punctuality ?? null,
+          quality: r.quality ?? null,
+          communication: r.communication ?? null,
+          feedback: r.feedback,
+          created_at: r.created_at,
           reviewerName: nameMap.get(r.reviewer_id) || "User",
           jobTitle: jobMap.get(r.job_id) || "Job",
         })));
@@ -392,6 +397,34 @@ const UserProfile = () => {
                     </div>
                     <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
                   </div>
+                  {(r.punctuality || r.quality || r.communication) && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {r.punctuality && (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                          </div>
+                        </div>
+                      )}
+                      {r.quality && (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                          </div>
+                        </div>
+                      )}
+                      {r.communication && (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>

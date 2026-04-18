@@ -16,7 +16,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-type Tab = "pending" | "approved" | "denied" | "banned" | "all";
+type Tab = "pending" | "awaiting_email" | "approved" | "denied" | "banned" | "all";
 
 const AdminUsers = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -411,15 +411,32 @@ const AdminUsers = () => {
     setViewProfile(null);
   };
 
+  // A user only counts as "Pending Review" once their email is verified.
+  // Unverified-email users sit in a separate "Awaiting Email" bucket so admins
+  // aren't bothered until the user has actually confirmed their email.
+  const isVerifiedEmail = (p: Profile) => !!(p as any).email_verified;
+  const isPendingReview = (p: Profile) => p.approval_status === "pending" && isVerifiedEmail(p);
+  const isAwaitingEmail = (p: Profile) => p.approval_status === "pending" && !isVerifiedEmail(p);
+
+  // A pending user was "flagged by Stripe" if Stripe Identity returned a
+  // non-verified outcome (manual_review / failed) — these are the ones that
+  // need an explicit Override & Approve.
+  const wasFlaggedByStripe = (p: Profile) => {
+    const s = (p as any).idv_status;
+    return s === "manual_review" || s === "failed";
+  };
+
   const filtered = profiles.filter((p) => {
-    if (tab === "pending") return p.approval_status === "pending";
+    if (tab === "pending") return isPendingReview(p);
+    if (tab === "awaiting_email") return isAwaitingEmail(p);
     if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
     if (tab === "denied") return p.approval_status === "denied";
     if (tab === "banned") return ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
     return true;
   });
 
-  const pendingCount = profiles.filter((p) => p.approval_status === "pending").length;
+  const pendingCount = profiles.filter(isPendingReview).length;
+  const awaitingEmailCount = profiles.filter(isAwaitingEmail).length;
   const bannedCount = profiles.filter((p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")).length;
 
   const statusBadge = (profile: Profile) => {
@@ -438,6 +455,7 @@ const AdminUsers = () => {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "pending", label: "Pending", count: pendingCount },
+    { key: "awaiting_email", label: "Awaiting Email", count: awaitingEmailCount },
     { key: "approved", label: "Active" },
     { key: "banned", label: "Banned", count: bannedCount },
     { key: "denied", label: "Denied" },

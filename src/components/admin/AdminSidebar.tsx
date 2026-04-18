@@ -25,8 +25,14 @@ interface AdminSidebarProps {
 const AdminSidebar = ({
   navGroups, activeView, onSelect, getBadge, getBadgeColor, onLogout,
 }: AdminSidebarProps) => {
-  const { state } = useSidebar();
+  const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
+
+  const handleSelect = (id: string) => {
+    onSelect(id);
+    if (isMobile) setOpenMobile(false);
+    else setOpen(false);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -50,7 +56,7 @@ const AdminSidebar = ({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => onSelect("home")}
+                  onClick={() => handleSelect("home")}
                   isActive={activeView === "home"}
                   tooltip="Dashboard"
                   className="font-medium"
@@ -78,7 +84,7 @@ const AdminSidebar = ({
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        onClick={() => onSelect(item.id)}
+                        onClick={() => handleSelect(item.id)}
                         isActive={activeView === item.id}
                         tooltip={item.label}
                         className="font-medium relative"

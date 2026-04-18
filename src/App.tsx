@@ -127,6 +127,9 @@ const App = () => (
         </a>
         <BrowserRouter>
           <SessionManager />
+          <Suspense fallback={null}>
+            <StrikeBanner />
+          </Suspense>
           <div id="main-content">
             <Suspense fallback={<PageFallback />}>
               <AnimatedRoutes />

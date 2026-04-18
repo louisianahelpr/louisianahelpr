@@ -940,10 +940,8 @@ const AdminUsers = () => {
                 <Select value={banDuration} onValueChange={setBanDuration}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 day</SelectItem>
-                    <SelectItem value="3">3 days</SelectItem>
+                    <SelectItem value="2">48 hours (2 days)</SelectItem>
                     <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days</SelectItem>
                     <SelectItem value="30">30 days</SelectItem>
                   </SelectContent>
                 </Select>

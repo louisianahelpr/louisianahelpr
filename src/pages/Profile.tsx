@@ -193,6 +193,15 @@ const ProfilePage = () => {
     setLoading(false);
   };
 
+  // Auto-lookup parish from zip (Louisiana sales tax)
+  useEffect(() => {
+    const cleaned = zipCode.replace(/\D/g, "");
+    if (cleaned.length !== 5) return;
+    let cancelled = false;
+    lookupParishByZip(cleaned).then((p) => { if (!cancelled && p) setParish(p); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
+
   const loadStats = async (userId: string) => {
     const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes, completedJobIdsRes] = await Promise.all([
       supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
@@ -339,7 +348,9 @@ const ProfilePage = () => {
       bio: bio.trim(), skills: skills.trim(),
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
       date_of_birth: dateOfBirth || null,
-    }).eq("user_id", user.id);
+      zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
+      parish: parish,
+    } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
     else toast.success("Profile updated!");
@@ -624,9 +635,25 @@ const ProfilePage = () => {
                       <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="location" className="text-xs">Location (city or ZIP)</Label>
-                    <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Louisiana" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="location" className="text-xs">City</Label>
+                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="zipCode" className="text-xs">ZIP code</Label>
+                      <Input
+                        id="zipCode"
+                        value={zipCode}
+                        onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                        placeholder="70801"
+                        inputMode="numeric"
+                        maxLength={5}
+                      />
+                      {parish && (
+                        <p className="text-xs text-primary">Parish: <span className="font-medium">{parish}</span></p>
+                      )}
+                    </div>
                   </div>
                 </div>
 

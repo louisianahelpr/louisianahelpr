@@ -152,8 +152,8 @@ const AccountPending = () => {
               {showRetry
                 ? "We weren't quite able to verify your identity, but it's an easy fix."
                 : emailVerified
-                  ? "Your email is verified ✓ Your account is now under review by our team."
-                  : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by our team."}
+                  ? "Your email is verified ✓ Your account is now under review by Helpr Trust & Safety."
+                  : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by Helpr Trust & Safety."}
             </p>
           </div>
 

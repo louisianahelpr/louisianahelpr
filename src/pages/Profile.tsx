@@ -159,6 +159,8 @@ const ProfilePage = () => {
         setFullName(cachedProfile.full_name || "");
         setPhone(cachedProfile.phone || "");
         setLocation(cachedProfile.location || "");
+        setZipCode((cachedProfile as any).zip_code || "");
+        setParish((cachedProfile as any).parish || null);
         setBio(cachedProfile.bio || "");
         setSkills(cachedProfile.skills || "");
         setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
@@ -181,6 +183,8 @@ const ProfilePage = () => {
       setFullName(data.full_name || "");
       setPhone(data.phone || "");
       setLocation(data.location || "");
+      setZipCode((data as any).zip_code || "");
+      setParish((data as any).parish || null);
       setBio(data.bio || "");
       setSkills(data.skills || "");
       setHourlyRate(data.hourly_rate?.toString() || "");

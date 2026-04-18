@@ -373,6 +373,44 @@ const AdminUsers = () => {
     }
   };
 
+  const callAdminAction = async (
+    action: "manual_verify" | "request_id_reupload" | "reset_password" | "formal_warning",
+    profile: Profile,
+    note?: string,
+  ) => {
+    setActionBusy(true);
+    try {
+      const { error } = await supabase.functions.invoke("admin-user-actions", {
+        body: { action, userId: profile.user_id, note: note || "" },
+      });
+      if (error) throw error;
+      const labels: Record<string, string> = {
+        manual_verify: "User manually verified.",
+        request_id_reupload: "ID re-upload request sent.",
+        reset_password: "Password reset email sent.",
+        formal_warning: "Formal warning issued.",
+      };
+      toast.success(labels[action]);
+      loadProfiles();
+      setReuploadProfile(null); setReuploadNote("");
+      setWarningProfile(null); setWarningNote("");
+      setManualVerifyProfile(null);
+      setResetPwProfile(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Action failed");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const viewHistoryFor = (profile: Profile) => {
+    // Notify the Admin page to switch to notification logs filtered for this user
+    window.dispatchEvent(new CustomEvent("admin:view-user-history", {
+      detail: { userId: profile.user_id, email: (profile as any).email },
+    }));
+    setViewProfile(null);
+  };
+
   const filtered = profiles.filter((p) => {
     if (tab === "pending") return p.approval_status === "pending";
     if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");

@@ -230,7 +230,10 @@ Deno.serve(async (req) => {
         .eq('user_id', targetUserId)
         .in('action_taken', ['warning', 'final_warning'])
 
-      const strikeNumber = (priorStrikes || 0) + 1
+      // If admin chose to bypass the next strike (one-time courtesy), keep
+      // strike number at the current level (still log the warning, but don't escalate).
+      const effectivePriorStrikes = bypassStrike ? Math.max(0, (priorStrikes || 0) - 1) : (priorStrikes || 0)
+      const strikeNumber = effectivePriorStrikes + 1
       let actionTaken: 'warning' | 'final_warning' | 'suspension' = 'warning'
       let banStatusUpdate: any = { ban_status: 'warned' }
       let notifTitle = '⚠️ Formal warning (Strike 1 of 3)'

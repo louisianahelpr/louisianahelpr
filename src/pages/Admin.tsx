@@ -1,17 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
-  LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck,
+  Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
-  BellRing, Headphones, Gift, Crown, TrendingUp, Activity,
-  ArrowLeft, X, Banknote, MapPin, Award,
+  BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
+  X, Banknote, MapPin, Award, ChevronRight, Menu,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
+import AdminParishActivity from "@/components/admin/AdminParishActivity";
+import NotificationPanel from "@/components/NotificationPanel";
+import ThemeToggle from "@/components/ThemeToggle";
+import { cn } from "@/lib/utils";
 
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
 const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
@@ -32,8 +38,6 @@ const AdminSocialPost = lazy(() => import("@/components/admin/AdminSocialPost"))
 const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatches"));
 const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { cn } from "@/lib/utils";
 
 type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers";
 
@@ -41,18 +45,10 @@ const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
 const markSeen = (section: string) => localStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
 
-interface NavItem {
-  id: View;
-  label: string;
-  icon: React.ElementType;
-}
-
-const navGroups: { title: string; items: NavItem[] }[] = [
+const navGroups: { title: string; items: AdminNavItem[] }[] = [
   {
     title: "Overview",
-    items: [
-      { id: "analytics", label: "Analytics", icon: BarChart3 },
-    ],
+    items: [{ id: "analytics", label: "Analytics", icon: BarChart3 }],
   },
   {
     title: "Operations",
@@ -94,16 +90,27 @@ const navGroups: { title: string; items: NavItem[] }[] = [
   },
 ];
 
+interface Stats {
+  totalUsers: number; pendingApprovals: number; openReports: number;
+  supportTickets: number; activeJobs: number; completedJobs: number;
+  totalRevenue: number; totalFees: number;
+  disputedJobs: number; activeSubscriptions: number;
+  lateCancellationRevenue: number;
+  newUsers7d: number; newUsersPrev7d: number;
+  revenue30d: number; revenuePrev30d: number;
+}
+
 const Admin = () => {
   const { loading } = useAdminAuth();
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
+    newUsers7d: 0, newUsersPrev7d: 0, revenue30d: 0, revenuePrev30d: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -138,16 +145,27 @@ const Admin = () => {
     setUnreadCounts(counts);
   }, []);
 
-  const handleViewChange = useCallback((newView: View) => {
-    if (newView !== "home") {
-      markSeen(newView);
-      setUnreadCounts(prev => { const next = { ...prev }; delete next[newView]; return next; });
+  const handleViewChange = useCallback((newView: string) => {
+    const v = newView as View;
+    if (v !== "home") {
+      markSeen(v);
+      setUnreadCounts(prev => { const next = { ...prev }; delete next[v]; return next; });
     }
-    setView(newView);
+    setView(v);
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes, paymentsRes, subsRes, lateCancelRes] = await Promise.all([
+    const now = new Date();
+    const d7 = new Date(now.getTime() - 7 * 86400000).toISOString();
+    const d14 = new Date(now.getTime() - 14 * 86400000).toISOString();
+    const d30 = new Date(now.getTime() - 30 * 86400000).toISOString();
+    const d60 = new Date(now.getTime() - 60 * 86400000).toISOString();
+
+    const [
+      profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
+      paymentsRes, subsRes, lateCancelRes,
+      newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res,
+    ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -155,18 +173,32 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
-      // Revenue: captured payments that are NOT cancelled
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled" as any),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
-      // Cancelled jobs that were paid — platform keeps service fees
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled" as any).in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]),
+      // New users in last 7 days
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d7),
+      // New users in previous 7-day window (7-14 days ago)
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d14).lt("created_at", d7),
+      // Revenue from completed payments in last 30 days
+      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .neq("status", "cancelled" as any)
+        .gte("updated_at", d30),
+      // Revenue from previous 30-day window (30-60 days ago)
+      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .neq("status", "cancelled" as any)
+        .gte("updated_at", d60).lt("updated_at", d30),
     ]);
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
-    // Late cancellation revenue is shown separately and should not inflate platform profit
     const lateCancellationRevenue = cancelledPaidRows.filter((j: any) => j.cancellation_fee > 0).reduce((s, j) => {
       return s + ((j as any).cancellation_fee || 0);
     }, 0);
+    const sumFees = (rows: any[] | null) =>
+      (rows || []).reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0);
+
     setStats({
       totalUsers: profilesRes.count || 0,
       pendingApprovals: pendingRes.count || 0,
@@ -179,6 +211,10 @@ const Admin = () => {
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,
+      newUsers7d: newUsers7Res.count || 0,
+      newUsersPrev7d: newUsersPrev7Res.count || 0,
+      revenue30d: sumFees(rev30Res.data),
+      revenuePrev30d: sumFees(revPrev30Res.data),
     });
     setStatsLoading(false);
   };
@@ -208,7 +244,7 @@ const Admin = () => {
     );
   }
 
-  const getBadge = (id: View): number | undefined => {
+  const getBadge = (id: string): number | undefined => {
     const uc = unreadCounts[id];
     if (uc && uc > 0) return uc;
     if (id === "people" && stats.pendingApprovals > 0) return stats.pendingApprovals;
@@ -218,7 +254,7 @@ const Admin = () => {
     return undefined;
   };
 
-  const getBadgeColor = (id: View): string => {
+  const getBadgeColor = (id: string): string => {
     if (["disputes", "reports"].includes(id)) return "bg-destructive text-destructive-foreground";
     if (["people", "support"].includes(id)) return "bg-accent text-accent-foreground";
     return "bg-primary text-primary-foreground";
@@ -254,185 +290,234 @@ const Admin = () => {
       case "payouts": return <AdminPayoutBatches />;
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
-      default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} getBadge={getBadge} getBadgeColor={getBadgeColor} />;
+      default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <DashboardHeader title="Admin" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AdminSidebar
+          navGroups={navGroups}
+          activeView={view}
+          onSelect={handleViewChange}
+          getBadge={getBadge}
+          getBadgeColor={getBadgeColor}
+          onLogout={() => setShowLogoutDialog(true)}
+        />
 
-      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-        {/* Back button + section title when not on home */}
-        {view !== "home" && (
-          <div className="flex items-center gap-3 mb-6">
-            <Button variant="ghost" size="icon" onClick={() => setView("home")} className="h-8 w-8 rounded-lg">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h2 className="text-xl font-display font-bold text-foreground">{viewLabels[view]}</h2>
-          </div>
-        )}
-        <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
-          {renderContent()}
-        </Suspense>
-      </main>
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Top bar */}
+          <header className="sticky top-0 z-30 h-14 border-b border-border bg-card/80 backdrop-blur flex items-center gap-2 px-4">
+            <SidebarTrigger className="h-8 w-8 rounded-lg">
+              <Menu className="w-4 h-4" />
+            </SidebarTrigger>
+            <div className="flex items-center gap-2 text-sm flex-1 min-w-0">
+              <span className="text-muted-foreground hidden sm:inline">Admin</span>
+              {view !== "home" && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground hidden sm:inline" />
+                  <span className="font-semibold text-foreground truncate">{viewLabels[view]}</span>
+                </>
+              )}
+            </div>
+            <ThemeToggle />
+            <NotificationPanel />
+          </header>
 
-      {/* Logout dialog */}
-      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Log out?</AlertDialogTitle>
-            <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Log out
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+            <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+              {renderContent()}
+            </Suspense>
+          </main>
+        </div>
+
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Log out?</AlertDialogTitle>
+              <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Log out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </SidebarProvider>
   );
 };
 
 /* ─── Dashboard Home ─── */
 
 interface DashboardHomeProps {
-  stats: {
-    totalUsers: number; pendingApprovals: number; openReports: number;
-    supportTickets: number; activeJobs: number; completedJobs: number;
-    totalRevenue: number; totalFees: number;
-    disputedJobs: number; activeSubscriptions: number;
-    lateCancellationRevenue: number;
-  };
+  stats: Stats;
   statsLoading: boolean;
-  onNavigate: (v: View) => void;
-  getBadge: (id: View) => number | undefined;
-  getBadgeColor: (id: View) => string;
+  onNavigate: (v: string) => void;
 }
 
-const StatCard = ({ label, value, icon: Icon, trend, onClick }: {
-  label: string; value: string | number; icon: React.ElementType; trend?: string; onClick?: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/20 hover:shadow-sm transition-all group w-full"
-  >
-    <div className="flex items-center justify-between mb-3">
-      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-        <Icon className="w-4 h-4 text-primary" />
-      </div>
-      {trend && (
-        <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-          <TrendingUp className="w-3 h-3" /> {trend}
-        </span>
-      )}
-    </div>
-    <p className="text-2xl font-bold text-foreground">{value}</p>
-    <p className="text-xs text-muted-foreground mt-1">{label}</p>
-  </button>
-);
+const computeTrend = (current: number, previous: number): { pct: number; up: boolean } | null => {
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return { pct: 100, up: true };
+  const pct = Math.round(((current - previous) / previous) * 100);
+  return { pct: Math.abs(pct), up: pct >= 0 };
+};
 
-const AlertBanner = ({ label, count, color, onClick }: {
+const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  trend?: { pct: number; up: boolean } | null;
+  accent: "primary" | "accent" | "destructive";
+  onClick?: () => void;
+}) => {
+  const accentClasses = {
+    primary: "bg-primary/10 text-primary",
+    accent: "bg-accent/10 text-accent-foreground",
+    destructive: "bg-destructive/10 text-destructive",
+  }[accent];
+
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", accentClasses)}>
+          <Icon className="w-4 h-4" />
+        </div>
+        {trend && (
+          <span className={cn(
+            "text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
+            trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
+          )}>
+            {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {trend.pct}%
+          </span>
+        )}
+      </div>
+      <p className="text-2xl font-bold text-foreground tabular-nums">{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{label}</p>
+    </button>
+  );
+};
+
+const PriorityAlert = ({ label, count, color, onClick }: {
   label: string; count: number; color: "destructive" | "accent"; onClick: () => void;
 }) => (
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all w-full",
+      "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all w-full hover:shadow-sm",
       color === "destructive"
-        ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
-        : "border-accent/20 bg-accent/5 hover:bg-accent/10"
+        ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
+        : "border-accent/30 bg-accent/5 hover:bg-accent/10"
     )}
   >
     <span className={cn(
-      "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold",
-      color === "destructive" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent-foreground"
+      "w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold tabular-nums",
+      color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
     )}>
       {count}
     </span>
-    <span className="text-sm font-medium text-foreground flex-1">{label}</span>
-    <span className="text-xs text-muted-foreground">View →</span>
+    <span className="text-sm font-semibold text-foreground flex-1">{label}</span>
+    <ChevronRight className="w-4 h-4 text-muted-foreground" />
   </button>
 );
 
-const DashboardHome = ({ stats, statsLoading, onNavigate, getBadge, getBadgeColor }: DashboardHomeProps) => {
+const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
+  const userTrend = computeTrend(stats.newUsers7d, stats.newUsersPrev7d);
+  const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-6 max-w-7xl">
       {/* Greeting */}
       <div>
-        <h2 className="text-2xl font-display font-bold text-foreground">Welcome back</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Here's what's happening on the platform today.</p>
+        <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
+        <p className="text-sm text-muted-foreground mt-1">Here's what's happening on the platform today.</p>
       </div>
 
-      {/* Attention needed */}
+      {/* KPI Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          label="Total Users"
+          value={v(stats.totalUsers.toLocaleString())}
+          icon={Users}
+          trend={userTrend}
+          accent="primary"
+          onClick={() => onNavigate("people")}
+        />
+        <KpiCard
+          label="Active Jobs"
+          value={v(stats.activeJobs.toLocaleString())}
+          icon={Briefcase}
+          accent="primary"
+          onClick={() => onNavigate("jobs")}
+        />
+        <KpiCard
+          label="Revenue (30d)"
+          value={v(`$${stats.revenue30d.toFixed(0)}`)}
+          icon={DollarSign}
+          trend={revenueTrend}
+          accent="accent"
+          onClick={() => onNavigate("analytics")}
+        />
+        <KpiCard
+          label="Pending Disputes"
+          value={v(stats.disputedJobs)}
+          icon={ShieldAlert}
+          accent="destructive"
+          onClick={() => onNavigate("disputes")}
+        />
+      </div>
+
+      {/* Priority alerts */}
       {hasAlerts && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Needs attention</p>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-accent-foreground" />
+            <p className="text-xs font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
+          </div>
           <div className="grid sm:grid-cols-2 gap-2">
             {stats.pendingApprovals > 0 && (
-              <AlertBanner label="Pending approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
+              <PriorityAlert label="Pending helper approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
             )}
             {stats.disputedJobs > 0 && (
-              <AlertBanner label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
+              <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
             )}
             {stats.openReports > 0 && (
-              <AlertBanner label="Open reports" count={stats.openReports} color="destructive" onClick={() => onNavigate("reports")} />
+              <PriorityAlert label="Open reports" count={stats.openReports} color="destructive" onClick={() => onNavigate("reports")} />
             )}
             {stats.supportTickets > 0 && (
-              <AlertBanner label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
+              <PriorityAlert label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
             )}
           </div>
         </div>
       )}
 
-      {/* Key metrics */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Key metrics</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Captured Revenue" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} onClick={() => onNavigate("analytics")} />
-          <StatCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} onClick={() => onNavigate("analytics")} />
-          {stats.lateCancellationRevenue > 0 && (
-            <StatCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} onClick={() => onNavigate("analytics")} />
-          )}
-          <StatCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} onClick={() => onNavigate("subscriptions")} />
-          <StatCard label="Active Jobs" value={v(stats.activeJobs)} icon={Briefcase} onClick={() => onNavigate("jobs")} />
-          <StatCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} onClick={() => onNavigate("analytics")} />
-          <StatCard label="Active Disputes" value={v(stats.disputedJobs)} icon={ShieldAlert} onClick={() => onNavigate("disputes")} />
+      {/* Two-column: Secondary metrics + Parish activity */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+          <div className="grid grid-cols-2 gap-3">
+            <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
+            <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
+            <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
+            <KpiCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} accent="primary" onClick={() => onNavigate("analytics")} />
+            {stats.lateCancellationRevenue > 0 && (
+              <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* All sections — inline grid navigation */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Manage</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {navGroups.flatMap(g => g.items).map((item) => {
-            const badge = getBadge(item.id);
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className="relative flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <item.icon className="w-5 h-5 text-primary" />
-                </div>
-                <span className="text-xs font-medium text-foreground">{item.label}</span>
-                {badge !== undefined && (
-                  <span className={cn(
-                    "absolute top-2 right-2 text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",
-                    getBadgeColor(item.id)
-                  )}>
-                    {badge > 99 ? "99+" : badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
+          <AdminParishActivity />
         </div>
       </div>
     </div>

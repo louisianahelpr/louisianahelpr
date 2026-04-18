@@ -857,6 +857,17 @@ const Signup = () => {
         {/* Step 4: ID verification */}
         {step === 4 && (
           <div className="space-y-4">
+            {/* Verified by Stripe badge */}
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Verified by Stripe</p>
+                <p className="text-xs text-muted-foreground">Bank-grade ID verification. Your data is encrypted end-to-end.</p>
+              </div>
+            </div>
+
             {/* Decide which UI to show */}
             {idvMode === null && accountCreated && (
               <IdentityVerificationStep
@@ -872,24 +883,24 @@ const Signup = () => {
               <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-center">
                 {idvOutcome === "verified" ? (
                   <>
-                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-                      <ShieldCheck className="w-7 h-7 text-emerald-600" />
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                      <ShieldCheck className="w-7 h-7 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground">You're verified!</h3>
                     <p className="text-sm text-muted-foreground">Your identity was confirmed instantly. Verify your email next to log in.</p>
                   </>
                 ) : idvOutcome === "processing" ? (
                   <>
-                    <div className="w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
-                      <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+                    <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto">
+                      <Loader2 className="w-7 h-7 text-muted-foreground animate-spin" />
                     </div>
                     <h3 className="font-semibold text-foreground">Still processing…</h3>
                     <p className="text-sm text-muted-foreground">Your verification is being reviewed. We'll email you once it's complete.</p>
                   </>
                 ) : (
                   <>
-                    <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
-                      <Upload className="w-7 h-7 text-amber-600" />
+                    <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                      <Upload className="w-7 h-7 text-destructive" />
                     </div>
                     <h3 className="font-semibold text-foreground">We need a closer look</h3>
                     <p className="text-sm text-muted-foreground">Your submission was sent to our review team. We'll email you within 24–48 hours.</p>
@@ -909,7 +920,7 @@ const Signup = () => {
                 </div>
 
                 <label className="cursor-pointer block">
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors">
                     {idFileName ? (
                       <p className="text-sm text-foreground font-medium">{idFileName}</p>
                     ) : (
@@ -921,15 +932,21 @@ const Signup = () => {
               </div>
             )}
 
-            <div className="flex gap-3">
-              <Button
-                className="flex-1"
-                size="lg"
-                onClick={finishSignup}
-                disabled={loading || (idvMode === null && accountCreated)}
-              >
-                Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
+            {/* Sticky Finish & continue button */}
+            <div
+              className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
+              style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+            >
+              <div className="max-w-md mx-auto">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={finishSignup}
+                  disabled={loading || (idvMode === null && accountCreated)}
+                >
+                  Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

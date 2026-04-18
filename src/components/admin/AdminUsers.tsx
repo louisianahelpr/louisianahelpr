@@ -74,6 +74,15 @@ const AdminUsers = () => {
 
   // Per-user admin notes summary: { [user_id]: { count, recent: [{note, created_at, category}] } }
   const [notesSummary, setNotesSummary] = useState<Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }>>({});
+  // Per-user strike counts (from user_violations)
+  const [strikesSummary, setStrikesSummary] = useState<Record<string, number>>({});
+  // Per-user last activity { [user_id]: { label, at } }
+  const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
+
+  // Filters
+  const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "failed_id" | "no_id">("all");
+  const [parishFilter, setParishFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -82,10 +91,52 @@ const AdminUsers = () => {
       .order("created_at", { ascending: false });
     if (data) {
       setProfiles(data);
-      // Load admin notes summary in parallel (non-blocking)
-      loadNotesSummary(data.map((p) => p.user_id));
+      const ids = data.map((p) => p.user_id);
+      // Load supplemental data in parallel (non-blocking)
+      loadNotesSummary(ids);
+      loadStrikesSummary(ids);
+      loadActivitySummary(ids);
     }
     setLoading(false);
+  };
+
+  const loadStrikesSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await (supabase.from("user_violations" as any) as any)
+      .select("user_id")
+      .in("user_id", userIds);
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    for (const row of data as any[]) {
+      counts[row.user_id] = (counts[row.user_id] || 0) + 1;
+    }
+    setStrikesSummary(counts);
+  };
+
+  const loadActivitySummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const summary: Record<string, { label: string; at: string }> = {};
+    // Fetch recent jobs (posted), applications (helper), and login history in parallel
+    const [jobsRes, appsRes, loginRes] = await Promise.all([
+      supabase.from("jobs").select("customer_id, created_at, title").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),
+      supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
+      (supabase.from("login_history" as any) as any).select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),
+    ]);
+    const consider = (uid: string, label: string, at?: string | null) => {
+      if (!at) return;
+      const cur = summary[uid];
+      if (!cur || new Date(at) > new Date(cur.at)) summary[uid] = { label, at };
+    };
+    (jobsRes.data as any[] | null)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
+    (appsRes.data as any[] | null)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
+    (loginRes.data as any[] | null)?.forEach((l: any) => consider(l.user_id, "Logged In", l.created_at));
+    // Also surface failed ID upload from profiles
+    profiles.forEach((p) => {
+      if ((p as any).idv_status === "failed" && (p as any).idv_attempted_at) {
+        consider(p.user_id, "Failed ID Upload", (p as any).idv_attempted_at);
+      }
+    });
+    setActivitySummary(summary);
   };
 
   const loadNotesSummary = async (userIds: string[]) => {
@@ -464,13 +515,34 @@ const AdminUsers = () => {
   };
 
   const filtered = profiles.filter((p) => {
-    if (tab === "pending") return isPendingReview(p);
-    if (tab === "awaiting_email") return isAwaitingEmail(p);
-    if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
-    if (tab === "denied") return p.approval_status === "denied";
-    if (tab === "banned") return ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
+    // Tab filter
+    if (tab === "pending" && !isPendingReview(p)) return false;
+    else if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
+    else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""))) return false;
+    else if (tab === "denied" && p.approval_status !== "denied") return false;
+    else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
+
+    // Issue filter
+    if (issueFilter === "strikes" && (strikesSummary[p.user_id] || 0) === 0) return false;
+    if (issueFilter === "failed_id" && (p as any).idv_status !== "failed" && (p as any).idv_status !== "manual_review") return false;
+    if (issueFilter === "no_id" && p.role !== "customer" && (p as any).idv_status) return false;
+    if (issueFilter === "no_id" && p.role === "customer") return false;
+
+    // Parish filter
+    if (parishFilter !== "all" && (p as any).parish !== parishFilter) return false;
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${p.full_name || ""} ${(p as any).email || ""} ${p.location || ""} ${(p as any).parish || ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+
     return true;
   });
+
+  // Build parish list from current profiles
+  const availableParishes = Array.from(new Set(profiles.map((p) => (p as any).parish).filter(Boolean))).sort() as string[];
 
   const pendingCount = profiles.filter(isPendingReview).length;
   const awaitingEmailCount = profiles.filter(isAwaitingEmail).length;
@@ -576,7 +648,51 @@ const AdminUsers = () => {
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground px-1">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
+      {/* Search + Filter Power-Ups */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input
+          placeholder="Search name, email, parish…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-9 text-sm flex-1"
+        />
+        <div className="flex gap-2">
+          <Select value={issueFilter} onValueChange={(v) => setIssueFilter(v as any)}>
+            <SelectTrigger className="h-9 text-xs flex-1 sm:w-[160px]">
+              <SelectValue placeholder="Issue" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Issues</SelectItem>
+              <SelectItem value="strikes">Has Strikes</SelectItem>
+              <SelectItem value="failed_id">Failed/Flagged ID</SelectItem>
+              <SelectItem value="no_id">No ID Submitted</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={parishFilter} onValueChange={setParishFilter}>
+            <SelectTrigger className="h-9 text-xs flex-1 sm:w-[160px]">
+              <SelectValue placeholder="Parish" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Parishes</SelectItem>
+              {availableParishes.map((parish) => (
+                <SelectItem key={parish} value={parish}>{parish}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between px-1">
+        <p className="text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
+        {(issueFilter !== "all" || parishFilter !== "all" || searchQuery) && (
+          <button
+            onClick={() => { setIssueFilter("all"); setParishFilter("all"); setSearchQuery(""); }}
+            className="text-[11px] text-primary hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
 
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">No users in this category.</p>
@@ -608,6 +724,28 @@ const AdminUsers = () => {
                       <Clock className="w-3 h-3" />
                       {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
                     </span>
+                  </div>
+                  {/* Standing + Last Activity row */}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
+                    {(() => {
+                      const strikes = strikesSummary[p.user_id] || 0;
+                      const standingClass = strikes === 0
+                        ? "text-primary"
+                        : strikes >= 3 ? "text-destructive" : "text-accent-foreground";
+                      const standingLabel = strikes === 0
+                        ? "Good"
+                        : `${strikes} Strike${strikes > 1 ? "s" : ""}`;
+                      return (
+                        <span className={`font-medium ${standingClass}`}>
+                          Standing: {standingLabel}
+                        </span>
+                      );
+                    })()}
+                    {activitySummary[p.user_id] && (
+                      <span className="text-muted-foreground">
+                        Last: {activitySummary[p.user_id].label} · {formatDistanceToNow(new Date(activitySummary[p.user_id].at), { addSuffix: true })}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

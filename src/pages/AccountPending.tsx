@@ -30,15 +30,29 @@ const AccountPending = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status, full_name, idv_status, legacy_manual_review")
+        .select("approval_status, full_name, idv_status, legacy_manual_review, denial_reason, idv_failure_reason")
         .eq("user_id", session.user.id)
         .single();
       if (!profile) return;
       setFullName(profile.full_name || "");
       setIdvStatus(profile.idv_status || null);
       setLegacyManual(!!profile.legacy_manual_review);
+      // Prefer the friendly idv_failure_reason; fall back to denial_reason
+      const rawReason = profile.idv_failure_reason || profile.denial_reason || null;
+      const cleaned = rawReason ? rawReason.replace(/^\[[a-z_]+\]\s*/i, "") : null;
+      setDenialReason(cleaned);
+      // If admin/webhook flagged as failed/denied with a retryable reason, surface the Try Again UI
+      const reasonKey = profile.denial_reason?.match(/^\[([a-z_]+)\]/i)?.[1];
+      const meta = getDenialReason(reasonKey);
+      const isFailed = profile.idv_status === "failed" || profile.approval_status === "denied";
+      setShowRetry(isFailed && (meta?.canRetry ?? true));
+
       if (profile.approval_status === "approved") navigate("/dashboard");
-      if (profile.approval_status === "denied") navigate("/account-denied");
+      // Stay on this page when denied-but-retryable so user can fix it.
+      // Only bounce to /account-denied for hard, non-retryable denials.
+      if (profile.approval_status === "denied" && meta && !meta.canRetry) {
+        navigate("/account-denied");
+      }
     };
 
     check();
@@ -58,11 +72,9 @@ const AccountPending = () => {
             table: "profiles",
             filter: `user_id=eq.${session.user.id}`,
           },
-          (payload) => {
-            const next = payload.new as { approval_status?: string; idv_status?: string };
-            if (next.idv_status) setIdvStatus(next.idv_status);
-            if (next.approval_status === "approved") navigate("/dashboard");
-            else if (next.approval_status === "denied") navigate("/account-denied");
+          () => {
+            // Re-run check so we honor retryable vs final denial logic
+            check();
           }
         )
         .subscribe();

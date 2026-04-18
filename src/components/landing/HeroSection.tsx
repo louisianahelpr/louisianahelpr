@@ -35,7 +35,7 @@ const HeroSection = () => {
       }}
     >
       <div className="container mx-auto">
-        <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:gap-12 items-start text-left">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start text-center lg:text-left">
           <div className="space-y-4 sm:space-y-6 animate-fade-in">
             <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase">
               Serving Louisiana communities
@@ -65,7 +65,7 @@ const HeroSection = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md mx-auto lg:mx-0">
               {loggedIn ? (
                 <>
                   <Button variant="hero" size="xl" className="w-full" onClick={() => navigate("/dashboard")}>
@@ -87,8 +87,8 @@ const HeroSection = () => {
               )}
             </div>
           </div>
-          <div className="animate-fade-in [animation-delay:200ms] flex justify-end items-start">
-            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full max-w-[200px] sm:max-w-xs lg:max-w-md h-auto rounded-2xl shadow-lg object-contain" loading="eager" width={1200} height={800} />
+          <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 lg:flex lg:justify-end lg:items-start">
+            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full h-auto rounded-2xl shadow-lg object-contain lg:max-w-md" loading="eager" width={1200} height={800} />
           </div>
         </div>
       </div>

@@ -70,6 +70,9 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { id: "subscriptions", label: "Subscriptions", icon: Crown },
       { id: "referrals", label: "Referrals", icon: Gift },
+      { id: "payouts", label: "Payout Batches", icon: Banknote },
+      { id: "parishtax", label: "Parish Tax", icon: MapPin },
+      { id: "tiers", label: "Helper Tiers", icon: Award },
     ],
   },
   {

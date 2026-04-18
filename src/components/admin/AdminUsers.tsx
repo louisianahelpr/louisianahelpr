@@ -910,6 +910,9 @@ const AdminUsers = () => {
                 )}
               </div>
 
+              {/* Internal Admin Notes — private notes about this user, admin-only */}
+              <AdminUserNotes userId={viewProfile.user_id} />
+
               {/* Trust & Verification + Support actions */}
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>

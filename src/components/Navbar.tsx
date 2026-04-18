@@ -15,7 +15,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div
-        className="container mx-auto flex items-center justify-between h-16 px-6"
+        className="container mx-auto flex items-center justify-between h-12 sm:h-16 px-6"
         style={{
           paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           paddingRight: "max(1.5rem, env(safe-area-inset-right))",

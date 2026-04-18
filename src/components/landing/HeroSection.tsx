@@ -28,28 +28,28 @@ const HeroSection = () => {
 
   return (
     <section
-      className="pt-32 pb-20 px-6 min-h-[100dvh] lg:min-h-0 flex items-center lg:block"
+      className="pt-20 sm:pt-28 lg:pt-32 pb-12 sm:pb-20 px-6 min-h-[100dvh] lg:min-h-0 flex items-center lg:block"
       style={{
         paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
         paddingRight: "max(1.5rem, env(safe-area-inset-right))",
       }}
     >
       <div className="container mx-auto">
-        <div className="grid lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
-          <div className="space-y-6 animate-fade-in">
-            <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium tracking-wide uppercase">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center text-center lg:text-left">
+          <div className="space-y-4 sm:space-y-6 animate-fade-in">
+            <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase">
               Serving Louisiana communities
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance">
               Louisiana's helping hand for everyday tasks
             </h1>
-            <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
               Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
             </p>
 
             {/* Social proof — only show when numbers are meaningful */}
             {stats && (stats.users >= 50 || stats.completed >= 20) && (
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-wrap justify-center lg:justify-start gap-4 text-sm text-muted-foreground">
                 {stats.users >= 50 && (
                   <span className="flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-primary" />
@@ -65,22 +65,22 @@ const HeroSection = () => {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-4 pt-2 sm:flex sm:flex-wrap sm:gap-3">
               {loggedIn ? (
                 <>
-                  <Button variant="hero" size="xl" onClick={() => navigate("/dashboard")}>
+                  <Button variant="hero" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/dashboard")}>
                     Browse jobs
                   </Button>
-                  <Button variant="hero-outline" size="xl" onClick={() => navigate("/post-job")}>
+                  <Button variant="hero-outline" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/post-job")}>
                     Post a task
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="hero" size="xl" onClick={() => navigate("/signup")}>
+                  <Button variant="hero" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/signup")}>
                     Post your first task
                   </Button>
-                  <Button variant="hero-outline" size="xl" onClick={() => navigate("/login")}>
+                  <Button variant="hero-outline" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/login")}>
                     Offer help today
                   </Button>
                 </>

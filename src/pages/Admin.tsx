@@ -259,6 +259,18 @@ const Admin = () => {
     if (view === "home" && !loading) { loadStats(); loadUnreadCounts(); }
   }, [view]);
 
+  // Listen for "View History" requests from AdminUsers
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const search = detail.email || detail.userId || "";
+      setNotifLogsInitialSearch(search);
+      handleViewChange("notiflogs");
+    };
+    window.addEventListener("admin:view-user-history", handler as EventListener);
+    return () => window.removeEventListener("admin:view-user-history", handler as EventListener);
+  }, [handleViewChange]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

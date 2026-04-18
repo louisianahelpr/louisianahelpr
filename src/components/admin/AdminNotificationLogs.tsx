@@ -44,14 +44,23 @@ const STATUS_VARIANT: Record<string, string> = {
 
 const PAGE_SIZE = 50;
 
-const AdminNotificationLogs = () => {
+interface AdminNotificationLogsProps {
+  initialSearch?: string;
+}
+
+const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
   const [rows, setRows] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [channel, setChannel] = useState<string>("all");
   const [page, setPage] = useState(0);
+
+  // Sync external initialSearch changes (e.g. when admin clicks "View History" again)
+  useEffect(() => {
+    if (initialSearch) setSearch(initialSearch);
+  }, [initialSearch]);
 
   const load = async () => {
     setLoading(true);

@@ -380,12 +380,12 @@ const Signup = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+              <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
+              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmEmail">Confirm email <span className="text-destructive">*</span></Label>
-              <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required />
+              <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
+              <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required className={inputCls} />
               {confirmEmail && (
                 <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
                   {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
@@ -393,18 +393,18 @@ const Signup = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+              <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="pr-10" autoComplete="new-password" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm password <span className="text-destructive">*</span></Label>
+              <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="pr-10" autoComplete="new-password" />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -416,17 +416,28 @@ const Signup = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dob">Date of birth <span className="text-destructive text-xs">*</span></Label>
-              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} />
+              <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
+              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
               <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone number <span className="text-destructive text-xs">*</span></Label>
-              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required autoComplete="tel" />
+              <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                placeholder="(555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                required
+                autoComplete="tel"
+                maxLength={14}
+                className={inputCls}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referral" className="flex items-center gap-1.5">
-                <Gift className="w-3.5 h-3.5 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
+              <Label htmlFor="referral" className={`${labelCls} flex items-center gap-1.5`}>
+                <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
               </Label>
               <Input
                 id="referral"
@@ -434,7 +445,7 @@ const Signup = () => {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 maxLength={10}
-                className="uppercase"
+                className={`${inputCls} uppercase`}
               />
               {referralCode && (
                 <p className="text-xs text-primary flex items-center gap-1">

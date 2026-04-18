@@ -9,7 +9,9 @@ import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { DENIAL_REASONS, type DenialReasonKey } from "@/lib/denialReasons";
 
 interface IDVProfile {
   user_id: string;

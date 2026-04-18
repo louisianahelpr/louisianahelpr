@@ -51,7 +51,7 @@ export function useDashboardData() {
 
       const platformFee = (feeRes.data as any)?.helper_fee_percent ?? 10;
       const helperAvailability = availRes.data ?? [];
-      const rawJobs = openJobsRes.data ?? [];
+      const rawJobs = (openJobsRes.data ?? []) as any[];
 
       if (rawJobs.length === 0) {
         return { allJobs: [] as EnrichedJob[], platformFee, helperAvailability, recommendedJobs: [] as EnrichedJob[], helprTier: null as string | null };

@@ -568,12 +568,8 @@ const AdminUsers = () => {
 
     // Issue filter
     if (issueFilter === "strikes" && (strikesSummary[p.user_id] || 0) === 0) return false;
-    if (issueFilter === "failed_id" && (p as any).idv_status !== "failed" && (p as any).idv_status !== "manual_review") return false;
     if (issueFilter === "no_id" && p.role !== "customer" && (p as any).idv_status) return false;
     if (issueFilter === "no_id" && p.role === "customer") return false;
-
-    // Parish filter
-    if (parishFilter !== "all" && (p as any).parish !== parishFilter) return false;
 
     // Search
     if (searchQuery.trim()) {
@@ -584,9 +580,6 @@ const AdminUsers = () => {
 
     return true;
   });
-
-  // Build parish list from current profiles
-  const availableParishes = Array.from(new Set(profiles.map((p) => (p as any).parish).filter(Boolean))).sort() as string[];
 
   const pendingCount = profiles.filter(isPendingReview).length;
   const awaitingEmailCount = profiles.filter(isAwaitingEmail).length;

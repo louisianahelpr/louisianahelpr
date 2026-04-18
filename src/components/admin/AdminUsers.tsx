@@ -74,6 +74,15 @@ const AdminUsers = () => {
 
   // Per-user admin notes summary: { [user_id]: { count, recent: [{note, created_at, category}] } }
   const [notesSummary, setNotesSummary] = useState<Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }>>({});
+  // Per-user strike counts (from user_violations)
+  const [strikesSummary, setStrikesSummary] = useState<Record<string, number>>({});
+  // Per-user last activity { [user_id]: { label, at } }
+  const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
+
+  // Filters
+  const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "failed_id" | "no_id">("all");
+  const [parishFilter, setParishFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -82,10 +91,52 @@ const AdminUsers = () => {
       .order("created_at", { ascending: false });
     if (data) {
       setProfiles(data);
-      // Load admin notes summary in parallel (non-blocking)
-      loadNotesSummary(data.map((p) => p.user_id));
+      const ids = data.map((p) => p.user_id);
+      // Load supplemental data in parallel (non-blocking)
+      loadNotesSummary(ids);
+      loadStrikesSummary(ids);
+      loadActivitySummary(ids);
     }
     setLoading(false);
+  };
+
+  const loadStrikesSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await (supabase.from("user_violations" as any) as any)
+      .select("user_id")
+      .in("user_id", userIds);
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    for (const row of data as any[]) {
+      counts[row.user_id] = (counts[row.user_id] || 0) + 1;
+    }
+    setStrikesSummary(counts);
+  };
+
+  const loadActivitySummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const summary: Record<string, { label: string; at: string }> = {};
+    // Fetch recent jobs (posted), applications (helper), and login history in parallel
+    const [jobsRes, appsRes, loginRes] = await Promise.all([
+      supabase.from("jobs").select("customer_id, created_at, title").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),
+      supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
+      (supabase.from("login_history" as any) as any).select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),
+    ]);
+    const consider = (uid: string, label: string, at?: string | null) => {
+      if (!at) return;
+      const cur = summary[uid];
+      if (!cur || new Date(at) > new Date(cur.at)) summary[uid] = { label, at };
+    };
+    (jobsRes.data as any[] | null)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
+    (appsRes.data as any[] | null)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
+    (loginRes.data as any[] | null)?.forEach((l: any) => consider(l.user_id, "Logged In", l.created_at));
+    // Also surface failed ID upload from profiles
+    profiles.forEach((p) => {
+      if ((p as any).idv_status === "failed" && (p as any).idv_attempted_at) {
+        consider(p.user_id, "Failed ID Upload", (p as any).idv_attempted_at);
+      }
+    });
+    setActivitySummary(summary);
   };
 
   const loadNotesSummary = async (userIds: string[]) => {

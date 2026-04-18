@@ -94,10 +94,7 @@ const AdminFraudDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
-          <ShieldAlert className="w-5 h-5 text-destructive" /> Fraud Flags
-        </h2>
+      <div className="flex items-center justify-end flex-wrap gap-3">
         <div className="flex gap-2">
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>

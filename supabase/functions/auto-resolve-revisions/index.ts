@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ expired_revisions: resolved.length, auto_completed: autoCompleted.length }),
+      JSON.stringify({ warned: warned.length, expired_revisions: resolved.length, auto_completed: autoCompleted.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

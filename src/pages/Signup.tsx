@@ -334,10 +334,12 @@ const Signup = () => {
 
 
   const totalSteps = 4;
+  const inputCls = "rounded-xl";
+  const labelCls = "text-base font-medium";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-start sm:items-center justify-center bg-background px-4 py-8 sm:py-12">
+      <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
         <div className="text-center">
           <div className="relative">
             <Link to="/" className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
@@ -346,28 +348,36 @@ const Signup = () => {
             <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
           </div>
           <p className="mt-2 text-muted-foreground">Create your account</p>
-          <div className="flex items-center justify-center gap-2 mt-4">
-            {[1, 2, 3, 4].map((s) => (
+
+          {/* Progress bar */}
+          <div className="mt-5 space-y-2">
+            <div className="h-2 w-full rounded-full bg-border overflow-hidden">
               <div
-                key={s}
-                className={`h-2 rounded-full transition-all ${
-                  s === step ? "w-8 bg-primary" : s < step ? "w-8 bg-primary/40" : "w-8 bg-border"
-                }`}
+                className="h-full bg-primary transition-all duration-500 ease-out"
+                style={{ width: `${(step / totalSteps) * 100}%` }}
               />
-            ))}
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Step {step} of {totalSteps}</span>
+              <span>
+                {step === 1 ? "Account details" : step === 2 ? "Your profile" : step === 3 ? "Portfolio & docs" : "Verify identity"}
+              </span>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Step {step} of {totalSteps}:{" "}
-            {step === 1 ? "Account details" : step === 2 ? "Your profile" : step === 3 ? "Portfolio & docs" : "Verify identity"}
-          </p>
         </div>
 
         {/* Step 1: Account basics */}
         {step === 1 && (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full name <span className="text-destructive">*</span></Label>
-              <Input id="name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
+                <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required autoComplete="given-name" className={inputCls} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className={labelCls}>Last name <span className="text-destructive">*</span></Label>
+                <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required autoComplete="family-name" className={inputCls} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>

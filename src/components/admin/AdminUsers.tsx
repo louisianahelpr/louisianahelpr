@@ -641,6 +641,14 @@ const AdminUsers = () => {
                     <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
                       {resending === p.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><MailIcon className="w-3.5 h-3.5 mr-1" /> Resend</>}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 bg-accent/10 text-accent-foreground border-accent/40 hover:bg-accent/20"
+                      onClick={() => { setWarningProfile(p); setWarningNote(""); setWarningCategory("conduct"); setWarningBypass(false); }}
+                    >
+                      <MessageSquareWarning className="w-3.5 h-3.5 mr-1" /> Warn
+                    </Button>
                     <Button size="sm" variant="outline" className="h-8 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
                       <ShieldAlert className="w-3.5 h-3.5 mr-1" /> Ban

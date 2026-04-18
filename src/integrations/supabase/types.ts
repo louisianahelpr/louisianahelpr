@@ -1914,6 +1914,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -2413,6 +2437,10 @@ export type Database = {
       }
     }
     Functions: {
+      are_users_blocked: {
+        Args: { _user_a: string; _user_b: string }
+        Returns: boolean
+      }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       count_profiles: { Args: never; Returns: number }
       delete_email: {

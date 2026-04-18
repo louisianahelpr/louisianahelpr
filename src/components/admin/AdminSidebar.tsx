@@ -56,7 +56,7 @@ const AdminSidebar = ({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => onSelect("home")}
+                  onClick={() => handleSelect("home")}
                   isActive={activeView === "home"}
                   tooltip="Dashboard"
                   className="font-medium"
@@ -84,7 +84,7 @@ const AdminSidebar = ({
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        onClick={() => onSelect(item.id)}
+                        onClick={() => handleSelect(item.id)}
                         isActive={activeView === item.id}
                         tooltip={item.label}
                         className="font-medium relative"

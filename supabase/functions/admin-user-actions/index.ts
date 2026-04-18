@@ -87,6 +87,8 @@ Deno.serve(async (req) => {
     const action: ActionType = body.action
     const targetUserId: string = body.userId
     const note: string = (body.note || '').toString().slice(0, 1000)
+    const reasonCategory: string = (body.reasonCategory || '').toString().slice(0, 100)
+    const bypassStrike: boolean = body.bypassStrike === true
 
     if (!action || !targetUserId) {
       return new Response(JSON.stringify({ error: 'Missing action or userId' }), {

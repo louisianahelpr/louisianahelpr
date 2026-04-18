@@ -101,7 +101,7 @@ const HelperSpotlightSection = forwardRef<HTMLDivElement>((_props, ref) => {
                       onClick={() => navigate(`/user/${h.user_id}`)}
                     >
                       {i === 0 && (
-                        <div className="absolute -top-2 -right-2 bg-yellow-500 text-white rounded-full p-1.5 shadow-md">
+                        <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md">
                           <Crown className="w-3.5 h-3.5" />
                         </div>
                       )}

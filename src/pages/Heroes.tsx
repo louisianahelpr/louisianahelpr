@@ -70,9 +70,9 @@ const Heroes = () => {
   }, [selectedParish]);
 
   const rankIcon = (rank: number) => {
-    if (rank === 0) return <Crown className="w-5 h-5 text-yellow-500" />;
-    if (rank === 1) return <Trophy className="w-5 h-5 text-gray-400" />;
-    if (rank === 2) return <Medal className="w-5 h-5 text-amber-700" />;
+    if (rank === 0) return <Crown className="w-5 h-5 text-primary" />;
+    if (rank === 1) return <Trophy className="w-5 h-5 text-muted-foreground" />;
+    if (rank === 2) return <Medal className="w-5 h-5 text-accent-foreground" />;
     return <span className="text-sm font-bold text-muted-foreground">#{rank + 1}</span>;
   };
 

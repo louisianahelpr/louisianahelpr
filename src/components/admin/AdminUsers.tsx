@@ -84,7 +84,7 @@ const AdminUsers = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha">("desc");
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -574,6 +574,11 @@ const AdminUsers = () => {
 
     return true;
   }).sort((a, b) => {
+    if (sortDir === "alpha") {
+      const aName = (a.full_name || a.email || "").toLowerCase();
+      const bName = (b.full_name || b.email || "").toLowerCase();
+      return aName.localeCompare(bName);
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;
@@ -695,20 +700,21 @@ const AdminUsers = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-sm flex-1"
         />
-        <Select value={sortDir} onValueChange={(v) => setSortDir(v as "desc" | "asc")}>
+        <Select value={sortDir} onValueChange={(v) => setSortDir(v as "desc" | "asc" | "alpha")}>
           <SelectTrigger className="h-9 text-sm sm:w-[200px]">
-            <SelectValue />
+            <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="desc">Recently active first</SelectItem>
-            <SelectItem value="asc">Inactive longest first</SelectItem>
+            <SelectItem value="desc">Most Recent</SelectItem>
+            <SelectItem value="asc">Longest Inactive</SelectItem>
+            <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="flex items-center justify-between px-1">
         <p className="text-xs text-muted-foreground">
-          {filtered.length} {filtered.length === 1 ? "user" : "users"} · {sortDir === "desc" ? "recently active first" : "inactive longest first"}
+          {filtered.length} {filtered.length === 1 ? "user" : "users"} · {sortDir === "desc" ? "most recent" : sortDir === "asc" ? "longest inactive" : "alphabetical (A–Z)"}
         </p>
         {searchQuery && (
           <button

@@ -343,6 +343,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
           </div>
 
 
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <strong className="text-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed <strong>$20,000 in gross payments</strong> and <strong>200 transactions</strong> in a calendar year. Stripe issues these automatically — no action needed on your part.
+          </div>
+
           <div>
             <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
             {earningsJobs.length === 0 ? (

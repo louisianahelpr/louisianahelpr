@@ -1018,6 +1018,9 @@ const ProfilePage = () => {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <span className="block">This will permanently delete your account and all associated data including jobs, messages, reviews, and payment history. This cannot be undone.</span>
+              <span className="block rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                ⚠️ <strong>Stripe payouts:</strong> Any pending or in-transit payouts to your bank will be forfeited. Cash out available balance from the Earnings tab before deleting.
+              </span>
               <span className="block text-sm font-medium text-foreground">Type <strong>DELETE MY ACCOUNT</strong> to confirm:</span>
               <Input
                 value={deleteConfirmText}

@@ -225,11 +225,16 @@ Deno.serve(async (_req) => {
 
     // ─── 1b. Auto-resend Approval Emails ─────────────────────────
     // Approved users who haven't logged in, resend every 3 days up to 3 emails total
+    // Only target users approved within the last 14 days — long-approved users
+    // should never receive "your account is approved" reminders, even if their
+    // counter was bumped manually or by a backfill.
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const { data: approvedUsers } = await supabase
       .from('profiles')
-      .select('user_id, full_name, email, approval_email_count, last_approval_email_at')
+      .select('user_id, full_name, email, approval_email_count, last_approval_email_at, created_at')
       .eq('approval_status', 'approved')
       .lt('approval_email_count', 3)
+      .gte('created_at', fourteenDaysAgo)
       .not('email', 'is', null)
 
     for (const user of approvedUsers || []) {

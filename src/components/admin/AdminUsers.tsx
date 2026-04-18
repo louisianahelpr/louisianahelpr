@@ -711,21 +711,9 @@ const AdminUsers = () => {
             <SelectContent>
               <SelectItem value="all">All Issues</SelectItem>
               <SelectItem value="strikes">Has Strikes</SelectItem>
-              <SelectItem value="failed_id">Failed/Flagged ID</SelectItem>
               {tab !== "approved" && (
                 <SelectItem value="no_id">No ID Submitted</SelectItem>
               )}
-            </SelectContent>
-          </Select>
-          <Select value={parishFilter} onValueChange={setParishFilter}>
-            <SelectTrigger className="h-9 text-xs flex-1 sm:w-[160px]">
-              <SelectValue placeholder="Parish" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Parishes</SelectItem>
-              {availableParishes.map((parish) => (
-                <SelectItem key={parish} value={parish}>{parish}</SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
@@ -733,9 +721,9 @@ const AdminUsers = () => {
 
       <div className="flex items-center justify-between px-1">
         <p className="text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
-        {(issueFilter !== "all" || parishFilter !== "all" || searchQuery) && (
+        {(issueFilter !== "all" || searchQuery) && (
           <button
-            onClick={() => { setIssueFilter("all"); setParishFilter("all"); setSearchQuery(""); }}
+            onClick={() => { setIssueFilter("all"); setSearchQuery(""); }}
             className="text-[11px] text-primary hover:underline"
           >
             Clear filters

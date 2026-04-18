@@ -132,20 +132,67 @@ const AccountPending = () => {
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-8 space-y-6">
-          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
-            <Clock className="w-8 h-8 text-amber-500" />
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
+            showRetry ? "bg-amber-500/15" : "bg-amber-500/10"
+          }`}>
+            {showRetry ? (
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+            ) : (
+              <Clock className="w-8 h-8 text-amber-500" />
+            )}
           </div>
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">
-              {fullName ? `Hey ${fullName.split(" ")[0]}!` : "Almost there!"}
+              {showRetry
+                ? "Almost there — let's try again"
+                : fullName ? `Hey ${fullName.split(" ")[0]}!` : "Almost there!"}
             </h1>
             <p className="text-muted-foreground">
-              {emailVerified 
-                ? "Your email is verified ✓ Your account is now under review by our team."
-                : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by our team."}
+              {showRetry
+                ? "We weren't quite able to verify your identity, but it's an easy fix."
+                : emailVerified
+                  ? "Your email is verified ✓ Your account is now under review by our team."
+                  : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by our team."}
             </p>
           </div>
+
+          {/* Fix-It panel — yellow nudge with the specific reason + Try Again CTA */}
+          {showRetry && denialReason && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-left space-y-3">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                    Here's how to fix it
+                  </p>
+                  <p className="text-sm text-foreground leading-relaxed">{denialReason}</p>
+                </div>
+              </div>
+              <Button
+                onClick={handleTryAgain}
+                disabled={resetting}
+                className="w-full"
+                size="lg"
+              >
+                {resetting ? (
+                  <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Resetting…</>
+                ) : (
+                  <><RefreshCw className="w-4 h-4 mr-2" /> Try Verification Again</>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Inline IDV launcher (after a successful retry-reset, idv_status is back to not_started) */}
+          {!showRetry && emailVerified && (idvStatus === "not_started" || idvStatus === null) && !legacyManual && (
+            <IdentityVerificationStep
+              onComplete={(s) => {
+                setIdvStatus(s === "verified" ? "verified" : s);
+              }}
+              onFallbackToManual={() => { /* no-op: manual fallback handled in signup */ }}
+            />
+          )}
 
           {!emailVerified && userEmail && (
             <Button

@@ -565,19 +565,21 @@ const AdminUsers = () => {
     else if (tab === "denied" && p.approval_status !== "denied") return false;
     else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
 
-    // Issue filter
-    if (issueFilter === "strikes" && (strikesSummary[p.user_id] || 0) === 0) return false;
-    if (issueFilter === "no_id" && p.role !== "customer" && (p as any).idv_status) return false;
-    if (issueFilter === "no_id" && p.role === "customer") return false;
-
-    // Search
+    // Search by name (also matches email for convenience)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const hay = `${p.full_name || ""} ${(p as any).email || ""} ${p.location || ""} ${(p as any).parish || ""}`.toLowerCase();
+      const hay = `${p.full_name || ""} ${(p as any).email || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
 
     return true;
+  }).sort((a, b) => {
+    const aLogin = lastLoginSummary[a.user_id];
+    const bLogin = lastLoginSummary[b.user_id];
+    if (!aLogin && !bLogin) return 0;
+    if (!aLogin) return 1;
+    if (!bLogin) return -1;
+    return new Date(bLogin).getTime() - new Date(aLogin).getTime();
   });
 
   const pendingCount = profiles.filter(isPendingReview).length;

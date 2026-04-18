@@ -1,7 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -83,6 +91,82 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
   const handleRefresh = () => {
     setRefreshing(true);
     fetchPayouts();
+  };
+
+  // ─── CSV EXPORT (1099 / Tax prep) ─────────────────────────
+  const payoutYears = useMemo(() => {
+    const years = new Set<number>();
+    (stripeData?.payouts ?? []).forEach((p) => years.add(new Date(p.arrival_date * 1000).getFullYear()));
+    const current = new Date().getFullYear();
+    years.add(current);
+    return Array.from(years).sort((a, b) => b - a);
+  }, [stripeData]);
+
+  const [exportYear, setExportYear] = useState<string>(String(new Date().getFullYear()));
+
+  useEffect(() => {
+    if (payoutYears.length && !payoutYears.includes(Number(exportYear))) {
+      setExportYear(String(payoutYears[0]));
+    }
+  }, [payoutYears, exportYear]);
+
+  const handleExportCSV = () => {
+    const year = Number(exportYear);
+    const rows = (stripeData?.payouts ?? []).filter(
+      (p) => new Date(p.arrival_date * 1000).getFullYear() === year
+    );
+
+    if (!rows.length) {
+      toast({
+        title: "No payouts to export",
+        description: `No payouts found for ${year}.`,
+      });
+      return;
+    }
+
+    const escape = (val: string | number | null | undefined) => {
+      const s = val == null ? "" : String(val);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const header = ["Arrival Date", "Description", "Status", "Method", "Currency", "Net Payout (USD)"];
+    const csvLines = [header.join(",")];
+    let total = 0;
+
+    rows.forEach((p) => {
+      const dollars = p.amount / 100;
+      total += dollars;
+      csvLines.push(
+        [
+          new Date(p.arrival_date * 1000).toISOString().slice(0, 10),
+          escape(p.description ?? `Stripe Payout ${p.id}`),
+          escape(p.status),
+          escape(p.method),
+          escape(p.currency.toUpperCase()),
+          dollars.toFixed(2),
+        ].join(",")
+      );
+    });
+
+    csvLines.push("");
+    csvLines.push(`Total Net Payouts,${total.toFixed(2)}`);
+    csvLines.push(`Tax Year,${year}`);
+    csvLines.push("Note,Net amounts paid to your bank. Excludes platform fees & sales tax (Helpr's responsibility).");
+
+    const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `helpr-payouts-${year}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export ready",
+      description: `${rows.length} payout${rows.length === 1 ? "" : "s"} exported for ${year}.`,
+    });
   };
 
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
@@ -172,7 +256,30 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
             )}
 
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-2 mt-4">Payout History</h3>
+              <div className="flex items-center justify-between mb-2 mt-4 gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold text-foreground">Payout History</h3>
+                <div className="flex items-center gap-2">
+                  <Select value={exportYear} onValueChange={setExportYear}>
+                    <SelectTrigger className="h-8 w-[100px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {payoutYears.map((y) => (
+                        <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportCSV}
+                    className="h-8 text-xs gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download for Taxes
+                  </Button>
+                </div>
+              </div>
               {stripeData.payouts.length === 0 ? (
                 <div className="rounded-xl border border-border bg-card p-4 text-center">
                   <p className="text-sm text-muted-foreground">No payouts yet — your first one will land here automatically.</p>

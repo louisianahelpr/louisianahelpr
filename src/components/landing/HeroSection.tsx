@@ -35,7 +35,7 @@ const HeroSection = () => {
       }}
     >
       <div className="container mx-auto">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start text-center md:text-left">
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center md:items-center lg:items-start text-center md:text-left">
           <div className="space-y-4 sm:space-y-6 animate-fade-in">
             <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase">
               Serving Louisiana communities
@@ -87,7 +87,7 @@ const HeroSection = () => {
               )}
             </div>
           </div>
-          <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-end md:items-start">
+          <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center md:items-center lg:justify-end lg:items-start">
             <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full h-auto rounded-2xl shadow-lg object-contain md:max-w-sm lg:max-w-md" loading="eager" width={1200} height={800} />
           </div>
         </div>

@@ -192,7 +192,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
+        <h1 className="text-2xl font-display font-bold text-foreground flex-1">My Earnings</h1>
+        <EarningsExport helperId={helperId} helperName={helperName} />
       </div>
 
       {/* ─── LIVE STRIPE WALLET ─── */}

@@ -407,11 +407,18 @@ const AdminUsers = () => {
     action: "manual_verify" | "request_id_reupload" | "reset_password" | "formal_warning",
     profile: Profile,
     note?: string,
+    extras?: { reasonCategory?: string; bypassStrike?: boolean },
   ) => {
     setActionBusy(true);
     try {
       const { error } = await supabase.functions.invoke("admin-user-actions", {
-        body: { action, userId: profile.user_id, note: note || "" },
+        body: {
+          action,
+          userId: profile.user_id,
+          note: note || "",
+          reasonCategory: extras?.reasonCategory || "",
+          bypassStrike: extras?.bypassStrike === true,
+        },
       });
       if (error) throw error;
       const labels: Record<string, string> = {
@@ -423,7 +430,7 @@ const AdminUsers = () => {
       toast.success(labels[action]);
       loadProfiles();
       setReuploadProfile(null); setReuploadNote("");
-      setWarningProfile(null); setWarningNote("");
+      setWarningProfile(null); setWarningNote(""); setWarningCategory("conduct"); setWarningBypass(false);
       setManualVerifyProfile(null);
       setResetPwProfile(null);
     } catch (err: any) {

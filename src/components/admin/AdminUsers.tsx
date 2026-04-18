@@ -917,24 +917,24 @@ const AdminUsers = () => {
               {/* Trust & Verification + Support actions */}
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
-                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => setManualVerifyProfile(viewProfile)}>
+                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary shrink-0" /> Manually Verify
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
-                    <Camera className="w-4 h-4 mr-1.5 text-accent" /> Request ID Re-upload
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
+                    <Camera className="w-4 h-4 mr-1.5 text-accent shrink-0" /> Request ID Re-upload
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
-                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent shrink-0" /> Formal Warning
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
-                    <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => setResetPwProfile(viewProfile)}>
+                    <KeyRound className="w-4 h-4 mr-1.5 text-primary shrink-0" /> Reset Password
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
-                    <History className="w-4 h-4 mr-1.5" /> View History
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => viewHistoryFor(viewProfile)}>
+                    <History className="w-4 h-4 mr-1.5 shrink-0" /> View History
                   </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
-                    <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
+                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
+                    <Trash2 className="w-4 h-4 mr-1.5 shrink-0" /> Delete Account
                   </Button>
                 </div>
               </div>

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, Shield } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";

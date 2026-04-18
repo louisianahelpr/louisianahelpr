@@ -466,11 +466,11 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl border border-border bg-card p-3 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-xl border border-border bg-card p-2.5 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
-      <div className="flex items-center justify-between mb-2 sm:mb-3">
-        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center", accentClasses)}>
-          <Icon className="w-4 h-4" />
+      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+        <div className={cn("w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center", accentClasses)}>
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
         {trend && (
           <span className={cn(
@@ -482,8 +482,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{label}</p>
+      <p className="text-lg sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{label}</p>
     </button>
   );
 };
@@ -494,20 +494,20 @@ const PriorityAlert = ({ label, count, color, onClick }: {
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all w-full hover:shadow-sm",
+      "flex items-center gap-2.5 rounded-xl border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
       color === "destructive"
         ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
         : "border-accent/30 bg-accent/5 hover:bg-accent/10"
     )}
   >
     <span className={cn(
-      "w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold tabular-nums",
+      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold tabular-nums shrink-0",
       color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
     )}>
       {count}
     </span>
-    <span className="text-sm font-semibold text-foreground flex-1">{label}</span>
-    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+    <span className="text-xs sm:text-sm font-semibold text-foreground flex-1 leading-tight">{label}</span>
+    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
   </button>
 );
 
@@ -518,15 +518,15 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
   const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-7xl">
-      {/* Greeting */}
-      <div>
+    <div className="space-y-3 sm:space-y-6 max-w-7xl">
+      {/* Greeting — desktop only, mobile saves space */}
+      <div className="hidden sm:block">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Here's what's happening on the platform today.</p>
       </div>
 
       {/* KPI Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <KpiCard
           label="Total Users"
           value={v(stats.totalUsers.toLocaleString())}
@@ -561,10 +561,10 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
 
       {/* Priority alerts */}
       {hasAlerts && (
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-accent-foreground" />
-            <p className="text-xs font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
+            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
+            <p className="text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
           </div>
           <div className="grid sm:grid-cols-2 gap-2">
             {stats.pendingApprovals > 0 && (
@@ -584,10 +584,10 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       )}
 
       {/* Two-column: Secondary metrics + Parish activity */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-2">
-          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
-          <div className="grid grid-cols-2 gap-3">
+      <div className="grid lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="lg:col-span-2 space-y-1.5 sm:space-y-2">
+          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
             <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
             <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
@@ -598,8 +598,8 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
+        <div className="space-y-1.5 sm:space-y-2">
+          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
           <AdminParishActivity />
         </div>
       </div>

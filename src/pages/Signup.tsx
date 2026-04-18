@@ -160,7 +160,7 @@ const Signup = () => {
 
   const validateStep2 = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
-    if (!bio.trim() || bio.trim().length < 30) { toast.error("About you must be at least 30 characters"); return false; }
+    if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
     if (!location.trim()) { toast.error("City is required"); return false; }
     return true;
   };
@@ -466,15 +466,15 @@ const Signup = () => {
               <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
-                placeholder="Tell us about yourself, your experience, and what you're looking for… (minimum 30 characters)"
+                placeholder="Tell us about yourself, your experience, and what you're looking for… (minimum 20 characters)"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
                 required
-                minLength={30}
+                minLength={20}
               />
-              <p className={`text-xs ${bio.trim().length >= 100 ? "text-primary" : "text-muted-foreground"}`}>
-                {bio.trim().length}/100 characters minimum {bio.trim().length >= 100 && "✓"}
+              <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
+                {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
               </p>
             </div>
             <div className="space-y-2">

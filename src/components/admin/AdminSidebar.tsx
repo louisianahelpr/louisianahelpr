@@ -25,8 +25,14 @@ interface AdminSidebarProps {
 const AdminSidebar = ({
   navGroups, activeView, onSelect, getBadge, getBadgeColor, onLogout,
 }: AdminSidebarProps) => {
-  const { state } = useSidebar();
+  const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
+
+  const handleSelect = (id: string) => {
+    onSelect(id);
+    if (isMobile) setOpenMobile(false);
+    else setOpen(false);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

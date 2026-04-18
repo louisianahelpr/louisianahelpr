@@ -171,13 +171,39 @@ serve(async (req) => {
           );
         }
 
+        const userMsg = status === "failed"
+          ? (updateData.idv_failure_reason as string) || "We couldn't verify your ID. Please try again."
+          : "We couldn't auto-verify your ID. Our team will review it within 24 hours.";
+        const userTitle = status === "failed"
+          ? "⚠️ Verification needs another try"
+          : "Verification under review";
+
         await supabase.from("notifications").insert({
           user_id: userId,
-          title: "Verification under review",
-          message: "We couldn't auto-verify your ID. Our team will review it within 24 hours.",
-          type: "info",
+          title: userTitle,
+          message: userMsg,
+          type: status === "failed" ? "warning" : "info",
           link: "/account-pending",
         });
+
+        // Trigger the branded denial email with reason + Try Again CTA
+        if (status === "failed") {
+          try {
+            await supabase.functions.invoke("send-account-status-email", {
+              body: {
+                userId,
+                status: "denied",
+                reason: updateData.idv_failure_reason,
+                canRetry: true,
+              },
+              headers: {
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+              },
+            });
+          } catch (emailErr) {
+            console.error("Denial email dispatch failed:", emailErr);
+          }
+        }
       }
     }
 

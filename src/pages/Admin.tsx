@@ -378,9 +378,9 @@ const Admin = () => {
             </div>
           </header>
 
-          <main className="flex-1 p-3 md:p-6 lg:p-8 overflow-auto">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
             {view !== "home" && (
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-5 sm:mb-6 flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -520,7 +520,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
   const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (
-    <div className="space-y-3 sm:space-y-6 max-w-7xl">
+    <div className="space-y-5 sm:space-y-6 max-w-7xl">
       {/* Greeting — desktop only, mobile saves space */}
       <div className="hidden sm:block">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
@@ -528,7 +528,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       </div>
 
       {/* KPI Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3">
         <KpiCard
           label="Total Users"
           value={v(stats.totalUsers.toLocaleString())}
@@ -563,12 +563,12 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
 
       {/* Priority alerts */}
       {hasAlerts && (
-        <div className="space-y-1.5 sm:space-y-2">
+        <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
             <p className="text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
           </div>
-          <div className="grid sm:grid-cols-2 gap-2">
+          <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
               <PriorityAlert label="Pending helper approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
             )}
@@ -586,9 +586,9 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       )}
 
       {/* Financial Health — full width */}
-      <div className="space-y-1.5 sm:space-y-2">
+      <div className="space-y-2 sm:space-y-3">
         <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3">
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />

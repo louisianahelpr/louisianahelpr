@@ -34,14 +34,33 @@ async function sendWithResend(apiKey: string, params: { to: string; from: string
   return await res.json()
 }
 
-function trackingPixelUrl(userId: string, emailType: string): string {
-  const base = Deno.env.get('SUPABASE_URL')!
-  return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=open`
+async function computeSig(uid: string, type: string, event: string): Promise<string> {
+  const secret = Deno.env.get('CRON_SECRET') || ''
+  const enc = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(`${uid}:${type}:${event}`))
+  const bytes = new Uint8Array(sigBuf)
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-function trackedLink(userId: string, emailType: string, destination: string): string {
+async function trackingPixelUrl(userId: string, emailType: string): Promise<string> {
   const base = Deno.env.get('SUPABASE_URL')!
-  return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=click&redirect=${encodeURIComponent(destination)}`
+  const sig = await computeSig(userId, emailType, 'open')
+  return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=open&sig=${sig}`
+}
+
+async function trackedLink(userId: string, emailType: string, destination: string): Promise<string> {
+  const base = Deno.env.get('SUPABASE_URL')!
+  const sig = await computeSig(userId, emailType, 'click')
+  return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=click&sig=${sig}&redirect=${encodeURIComponent(destination)}`
 }
 
 function renderApprovedEmail(fullName: string, userId: string): { html: string; text: string } {

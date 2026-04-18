@@ -165,21 +165,32 @@ serve(async (req) => {
         }
 
         await stripe.transfers.create(transferParams);
-        console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id}`);
+        console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id} (onboarding fee deducted: $${onboardingFeeDollars.toFixed(2)})`);
 
         await supabaseAdmin.from("jobs").update({
           payment_status: "released",
         }).eq("id", job.id);
 
+        // Mark helper's onboarding fee as paid (one-time deduction on first successful payout)
+        if (owesOnboardingFee) {
+          await supabaseAdmin.from("profiles").update({
+            onboarding_fee_paid: true,
+            onboarding_fee_charged_at: new Date().toISOString(),
+          }).eq("user_id", job.helper_id);
+        }
+
+        const feeNote = owesOnboardingFee
+          ? ` (one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted)`
+          : "";
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "💰 Payout sent!",
-          message: `$${helperPayout.toFixed(2)} for "${job.title}" has been transferred to your account.`,
+          message: `$${helperPayout.toFixed(2)} for "${job.title}" has been transferred to your account${feeNote}.`,
           type: "payment", link: "/earnings",
         });
 
         processed++;
-        results.push({ job_id: job.id, status: "transferred", amount: helperPayout });
+        results.push({ job_id: job.id, status: "transferred", amount: helperPayout, onboarding_fee_deducted: onboardingFeeDollars });
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "transfer_failed", error: e.message });

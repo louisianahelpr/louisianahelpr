@@ -57,7 +57,7 @@ export default function StrikeBanner() {
   // Strike 2 — final warning
   if (status.ban_status === "final_warning") {
     return (
-      <div className="sticky top-0 z-40 w-full bg-amber-500 text-white border-b border-amber-600">
+      <div className="sticky top-0 z-40 w-full bg-accent text-accent-foreground border-b border-accent/60">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span className="flex-1">

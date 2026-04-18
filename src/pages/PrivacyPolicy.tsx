@@ -64,6 +64,7 @@ const PrivacyPolicy = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
               <p><strong className="text-foreground">With Other Users:</strong> Your first name, profile photo, ratings, and reviews are visible to other users. Full contact details are only shared after a job is confirmed.</p>
               <p><strong className="text-foreground">Payment Processors:</strong> Stripe processes all payments securely under their own privacy policy.</p>
+              <p><strong className="text-foreground">Identity Verification:</strong> Identity verification is processed securely through Stripe. Helpr staff never sees your full government ID — we only receive a "Verified" or "Denied" status to protect your privacy.</p>
               <p><strong className="text-foreground">Legal Requirements:</strong> We may disclose information when required by law, court order, or to protect the safety of our users.</p>
               <p><strong className="text-foreground">No Selling:</strong> We never sell your personal information to third parties for advertising or marketing purposes.</p>
             </div>
@@ -103,7 +104,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <p className="text-xs text-muted-foreground text-center pb-8">
-            Questions about your privacy? <Link to="/support" className="text-primary hover:underline">Contact support</Link>
+            Questions about your privacy? <Link to="/support" className="text-primary hover:underline">Contact the Helpr Trust & Safety Team</Link>
           </p>
         </div>
       </main>

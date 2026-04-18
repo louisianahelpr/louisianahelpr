@@ -27,3 +27,7 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.weekly-helper-report]
     verify_jwt = false
+  [functions.stripe-idv-webhook]
+    verify_jwt = false
+  [functions.create-idv-session]
+    verify_jwt = false

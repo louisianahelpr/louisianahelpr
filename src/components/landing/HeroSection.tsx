@@ -27,9 +27,15 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="pt-32 pb-20 px-4">
+    <section
+      className="pt-32 pb-20 px-6 min-h-[100dvh] lg:min-h-0 flex items-center lg:block"
+      style={{
+        paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
+        paddingRight: "max(1.5rem, env(safe-area-inset-right))",
+      }}
+    >
       <div className="container mx-auto">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
           <div className="space-y-6 animate-fade-in">
             <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium tracking-wide uppercase">
               Serving Louisiana communities

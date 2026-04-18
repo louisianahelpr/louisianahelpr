@@ -33,6 +33,7 @@ const AdminUsers = () => {
   const [profileBans, setProfileBans] = useState<any[]>([]);
   const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
   const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
+  const [emailSendStats, setEmailSendStats] = useState<{ template_name: string; count: number; last_sent: string }[]>([]);
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
@@ -175,12 +176,20 @@ const AdminUsers = () => {
     setViewProfile(profile);
     setIdDocSignedUrl(null);
     setEmailTracking([]);
+    setEmailSendStats([]);
 
-    const [reviewsRes, violationsRes, bansRes, trackingRes] = await Promise.all([
+    const [reviewsRes, violationsRes, bansRes, trackingRes, sendLogRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("email_tracking" as any) as any).select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      profile.email
+        ? (supabase.from("email_send_log" as any) as any)
+            .select("template_name, message_id, status, created_at")
+            .eq("recipient_email", profile.email)
+            .order("created_at", { ascending: false })
+            .limit(500)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     // Generate signed URL for private ID document
@@ -207,6 +216,31 @@ const AdminUsers = () => {
     setProfileViolations(violationsRes.data || []);
     setProfileBans(bansRes.data || []);
     setEmailTracking(trackingRes.data || []);
+
+    // Deduplicate email_send_log by message_id (latest status per email),
+    // count successful sends per template_name.
+    const rows = (sendLogRes.data || []) as { template_name: string; message_id: string | null; status: string; created_at: string }[];
+    const latestByMsg = new Map<string, typeof rows[number]>();
+    for (const r of rows) {
+      const key = r.message_id || `${r.template_name}-${r.created_at}`;
+      if (!latestByMsg.has(key)) latestByMsg.set(key, r); // first iteration is latest (ordered desc)
+    }
+    const counts = new Map<string, { count: number; last_sent: string }>();
+    for (const r of latestByMsg.values()) {
+      if (!["sent", "pending"].includes(r.status)) continue; // count delivered/queued only
+      const existing = counts.get(r.template_name);
+      if (existing) {
+        existing.count += 1;
+        if (r.created_at > existing.last_sent) existing.last_sent = r.created_at;
+      } else {
+        counts.set(r.template_name, { count: 1, last_sent: r.created_at });
+      }
+    }
+    setEmailSendStats(
+      Array.from(counts.entries())
+        .map(([template_name, v]) => ({ template_name, count: v.count, last_sent: v.last_sent }))
+        .sort((a, b) => b.count - a.count)
+    );
   };
 
   const approveUser = async (profile: Profile) => {
@@ -1162,6 +1196,39 @@ const AdminUsers = () => {
                   })()}
                 </div>
               )}
+
+              {/* Email Send History — total emails sent to this user across all templates */}
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <MailIcon className="w-4 h-4" /> Emails Sent
+                  {emailSendStats.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-[10px]">
+                      {emailSendStats.reduce((sum, s) => sum + s.count, 0)} total
+                    </Badge>
+                  )}
+                </h4>
+                {emailSendStats.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No emails on record</p>
+                ) : (
+                  <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
+                    {emailSendStats.map((s) => (
+                      <div key={s.template_name} className="flex items-center justify-between gap-3 p-3 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-foreground truncate capitalize">
+                            {s.template_name.replace(/[-_]/g, " ")}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Last sent {formatDistanceToNow(new Date(s.last_sent), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="font-semibold shrink-0">
+                          ×{s.count}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Action buttons — primary lifecycle */}
               <div className="space-y-2 pt-4 border-t border-border">

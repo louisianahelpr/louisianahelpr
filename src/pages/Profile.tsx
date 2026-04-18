@@ -27,6 +27,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { lookupParishByZip } from "@/lib/parishLookup";
 
 // Extracted tab components
 import { SupportInline } from "@/components/profile/SupportInline";

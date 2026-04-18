@@ -515,13 +515,34 @@ const AdminUsers = () => {
   };
 
   const filtered = profiles.filter((p) => {
-    if (tab === "pending") return isPendingReview(p);
-    if (tab === "awaiting_email") return isAwaitingEmail(p);
-    if (tab === "approved") return p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
-    if (tab === "denied") return p.approval_status === "denied";
-    if (tab === "banned") return ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "");
+    // Tab filter
+    if (tab === "pending" && !isPendingReview(p)) return false;
+    else if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
+    else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""))) return false;
+    else if (tab === "denied" && p.approval_status !== "denied") return false;
+    else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
+
+    // Issue filter
+    if (issueFilter === "strikes" && (strikesSummary[p.user_id] || 0) === 0) return false;
+    if (issueFilter === "failed_id" && (p as any).idv_status !== "failed" && (p as any).idv_status !== "manual_review") return false;
+    if (issueFilter === "no_id" && p.role !== "customer" && (p as any).idv_status) return false;
+    if (issueFilter === "no_id" && p.role === "customer") return false;
+
+    // Parish filter
+    if (parishFilter !== "all" && (p as any).parish !== parishFilter) return false;
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${p.full_name || ""} ${(p as any).email || ""} ${p.location || ""} ${(p as any).parish || ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+
     return true;
   });
+
+  // Build parish list from current profiles
+  const availableParishes = Array.from(new Set(profiles.map((p) => (p as any).parish).filter(Boolean))).sort() as string[];
 
   const pendingCount = profiles.filter(isPendingReview).length;
   const awaitingEmailCount = profiles.filter(isAwaitingEmail).length;

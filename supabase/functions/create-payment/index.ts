@@ -152,6 +152,22 @@ serve(async (req) => {
         });
       }
 
+      // One-time onboarding fee — first job post only (taxable platform revenue)
+      if (owesOnboardingFee) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "One-time Account Setup",
+              description: "One-time identity verification & account setup fee. Charged once per account.",
+              tax_code: "txcd_10103001",
+            },
+            unit_amount: onboardingFeeCents,
+          },
+          quantity: 1,
+        });
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_update: { address: 'auto' },
@@ -164,11 +180,12 @@ serve(async (req) => {
             customer_id: user.id,
             customer_fee_percent: String(customerFeePercent),
             helper_fee_percent: String(helperFeePercent),
+            onboarding_fee_charged: owesOnboardingFee ? "true" : "false",
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
         cancel_url: `${req.headers.get("origin")}/post-job`,
-        metadata: { job_id: jobId, customer_id: user.id },
+        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false" },
       });
 
       // Store both fee structures on the job

@@ -826,7 +826,7 @@ const AdminUsers = () => {
             <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-6 sm:space-y-7">
+            <div className="space-y-6 sm:space-y-7 min-w-0 break-words">
               {/* Header: Avatar + Basic Info */}
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
@@ -1009,7 +1009,7 @@ const AdminUsers = () => {
                         <div className="p-4 flex items-center gap-3">
                           <FileText className="w-8 h-8 text-primary" />
                           <div>
-                            <p className="text-sm font-medium text-foreground">{viewProfile.id_document_url.split("/").pop()}</p>
+                            <p className="text-sm font-medium text-foreground break-all">{viewProfile.id_document_url.split("/").pop()}</p>
                             <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
                               Open document ↗
                             </a>

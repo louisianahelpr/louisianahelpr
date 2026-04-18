@@ -581,6 +581,27 @@ export type Database = {
         }
         Relationships: []
       }
+      helper_preferred_parishes: {
+        Row: {
+          created_at: string
+          helper_id: string
+          id: string
+          parish: string
+        }
+        Insert: {
+          created_at?: string
+          helper_id: string
+          id?: string
+          parish: string
+        }
+        Update: {
+          created_at?: string
+          helper_id?: string
+          id?: string
+          parish?: string
+        }
+        Relationships: []
+      }
       job_checkins: {
         Row: {
           created_at: string | null
@@ -2470,6 +2491,21 @@ export type Database = {
           skills: string
           subscription_tier: string
           user_id: string
+        }[]
+      }
+      get_helper_earnings_export: {
+        Args: { _end_date: string; _helper_id: string; _start_date: string }
+        Returns: {
+          category: string
+          date_completed: string
+          gross_budget: number
+          job_id: string
+          job_title: string
+          net_payout: number
+          parish: string
+          parish_tax_collected: number
+          platform_fee: number
+          tax_status: string
         }[]
       }
       get_hero_parishes: {

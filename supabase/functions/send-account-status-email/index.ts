@@ -63,10 +63,10 @@ async function trackedLink(userId: string, emailType: string, destination: strin
   return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=click&sig=${sig}&redirect=${encodeURIComponent(destination)}`
 }
 
-function renderApprovedEmail(fullName: string, userId: string): { html: string; text: string } {
+async function renderApprovedEmail(fullName: string, userId: string): Promise<{ html: string; text: string }> {
   const siteUrl = `https://${ROOT_DOMAIN}`
-  const ctaUrl = trackedLink(userId, 'account_approved', `${siteUrl}/login`)
-  const pixelUrl = trackingPixelUrl(userId, 'account_approved')
+  const ctaUrl = await trackedLink(userId, 'account_approved', `${siteUrl}/login`)
+  const pixelUrl = await trackingPixelUrl(userId, 'account_approved')
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
@@ -94,10 +94,10 @@ function renderApprovedEmail(fullName: string, userId: string): { html: string; 
   return { html, text }
 }
 
-function renderDeniedEmail(fullName: string, userId: string, reason?: string): { html: string; text: string } {
+async function renderDeniedEmail(fullName: string, userId: string, reason?: string): Promise<{ html: string; text: string }> {
   const siteUrl = `https://${ROOT_DOMAIN}`
-  const ctaUrl = trackedLink(userId, 'account_denied', `${siteUrl}/login`)
-  const pixelUrl = trackingPixelUrl(userId, 'account_denied')
+  const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}/login`)
+  const pixelUrl = await trackingPixelUrl(userId, 'account_denied')
   const reasonText = reason
     ? `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
     : ''
@@ -213,8 +213,8 @@ Deno.serve(async (req) => {
     }
 
     const { html, text } = status === 'approved'
-      ? renderApprovedEmail(profile.full_name || '', userId)
-      : renderDeniedEmail(profile.full_name || '', userId, reason)
+      ? await renderApprovedEmail(profile.full_name || '', userId)
+      : await renderDeniedEmail(profile.full_name || '', userId, reason)
 
     const subject = status === 'approved'
       ? 'Your Helpr account has been approved! 🎉'

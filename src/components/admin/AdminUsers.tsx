@@ -132,6 +132,14 @@ const AdminUsers = () => {
     (jobsRes.data as any[] | null)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
     (appsRes.data as any[] | null)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
     (loginRes.data as any[] | null)?.forEach((l: any) => consider(l.user_id, "Logged In", l.created_at));
+    // Track most-recent login separately for the user list row
+    const logins: Record<string, string> = {};
+    (loginRes.data as any[] | null)?.forEach((l: any) => {
+      if (!logins[l.user_id] || new Date(l.created_at) > new Date(logins[l.user_id])) {
+        logins[l.user_id] = l.created_at;
+      }
+    });
+    setLastLoginSummary(logins);
     // Also surface failed ID upload from profiles
     profiles.forEach((p) => {
       if ((p as any).idv_status === "failed" && (p as any).idv_attempted_at) {

@@ -488,6 +488,62 @@ const AdminUsers = () => {
     return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending</Badge>;
   };
 
+  // Stripe Identity verification badge — green / yellow / gray.
+  // Hidden for customer-only users (they don't go through helper IDV).
+  const stripeBadge = (profile: Profile) => {
+    if (profile.role === "customer") return null;
+    const s = (profile as any).idv_status;
+    if (s === "verified" || s === "approved" || (profile as any).legacy_manual_review) {
+      return <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Stripe Verified</Badge>;
+    }
+    if (s === "manual_review" || s === "failed" || s === "requires_input" || s === "action_needed") {
+      return <Badge className="bg-accent/20 text-accent-foreground border-accent/30 text-[10px] gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Flagged</Badge>;
+    }
+    return <Badge variant="outline" className="text-muted-foreground text-[10px] gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />ID Not Submitted</Badge>;
+  };
+
+  // Role badge — Helper / Poster (Customer)
+  const roleBadge = (profile: Profile) => {
+    if (profile.role === "admin") return <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Admin</Badge>;
+    if (profile.role === "customer") return <Badge variant="outline" className="text-[10px] gap-0.5"><UserIcon className="w-2.5 h-2.5" />Poster</Badge>;
+    // helpers / dual-role default
+    return <Badge variant="outline" className="text-[10px] gap-0.5"><Briefcase className="w-2.5 h-2.5" />Helper</Badge>;
+  };
+
+  // Notes icon w/ count badge + hover preview of recent 2 notes
+  const NotesIndicator = ({ userId }: { userId: string }) => {
+    const summary = notesSummary[userId];
+    if (!summary || summary.count === 0) return null;
+    return (
+      <HoverCard openDelay={120}>
+        <HoverCardTrigger asChild>
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="relative inline-flex items-center justify-center text-accent-foreground hover:text-primary transition-colors"
+            aria-label={`${summary.count} admin note${summary.count > 1 ? "s" : ""}`}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center border border-background">
+              {summary.count}
+            </span>
+          </button>
+        </HoverCardTrigger>
+        <HoverCardContent side="top" className="w-72 p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Recent admin notes ({summary.count})</p>
+          {summary.recent.map((n, i) => (
+            <div key={i} className="text-xs space-y-0.5 border-l-2 border-accent/40 pl-2">
+              <p className="text-foreground line-clamp-3">{n.note}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {n.category} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+              </p>
+            </div>
+          ))}
+        </HoverCardContent>
+      </HoverCard>
+    );
+  };
+
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [

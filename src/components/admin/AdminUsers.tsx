@@ -754,6 +754,15 @@ const AdminUsers = () => {
                   {/* Standing + Last login row */}
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
                     {(() => {
+                      // Denied users show denial reason instead of standing
+                      if (p.approval_status === "denied") {
+                        const reason = (p as any).denial_reason;
+                        return (
+                          <span className="font-medium text-destructive truncate max-w-full">
+                            Denied: {reason ? reason : "No reason on file"}
+                          </span>
+                        );
+                      }
                       const strikes = strikesSummary[p.user_id] || 0;
                       const standingClass = strikes === 0
                         ? "text-primary"

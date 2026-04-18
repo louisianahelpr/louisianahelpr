@@ -13,6 +13,7 @@ import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert,
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
+import AdminUserNotes from "./AdminUserNotes";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -909,6 +910,9 @@ const AdminUsers = () => {
                   </Button>
                 )}
               </div>
+
+              {/* Internal Admin Notes — private notes about this user, admin-only */}
+              <AdminUserNotes userId={viewProfile.user_id} />
 
               {/* Trust & Verification + Support actions */}
               <div>

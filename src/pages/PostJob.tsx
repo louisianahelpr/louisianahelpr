@@ -19,6 +19,7 @@ import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { categoryPricing } from "@/lib/pricingGuide";
 import { compressImage } from "@/lib/imageCompression";
+import { lookupParishByZip } from "@/lib/parishLookup";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -50,6 +51,7 @@ const PostJob = () => {
   const [city, setCity] = useState("");
   const [addrState, setAddrState] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");

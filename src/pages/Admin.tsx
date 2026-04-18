@@ -356,14 +356,6 @@ const Admin = () => {
                   <span className="text-[11px] font-bold uppercase tracking-wide hidden sm:inline">Admin</span>
                 </SidebarTrigger>
 
-                <Button variant="ghost" size="icon" onClick={() => navigate("/messages")} className="relative hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Messages">
-                  <MessageSquare className="w-4 h-4" />
-                  {unreadMessages > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
-                      {unreadMessages > 9 ? "9+" : unreadMessages}
-                    </span>
-                  )}
-                </Button>
 
                 <ThemeToggle />
                 <NotificationPanel />

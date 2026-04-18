@@ -812,12 +812,12 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-7">
+          <DialogHeader className="pb-2 mb-2 border-b border-border">
             <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-4">
+            <div className="space-y-6 sm:space-y-7">
               {/* Header: Avatar + Basic Info */}
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
@@ -904,44 +904,47 @@ const AdminUsers = () => {
               </div>
 
               {/* Bio — full width below header */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Bio</p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
                 <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
                   {viewProfile.bio || "Not provided"}
                 </p>
               </div>
 
               {/* Info Grid — always show all fields */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl bg-secondary/30 border border-border p-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
-                  <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
-                  <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-                  <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
-                    {(viewProfile as any).date_of_birth
-                      ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                      : "Not provided"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
-                  <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
-                  <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
+                    <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
+                    <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
+                    <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
+                      {(viewProfile as any).date_of_birth
+                        ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                        : "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
+                    <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
+                    <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                  </div>
                 </div>
               </div>
 
               {/* Skills — always show */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Skills</p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Skills</h4>
                 {viewProfile.skills ? (
                   <div className="flex flex-wrap gap-1.5">
                     {viewProfile.skills.split(",").map((skill, i) => (
@@ -967,9 +970,9 @@ const AdminUsers = () => {
                   { label: "Extra Comments", value: p.extra_comments },
                 ];
                 return (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Signup Answers</p>
-                    <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-4">
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
                       {fields.map((f, i) => (
                         <div key={i}>
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
@@ -982,10 +985,10 @@ const AdminUsers = () => {
               })()}
 
               {/* ID Document — always show */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" /> ID Document
-                </p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <FileText className="w-4 h-4" /> ID Document
+                </h4>
                 {viewProfile.id_document_url ? (
                   <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
                     {idDocSignedUrl ? (
@@ -1016,8 +1019,8 @@ const AdminUsers = () => {
               </div>
 
               {/* Profile Picture — always show */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Profile Picture</p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
                     <img src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
@@ -1028,10 +1031,10 @@ const AdminUsers = () => {
               </div>
 
               {/* Portfolio — always show */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
-                </p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <FileText className="w-4 h-4" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
+                </h4>
                 {((viewProfile as any).portfolio_urls as string[] || []).length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
@@ -1056,10 +1059,10 @@ const AdminUsers = () => {
 
               {/* Violations History */}
               {profileViolations.length > 0 && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Violations ({profileViolations.length})
-                  </p>
+                <div className="space-y-2">
+                  <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-destructive" /> Violations ({profileViolations.length})
+                  </h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {profileViolations.map((v: any) => (
                       <div key={v.id} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
@@ -1152,7 +1155,9 @@ const AdminUsers = () => {
               )}
 
               {/* Action buttons — primary lifecycle */}
-              <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
+              <div className="space-y-2 pt-4 border-t border-border">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
+                <div className="flex gap-2 flex-wrap">
                 {viewProfile.approval_status === "pending" && (
                   <>
                     <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
@@ -1209,14 +1214,15 @@ const AdminUsers = () => {
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}
+                </div>
               </div>
 
               {/* Internal Admin Notes — private notes about this user, admin-only */}
               <AdminUserNotes userId={viewProfile.user_id} />
 
               {/* Trust & Verification + Support actions */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
                     <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify

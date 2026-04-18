@@ -2597,6 +2597,16 @@ export type Database = {
           parish: string
         }[]
       }
+      get_parish_activity: {
+        Args: { p_limit?: number }
+        Returns: {
+          active_jobs: number
+          completed_jobs_30d: number
+          helper_count: number
+          parish: string
+          revenue_30d: number
+        }[]
+      }
       get_parish_for_zip: { Args: { p_zip: string }; Returns: string }
       get_payout_batches: {
         Args: never

@@ -83,8 +83,7 @@ const AdminUsers = () => {
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
 
   // Filters
-  const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "failed_id" | "no_id">("all");
-  const [parishFilter, setParishFilter] = useState<string>("all");
+  const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "no_id">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const loadProfiles = async () => {

@@ -218,9 +218,13 @@ const UserProfile = () => {
                   <Ban className="w-4 h-4 mr-2" /> Block user
                 </DropdownMenuItem>
               </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
+            </DropdownMenu>
+          ) : null
+        }
+      />
+
+      <main className="container mx-auto px-4 py-6">
+        <div className="max-w-lg mx-auto space-y-5">
           {/* Profile Card */}
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
             {profile.avatar_url ? (

@@ -229,6 +229,19 @@ serve(async (req) => {
           const { error: jobError } = await supabase.from("jobs").update(updateData).eq("id", jobId);
           if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
           else logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
+
+          // Mark poster's onboarding fee paid if it was charged on this session
+          if ((session.metadata as any)?.onboarding_fee_charged === "true") {
+            const posterId = (session.metadata as any)?.customer_id;
+            if (posterId) {
+              const { error: feeErr } = await supabase
+                .from("profiles")
+                .update({ onboarding_fee_paid: true, onboarding_fee_charged_at: new Date().toISOString() })
+                .eq("user_id", posterId);
+              if (feeErr) logStep("ERROR marking onboarding fee paid", { error: feeErr.message });
+              else logStep("Onboarding fee marked paid for poster", { posterId });
+            }
+          }
         } else if (jobId) {
           logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });
         }

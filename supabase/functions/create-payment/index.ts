@@ -74,10 +74,19 @@ serve(async (req) => {
 
       const { data: settings } = await supabaseAdmin
         .from("platform_settings")
-        .select("customer_fee_percent, helper_fee_percent, platform_fee_percent")
+        .select("customer_fee_percent, helper_fee_percent, platform_fee_percent, onboarding_fee_cents")
         .limit(1).single();
       const customerFeePercent = settings?.customer_fee_percent ?? 10;
       const helperFeePercent = settings?.helper_fee_percent ?? 10;
+      const onboardingFeeCents = settings?.onboarding_fee_cents ?? 200;
+
+      // Check if poster owes the one-time onboarding fee (first job post)
+      const { data: posterProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("onboarding_fee_paid")
+        .eq("user_id", user.id)
+        .single();
+      const owesOnboardingFee = !posterProfile?.onboarding_fee_paid && onboardingFeeCents > 0;
 
       // Customer service fee (added as a line item — taxable, platform revenue)
       const customerFeeAmount = (job.budget * customerFeePercent) / 100;
@@ -143,6 +152,22 @@ serve(async (req) => {
         });
       }
 
+      // One-time onboarding fee — first job post only (taxable platform revenue)
+      if (owesOnboardingFee) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "One-time Account Setup",
+              description: "One-time identity verification & account setup fee. Charged once per account.",
+              tax_code: "txcd_10103001",
+            },
+            unit_amount: onboardingFeeCents,
+          },
+          quantity: 1,
+        });
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_update: { address: 'auto' },
@@ -155,11 +180,12 @@ serve(async (req) => {
             customer_id: user.id,
             customer_fee_percent: String(customerFeePercent),
             helper_fee_percent: String(helperFeePercent),
+            onboarding_fee_charged: owesOnboardingFee ? "true" : "false",
           },
         },
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
         cancel_url: `${req.headers.get("origin")}/post-job`,
-        metadata: { job_id: jobId, customer_id: user.id },
+        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false" },
       });
 
       // Store both fee structures on the job

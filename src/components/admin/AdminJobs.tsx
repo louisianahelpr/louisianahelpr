@@ -94,7 +94,7 @@ const AdminJobs = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [filter, setFilter] = useState<"all" | "flagged">("all");
+  const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("all");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 

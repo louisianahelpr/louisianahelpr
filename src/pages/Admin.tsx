@@ -333,6 +333,7 @@ const Admin = () => {
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
+      case "geography": return <AdminParishActivity />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };

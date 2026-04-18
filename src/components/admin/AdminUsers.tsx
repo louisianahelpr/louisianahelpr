@@ -665,7 +665,9 @@ const AdminUsers = () => {
               <SelectItem value="all">All Issues</SelectItem>
               <SelectItem value="strikes">Has Strikes</SelectItem>
               <SelectItem value="failed_id">Failed/Flagged ID</SelectItem>
-              <SelectItem value="no_id">No ID Submitted</SelectItem>
+              {tab !== "approved" && (
+                <SelectItem value="no_id">No ID Submitted</SelectItem>
+              )}
             </SelectContent>
           </Select>
           <Select value={parishFilter} onValueChange={setParishFilter}>

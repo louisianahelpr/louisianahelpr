@@ -4,7 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Crown, Star, TrendingUp, Sparkles, ExternalLink } from "lucide-react";
-import { formatName, getInitials } from "@/lib/utils";
+import { formatName } from "@/lib/utils";
+
+const getInitials = (name?: string | null) =>
+  (name || "?")
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 import { Link } from "react-router-dom";
 
 interface HelperTier {

@@ -29,10 +29,13 @@ const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
 const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
 const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
 const AdminSocialPost = lazy(() => import("@/components/admin/AdminSocialPost"));
+const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatches"));
+const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
+const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { cn } from "@/lib/utils";
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);

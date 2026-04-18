@@ -60,17 +60,8 @@ const Community = () => {
   const { user } = useCurrentUser();
 
   return (
-    <div className="min-h-screen bg-background pt-16">
-      {/* Header */}
-      {user ? (
-        <DashboardHeader />
-      ) : (
-        <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-          <div className="container mx-auto flex items-center h-16 px-4 gap-3">
-            <Link to="/" className="text-xl font-display font-bold text-primary">Helpr</Link>
-          </div>
-        </header>
-      )}
+    <div className="min-h-screen bg-background">
+      <PageHeader title="Community" />
 
       {/* Hero */}
       <section className="py-16 px-4 bg-gradient-to-b from-primary/8 to-background">

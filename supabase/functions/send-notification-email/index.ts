@@ -9,17 +9,27 @@ const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
 const SITE_URL = `https://${ROOT_DOMAIN}`
+const FROM_NAME = "The Helpr Team"
 
-const TYPE_TO_PREF: Record<string, string> = {
-  application: 'email_job_applications',
-  job_update: 'email_job_updates',
-  info: 'email_job_updates',
-  success: 'email_job_updates',
-  warning: 'email_system_alerts',
-  message: 'email_messages',
-  payment: 'email_payments',
-  review: 'email_reviews',
-  promotion: 'email_promotions',
+// Map notification "type" values to (a) the email pref column and (b) the
+// log category used for admin observability.
+const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
+  // New granular categories (used by triggers)
+  new_offers:        { prefCol: 'email_new_offers',       category: 'new_offers' },
+  transit_updates:   { prefCol: 'email_transit_updates',  category: 'transit_updates' },
+  work_status:       { prefCol: 'email_work_status',      category: 'work_status' },
+  financial_alerts:  { prefCol: 'email_financial_alerts', category: 'financial_alerts' },
+  // Legacy
+  application:       { prefCol: 'email_new_offers',       category: 'new_offers' },
+  job_update:        { prefCol: 'email_work_status',      category: 'work_status' },
+  job_match:         { prefCol: 'email_new_offers',       category: 'new_offers' },
+  info:              { prefCol: 'email_work_status',      category: 'work_status' },
+  success:           { prefCol: 'email_work_status',      category: 'work_status' },
+  warning:           { prefCol: 'email_system_alerts',    category: 'system' },
+  message:           { prefCol: 'email_messages',         category: 'messages' },
+  payment:           { prefCol: 'email_financial_alerts', category: 'financial_alerts' },
+  review:            { prefCol: 'email_reviews',          category: 'reviews' },
+  promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
 }
 
 async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
@@ -58,12 +68,13 @@ function renderNotificationEmail(title: string, message: string, link: string | 
   <a href="${actionUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     View Details
   </a>
-  <p style="font-size:12px;color:hsl(160,6%,65%);margin:32px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
+  <p style="font-size:14px;color:hsl(160,8%,30%);margin:28px 0 4px">— ${FROM_NAME}</p>
+  <p style="font-size:12px;color:hsl(160,6%,65%);margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
     You're receiving this because you enabled email notifications on ${ROOT_DOMAIN}. Manage your preferences in your profile settings.
   </p>
 </div></body></html>`
 
-  const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\nManage notifications: ${SITE_URL}/profile`
+  const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\n— ${FROM_NAME}\nManage notifications: ${SITE_URL}/profile`
   return { html, text }
 }
 
@@ -86,7 +97,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { notification_id, user_id, title, message, type, link } = await req.json()
+    const { notification_id, user_id, title, message, type, link, job_id } = await req.json()
 
     if (!user_id || !title || !message) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -95,8 +106,17 @@ Deno.serve(async (req) => {
       })
     }
 
-    const prefColumn = TYPE_TO_PREF[type] || 'email_system_alerts'
-    
+    const mapping = TYPE_MAP[type] || { prefCol: 'email_system_alerts', category: 'system' }
+    const prefColumn = mapping.prefCol
+    const category = mapping.category
+
+    const logSkip = async (status: string, reason: string) => {
+      await supabase.rpc('log_notification', {
+        _user_id: user_id, _category: category, _channel: 'email',
+        _status: status, _subject: title, _job_id: job_id ?? null, _error: reason, _message_id: null,
+      })
+    }
+
     const { data: prefs } = await supabase
       .from('notification_preferences')
       .select(prefColumn)
@@ -104,6 +124,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (!prefs || !(prefs as any)[prefColumn]) {
+      await logSkip('skipped', 'preference_off')
       return new Response(JSON.stringify({ skipped: true, reason: 'email_disabled' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -116,6 +137,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (!profile?.email) {
+      await logSkip('skipped', 'no_email')
       return new Response(JSON.stringify({ skipped: true, reason: 'no_email' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -128,6 +150,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (suppressed) {
+      await logSkip('suppressed', 'on_suppression_list')
       return new Response(JSON.stringify({ skipped: true, reason: 'suppressed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -136,44 +159,52 @@ Deno.serve(async (req) => {
     const { html, text } = renderNotificationEmail(title, message, link, profile.full_name || '')
     const messageId = crypto.randomUUID()
 
-    // Enqueue via pgmq for retry safety instead of sending directly
     const emailPayload = {
       to: profile.email,
-      from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+      from: `${FROM_NAME} <noreply@${SENDER_DOMAIN}>`,
       subject: title,
       html,
       text,
       message_id: messageId,
-      template_name: `notification_${type}`,
+      template_name: `notification_${category}`,
     }
 
     await supabase.from('email_send_log').insert({
       message_id: messageId,
-      template_name: `notification_${type}`,
+      template_name: `notification_${category}`,
       recipient_email: profile.email,
       status: 'pending',
     })
+
+    const recordLog = async (status: string, error?: string) => {
+      await supabase.rpc('log_notification', {
+        _user_id: user_id, _category: category, _channel: 'email',
+        _status: status, _subject: title, _job_id: job_id ?? null,
+        _error: error ?? null, _message_id: messageId,
+      })
+    }
 
     try {
       await supabase.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: emailPayload,
       })
+      await recordLog('sent')
       console.log(`Notification email enqueued for ${profile.email}: ${title}`)
     } catch (enqueueErr) {
       const errMsg = enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr)
       console.error('Failed to enqueue notification email, falling back to direct send:', errMsg)
 
-      // Fallback: send directly if queue fails
       try {
         await sendWithResend(resendApiKey, {
           to: profile.email,
-          from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+          from: `${FROM_NAME} <noreply@${SENDER_DOMAIN}>`,
           subject: title,
           html,
           text,
         })
         await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
+        await recordLog('sent', 'fallback_direct')
         console.log(`Notification email sent directly to ${profile.email}: ${title}`)
       } catch (sendErr) {
         const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
@@ -182,6 +213,7 @@ Deno.serve(async (req) => {
           status: 'failed',
           error_message: sendErrMsg,
         }).eq('message_id', messageId)
+        await recordLog('failed', sendErrMsg)
       }
     }
 
@@ -190,7 +222,7 @@ Deno.serve(async (req) => {
     })
   } catch (err) {
     console.error('Error:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

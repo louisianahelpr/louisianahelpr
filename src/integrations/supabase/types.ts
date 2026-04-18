@@ -1286,69 +1286,135 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          category: string
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          job_id: string | null
+          message_id: string | null
+          recipient_email: string | null
+          status: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_id?: string | null
+          message_id?: string | null
+          recipient_email?: string | null
+          status?: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_id?: string | null
+          message_id?: string | null
+          recipient_email?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
+          email_financial_alerts: boolean
           email_job_applications: boolean
           email_job_updates: boolean
           email_messages: boolean
+          email_new_offers: boolean
           email_payments: boolean
           email_promotions: boolean
           email_reviews: boolean
           email_system_alerts: boolean
+          email_transit_updates: boolean
+          email_work_status: boolean
+          financial_alerts: boolean
           id: string
           job_applications: boolean
           job_updates: boolean
           messages: boolean
+          new_offers: boolean
           payments: boolean
           promotions: boolean
           push_enabled: boolean
           reviews: boolean
           system_alerts: boolean
+          transit_updates: boolean
           updated_at: string
           user_id: string
+          work_status: boolean
         }
         Insert: {
           created_at?: string
+          email_financial_alerts?: boolean
           email_job_applications?: boolean
           email_job_updates?: boolean
           email_messages?: boolean
+          email_new_offers?: boolean
           email_payments?: boolean
           email_promotions?: boolean
           email_reviews?: boolean
           email_system_alerts?: boolean
+          email_transit_updates?: boolean
+          email_work_status?: boolean
+          financial_alerts?: boolean
           id?: string
           job_applications?: boolean
           job_updates?: boolean
           messages?: boolean
+          new_offers?: boolean
           payments?: boolean
           promotions?: boolean
           push_enabled?: boolean
           reviews?: boolean
           system_alerts?: boolean
+          transit_updates?: boolean
           updated_at?: string
           user_id: string
+          work_status?: boolean
         }
         Update: {
           created_at?: string
+          email_financial_alerts?: boolean
           email_job_applications?: boolean
           email_job_updates?: boolean
           email_messages?: boolean
+          email_new_offers?: boolean
           email_payments?: boolean
           email_promotions?: boolean
           email_reviews?: boolean
           email_system_alerts?: boolean
+          email_transit_updates?: boolean
+          email_work_status?: boolean
+          financial_alerts?: boolean
           id?: string
           job_applications?: boolean
           job_updates?: boolean
           messages?: boolean
+          new_offers?: boolean
           payments?: boolean
           promotions?: boolean
           push_enabled?: boolean
           reviews?: boolean
           system_alerts?: boolean
+          transit_updates?: boolean
           updated_at?: string
           user_id?: string
+          work_status?: boolean
         }
         Relationships: []
       }
@@ -2698,6 +2764,19 @@ export type Database = {
         Returns: boolean
       }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
+      log_notification: {
+        Args: {
+          _category: string
+          _channel: string
+          _error?: string
+          _job_id?: string
+          _message_id?: string
+          _status: string
+          _subject?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

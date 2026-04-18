@@ -1416,7 +1416,10 @@ export type Database = {
         Row: {
           customer_fee_percent: number
           helper_fee_percent: number
+          hybrid_idv_enabled: boolean
           id: string
+          idv_auto_approve_threshold: number
+          onboarding_fee_cents: number
           platform_fee_percent: number
           updated_at: string
           updated_by: string | null
@@ -1424,7 +1427,10 @@ export type Database = {
         Insert: {
           customer_fee_percent?: number
           helper_fee_percent?: number
+          hybrid_idv_enabled?: boolean
           id?: string
+          idv_auto_approve_threshold?: number
+          onboarding_fee_cents?: number
           platform_fee_percent?: number
           updated_at?: string
           updated_by?: string | null
@@ -1432,7 +1438,10 @@ export type Database = {
         Update: {
           customer_fee_percent?: number
           helper_fee_percent?: number
+          hybrid_idv_enabled?: boolean
           id?: string
+          idv_auto_approve_threshold?: number
+          onboarding_fee_cents?: number
           platform_fee_percent?: number
           updated_at?: string
           updated_by?: string | null
@@ -1464,11 +1473,19 @@ export type Database = {
           hourly_rate: number | null
           id: string
           id_document_url: string | null
+          idv_attempted_at: string | null
+          idv_confidence: number | null
+          idv_failure_reason: string | null
+          idv_session_id: string | null
+          idv_status: string | null
           job_radius: string | null
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
+          legacy_manual_review: boolean
           location: string | null
+          onboarding_fee_charged_at: string | null
+          onboarding_fee_paid: boolean
           parish: string | null
           phone: string | null
           portfolio_urls: string[] | null
@@ -1507,11 +1524,19 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          idv_attempted_at?: string | null
+          idv_confidence?: number | null
+          idv_failure_reason?: string | null
+          idv_session_id?: string | null
+          idv_status?: string | null
           job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
+          legacy_manual_review?: boolean
           location?: string | null
+          onboarding_fee_charged_at?: string | null
+          onboarding_fee_paid?: boolean
           parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
@@ -1550,11 +1575,19 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          idv_attempted_at?: string | null
+          idv_confidence?: number | null
+          idv_failure_reason?: string | null
+          idv_session_id?: string | null
+          idv_status?: string | null
           job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
+          legacy_manual_review?: boolean
           location?: string | null
+          onboarding_fee_charged_at?: string | null
+          onboarding_fee_paid?: boolean
           parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null

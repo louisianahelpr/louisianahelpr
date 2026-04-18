@@ -644,6 +644,23 @@ const Messages = () => {
         />
       )}
 
+      {blockTarget && (
+        <BlockUserDialog
+          open={!!blockTarget}
+          onClose={() => setBlockTarget(null)}
+          blockedUserId={blockTarget.id}
+          blockedUserName={blockTarget.name}
+          onBlocked={() => {
+            // Drop the conversation locally and exit chat view
+            setConversations((prev) => prev.filter((c) => c.otherUserId !== blockTarget.id));
+            if (activeConvo?.otherUserId === blockTarget.id) {
+              setActiveConvo(null);
+              navigate("/messages", { replace: true });
+            }
+          }}
+        />
+      )}
+
       {/* Delete conversation confirmation */}
       <AlertDialog open={!!deleteConvoConfirm} onOpenChange={() => setDeleteConvoConfirm(null)}>
         <AlertDialogContent>

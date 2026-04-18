@@ -672,17 +672,14 @@ export const PostedJobsTab = ({
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
                         <div className="flex flex-wrap gap-1.5">
                           {(app.attachment_urls || []).map((url, i) => {
-                            const filename = decodeURIComponent(url.split('/').pop() || `File ${i + 1}`);
                             const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-                            return isImage ? (
-                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                                <img src={url} alt={`Attachment ${i + 1}`} className="w-20 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
-                              </a>
-                            ) : (
-                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline bg-secondary/30 rounded-lg px-2.5 py-1.5">
-                                <FileText className="w-3.5 h-3.5" />
-                                <span className="truncate max-w-[120px]">{filename.length > 20 ? filename.slice(-20) : filename}</span>
-                              </a>
+                            return (
+                              <AttachmentLink
+                                key={i}
+                                url={url}
+                                index={i}
+                                variant={isImage ? "thumb" : "chip"}
+                              />
                             );
                           })}
                         </div>

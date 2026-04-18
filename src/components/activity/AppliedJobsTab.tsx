@@ -11,6 +11,7 @@ import {
   Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
   Navigation as NavigationIcon, Send, XCircle, Paperclip, FileText, Trash2, ExternalLink, Pencil, Check, X,
 } from "lucide-react";
+import { AttachmentLink } from "@/components/AttachmentLink";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -339,16 +340,16 @@ export const AppliedJobsTab = ({
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Your Attachments</p>
                   {(app.attachment_urls || []).map((url, i) => {
-                    const filename = decodeURIComponent(url.split('/').pop() || `File ${i + 1}`);
+                    const last = url.split('/').pop() || `File ${i + 1}`;
+                    let filename = last;
+                    try { filename = decodeURIComponent(last); } catch {}
                     return (
                       <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
                         <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="truncate flex-1 text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                        <span className="truncate flex-1 text-foreground">
                           {filename.length > 30 ? filename.slice(-30) : filename}
-                        </a>
-                        <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                          <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                        </a>
+                        </span>
+                        <AttachmentLink url={url} index={i} variant="chip" className="!px-1.5 !py-0.5" />
                         <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }} className="text-destructive hover:text-destructive/80">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

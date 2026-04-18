@@ -105,6 +105,8 @@ const ProfilePage = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [parish, setParish] = useState<string | null>(null);
   const [bio, setBio] = useState("");
   const [skills, setSkills] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");

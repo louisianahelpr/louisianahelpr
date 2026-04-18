@@ -9,9 +9,7 @@ import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { DENIAL_REASONS, type DenialReasonKey } from "@/lib/denialReasons";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface IDVProfile {
   user_id: string;
@@ -40,11 +38,6 @@ const AdminIDVQueue = () => {
   const [activeTab, setActiveTab] = useState<string>("manual_review");
   const [actioning, setActioning] = useState<string | null>(null);
   const [selected, setSelected] = useState<IDVProfile | null>(null);
-
-  // Denial dialog
-  const [denyTarget, setDenyTarget] = useState<IDVProfile | null>(null);
-  const [denyReasonKey, setDenyReasonKey] = useState<DenialReasonKey | "custom" | null>(null);
-  const [customReason, setCustomReason] = useState("");
 
   // Settings
   const [hybridEnabled, setHybridEnabled] = useState(false);
@@ -130,8 +123,8 @@ const AdminIDVQueue = () => {
     // In-app notification (auto-fires browser push via useRealtimePush)
     await supabase.from("notifications").insert({
       user_id: p.user_id,
-      title: "✅ Account verified by Helpr Safety Team",
-      message: "The account has been verified by the Helpr Safety Team and is cleared to start using Helpr.",
+      title: "✅ Verification Successful",
+      message: "An admin verified your identity. You're cleared to start using Helpr!",
       type: "success",
       link: "/dashboard",
     } as any);
@@ -152,88 +145,24 @@ const AdminIDVQueue = () => {
     load();
   };
 
-  const openDenyDialog = (p: IDVProfile) => {
-    setDenyTarget(p);
-    setDenyReasonKey(null);
-    setCustomReason("");
-  };
-
-  const confirmDeny = async () => {
-    if (!denyTarget || !denyReasonKey) return;
-
-    let reasonKey: string;
-    let userMessage: string;
-    let canRetry: boolean;
-
-    if (denyReasonKey === "custom") {
-      if (!customReason.trim() || customReason.trim().length < 10) {
-        toast.error("Custom reason must be at least 10 characters");
-        return;
-      }
-      reasonKey = "custom";
-      userMessage = customReason.trim();
-      canRetry = true;
-    } else {
-      const meta = DENIAL_REASONS.find((r) => r.key === denyReasonKey);
-      if (!meta) return;
-      reasonKey = meta.key;
-      userMessage = meta.userMessage;
-      canRetry = meta.canRetry;
-    }
-
-    setActioning(denyTarget.user_id);
+  const denyUser = async (p: IDVProfile) => {
+    setActioning(p.user_id);
     const { error } = await supabase
       .from("profiles")
       .update({
         idv_status: "failed",
         approval_status: "denied",
-        denial_reason: `[${reasonKey}] ${userMessage}`,
-        idv_failure_reason: userMessage,
+        denial_reason: "Identity verification could not be confirmed.",
       } as any)
-      .eq("user_id", denyTarget.user_id);
-
-    if (error) {
-      setActioning(null);
-      toast.error(error.message);
-      return;
-    }
-
-    // In-app notification with the specific reason
-    await supabase.from("notifications").insert({
-      user_id: denyTarget.user_id,
-      title: canRetry ? "⚠️ Verification needs another try" : "Account update",
-      message: userMessage,
-      type: "warning",
-      link: "/account-pending",
-    } as any);
-
-    // Branded denial email with reason + Try Again CTA
-    try {
-      await supabase.functions.invoke("send-account-status-email", {
-        body: {
-          userId: denyTarget.user_id,
-          status: "denied",
-          reason: userMessage,
-          canRetry,
-        },
-      });
-    } catch (e) {
-      console.error("Denial email dispatch failed:", e);
-    }
-
-    await logAdminAction("idv_manual_deny", "user", denyTarget.user_id, {
-      previous_status: denyTarget.idv_status,
-      reason_key: reasonKey,
-      can_retry: canRetry,
-    });
-
+      .eq("user_id", p.user_id);
     setActioning(null);
-    toast.success(`${formatName(denyTarget.full_name)} denied`);
-    setDenyTarget(null);
-    setDenyReasonKey(null);
-    setCustomReason("");
-    setSelected(null);
-    load();
+    if (error) toast.error(error.message);
+    else {
+      toast.success(`${formatName(p.full_name)} denied`);
+      await logAdminAction("idv_manual_deny", "user", p.user_id, { previous_status: p.idv_status });
+      setSelected(null);
+      load();
+    }
   };
 
   return (
@@ -361,7 +290,7 @@ const AdminIDVQueue = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => openDenyDialog(p)}
+                        onClick={() => denyUser(p)}
                         disabled={actioning === p.user_id}
                       >
                         Deny
@@ -393,88 +322,6 @@ const AdminIDVQueue = () => {
               <Row label="Legacy manual review" value={selected.legacy_manual_review ? "Yes" : "No"} />
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Reason-picker denial dialog */}
-      <Dialog
-        open={!!denyTarget}
-        onOpenChange={(o) => {
-          if (!o) {
-            setDenyTarget(null);
-            setDenyReasonKey(null);
-            setCustomReason("");
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Deny {formatName(denyTarget?.full_name, "user")}</DialogTitle>
-            <DialogDescription>
-              Pick a reason. The user will see this exact message and (when applicable) a "Try Again" button.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            {DENIAL_REASONS.map((r) => (
-              <button
-                key={r.key}
-                type="button"
-                onClick={() => setDenyReasonKey(r.key)}
-                className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                  denyReasonKey === r.key
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-foreground">{r.label}</p>
-                  {r.canRetry ? (
-                    <Badge variant="secondary" className="text-[10px]">Retryable</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px]">Final</Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 leading-snug">{r.userMessage}</p>
-              </button>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setDenyReasonKey("custom")}
-              className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                denyReasonKey === "custom"
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              <p className="text-sm font-semibold text-foreground">Custom reason…</p>
-              <p className="text-xs text-muted-foreground mt-1">Write your own message to the user.</p>
-            </button>
-
-            {denyReasonKey === "custom" && (
-              <Textarea
-                value={customReason}
-                onChange={(e) => setCustomReason(e.target.value)}
-                placeholder="Explain how the user can fix this…"
-                rows={3}
-                className="mt-2"
-              />
-            )}
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setDenyTarget(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeny}
-              disabled={!denyReasonKey || actioning === denyTarget?.user_id}
-            >
-              {actioning === denyTarget?.user_id ? "Denying…" : "Deny & Notify User"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -14,20 +14,13 @@ const AccountDenied = () => {
       if (!session?.user) { navigate("/login"); return; }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status, denial_reason, idv_failure_reason")
+        .select("approval_status, denial_reason")
         .eq("user_id", session.user.id)
         .single();
       if (!profile) return;
       if (profile.approval_status === "approved") navigate("/dashboard");
       if (profile.approval_status === "pending") navigate("/account-pending");
-      // If denial reason is retryable, bounce them to the Fix-It UI
-      const key = profile.denial_reason?.match(/^\[([a-z_]+)\]/i)?.[1];
-      if (key && key !== "out_of_area" && key !== "custom") {
-        navigate("/account-pending");
-        return;
-      }
-      const raw = profile.idv_failure_reason || profile.denial_reason || "";
-      setDenyReason(raw.replace(/^\[[a-z_]+\]\s*/i, ""));
+      if (profile.denial_reason) setDenyReason(profile.denial_reason);
     };
     check();
   }, [navigate]);

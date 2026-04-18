@@ -65,12 +65,12 @@ const AdminReviews = () => {
       // Notify the user
       await supabase.from("notifications").insert({
         user_id: userId,
-        title: status === "approved" ? "Account verified by Helpr Safety Team" : "Account not approved",
+        title: status === "approved" ? "Account approved! 🎉" : "Account not approved",
         message: status === "approved"
-          ? "The account has been verified by the Helpr Safety Team and is cleared to use the platform."
+          ? "Your account has been approved. You can now use the platform."
           : reason
-            ? `The account was not approved by Helpr Trust & Safety. Reason: ${reason}`
-            : "The account was not approved by Helpr Trust & Safety. Please contact support for details.",
+            ? `Your account was not approved. Reason: ${reason}`
+            : "Your account was not approved. Please contact support for details.",
         type: status === "approved" ? "success" : "warning",
         link: status === "approved" ? "/dashboard" : "/profile",
       });

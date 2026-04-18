@@ -27,16 +27,11 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are a social media copywriter for Louisiana Helpr — a faceless, trustworthy local services marketplace. Speak as "the Helpr Team," never in first person. Output only the post text — no labels, no quotes, no commentary.
-
-Every post must follow this 3-rule arc:
-1. EMPATHY FIRST — open with a real Louisiana problem (heat, storms, back-to-school, long work shifts, weekend chores).
-2. SHARED LOCAL PRIDE — name a specific parish or town (Vermilion, Iberia, Lafayette, Acadia, Erath, Abbeville, New Iberia, Crowley, Lake Charles, Kaplan).
-3. SAFETY FOCUS — remind readers the Helpr Trust & Safety Team vets every helper (ID verification, manual review, escrow-held funds).`,
+              content: "You are a social media copywriter for Louisiana Helpr, a local app that connects people with nearby help for small jobs and tasks. You only output the post text, nothing else — no labels, no quotes, no extra commentary.",
             },
             {
               role: "user",
-              content: "Write a Facebook post for Louisiana Helpr following the Empathy → Local Pride → Safety arc.\n\n- Warm, Southern, professional tone\n- Under 100 words\n- 0–1 emoji max\n- No hashtags\n- End with a soft CTA and www.louisianahelpr.com",
+              content: "Write a Facebook post for Louisiana Helpr.\n\nMake it:\n- catchy hook\n- relatable\n- short (under 100 words)\n- include 1–2 emojis\n- end with a call to action\n\nTone: friendly, local, slightly casual",
             },
           ],
         }),

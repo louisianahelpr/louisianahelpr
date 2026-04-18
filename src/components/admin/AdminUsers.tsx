@@ -117,8 +117,8 @@ const AdminUsers = () => {
       toast.success(`${formatName(profile.full_name)} approved!`);
       await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
       await createNotification({
-        user_id: profile.user_id, title: "Account verified by Helpr Safety Team",
-        message: "The user's account has been verified by the Helpr Safety Team and is cleared to use the platform.",
+        user_id: profile.user_id, title: "Account approved!",
+        message: "Your account has been approved. You can now use the platform.",
         type: "success", link: "/dashboard",
       });
       // Send approval email
@@ -544,7 +544,7 @@ const AdminUsers = () => {
                     </Button>
                   )}
                   <div className="mt-1">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Professional Summary</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bio</p>
                     <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
                       {viewProfile.bio || "Not provided"}
                     </p>

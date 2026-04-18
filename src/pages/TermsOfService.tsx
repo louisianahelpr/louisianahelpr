@@ -37,7 +37,7 @@ const TermsOfService = () => {
               <p>By accessing or using the Helpr platform ("Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
               <p><strong className="text-foreground">Eligibility:</strong> You must be at least 18 years old to use Helpr. Age verification is mandatory during signup. By creating an account, you represent that you meet this requirement.</p>
               <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account credentials and all activity that occurs under your account.</p>
-              <p><strong className="text-foreground">Account Approval:</strong> All new accounts are subject to review by the Helpr Trust & Safety Team. Your account will remain in a pending state until approved. Denied accounts will receive an explanation and may reapply.</p>
+              <p><strong className="text-foreground">Account Approval:</strong> All new accounts are subject to review. Your account will remain in a pending state until approved by our team. Denied accounts will receive an explanation and may reapply.</p>
               <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helpr, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
               <p><strong className="text-foreground">Dispute Resolution:</strong> All disputes follow a mandatory 3-step process: (1) Request a revision, (2) File a formal dispute with a 72-hour resolution window, (3) Escalate to admin for a final decision. If you file a dispute and do not resolve or escalate within 72 hours, payment is automatically released to the helpr. Filing false disputes to avoid payment is grounds for immediate permanent ban. Full details are in our <a href="/rules" className="text-primary hover:underline">Platform Rules</a>.</p>
               <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, discrimination, off-platform payment solicitation, or any conduct that violates the rights of others.</p>
@@ -198,7 +198,7 @@ const TermsOfService = () => {
                   <li>Missing GPS check-ins</li>
                   <li>Repeated disputes on a single helpr account</li>
                 </ul>
-                <p className="mt-1">Flagged activities are reviewed by the Helpr Trust & Safety Team.</p>
+                <p className="mt-1">Flagged activities are reviewed by our admin team.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Dispute System</p>
@@ -220,7 +220,7 @@ const TermsOfService = () => {
               <p><strong className="text-foreground">Timeliness:</strong> Show up on time and communicate promptly. If you can't make a commitment, cancel with advance notice to avoid fees.</p>
               <p><strong className="text-foreground">Quality:</strong> Complete tasks to the standard described in the job posting. Upload before/after photos as required.</p>
               <p><strong className="text-foreground">On-Platform Payments Only:</strong> All payments must go through the Helpr platform. Attempting to arrange off-platform payments will result in account suspension.</p>
-              <p><strong className="text-foreground">Reporting:</strong> Report any suspicious, inappropriate, or unsafe behavior using the report feature. All reports are reviewed by Helpr Trust & Safety.</p>
+              <p><strong className="text-foreground">Reporting:</strong> Report any suspicious, inappropriate, or unsafe behavior using the report feature. All reports are reviewed by our team.</p>
             </div>
           </section>
 

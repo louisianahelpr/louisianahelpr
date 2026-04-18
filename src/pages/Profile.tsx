@@ -660,14 +660,20 @@ const ProfilePage = () => {
                   </div>
                 </div>
 
-                {/* About Card */}
+                {/* Professional Summary Card */}
                 <div className="rounded-xl border border-border bg-card p-5 space-y-4">
                   <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-primary" /> About & Skills
+                    <Briefcase className="w-4 h-4 text-primary" /> Professional Summary
                   </h2>
                   <div className="space-y-1.5">
-                    <Label htmlFor="bio" className="text-xs">About you</Label>
-                    <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell people about yourself…" rows={3} />
+                    <Label htmlFor="bio" className="text-xs">About your work</Label>
+                    <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Share your experience, what you specialize in, and what makes you reliable…" rows={4} />
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">
+                      <p className="text-[11px] font-semibold text-primary uppercase tracking-wide mb-0.5">💡 Pro Tip</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Mention the <span className="font-medium text-foreground">tools and equipment</span> you bring (mower, pressure washer, truck, cleaning supplies). Posters trust helpers who come prepared.
+                      </p>
+                    </div>
                   </div>
                   {role === "helper" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -682,6 +688,41 @@ const ProfilePage = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Safety & Verification Card — helpers only */}
+                {role === "helper" && (() => {
+                  const status = (profile as any)?.idv_status as string | null;
+                  const config = status === "verified"
+                    ? { label: "Verified", desc: "Your identity has been confirmed. Posters can see your verified badge.", color: "text-green-600 dark:text-green-500", bg: "bg-green-500/10", border: "border-green-500/30", dot: "bg-green-500", pulse: false }
+                    : (status === "pending" || status === "processing" || status === "manual_review")
+                    ? { label: "Pending", desc: "We're reviewing your ID. This usually takes under 2 minutes, but may take up to 1–2 business days for manual review.", color: "text-amber-600 dark:text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/30", dot: "bg-amber-500", pulse: true }
+                    : status === "failed"
+                    ? { label: "Action Needed", desc: "We couldn't verify your ID. Please re-submit a clear photo of a valid government-issued ID.", color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/30", dot: "bg-destructive", pulse: false }
+                    : { label: "Not Started", desc: "Verify your identity to unlock job applications and earn the verified badge.", color: "text-muted-foreground", bg: "bg-muted", border: "border-border", dot: "bg-muted-foreground", pulse: false };
+                  return (
+                    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                      <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-primary" /> Safety & Verification
+                      </h2>
+                      <div className={`rounded-lg ${config.bg} border ${config.border} p-3 flex items-start gap-3`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${config.dot} mt-1.5 shrink-0 ${config.pulse ? "animate-pulse" : ""}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold flex items-center flex-wrap gap-2">
+                            <span className="text-foreground">ID Verification</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${config.bg} ${config.color} font-medium`}>{config.label}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{config.desc}</p>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 border border-border p-3 flex items-start gap-2">
+                        <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          <span className="font-medium text-foreground">Your privacy is protected.</span> Sensitive ID documents are encrypted and processed by <span className="font-medium text-foreground">Stripe Identity</span> — Helpr never stores or sees your raw ID images.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Portfolio Card — Pro+ only */}
                 <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -770,9 +811,18 @@ const ProfilePage = () => {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={saving}>
-                  {saving ? "Saving…" : "Save profile"}
-                </Button>
+
+                {/* Spacer so content isn't hidden behind sticky bar */}
+                <div className="h-20" aria-hidden="true" />
+
+                {/* Sticky Save bar */}
+                <div className="sticky bottom-16 sm:bottom-4 left-0 right-0 -mx-4 sm:mx-0 px-4 sm:px-0 z-30 pointer-events-none">
+                  <div className="pointer-events-auto rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3">
+                    <Button type="submit" className="w-full" size="lg" disabled={saving}>
+                      {saving ? "Saving…" : "Save Changes"}
+                    </Button>
+                  </div>
+                </div>
               </form>
             </div>
           )}

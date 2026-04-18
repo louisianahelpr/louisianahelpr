@@ -289,26 +289,14 @@ serve(async (req) => {
         .eq("role", "admin");
 
       if (admins?.length) {
-        // Format name as "First L." for privacy-respecting admin alerts
-        const fullName = (profile?.full_name || "").trim();
-        let displayName = "A new user";
-        if (fullName) {
-          const parts = fullName.split(/\s+/);
-          const first = parts[0];
-          const lastInitial = parts.length > 1 ? `${parts[parts.length - 1][0].toUpperCase()}.` : "";
-          displayName = lastInitial ? `${first} ${lastInitial}` : first;
-        }
-
-        // Extract just the city (first comma-separated segment) from location
-        const rawLocation = (profile?.location || "").trim();
-        const city = rawLocation ? rawLocation.split(",")[0].trim() : "";
-        const userLocation = city ? ` from ${city}` : "";
+        const userName = profile?.full_name || "Someone";
+        const userLocation = profile?.location ? ` from ${profile.location}` : "";
         const userRole = profile?.role || "user";
 
         const adminNotifs = admins.map((admin: { user_id: string }) => ({
           user_id: admin.user_id,
           title: "👤 New signup pending review",
-          message: `New signup pending review: ${displayName}${userLocation} just signed up as a ${userRole}. Tap to review their profile.`,
+          message: `${userName}${userLocation} just signed up as a ${userRole}. Tap to review their profile.`,
           type: "info",
           link: "/admin",
         }));

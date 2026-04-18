@@ -499,7 +499,7 @@ const Signup = () => {
               <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
-                placeholder="Briefly describe your experience or the types of tasks you're looking to help with (e.g., 'Experienced in yard work and minor repairs')."
+                placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
+import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import IdentityVerificationStep from "@/components/IdentityVerificationStep";
-import { getDenialReason } from "@/lib/denialReasons";
 
 const AccountPending = () => {
   const navigate = useNavigate();
@@ -15,9 +13,6 @@ const AccountPending = () => {
   const [resending, setResending] = useState(false);
   const [idvStatus, setIdvStatus] = useState<string | null>(null);
   const [legacyManual, setLegacyManual] = useState(false);
-  const [denialReason, setDenialReason] = useState<string | null>(null);
-  const [showRetry, setShowRetry] = useState(false);
-  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -30,29 +25,15 @@ const AccountPending = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status, full_name, idv_status, legacy_manual_review, denial_reason, idv_failure_reason")
+        .select("approval_status, full_name, idv_status, legacy_manual_review")
         .eq("user_id", session.user.id)
         .single();
       if (!profile) return;
       setFullName(profile.full_name || "");
       setIdvStatus(profile.idv_status || null);
       setLegacyManual(!!profile.legacy_manual_review);
-      // Prefer the friendly idv_failure_reason; fall back to denial_reason
-      const rawReason = profile.idv_failure_reason || profile.denial_reason || null;
-      const cleaned = rawReason ? rawReason.replace(/^\[[a-z_]+\]\s*/i, "") : null;
-      setDenialReason(cleaned);
-      // If admin/webhook flagged as failed/denied with a retryable reason, surface the Try Again UI
-      const reasonKey = profile.denial_reason?.match(/^\[([a-z_]+)\]/i)?.[1];
-      const meta = getDenialReason(reasonKey);
-      const isFailed = profile.idv_status === "failed" || profile.approval_status === "denied";
-      setShowRetry(isFailed && (meta?.canRetry ?? true));
-
       if (profile.approval_status === "approved") navigate("/dashboard");
-      // Stay on this page when denied-but-retryable so user can fix it.
-      // Only bounce to /account-denied for hard, non-retryable denials.
-      if (profile.approval_status === "denied" && meta && !meta.canRetry) {
-        navigate("/account-denied");
-      }
+      if (profile.approval_status === "denied") navigate("/account-denied");
     };
 
     check();
@@ -72,9 +53,11 @@ const AccountPending = () => {
             table: "profiles",
             filter: `user_id=eq.${session.user.id}`,
           },
-          () => {
-            // Re-run check so we honor retryable vs final denial logic
-            check();
+          (payload) => {
+            const next = payload.new as { approval_status?: string; idv_status?: string };
+            if (next.idv_status) setIdvStatus(next.idv_status);
+            if (next.approval_status === "approved") navigate("/dashboard");
+            else if (next.approval_status === "denied") navigate("/account-denied");
           }
         )
         .subscribe();
@@ -108,22 +91,6 @@ const AccountPending = () => {
     }
   };
 
-  const handleTryAgain = async () => {
-    setResetting(true);
-    try {
-      const { error } = await supabase.functions.invoke("reset-idv-attempt");
-      if (error) throw new Error(error.message || "Could not reset verification");
-      toast.success("Reset! Launching a fresh verification…");
-      setShowRetry(false);
-      setIdvStatus("not_started");
-      setDenialReason(null);
-    } catch (e: any) {
-      toast.error(e.message || "Could not reset. Please contact support.");
-    } finally {
-      setResetting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md text-center space-y-8">
@@ -132,67 +99,20 @@ const AccountPending = () => {
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-8 space-y-6">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
-            showRetry ? "bg-amber-500/15" : "bg-amber-500/10"
-          }`}>
-            {showRetry ? (
-              <AlertTriangle className="w-8 h-8 text-amber-500" />
-            ) : (
-              <Clock className="w-8 h-8 text-amber-500" />
-            )}
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+            <Clock className="w-8 h-8 text-amber-500" />
           </div>
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">
-              {showRetry
-                ? "Almost there — let's try again"
-                : fullName ? `Hey ${fullName.split(" ")[0]}!` : "Almost there!"}
+              {fullName ? `Hey ${fullName.split(" ")[0]}!` : "Almost there!"}
             </h1>
             <p className="text-muted-foreground">
-              {showRetry
-                ? "We weren't quite able to verify your identity, but it's an easy fix."
-                : emailVerified
-                  ? "Your email is verified ✓ Your account is now under review by Helpr Trust & Safety."
-                  : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by Helpr Trust & Safety."}
+              {emailVerified 
+                ? "Your email is verified ✓ Your account is now in a manual safety review by the Helpr Trust & Safety Team. This usually takes 1–2 business days."
+                : "Your email has not been verified yet. Please check your inbox and click the verification link. Once verified, the Helpr Trust & Safety Team will manually review your account (usually within 1–2 business days)."}
             </p>
           </div>
-
-          {/* Fix-It panel — yellow nudge with the specific reason + Try Again CTA */}
-          {showRetry && denialReason && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-left space-y-3">
-              <div className="flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
-                    Here's how to fix it
-                  </p>
-                  <p className="text-sm text-foreground leading-relaxed">{denialReason}</p>
-                </div>
-              </div>
-              <Button
-                onClick={handleTryAgain}
-                disabled={resetting}
-                className="w-full"
-                size="lg"
-              >
-                {resetting ? (
-                  <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Resetting…</>
-                ) : (
-                  <><RefreshCw className="w-4 h-4 mr-2" /> Try Verification Again</>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* Inline IDV launcher (after a successful retry-reset, idv_status is back to not_started) */}
-          {!showRetry && emailVerified && (idvStatus === "not_started" || idvStatus === null) && !legacyManual && (
-            <IdentityVerificationStep
-              onComplete={(s) => {
-                setIdvStatus(s === "verified" ? "verified" : s);
-              }}
-              onFallbackToManual={() => { /* no-op: manual fallback handled in signup */ }}
-            />
-          )}
 
           {!emailVerified && userEmail && (
             <Button
@@ -242,8 +162,8 @@ const AccountPending = () => {
                 <ShieldCheck className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Profile review</p>
-                <p className="text-xs text-muted-foreground">Our team is reviewing your profile details. This usually takes 24–48 hours.</p>
+                <p className="text-sm font-medium text-foreground">Manual safety review</p>
+                <p className="text-xs text-muted-foreground">The Helpr Trust & Safety Team is personally reviewing your profile details. This usually takes 1–2 business days.</p>
               </div>
             </div>
 

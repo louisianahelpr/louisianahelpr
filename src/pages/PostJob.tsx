@@ -755,10 +755,6 @@ const PostJob = () => {
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget ($) <span className="text-destructive">*</span></Label>
                     <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
-                    <div className="flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-foreground">
-                      <Shield className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                      <span>Funds are held securely in escrow and only released once you confirm the job is done to your satisfaction.</span>
-                    </div>
                     {suggested && (
                       <p className="text-xs text-muted-foreground">
                         💡 Suggested: <span className="font-medium text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs

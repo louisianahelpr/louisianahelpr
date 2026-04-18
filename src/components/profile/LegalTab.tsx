@@ -5,8 +5,8 @@ import {
   Crown, XCircle, AlertTriangle, Ban, Scale, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 
-const LegalCard = forwardRef<HTMLDivElement, { icon: React.ReactNode; title: string; children: React.ReactNode; variant?: "warning"; defaultOpen?: boolean }>(({ icon, title, children, variant, defaultOpen = false }, ref) => {
-  const [open, setOpen] = useState(defaultOpen);
+const LegalCard = forwardRef<HTMLDivElement, { icon: React.ReactNode; title: string; children: React.ReactNode; variant?: "warning" }>(({ icon, title, children, variant }, ref) => {
+  const [open, setOpen] = useState(false);
   return (
     <div ref={ref} className={`rounded-xl border p-4 transition-colors ${variant === "warning" ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}>
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-2 text-left">
@@ -167,7 +167,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
           </LegalCard>
           <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
-            <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by Helpr Trust & Safety within 48 hours. Both parties can submit evidence.</p>
+            <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
             <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
             <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
           </LegalCard>
@@ -176,10 +176,10 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
             <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster).</p>
           </LegalCard>
-          <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Safety & Verification" defaultOpen>
+          <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Safety & Verification">
             <p><strong className="text-foreground">Age Verification:</strong> All users must be 18+ to use Helpr.</p>
-            <p><strong className="text-foreground">ID Verification Required:</strong> Helpers are ID-verified through Stripe. The Helpr Trust & Safety Team only sees a "Verified" or "Denied" status — never your full government ID.</p>
-            <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location to start a task.</p>
+            <p><strong className="text-foreground">ID Verification:</strong> Helpers must upload a valid government-issued ID.</p>
+            <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location.</p>
           </LegalCard>
         </div>
       </div>

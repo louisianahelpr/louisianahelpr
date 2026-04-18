@@ -836,15 +836,7 @@ const PostJob = () => {
 
           {step === "checkout" && (
             <>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => setStep("form")} className="rounded-xl h-9 w-9 shrink-0">
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <h1 className="text-3xl font-display font-bold text-foreground">Order Summary</h1>
-                </div>
-                <p className="text-muted-foreground mt-1 ml-11">Review your task before paying</p>
-              </div>
+              <p className="text-muted-foreground text-sm">Review your task before paying</p>
 
               {/* Task Details Card */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden">

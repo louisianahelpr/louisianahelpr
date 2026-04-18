@@ -527,6 +527,24 @@ const Messages = () => {
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{activeConvo.jobTitle}</p>
                 </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+                      aria-label="Conversation options"
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}>
+                      <Flag className="w-4 h-4 mr-2" /> Report user
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}>
+                      <Ban className="w-4 h-4 mr-2" /> Block user
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               {/* Community rules banner */}
               {!bannerDismissed && (

@@ -913,6 +913,7 @@ export type Database = {
           review_reminder_sent: boolean
           revision_acceptance_deadline: string | null
           revision_completed_at: string | null
+          revision_count: number
           revision_deadline: string | null
           revision_note: string | null
           revision_requested_at: string | null
@@ -993,6 +994,7 @@ export type Database = {
           review_reminder_sent?: boolean
           revision_acceptance_deadline?: string | null
           revision_completed_at?: string | null
+          revision_count?: number
           revision_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null
@@ -1073,6 +1075,7 @@ export type Database = {
           review_reminder_sent?: boolean
           revision_acceptance_deadline?: string | null
           revision_completed_at?: string | null
+          revision_count?: number
           revision_deadline?: string | null
           revision_note?: string | null
           revision_requested_at?: string | null

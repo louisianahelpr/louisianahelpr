@@ -8,7 +8,7 @@ import {
   LogOut, Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, Activity,
-  ArrowLeft, X,
+  ArrowLeft, X, Banknote, MapPin, Award,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -70,6 +70,9 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { id: "subscriptions", label: "Subscriptions", icon: Crown },
       { id: "referrals", label: "Referrals", icon: Gift },
+      { id: "payouts", label: "Payout Batches", icon: Banknote },
+      { id: "parishtax", label: "Parish Tax", icon: MapPin },
+      { id: "tiers", label: "Helper Tiers", icon: Award },
     ],
   },
   {
@@ -227,6 +230,7 @@ const Admin = () => {
     notifications: "Notifications", reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
+    payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
   };
 
   const renderContent = () => {
@@ -247,6 +251,9 @@ const Admin = () => {
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
       case "social": return <AdminSocialPost />;
+      case "payouts": return <AdminPayoutBatches />;
+      case "parishtax": return <AdminParishTaxRates />;
+      case "tiers": return <AdminHelperTiers />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} getBadge={getBadge} getBadgeColor={getBadgeColor} />;
     }
   };

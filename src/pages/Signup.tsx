@@ -23,7 +23,10 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
 
   // Step 1 fields
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+  const [skillSearch, setSkillSearch] = useState("");
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -123,8 +126,17 @@ const Signup = () => {
     );
   };
 
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 10);
+    if (digits.length === 0) return "";
+    if (digits.length < 4) return `(${digits}`;
+    if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
   const validateStep1 = async () => {
-    if (!fullName.trim()) { toast.error("Full name is required"); return false; }
+    if (!firstName.trim()) { toast.error("First name is required"); return false; }
+    if (!lastName.trim()) { toast.error("Last name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
@@ -322,10 +334,12 @@ const Signup = () => {
 
 
   const totalSteps = 4;
+  const inputCls = "rounded-xl";
+  const labelCls = "text-base font-medium";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-start sm:items-center justify-center bg-background px-4 py-8 sm:py-12">
+      <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
         <div className="text-center">
           <div className="relative">
             <Link to="/" className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
@@ -334,36 +348,44 @@ const Signup = () => {
             <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
           </div>
           <p className="mt-2 text-muted-foreground">Create your account</p>
-          <div className="flex items-center justify-center gap-2 mt-4">
-            {[1, 2, 3, 4].map((s) => (
+
+          {/* Progress bar */}
+          <div className="mt-5 space-y-2">
+            <div className="h-2 w-full rounded-full bg-border overflow-hidden">
               <div
-                key={s}
-                className={`h-2 rounded-full transition-all ${
-                  s === step ? "w-8 bg-primary" : s < step ? "w-8 bg-primary/40" : "w-8 bg-border"
-                }`}
+                className="h-full bg-primary transition-all duration-500 ease-out"
+                style={{ width: `${(step / totalSteps) * 100}%` }}
               />
-            ))}
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Step {step} of {totalSteps}</span>
+              <span>
+                {step === 1 ? "Account details" : step === 2 ? "Your profile" : step === 3 ? "Portfolio & docs" : "Verify identity"}
+              </span>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Step {step} of {totalSteps}:{" "}
-            {step === 1 ? "Account details" : step === 2 ? "Your profile" : step === 3 ? "Portfolio & docs" : "Verify identity"}
-          </p>
         </div>
 
         {/* Step 1: Account basics */}
         {step === 1 && (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full name <span className="text-destructive">*</span></Label>
-              <Input id="name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
+                <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required autoComplete="given-name" className={inputCls} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className={labelCls}>Last name <span className="text-destructive">*</span></Label>
+                <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required autoComplete="family-name" className={inputCls} />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+              <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
+              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmEmail">Confirm email <span className="text-destructive">*</span></Label>
-              <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required />
+              <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
+              <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required className={inputCls} />
               {confirmEmail && (
                 <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
                   {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
@@ -371,18 +393,18 @@ const Signup = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+              <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="pr-10" autoComplete="new-password" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm password <span className="text-destructive">*</span></Label>
+              <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="pr-10" autoComplete="new-password" />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -394,17 +416,28 @@ const Signup = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dob">Date of birth <span className="text-destructive text-xs">*</span></Label>
-              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} />
+              <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
+              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
               <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone number <span className="text-destructive text-xs">*</span></Label>
-              <Input id="phone" type="tel" placeholder="(555) 123-4567" value={phone} onChange={(e) => setPhone(e.target.value)} required autoComplete="tel" />
+              <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                placeholder="(555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                required
+                autoComplete="tel"
+                maxLength={14}
+                className={inputCls}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referral" className="flex items-center gap-1.5">
-                <Gift className="w-3.5 h-3.5 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
+              <Label htmlFor="referral" className={`${labelCls} flex items-center gap-1.5`}>
+                <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
               </Label>
               <Input
                 id="referral"
@@ -412,7 +445,7 @@ const Signup = () => {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 maxLength={10}
-                className="uppercase"
+                className={`${inputCls} uppercase`}
               />
               {referralCode && (
                 <p className="text-xs text-primary flex items-center gap-1">
@@ -463,52 +496,106 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+              <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
-                placeholder="Tell us about yourself, your experience, and what you're looking for… (minimum 20 characters)"
+                placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
                 required
                 minLength={20}
+                className="rounded-xl"
               />
               <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
                 {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">City <span className="text-destructive">*</span></Label>
-              <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required />
+              <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
+              <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span></Label>
-              <Input id="skills" placeholder="Type your skills, separated by commas" value={skills} onChange={(e) => setSkills(e.target.value)} />
-              <div className="flex flex-wrap gap-1.5">
-                {["Cleaning", "Moving", "Handyman", "Yard Work", "Painting", "Delivery", "Pet Care", "Errands", "Assembly"].map((skill) => {
-                  const isActive = skills.toLowerCase().includes(skill.toLowerCase());
-                  return (
-                    <button
-                      key={skill}
-                      type="button"
-                      onClick={() => {
-                        if (isActive) {
-                          setSkills(skills.split(",").map(s => s.trim()).filter(s => s.toLowerCase() !== skill.toLowerCase()).join(", "));
-                        } else {
-                          setSkills(skills ? `${skills}, ${skill}` : skill);
-                        }
-                      }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {isActive ? "✓ " : "+ "}{skill}
-                    </button>
-                  );
-                })}
-              </div>
+              <Label htmlFor="skill-search" className={labelCls}>
+                Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span>
+              </Label>
+              <Input
+                id="skill-search"
+                placeholder="Search skills…"
+                value={skillSearch}
+                onChange={(e) => setSkillSearch(e.target.value)}
+                className={inputCls}
+              />
+              {(() => {
+                const ALL_SKILLS = [
+                  "Cleaning", "Moving", "Handyman", "Yard Work", "Painting", "Delivery", "Pet Care", "Errands", "Assembly",
+                  "Pressure Washing", "Lawn Care", "Plumbing", "Electrical", "Carpentry", "Tile Work", "Drywall",
+                  "Babysitting", "Senior Care", "Tutoring", "Cooking", "Laundry", "Organizing", "Event Help",
+                  "Photography", "Web Design", "Tech Support", "Junk Removal", "Auto Detailing", "Gutter Cleaning",
+                ];
+                const selectedSkills = skills.split(",").map(s => s.trim()).filter(Boolean);
+                const filtered = ALL_SKILLS.filter(s => s.toLowerCase().includes(skillSearch.toLowerCase()));
+                const toggleSkill = (skill: string) => {
+                  const isActive = selectedSkills.some(s => s.toLowerCase() === skill.toLowerCase());
+                  if (isActive) {
+                    setSkills(selectedSkills.filter(s => s.toLowerCase() !== skill.toLowerCase()).join(", "));
+                  } else {
+                    setSkills([...selectedSkills, skill].join(", "));
+                  }
+                };
+                return (
+                  <>
+                    {selectedSkills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {selectedSkills.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => toggleSkill(s)}
+                            className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary text-primary-foreground border-primary inline-flex items-center gap-1"
+                          >
+                            {s} <X className="w-3 h-3" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="max-h-32 overflow-y-auto rounded-xl border border-border bg-muted/20 p-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {filtered.length === 0 ? (
+                          <p className="text-xs text-muted-foreground px-1 py-1">No matches. Type your own below.</p>
+                        ) : (
+                          filtered.map((skill) => {
+                            const isActive = selectedSkills.some(s => s.toLowerCase() === skill.toLowerCase());
+                            return (
+                              <button
+                                key={skill}
+                                type="button"
+                                onClick={() => toggleSkill(skill)}
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                                  isActive
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background text-foreground border-border hover:border-primary/50"
+                                }`}
+                              >
+                                {isActive ? "✓ " : "+ "}{skill}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                    {skillSearch.trim() && !ALL_SKILLS.some(s => s.toLowerCase() === skillSearch.trim().toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => { toggleSkill(skillSearch.trim()); setSkillSearch(""); }}
+                        className="text-xs text-primary font-medium hover:underline"
+                      >
+                        + Add "{skillSearch.trim()}" as a custom skill
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
               <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
             </div>
 
@@ -690,6 +777,15 @@ const Signup = () => {
         {/* Step 3: Portfolio & Documents */}
         {step === 3 && (
           <div className="space-y-4">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex gap-3">
+              <div className="text-2xl">💡</div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Why this matters</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Photos of your tools, equipment, or past work help posters trust you instantly — verified portfolios get hired up to <span className="font-semibold text-foreground">3x faster</span>.
+                </p>
+              </div>
+            </div>
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
@@ -761,6 +857,17 @@ const Signup = () => {
         {/* Step 4: ID verification */}
         {step === 4 && (
           <div className="space-y-4">
+            {/* Verified by Stripe badge */}
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Verified by Stripe</p>
+                <p className="text-xs text-muted-foreground">Bank-grade ID verification. Your data is encrypted end-to-end.</p>
+              </div>
+            </div>
+
             {/* Decide which UI to show */}
             {idvMode === null && accountCreated && (
               <IdentityVerificationStep
@@ -776,24 +883,24 @@ const Signup = () => {
               <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-center">
                 {idvOutcome === "verified" ? (
                   <>
-                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-                      <ShieldCheck className="w-7 h-7 text-emerald-600" />
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                      <ShieldCheck className="w-7 h-7 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground">You're verified!</h3>
                     <p className="text-sm text-muted-foreground">Your identity was confirmed instantly. Verify your email next to log in.</p>
                   </>
                 ) : idvOutcome === "processing" ? (
                   <>
-                    <div className="w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
-                      <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+                    <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto">
+                      <Loader2 className="w-7 h-7 text-muted-foreground animate-spin" />
                     </div>
                     <h3 className="font-semibold text-foreground">Still processing…</h3>
                     <p className="text-sm text-muted-foreground">Your verification is being reviewed. We'll email you once it's complete.</p>
                   </>
                 ) : (
                   <>
-                    <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
-                      <Upload className="w-7 h-7 text-amber-600" />
+                    <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                      <Upload className="w-7 h-7 text-destructive" />
                     </div>
                     <h3 className="font-semibold text-foreground">We need a closer look</h3>
                     <p className="text-sm text-muted-foreground">Your submission was sent to our review team. We'll email you within 24–48 hours.</p>
@@ -813,7 +920,7 @@ const Signup = () => {
                 </div>
 
                 <label className="cursor-pointer block">
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors">
                     {idFileName ? (
                       <p className="text-sm text-foreground font-medium">{idFileName}</p>
                     ) : (
@@ -825,15 +932,21 @@ const Signup = () => {
               </div>
             )}
 
-            <div className="flex gap-3">
-              <Button
-                className="flex-1"
-                size="lg"
-                onClick={finishSignup}
-                disabled={loading || (idvMode === null && accountCreated)}
-              >
-                Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
+            {/* Sticky Finish & continue button */}
+            <div
+              className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
+              style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+            >
+              <div className="max-w-md mx-auto">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={finishSignup}
+                  disabled={loading || (idvMode === null && accountCreated)}
+                >
+                  Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

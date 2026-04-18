@@ -1346,7 +1346,8 @@ const AdminUsers = () => {
               </div>
             )}
           </div>
-          <DialogFooter className="gap-2 sm:gap-2">
+          <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
+
             <Button variant="ghost" onClick={() => setBanProfile(null)} className="w-full sm:w-auto">Cancel</Button>
             <Button
               variant={banType === "warning" ? "default" : "destructive"}

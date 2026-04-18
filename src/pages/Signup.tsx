@@ -337,34 +337,16 @@ const Signup = () => {
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 
-  return (
-    <div className="min-h-screen flex items-start sm:items-center justify-center bg-background px-4 py-8 sm:py-12">
-      <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
-        <div className="text-center">
-          <div className="relative">
-            <Link to="/" className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
-          </div>
-          <p className="mt-2 text-muted-foreground">Create your account</p>
+  const handleBack = () => {
+    if (step > 1) setStep((step - 1) as 1 | 2 | 3 | 4);
+    else navigate("/");
+  };
 
-          {/* Progress bar */}
-          <div className="mt-5 space-y-2">
-            <div className="h-2 w-full rounded-full bg-border overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-500 ease-out"
-                style={{ width: `${(step / totalSteps) * 100}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Step {step} of {totalSteps}</span>
-              <span>
-                {step === 1 ? "Account details" : step === 2 ? "Your profile" : step === 3 ? "Portfolio & docs" : "Verify identity"}
-              </span>
-            </div>
-          </div>
-        </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <PageHeader title="Create your account" onBack={handleBack} />
+      <div className="flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
+        <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
 
         {/* Step 1: Account basics */}
         {step === 1 && (

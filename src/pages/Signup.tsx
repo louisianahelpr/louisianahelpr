@@ -938,6 +938,7 @@ const Signup = () => {
           <Link to="/login" className="text-primary font-medium hover:underline">Log in</Link>
         </p>
       </div>
+      </div>
     </div>
   );
 };

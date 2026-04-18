@@ -37,8 +37,21 @@ serve(async (req) => {
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
+  // Log key mode (live vs test) so you can verify the correct key is loaded
+  if (stripeKey) {
+    const keyMode = stripeKey.startsWith("sk_live_") || stripeKey.startsWith("rk_live_")
+      ? "LIVE"
+      : stripeKey.startsWith("sk_test_") || stripeKey.startsWith("rk_test_")
+      ? "TEST"
+      : "UNKNOWN";
+    console.log(`[STRIPE-WEBHOOK] 🔑 Stripe key mode: ${keyMode} (prefix: ${stripeKey.slice(0, 8)}...)`);
+  }
+  if (webhookSecret) {
+    console.log(`[STRIPE-WEBHOOK] 🔐 Webhook secret loaded (prefix: ${webhookSecret.slice(0, 8)}..., length: ${webhookSecret.length})`);
+  }
+
   if (!stripeKey) {
-    console.error("[STRIPE-WEBHOOK] STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_SECRET_KEY not set — acknowledging to stop retries");
     return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -55,7 +68,7 @@ serve(async (req) => {
   let event: Stripe.Event;
 
   if (!webhookSecret) {
-    console.error("[STRIPE-WEBHOOK] STRIPE_WEBHOOK_SECRET is not configured — acknowledging to stop retries");
+    console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_WEBHOOK_SECRET is not configured — acknowledging 200 to stop retries");
     return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -64,7 +77,7 @@ serve(async (req) => {
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) {
-    console.error("[STRIPE-WEBHOOK] No stripe-signature header on request — acknowledging to stop retries");
+    console.error("🚨 [STRIPE-WEBHOOK] ALERT: No stripe-signature header on request — acknowledging 200 to stop retries");
     return new Response(JSON.stringify({ received: true, error: "missing_signature_header" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -74,8 +87,13 @@ serve(async (req) => {
   try {
     event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
   } catch (err) {
-    console.error("[STRIPE-WEBHOOK] Signature verification failed:", String(err));
-    // Return 200 so Stripe stops retrying. Verification failures are logged for debugging.
+    // Loud, easy-to-find log line so you can spot signature mismatches in Supabase logs
+    console.error("🚨 [STRIPE-WEBHOOK] SIGNATURE VERIFICATION FAILED 🚨");
+    console.error(`[STRIPE-WEBHOOK] Error: ${String(err)}`);
+    console.error(`[STRIPE-WEBHOOK] Signature header (first 40 chars): ${sig.slice(0, 40)}...`);
+    console.error(`[STRIPE-WEBHOOK] Webhook secret prefix: ${webhookSecret.slice(0, 8)}... (length: ${webhookSecret.length})`);
+    console.error(`[STRIPE-WEBHOOK] Body length: ${body.length} bytes`);
+    console.error("[STRIPE-WEBHOOK] → Returning 200 OK to stop Stripe retries. Fix the STRIPE_WEBHOOK_SECRET to match the endpoint that sent this event.");
     return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,

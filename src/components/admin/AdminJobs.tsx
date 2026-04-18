@@ -188,25 +188,19 @@ const AdminJobs = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div />
-        <div className="flex items-center gap-2">
-          {flaggedCount > 0 && (
-            <Button
-              variant={filter === "flagged" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(filter === "flagged" ? "all" : "flagged")}
-              className="gap-1.5"
-            >
-              <Flag className="w-3.5 h-3.5" />
-              {flaggedCount} flagged
-            </Button>
-          )}
-          {filter !== "flagged" && (
-            <span className="text-sm text-muted-foreground">{filteredJobs.length} total</span>
-          )}
+      {flaggedCount > 0 && (
+        <div className="flex justify-end">
+          <Button
+            variant={filter === "flagged" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter(filter === "flagged" ? "all" : "flagged")}
+            className="gap-1.5"
+          >
+            <Flag className="w-3.5 h-3.5" />
+            {flaggedCount} flagged
+          </Button>
         </div>
-      </div>
+      )}
 
       <div className="space-y-3">
         {filteredJobs.map((job) => {

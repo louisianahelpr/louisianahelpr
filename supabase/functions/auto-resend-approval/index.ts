@@ -24,17 +24,21 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    const nowMs = Date.now()
+    const oneDayAgo = new Date(nowMs - 1 * 24 * 60 * 60 * 1000).toISOString()
+    const sevenDaysAgo = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    // Find approved users who:
-    // - have not maxed out their reminder count (< 3)
-    // - have not received a reminder in the last 3 days
+    // Cadence:
+    //   reminder #1 (count 0 -> 1): send if no prior reminder
+    //   reminder #2 (count 1 -> 2): send 1 day after #1
+    //   reminder #3 (count 2 -> 3): send 7 days after #2
+    // Pull anyone who could plausibly be due; per-row check below enforces exact cadence.
     const { data: profiles, error: fetchErr } = await supabase
       .from('profiles')
       .select('id, user_id, full_name, email, approval_email_count, last_approval_email_at, idv_status, stripe_account_id')
       .eq('approval_status', 'approved')
       .lt('approval_email_count', 3)
-      .or(`last_approval_email_at.is.null,last_approval_email_at.lt.${threeDaysAgo}`)
+      .or(`last_approval_email_at.is.null,last_approval_email_at.lt.${oneDayAgo}`)
 
     if (fetchErr) {
       console.error('Failed to fetch approved profiles:', fetchErr)
@@ -55,6 +59,20 @@ Deno.serve(async (req) => {
 
     for (const profile of profiles) {
       if (!profile.email) continue
+
+      // Enforce exact cadence per reminder count:
+      //   #1: any time (no prior send)
+      //   #2: 1 day after #1
+      //   #3: 7 days after #2
+      const sentSoFar = profile.approval_email_count || 0
+      const lastSentMs = profile.last_approval_email_at
+        ? new Date(profile.last_approval_email_at).getTime()
+        : 0
+      const hoursSinceLast = lastSentMs ? (nowMs - lastSentMs) / (1000 * 60 * 60) : Infinity
+      const requiredHours = sentSoFar === 0 ? 0 : sentSoFar === 1 ? 24 : 24 * 7
+      if (hoursSinceLast < requiredHours) {
+        continue
+      }
 
       // Skip if user is "active":
       // - already verified via Stripe IDV

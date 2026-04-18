@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Award, Star, MapPin, Briefcase, Trophy, Crown, Medal, ArrowLeft } from "lucide-react";
+import { Award, Star, MapPin, Briefcase, Trophy, Crown, Medal } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { formatName } from "@/lib/utils";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,12 +79,9 @@ const Heroes = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <PageHeader title="Community Heroes" />
 
       <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 -ml-2">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back
-        </Button>
 
         <header className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary mb-4">

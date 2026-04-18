@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import PageHeader from "@/components/PageHeader";
 
 type Category = "message" | "suggestion" | "report" | "help";
 

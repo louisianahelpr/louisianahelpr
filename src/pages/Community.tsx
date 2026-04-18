@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Users, Star, HandHeart, Sparkles, ArrowLeft, Gift, Shield, Zap } from "lucide-react";
+import { Heart, Users, Star, HandHeart, Sparkles, Gift, Shield, Zap } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -76,9 +77,6 @@ const Community = () => {
         <div className="container mx-auto max-w-3xl text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <div className="flex items-center justify-center gap-2 mb-6">
-              <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-xl h-9 w-9 shrink-0 absolute left-4 md:relative md:left-0">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
                 <Heart className="w-4 h-4 fill-primary" /> Our Community
               </div>

@@ -725,6 +725,28 @@ const AdminUsers = () => {
                       {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
                     </span>
                   </div>
+                  {/* Standing + Last Activity row */}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
+                    {(() => {
+                      const strikes = strikesSummary[p.user_id] || 0;
+                      const standingClass = strikes === 0
+                        ? "text-primary"
+                        : strikes >= 3 ? "text-destructive" : "text-accent-foreground";
+                      const standingLabel = strikes === 0
+                        ? "Good"
+                        : `${strikes} Strike${strikes > 1 ? "s" : ""}`;
+                      return (
+                        <span className={`font-medium ${standingClass}`}>
+                          Standing: {standingLabel}
+                        </span>
+                      );
+                    })()}
+                    {activitySummary[p.user_id] && (
+                      <span className="text-muted-foreground">
+                        Last: {activitySummary[p.user_id].label} · {formatDistanceToNow(new Date(activitySummary[p.user_id].at), { addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-1.5 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>

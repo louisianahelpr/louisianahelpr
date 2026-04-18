@@ -31,7 +31,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         </Link>
 
         {/* Desktop */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-6">
           <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             How it works
           </a>
@@ -59,7 +59,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         </div>
 
         {/* Mobile toggle */}
-        <div className="md:hidden flex items-center gap-1">
+        <div className="lg:hidden flex items-center gap-1">
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -76,7 +76,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       {/* Mobile menu */}
       {mobileOpen && (
         <div
-          className="md:hidden glass border-b border-border/30 px-4 pb-4 space-y-3"
+          className="lg:hidden glass border-b border-border/30 px-4 pb-4 space-y-3"
           style={{
             paddingLeft: "max(1rem, env(safe-area-inset-left))",
             paddingRight: "max(1rem, env(safe-area-inset-right))",

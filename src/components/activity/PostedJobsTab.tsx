@@ -16,6 +16,7 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { AttachmentLink } from "@/components/AttachmentLink";
 
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";

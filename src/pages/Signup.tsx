@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff } from "lucide-react";
+import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import IdentityVerificationStep from "@/components/IdentityVerificationStep";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -57,6 +58,9 @@ const Signup = () => {
   // Step 4 fields
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState("");
+  // IDV mode: 'idv' (Stripe Identity hybrid), 'manual' (legacy upload), null = still loading
+  const [idvMode, setIdvMode] = useState<"idv" | "manual" | null>(null);
+  const [idvOutcome, setIdvOutcome] = useState<"verified" | "processing" | "manual_review" | "failed" | null>(null);
 
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -229,10 +233,13 @@ const Signup = () => {
     }
   };
 
-  const handleSignup = async () => {
-    if (!validateStep4()) return;
+  // Account is created when entering step 4 so IDV can use the authenticated session.
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
+  const createAccountAndEnterStep4 = async () => {
     setLoading(true);
+
     // Rate limiting
     const lastAttempt = parseInt(localStorage.getItem(SIGNUP_COOLDOWN_KEY) || "0", 10);
     const elapsed = Date.now() - lastAttempt;
@@ -245,7 +252,6 @@ const Signup = () => {
     localStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
     try {
-      // 1. Create account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -255,41 +261,65 @@ const Signup = () => {
         },
       });
 
-      // Generic error for existing accounts — prevents email enumeration
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
         toast.success("If this email isn't registered, you'll receive a verification link shortly.");
         navigate("/signup-pending");
-        setLoading(false);
         return;
       }
-
       if (authError) throw authError;
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // 2. Complete profile with uploads
+      // Complete profile with uploads
       await completeProfile(userId);
 
-      // 3. Process referral code if provided
+      // Process referral code if provided
       if (referralCode.trim()) {
         try {
           await supabase.rpc("process_referral", {
             p_referral_code: referralCode.trim().toUpperCase(),
             p_new_user_id: userId,
           });
-        } catch (refErr) {
-          // Referral processing skipped silently
-        }
+        } catch { /* silent */ }
       }
 
-      toast.success("Account created! Please check your email to verify.");
-      navigate("/signup-pending");
+      setAccountCreated(true);
+      setCreatedUserId(userId);
+      setStep(4);
     } catch (err: any) {
       toast.error(err.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
+
+  const finishSignup = async () => {
+    // If user opted for legacy manual upload, persist that flag + (optional) ID file
+    if (idvMode === "manual" && createdUserId) {
+      // Mark as legacy manual review so the IDV gate doesn't block them
+      await supabase
+        .from("profiles")
+        .update({ legacy_manual_review: true } as any)
+        .eq("user_id", createdUserId);
+
+      // If they uploaded an ID file in manual mode, send it through complete-signup
+      if (idFile) {
+        const idBase64 = await fileToBase64(idFile);
+        await supabase.functions.invoke("complete-signup", {
+          body: {
+            userId: createdUserId,
+            idBase64,
+            idExt: idFile.name.split(".").pop(),
+            idContentType: idFile.type,
+          },
+        });
+      }
+    }
+
+    toast.success("Account created! Please check your email to verify.");
+    navigate("/signup-pending");
+  };
+
 
   const totalSteps = 4;
 
@@ -715,8 +745,14 @@ const Signup = () => {
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              <Button className="flex-1" onClick={() => setStep(4)}>
-                {portfolioFiles.length > 0 ? "Continue" : "Skip"} <ArrowRight className="w-4 h-4 ml-1" />
+              <Button
+                className="flex-1"
+                onClick={createAccountAndEnterStep4}
+                disabled={loading}
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
+                  : <>{portfolioFiles.length > 0 ? "Continue" : "Skip"} <ArrowRight className="w-4 h-4 ml-1" /></>}
               </Button>
             </div>
           </div>
@@ -725,38 +761,78 @@ const Signup = () => {
         {/* Step 4: ID verification */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <div className="text-center space-y-2">
-                <Upload className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Verify your identity <span className="text-muted-foreground text-xs">(optional)</span></h3>
-                <p className="text-sm text-muted-foreground">
-                  Upload a government-issued ID (driver's license, passport, or state ID). This helps verify your identity and builds trust in the community.
-                </p>
-                <p className="text-xs text-muted-foreground italic">You can skip this step and upload later from your profile. ID verification is required before accepting tasks as a helpr.</p>
+            {/* Decide which UI to show */}
+            {idvMode === null && accountCreated && (
+              <IdentityVerificationStep
+                onComplete={(outcome) => {
+                  setIdvOutcome(outcome);
+                  setIdvMode("idv");
+                }}
+                onFallbackToManual={() => setIdvMode("manual")}
+              />
+            )}
+
+            {idvMode === "idv" && idvOutcome && (
+              <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-center">
+                {idvOutcome === "verified" ? (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                      <ShieldCheck className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">You're verified!</h3>
+                    <p className="text-sm text-muted-foreground">Your identity was confirmed instantly. Verify your email next to log in.</p>
+                  </>
+                ) : idvOutcome === "processing" ? (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
+                      <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">Still processing…</h3>
+                    <p className="text-sm text-muted-foreground">Your verification is being reviewed. We'll email you once it's complete.</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+                      <Upload className="w-7 h-7 text-amber-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">We need a closer look</h3>
+                    <p className="text-sm text-muted-foreground">Your submission was sent to our review team. We'll email you within 24–48 hours.</p>
+                  </>
+                )}
               </div>
+            )}
 
-              <label className="cursor-pointer block">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
-                  {idFileName ? (
-                    <p className="text-sm text-foreground font-medium">{idFileName}</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Click to select file (JPG, PNG, or PDF)</p>
-                  )}
+            {idvMode === "manual" && (
+              <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                <div className="text-center space-y-2">
+                  <Upload className="w-10 h-10 text-primary mx-auto" />
+                  <h3 className="font-semibold text-foreground">Upload your ID <span className="text-muted-foreground text-xs">(optional)</span></h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a government-issued ID (driver's license, passport, or state ID). Our team will review it within 24–48 hours.
+                  </p>
                 </div>
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdChange} />
-              </label>
-            </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Your ID will be securely stored and only reviewed by admins for verification purposes.
-            </p>
+                <label className="cursor-pointer block">
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    {idFileName ? (
+                      <p className="text-sm text-foreground font-medium">{idFileName}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Click to select file (JPG, PNG, or PDF)</p>
+                    )}
+                  </div>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdChange} />
+                </label>
+              </div>
+            )}
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </Button>
-              <Button className="flex-1" size="lg" onClick={handleSignup} disabled={loading}>
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</> : "Submit for review"}
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={finishSignup}
+                disabled={loading || (idvMode === null && accountCreated)}
+              >
+                Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>

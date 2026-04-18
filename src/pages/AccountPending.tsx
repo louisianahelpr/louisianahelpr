@@ -11,6 +11,8 @@ const AccountPending = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [resending, setResending] = useState(false);
+  const [idvStatus, setIdvStatus] = useState<string | null>(null);
+  const [legacyManual, setLegacyManual] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -23,11 +25,13 @@ const AccountPending = () => {
       
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status, full_name")
+        .select("approval_status, full_name, idv_status, legacy_manual_review")
         .eq("user_id", session.user.id)
         .single();
       if (!profile) return;
       setFullName(profile.full_name || "");
+      setIdvStatus(profile.idv_status || null);
+      setLegacyManual(!!profile.legacy_manual_review);
       if (profile.approval_status === "approved") navigate("/dashboard");
       if (profile.approval_status === "denied") navigate("/account-denied");
     };
@@ -98,13 +102,37 @@ const AccountPending = () => {
           <div className="border-t border-border pt-6 space-y-4">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">What's happening?</h2>
 
+            {idvStatus && !legacyManual && (
+              <div className="flex items-start gap-3 text-left">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {idvStatus === "verified" ? "Identity verified ✓" :
+                     idvStatus === "processing" || idvStatus === "pending" ? "Identity verification processing" :
+                     idvStatus === "manual_review" ? "Under manual review" :
+                     idvStatus === "failed" ? "Verification needs review" :
+                     "Identity verification"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {idvStatus === "verified" ? "Stripe Identity confirmed your ID instantly." :
+                     idvStatus === "processing" || idvStatus === "pending" ? "Stripe is checking your ID — usually under 2 minutes." :
+                     idvStatus === "manual_review" ? "Our team is reviewing your submission. Decision within 24–48 hours." :
+                     idvStatus === "failed" ? "We couldn't auto-verify. An admin is reviewing manually." :
+                     "Awaiting verification."}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-start gap-3 text-left">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <ShieldCheck className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Profile & ID review</p>
-                <p className="text-xs text-muted-foreground">Our team is reviewing your profile details and ID document. This usually takes 24–48 hours.</p>
+                <p className="text-sm font-medium text-foreground">Profile review</p>
+                <p className="text-xs text-muted-foreground">Our team is reviewing your profile details. This usually takes 24–48 hours.</p>
               </div>
             </div>
 

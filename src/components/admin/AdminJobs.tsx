@@ -96,6 +96,7 @@ const AdminJobs = () => {
   const [deleting, setDeleting] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged">("all");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
+  const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
   useEffect(() => {
     const load = async () => {
@@ -105,7 +106,6 @@ const AdminJobs = () => {
         .order("created_at", { ascending: false });
       if (data) {
         setJobs(data);
-        // Auto-detect flags
         const flagMap = new Map<string, string[]>();
         for (const job of data) {
           const existingFlags = (job as any).flag_reasons || [];
@@ -119,6 +119,21 @@ const AdminJobs = () => {
     };
     load();
   }, []);
+
+  const markFlagResolved = (jobId: string) => {
+    const next = new Set(resolvedFlags);
+    next.add(jobId);
+    setResolvedFlags(next);
+    saveResolvedFlags(next);
+    toast.success("Flag marked as resolved");
+  };
+
+  const reopenFlag = (jobId: string) => {
+    const next = new Set(resolvedFlags);
+    next.delete(jobId);
+    setResolvedFlags(next);
+    saveResolvedFlags(next);
+  };
 
   const openJob = async (job: Job) => {
     setDetailJob(job);

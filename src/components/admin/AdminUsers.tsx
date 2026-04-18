@@ -1510,14 +1510,14 @@ const AdminUsers = () => {
 
       {/* Formal Warning */}
       <Dialog open={!!warningProfile} onOpenChange={() => !actionBusy && setWarningProfile(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-4">
-          <DialogHeader className="pr-8">
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
+          <DialogHeader className="pr-8 space-y-1">
             <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
               <MessageSquareWarning className="w-5 h-5 text-accent shrink-0" />
               <span className="truncate">Issue Manual Strike</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <p className="text-sm text-muted-foreground leading-relaxed">
               Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
             </p>

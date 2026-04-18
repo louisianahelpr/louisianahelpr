@@ -28,14 +28,14 @@ const HeroSection = () => {
 
   return (
     <section
-      className="pt-20 sm:pt-28 lg:pt-32 pb-12 sm:pb-20 px-6 min-h-[100dvh] lg:min-h-0 flex items-center lg:block"
+      className="pt-20 sm:pt-28 lg:pt-32 pb-12 sm:pb-20 px-6 min-h-[100dvh] md:min-h-0 flex items-center md:block"
       style={{
         paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
         paddingRight: "max(1.5rem, env(safe-area-inset-right))",
       }}
     >
       <div className="container mx-auto">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start text-center lg:text-left">
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start text-center md:text-left">
           <div className="space-y-4 sm:space-y-6 animate-fade-in">
             <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase">
               Serving Louisiana communities
@@ -49,7 +49,7 @@ const HeroSection = () => {
 
             {/* Social proof — only show when numbers are meaningful */}
             {stats && (stats.users >= 50 || stats.completed >= 20) && (
-              <div className="flex flex-wrap justify-center lg:justify-start gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted-foreground">
                 {stats.users >= 50 && (
                   <span className="flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-primary" />
@@ -65,7 +65,7 @@ const HeroSection = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md mx-auto lg:mx-0">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md mx-auto md:mx-0">
               {loggedIn ? (
                 <>
                   <Button variant="hero" size="xl" className="w-full" onClick={() => navigate("/dashboard")}>
@@ -87,8 +87,8 @@ const HeroSection = () => {
               )}
             </div>
           </div>
-          <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 lg:flex lg:justify-end lg:items-start">
-            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full h-auto rounded-2xl shadow-lg object-contain lg:max-w-md" loading="eager" width={1200} height={800} />
+          <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-end md:items-start">
+            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full h-auto rounded-2xl shadow-lg object-contain md:max-w-sm lg:max-w-md" loading="eager" width={1200} height={800} />
           </div>
         </div>
       </div>

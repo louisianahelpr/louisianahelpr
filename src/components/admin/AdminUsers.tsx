@@ -579,7 +579,8 @@ const AdminUsers = () => {
     if (!aLogin && !bLogin) return 0;
     if (!aLogin) return 1;
     if (!bLogin) return -1;
-    return new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    const diff = new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    return sortDir === "desc" ? diff : -diff;
   });
 
   const pendingCount = profiles.filter(isPendingReview).length;

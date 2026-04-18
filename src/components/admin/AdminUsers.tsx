@@ -566,9 +566,9 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-y-auto p-3 sm:p-6 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
+            <DialogTitle className="font-display text-base sm:text-xl pr-6">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
             <div className="space-y-4">
@@ -576,16 +576,16 @@ const AdminUsers = () => {
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                    <img src={viewProfile.avatar_url} alt="" className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
                   </a>
                 ) : (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-2xl font-medium flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-xl sm:text-2xl font-medium flex-shrink-0">
                     {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-sm sm:text-lg font-bold text-foreground break-words leading-tight w-full sm:w-auto sm:truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
 
                     {((viewProfile as any).application_count || 1) > 1 && (
@@ -595,10 +595,10 @@ const AdminUsers = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
+                    <p className="text-[11px] sm:text-sm text-muted-foreground truncate break-all">{(viewProfile as any).email || "No email"}</p>
                     <button
                       onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
-                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0 p-1 -m-1"
                       title="Edit email"
                     >
                       <Pencil className="w-3 h-3" />
@@ -608,7 +608,7 @@ const AdminUsers = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8"
+                      className="h-8 w-full sm:w-auto"
                       onClick={async () => {
                         const currentCount = (viewProfile as any).application_count || 1;
                         await supabase.from("profiles").update({

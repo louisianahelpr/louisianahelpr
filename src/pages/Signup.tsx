@@ -23,7 +23,10 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
 
   // Step 1 fields
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+  const [skillSearch, setSkillSearch] = useState("");
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");

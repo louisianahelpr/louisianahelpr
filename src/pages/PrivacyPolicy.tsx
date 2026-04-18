@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
+import { Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
+import PageHeader from "@/components/PageHeader";
 
 const PrivacyPolicy = () => {
   const navigate = useNavigate();
@@ -13,23 +14,11 @@ const PrivacyPolicy = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-        </div>
-      </header>
+      <PageHeader title="Privacy Policy" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
-          <div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <h1 className="text-3xl font-display font-bold text-foreground">Privacy Policy</h1>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2 ml-11">Last updated: March 2026</p>
-          </div>
+          <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 
           <section className="space-y-4">
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">

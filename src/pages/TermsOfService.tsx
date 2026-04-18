@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Zap, CreditCard, Ban, MapPin, Crown, Scale, Receipt } from "lucide-react";
+import { FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Zap, CreditCard, Ban, MapPin, Crown, Scale, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import PageHeader from "@/components/PageHeader";
 
 const TermsOfService = () => {
   const navigate = useNavigate();
@@ -10,23 +11,11 @@ const TermsOfService = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-        </div>
-      </header>
+      <PageHeader title="Terms & Policies" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
-          <div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <h1 className="text-3xl font-display font-bold text-foreground">Terms & Policies</h1>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2 ml-11">Last updated: March 2026</p>
-          </div>
+          <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 
           {/* Terms of Use */}
           <section className="space-y-4">

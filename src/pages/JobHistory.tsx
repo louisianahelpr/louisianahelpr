@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, DollarSign, Calendar, Filter } from "lucide-react";
+import { MapPin, DollarSign, Calendar, Filter } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -84,20 +85,10 @@ const JobHistory = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-        </div>
-      </header>
+      <PageHeader title="Job History" />
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-4">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-2xl font-display font-bold text-foreground">Job History</h1>
-          </div>
 
           {/* Tabs */}
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">

@@ -5,7 +5,8 @@ import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, Clock } from "lucide-react";
+import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, Clock } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
 import { ScopeAgreement } from "@/components/ScopeAgreement";
@@ -162,20 +163,10 @@ const MyJobs = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-        </div>
-      </header>
+      <PageHeader title="My posted tasks" />
 
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto space-y-8">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-3xl font-display font-bold text-foreground">My posted tasks</h1>
-          </div>
 
           {loading ? (
             <p className="text-muted-foreground">Loading…</p>

@@ -1068,6 +1068,114 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manually Verify Confirm */}
+      <Dialog open={!!manualVerifyProfile} onOpenChange={() => !actionBusy && setManualVerifyProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" /> Manually Verify {formatName(manualVerifyProfile?.full_name)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Use this for someone you know personally, or whose ID is valid but our system couldn't read it.
+              Their identity status will be set to <strong className="text-foreground">verified</strong> and approval will be set to <strong className="text-foreground">approved</strong>, bypassing automated checks.
+            </p>
+            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+              <p className="text-xs text-muted-foreground">This action is logged in the admin audit log.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setManualVerifyProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button onClick={() => manualVerifyProfile && callAdminAction("manual_verify", manualVerifyProfile)} disabled={actionBusy}>
+              {actionBusy ? "Verifying…" : "Manually Verify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request ID Re-upload */}
+      <Dialog open={!!reuploadProfile} onOpenChange={() => !actionBusy && setReuploadProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Camera className="w-5 h-5 text-accent" /> Request ID Re-upload
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Send {formatName(reuploadProfile?.full_name)} a friendly email asking for a clearer ID photo. Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
+              <Textarea value={reuploadNote} onChange={(e) => setReuploadNote(e.target.value)} placeholder="e.g. Photo was too blurry — please retake in good lighting." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReuploadProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button onClick={() => reuploadProfile && callAdminAction("request_id_reupload", reuploadProfile, reuploadNote)} disabled={actionBusy}>
+              {actionBusy ? "Sending…" : "Send Re-upload Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Confirm */}
+      <Dialog open={!!resetPwProfile} onOpenChange={() => !actionBusy && setResetPwProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" /> Send Password Reset Link
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Email a one-time password reset link to <strong className="text-foreground">{(resetPwProfile as any)?.email || "this user"}</strong>. The link expires in 1 hour.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setResetPwProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button onClick={() => resetPwProfile && callAdminAction("reset_password", resetPwProfile)} disabled={actionBusy}>
+              {actionBusy ? "Sending…" : "Send Reset Link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Formal Warning */}
+      <Dialog open={!!warningProfile} onOpenChange={() => !actionBusy && setWarningProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Formal Warning
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Per the Repeat Offender Policy: <strong>1st</strong> violation = warning, <strong>2nd</strong> = 7-day suspension, <strong>3rd</strong> = permanent ban. This adds a note to {formatName(warningProfile?.full_name)}'s file and sends them an email.
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Specific policy violation</p>
+              <Textarea
+                value={warningNote}
+                onChange={(e) => setWarningNote(e.target.value)}
+                placeholder="e.g. Late cancellation under 2 hours before scheduled job."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button
+              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote)}
+              disabled={actionBusy || !warningNote.trim()}
+            >
+              {actionBusy ? "Issuing…" : "Issue Warning"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

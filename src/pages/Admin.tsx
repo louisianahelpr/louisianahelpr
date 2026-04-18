@@ -39,8 +39,9 @@ const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatc
 const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
+const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -78,6 +79,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
     items: [
       { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
       { id: "notifications", label: "Notifications", icon: BellRing },
+      { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
       { id: "social", label: "Social Post", icon: TrendingUp },
     ],
   },
@@ -265,7 +267,8 @@ const Admin = () => {
   const viewLabels: Record<View, string> = {
     home: "Dashboard", analytics: "Analytics", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
-    notifications: "Notifications", reports: "Reports", support: "Support",
+    notifications: "Notifications", notiflogs: "Notification Logs",
+    reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
@@ -281,6 +284,7 @@ const Admin = () => {
       case "disputes": return <AdminDisputes />;
       case "broadcasts": return <AdminBroadcasts />;
       case "notifications": return <AdminNotifications />;
+      case "notiflogs": return <AdminNotificationLogs />;
       case "reports": return <AdminReports />;
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;

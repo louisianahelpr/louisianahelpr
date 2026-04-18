@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // - have not received a reminder in the last 3 days
     const { data: profiles, error: fetchErr } = await supabase
       .from('profiles')
-      .select('id, user_id, full_name, email, approval_email_count, last_approval_email_at, idv_status')
+      .select('id, user_id, full_name, email, approval_email_count, last_approval_email_at, idv_status, stripe_account_id')
       .eq('approval_status', 'approved')
       .lt('approval_email_count', 3)
       .or(`last_approval_email_at.is.null,last_approval_email_at.lt.${threeDaysAgo}`)
@@ -58,9 +58,10 @@ Deno.serve(async (req) => {
 
       // Skip if user is "active":
       // - already verified via Stripe IDV
+      // - has connected a Stripe payout account
       // - has any login history
       // - has opened or clicked the approval email
-      if ((profile as any).idv_status === 'verified') {
+      if ((profile as any).idv_status === 'verified' || (profile as any).stripe_account_id) {
         skippedActive++
         continue
       }

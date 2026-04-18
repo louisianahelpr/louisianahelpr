@@ -1188,9 +1188,18 @@ const AdminUsers = () => {
                   const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
                   const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
                   const idvVerified = (viewProfile as any).idv_status === 'verified';
-                  const isActive = hasLoggedIn || idvVerified || opens.length > 0 || clicks.length > 0;
+                  const hasStripe = !!(viewProfile as any).stripe_account_id;
+                  const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
+                  const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
                   const sent = (viewProfile as any).approval_email_count || 0;
                   const maxReached = sent >= 3;
+                  const activeLabel = idvVerified
+                    ? "ID verified"
+                    : hasStripe
+                    ? "Stripe payout connected"
+                    : hasLoggedIn
+                    ? "Active — has logged in"
+                    : "Has opened approval email";
                   return (
                     <>
                       {!isActive && (
@@ -1199,7 +1208,7 @@ const AdminUsers = () => {
                           className="flex-1 min-w-[160px]"
                           onClick={() => resendApprovalEmail(viewProfile)}
                           disabled={resending === viewProfile.id || maxReached}
-                          title={maxReached ? "Max 3 follow-up emails reached" : "Send a follow-up reminder"}
+                          title={maxReached ? "Max 3 follow-up emails reached" : "Send a manual follow-up reminder (auto-reminders also run every 3 days)"}
                         >
                           <MailIcon className="w-4 h-4 mr-1" />
                           {resending === viewProfile.id ? "Sending…" : `Send Follow-up (${sent}/3)`}
@@ -1208,7 +1217,7 @@ const AdminUsers = () => {
                       {isActive && (
                         <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {idvVerified ? "ID verified" : hasLoggedIn ? "Active — has logged in" : "Has opened approval email"}
+                          {activeLabel}
                         </div>
                       )}
                       <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"

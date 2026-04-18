@@ -117,8 +117,8 @@ const AdminUsers = () => {
       toast.success(`${formatName(profile.full_name)} approved!`);
       await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
       await createNotification({
-        user_id: profile.user_id, title: "Account approved!",
-        message: "Your account has been approved. You can now use the platform.",
+        user_id: profile.user_id, title: "Account verified by Helpr Safety Team",
+        message: "The user's account has been verified by the Helpr Safety Team and is cleared to use the platform.",
         type: "success", link: "/dashboard",
       });
       // Send approval email

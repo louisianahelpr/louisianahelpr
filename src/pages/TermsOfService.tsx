@@ -220,7 +220,7 @@ const TermsOfService = () => {
               <p><strong className="text-foreground">Timeliness:</strong> Show up on time and communicate promptly. If you can't make a commitment, cancel with advance notice to avoid fees.</p>
               <p><strong className="text-foreground">Quality:</strong> Complete tasks to the standard described in the job posting. Upload before/after photos as required.</p>
               <p><strong className="text-foreground">On-Platform Payments Only:</strong> All payments must go through the Helpr platform. Attempting to arrange off-platform payments will result in account suspension.</p>
-              <p><strong className="text-foreground">Reporting:</strong> Report any suspicious, inappropriate, or unsafe behavior using the report feature. All reports are reviewed by our team.</p>
+              <p><strong className="text-foreground">Reporting:</strong> Report any suspicious, inappropriate, or unsafe behavior using the report feature. All reports are reviewed by Helpr Trust & Safety.</p>
             </div>
           </section>
 

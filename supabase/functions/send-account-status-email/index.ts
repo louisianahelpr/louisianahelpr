@@ -72,24 +72,24 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">You're approved! 🎉</h1>
+  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Account verified by Helpr Safety Team 🎉</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Hey ${fullName || 'there'},
   </p>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    Great news — your account has been reviewed and <strong style="color:hsl(158,45%,42%)">approved</strong>! You now have full access to the Helpr platform.
+    Great news — the account has been reviewed and <strong style="color:hsl(158,45%,42%)">verified by the Helpr Safety Team</strong>. Full access to the Helpr platform is now active.
   </p>
   <a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Log In Now
   </a>
   <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
-    Welcome to the Helpr community! If you have any questions, don't hesitate to reach out to our support team.
+    Welcome to the Helpr community. Questions? Reach out to Helpr Trust & Safety any time.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
 </div>
 </body></html>`
 
-  const text = `You're approved!\n\nHey ${fullName || 'there'},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
+  const text = `Account verified by Helpr Safety Team\n\nHey ${fullName || 'there'},\n\nGreat news — the account has been reviewed and verified by the Helpr Safety Team. Full access to the Helpr platform is now active.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }
@@ -103,12 +103,12 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Verification Successful ✅</h1>
+  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Account verified by Helpr Safety Team ✅</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Hey ${fullName || 'there'},
   </p>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    Your identity has been <strong style="color:hsl(158,45%,42%)">verified</strong> and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.
+    The identity check is complete and the account has been <strong style="color:hsl(158,45%,42%)">verified by the Helpr Safety Team</strong>. The account is fully cleared to post tasks and help neighbors across Louisiana.
   </p>
   <a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Go to Dashboard
@@ -120,7 +120,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
 </div>
 </body></html>`
 
-  const text = `Verification Successful!\n\nHey ${fullName || 'there'},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
+  const text = `Account verified by Helpr Safety Team\n\nHey ${fullName || 'there'},\n\nThe identity check is complete and the account has been verified by the Helpr Safety Team. The account is fully cleared to post tasks and help neighbors across Louisiana.\n\nGo to the dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }

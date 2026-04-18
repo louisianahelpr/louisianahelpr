@@ -130,8 +130,8 @@ const AdminIDVQueue = () => {
     // In-app notification (auto-fires browser push via useRealtimePush)
     await supabase.from("notifications").insert({
       user_id: p.user_id,
-      title: "✅ Verification Successful",
-      message: "An admin verified your identity. You're cleared to start using Helpr!",
+      title: "✅ Account verified by Helpr Safety Team",
+      message: "The account has been verified by the Helpr Safety Team and is cleared to start using Helpr.",
       type: "success",
       link: "/dashboard",
     } as any);

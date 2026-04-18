@@ -134,8 +134,8 @@ serve(async (req) => {
         // 1) In-app notification (auto-triggers browser push via useRealtimePush)
         await supabase.from("notifications").insert({
           user_id: userId,
-          title: "✅ Verification Successful",
-          message: "Your identity has been verified! You're cleared to start using Helpr.",
+          title: "✅ Account verified by Helpr Safety Team",
+          message: "The account has been verified by the Helpr Safety Team and is cleared to start using Helpr.",
           type: "success",
           link: "/dashboard",
         });

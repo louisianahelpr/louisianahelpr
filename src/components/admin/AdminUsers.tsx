@@ -725,6 +725,27 @@ const AdminUsers = () => {
                       {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
                     </span>
                   </div>
+                  {/* Pending wait-time countdown — only shown in Pending tab */}
+                  {tab === "pending" && isPendingReview(p) && (() => {
+                    const waitMs = Date.now() - new Date(p.created_at).getTime();
+                    const waitHours = waitMs / (1000 * 60 * 60);
+                    const waitDays = Math.floor(waitHours / 24);
+                    const remHours = Math.floor(waitHours % 24);
+                    const label = waitDays > 0
+                      ? `${waitDays}d ${remHours}h waiting`
+                      : `${Math.floor(waitHours)}h waiting`;
+                    const tone = waitHours >= 48
+                      ? "bg-destructive/15 text-destructive border-destructive/30"
+                      : waitHours >= 24
+                      ? "bg-accent/20 text-accent-foreground border-accent/30"
+                      : "bg-primary/10 text-primary border-primary/20";
+                    return (
+                      <Badge variant="outline" className={`mt-1 h-5 px-2 text-[10px] font-semibold ${tone}`}>
+                        <Clock className="w-2.5 h-2.5 mr-1" />
+                        {label}
+                      </Badge>
+                    );
+                  })()}
                   {/* Standing + Last Activity row */}
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
                     {(() => {

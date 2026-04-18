@@ -492,6 +492,9 @@ const Messages = () => {
                           <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
                             <Flag className="w-4 h-4 mr-2" /> Report user
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setBlockTarget({ id: c.otherUserId, name: c.otherUserName })}>
+                            <Ban className="w-4 h-4 mr-2" /> Block user
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
                             <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
                           </DropdownMenuItem>

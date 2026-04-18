@@ -10,12 +10,46 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Require CRON_SECRET to prevent public reconnaissance
+  // Allow either: (a) CRON_SECRET / service role bearer (server-to-server), or
+  // (b) an authenticated admin user (browser dashboard).
   const cronSecret = Deno.env.get("CRON_SECRET");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`))) {
-    return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+
+  const isServerCall =
+    !!authHeader &&
+    ((cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+     (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`));
+
+  if (!isServerCall) {
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+    }
+    try {
+      const userClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (claimsErr || !claims?.claims?.sub) {
+        return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+      }
+      const adminClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const { data: isAdmin } = await adminClient.rpc('has_role', {
+        _user_id: claims.claims.sub,
+        _role: 'admin',
+      });
+      if (!isAdmin) {
+        return new Response('Forbidden', { status: 403, headers: corsHeaders });
+      }
+    } catch {
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+    }
   }
 
   const checks: Record<string, string> = {}

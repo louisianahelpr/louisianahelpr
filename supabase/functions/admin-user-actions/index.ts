@@ -266,10 +266,13 @@ Deno.serve(async (req) => {
           .eq('helper_id', targetUserId).eq('status', 'pending')
       }
 
+      const violationDescription = reasonCategory
+        ? `[${reasonCategory}] ${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
+        : `${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
       await admin.from('user_violations').insert({
         user_id: targetUserId,
         violation_type: 'admin_warning',
-        description: note,
+        description: violationDescription,
         action_taken: actionTaken,
         reported_by: userData.user.id,
       })

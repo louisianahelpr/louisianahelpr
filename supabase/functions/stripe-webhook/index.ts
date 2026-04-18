@@ -38,8 +38,11 @@ serve(async (req) => {
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
   if (!stripeKey) {
-    logStep("ERROR: STRIPE_SECRET_KEY not set");
-    return new Response("Server error", { status: 500 });
+    console.error("[STRIPE-WEBHOOK] STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -51,21 +54,32 @@ serve(async (req) => {
   const body = await req.text();
   let event: Stripe.Event;
 
-  if (webhookSecret) {
-    const sig = req.headers.get("stripe-signature");
-    if (!sig) {
-      logStep("ERROR: No stripe-signature header");
-      return new Response("No signature", { status: 400 });
-    }
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
-    } catch (err) {
-      logStep("ERROR: Signature verification failed", { error: String(err) });
-      return new Response("Invalid signature", { status: 400 });
-    }
-  } else {
-    logStep("ERROR: STRIPE_WEBHOOK_SECRET not configured — rejecting request");
-    return new Response("Webhook secret not configured", { status: 500 });
+  if (!webhookSecret) {
+    console.error("[STRIPE-WEBHOOK] STRIPE_WEBHOOK_SECRET is not configured — acknowledging to stop retries");
+    return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
+  }
+
+  const sig = req.headers.get("stripe-signature");
+  if (!sig) {
+    console.error("[STRIPE-WEBHOOK] No stripe-signature header on request — acknowledging to stop retries");
+    return new Response(JSON.stringify({ received: true, error: "missing_signature_header" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
+  }
+
+  try {
+    event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
+  } catch (err) {
+    console.error("[STRIPE-WEBHOOK] Signature verification failed:", String(err));
+    // Return 200 so Stripe stops retrying. Verification failures are logged for debugging.
+    return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   }
 
   logStep("Event received", { type: event.type, id: event.id });

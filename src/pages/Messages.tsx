@@ -5,7 +5,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2 } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +69,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [showAllConvos, setShowAllConvos] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
+  const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
@@ -108,6 +110,11 @@ const Messages = () => {
 
   const loadConversations = async (uid: string) => {
     setLoading(true);
+
+    // Fetch blocked-user IDs first so we can hide them from the list
+    const { getBlockedUserIds } = await import("@/lib/userBlocks");
+    const blockedSet = await getBlockedUserIds(uid);
+
     const { data: msgs } = await supabase
       .from("messages")
       .select("*")
@@ -117,8 +124,13 @@ const Messages = () => {
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 
+    const filteredMsgs = msgs.filter((m: any) => {
+      const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
+      return !blockedSet.has(other);
+    });
+
     const convoMap = new Map<string, { otherUserId: string; jobId: string; messages: Message[] }>();
-    for (const m of msgs) {
+    for (const m of filteredMsgs) {
       const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
       const key = `${m.job_id}_${other}`;
       if (!convoMap.has(key)) convoMap.set(key, { otherUserId: other, jobId: m.job_id, messages: [] });
@@ -480,6 +492,9 @@ const Messages = () => {
                           <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
                             <Flag className="w-4 h-4 mr-2" /> Report user
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setBlockTarget({ id: c.otherUserId, name: c.otherUserName })}>
+                            <Ban className="w-4 h-4 mr-2" /> Block user
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
                             <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
                           </DropdownMenuItem>
@@ -512,6 +527,24 @@ const Messages = () => {
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{activeConvo.jobTitle}</p>
                 </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+                      aria-label="Conversation options"
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}>
+                      <Flag className="w-4 h-4 mr-2" /> Report user
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}>
+                      <Ban className="w-4 h-4 mr-2" /> Block user
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               {/* Community rules banner */}
               {!bannerDismissed && (
@@ -608,6 +641,23 @@ const Messages = () => {
           onClose={() => setReportTarget(null)}
           reportedType={reportTarget.type}
           reportedId={reportTarget.id}
+        />
+      )}
+
+      {blockTarget && (
+        <BlockUserDialog
+          open={!!blockTarget}
+          onClose={() => setBlockTarget(null)}
+          blockedUserId={blockTarget.id}
+          blockedUserName={blockTarget.name}
+          onBlocked={() => {
+            // Drop the conversation locally and exit chat view
+            setConversations((prev) => prev.filter((c) => c.otherUserId !== blockTarget.id));
+            if (activeConvo?.otherUserId === blockTarget.id) {
+              setActiveConvo(null);
+              navigate("/messages", { replace: true });
+            }
+          }}
         />
       )}
 

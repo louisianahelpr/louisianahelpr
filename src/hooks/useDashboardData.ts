@@ -25,8 +25,8 @@ export function useDashboardData() {
       if (!user) return null;
       const userId = user.id;
 
-      // Phase 1: jobs + settings + availability + user applications in parallel
-      const [openJobsRes, feeRes, availRes, appliedRes] = await Promise.all([
+      // Phase 1: jobs + settings + availability + user applications + blocks in parallel
+      const [openJobsRes, feeRes, availRes, appliedRes, blocksRes] = await Promise.all([
         supabase
           .from("open_jobs_browse" as any)
           .select("id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status")
@@ -45,13 +45,26 @@ export function useDashboardData() {
           .from("applications")
           .select("job_id")
           .eq("helper_id", userId),
+        supabase
+          .from("user_blocks" as any)
+          .select("blocker_id, blocked_id")
+          .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
       ]);
 
       const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
 
+      // Build set of user IDs blocked in either direction
+      const blockedUserIds = new Set<string>();
+      for (const row of (blocksRes.data ?? []) as any[]) {
+        if (row.blocker_id === userId) blockedUserIds.add(row.blocked_id);
+        if (row.blocked_id === userId) blockedUserIds.add(row.blocker_id);
+      }
+
       const platformFee = (feeRes.data as any)?.helper_fee_percent ?? 10;
       const helperAvailability = availRes.data ?? [];
-      const rawJobs = (openJobsRes.data ?? []) as any[];
+      const rawJobs = ((openJobsRes.data ?? []) as any[]).filter(
+        (j) => !blockedUserIds.has(j.customer_id),
+      );
 
       if (rawJobs.length === 0) {
         return { allJobs: [] as EnrichedJob[], platformFee, helperAvailability, recommendedJobs: [] as EnrichedJob[], helprTier: null as string | null };

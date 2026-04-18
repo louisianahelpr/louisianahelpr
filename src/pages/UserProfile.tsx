@@ -4,11 +4,19 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban } from "lucide-react";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
+import ReportDialog from "@/components/ReportDialog";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -45,6 +53,8 @@ const UserProfile = () => {
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showBlock, setShowBlock] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -192,7 +202,24 @@ const UserProfile = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <h1 className="text-2xl font-display font-bold text-foreground">Profile Review</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground flex-1">Profile Review</h1>
+            {!isOwnProfile && currentUserId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowReport(true)}>
+                    <Flag className="w-4 h-4 mr-2" /> Report user
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowBlock(true)}>
+                    <Ban className="w-4 h-4 mr-2" /> Block user
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
           {/* Profile Card */}
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
@@ -454,6 +481,25 @@ const UserProfile = () => {
           </p>
         </div>
       </main>
+
+      {showReport && userId && (
+        <ReportDialog
+          open={showReport}
+          onClose={() => setShowReport(false)}
+          reportedType="user"
+          reportedId={userId}
+        />
+      )}
+
+      {showBlock && userId && profile && (
+        <BlockUserDialog
+          open={showBlock}
+          onClose={() => setShowBlock(false)}
+          blockedUserId={userId}
+          blockedUserName={formatName(profile.full_name) || "this user"}
+          onBlocked={() => navigate("/dashboard", { replace: true })}
+        />
+      )}
     </div>
   );
 };

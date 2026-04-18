@@ -251,6 +251,9 @@ const Admin = () => {
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
       case "social": return <AdminSocialPost />;
+      case "payouts": return <AdminPayoutBatches />;
+      case "parishtax": return <AdminParishTaxRates />;
+      case "tiers": return <AdminHelperTiers />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} getBadge={getBadge} getBadgeColor={getBadgeColor} />;
     }
   };

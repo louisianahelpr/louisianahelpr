@@ -375,6 +375,22 @@ const Admin = () => {
           </header>
 
           <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+            {view !== "home" && (
+              <div className="mb-4 flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleViewChange("home")}
+                  className="h-9 w-9 rounded-xl -ml-2 hover:bg-muted"
+                  aria-label="Back to admin dashboard"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <h1 className="text-xl font-display font-bold text-foreground truncate">
+                  {viewLabels[view]}
+                </h1>
+              </div>
+            )}
             <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
               {renderContent()}
             </Suspense>

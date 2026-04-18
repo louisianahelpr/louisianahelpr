@@ -398,18 +398,18 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+      <div className="flex gap-0.5 bg-secondary/50 rounded-lg p-0.5 overflow-x-auto">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 min-w-fit px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span className="ml-1.5 text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{t.count}</span>
+              <span className="ml-1 text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{t.count}</span>
             )}
           </button>
         ))}
@@ -420,66 +420,67 @@ const AdminUsers = () => {
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">No users in this category.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filtered.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-2 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3 flex-1 min-w-0">
-                  {p.avatar_url ? (
-                    <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium flex-shrink-0">
-                      {formatName(p.full_name, "?")[0]?.toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="font-semibold text-foreground">{formatName(p.full_name, "—")}</p>
-                      {statusBadge(p)}
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                       {(p as any).email && <span>{(p as any).email}</span>}
-                       {p.location && <span>{p.location}</span>}
-                       {p.phone && <span>{p.phone}</span>}
-                       <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
-                       <span className="flex items-center gap-0.5">
-                         <Clock className="w-3 h-3" />
-                         Active {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
-                       </span>
-                    </div>
-                    {p.skills && <p className="text-xs text-muted-foreground mt-1">Skills: {p.skills}</p>}
+            <div key={p.id} className="rounded-xl border border-border bg-card p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
+              <div className="flex items-start gap-3">
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium flex-shrink-0">
+                    {formatName(p.full_name, "?")[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
+                    {statusBadge(p)}
+                  </div>
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
+                    {(p as any).email && <span className="truncate max-w-full">{(p as any).email}</span>}
+                    {p.location && <span>{p.location}</span>}
+                    {p.phone && <span>{p.phone}</span>}
+                    <span className="flex items-center gap-0.5">
+                      <Clock className="w-3 h-3" />
+                      {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  {p.approval_status === "pending" && (
-                    <>
-                      <Button size="sm" onClick={() => approveUser(p)}><CheckCircle2 className="w-4 h-4" /></Button>
-                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                        onClick={() => { setDenyProfile(p); setDenyReason(""); }}><XCircle className="w-4 h-4" /></Button>
-                    </>
-                  )}
-                  {p.approval_status === "approved" && (
-                    <div className="flex gap-1.5">
-                      <Button size="sm" variant="outline" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
-                        <MailIcon className="w-4 h-4 mr-1" /> {resending === p.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Resend"}
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                        onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
-                        <ShieldAlert className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                  {p.approval_status === "denied" && (
-                    <Button size="sm" variant="outline" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>
-                      <MailIcon className="w-4 h-4 mr-1" /> {resending === p.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Resend"}
+              </div>
+              <div className="flex gap-1.5 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                {p.approval_status === "pending" && (
+                  <>
+                    <Button size="sm" className="h-8 px-3" onClick={() => approveUser(p)}>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
                     </Button>
-                  )}
-                </div>
+                    <Button size="sm" variant="outline" className="h-8 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setDenyProfile(p); setDenyReason(""); }}>
+                      <XCircle className="w-3.5 h-3.5 mr-1" /> Deny
+                    </Button>
+                  </>
+                )}
+                {p.approval_status === "approved" && (
+                  <>
+                    <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
+                      {resending === p.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><MailIcon className="w-3.5 h-3.5 mr-1" /> Resend</>}
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
+                      <ShieldAlert className="w-3.5 h-3.5 mr-1" /> Ban
+                    </Button>
+                  </>
+                )}
+                {p.approval_status === "denied" && (
+                  <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>
+                    {resending === p.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><MailIcon className="w-3.5 h-3.5 mr-1" /> Resend</>}
+                  </Button>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
+
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>

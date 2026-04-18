@@ -399,12 +399,28 @@ const PostJob = () => {
   const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
+  // Section completion for the 3-step progress bar
+  const detailsComplete = !!(title.trim() && description.trim() && category);
+  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
+  const budgetComplete = !!(budget && parseFloat(budget) >= 5);
+  const sectionsCompleted = [detailsComplete, logisticsComplete, budgetComplete].filter(Boolean).length;
+
+  // Budget presets derived from category suggested range
+  const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
+  const budgetPresets = suggested
+    ? Array.from(new Set([
+        suggested.min,
+        Math.round((suggested.min + suggested.max) / 2),
+        suggested.max,
+      ]))
+    : [25, 50, 100];
+
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32 sm:pb-20">
       <DashboardHeader />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-lg mx-auto space-y-8">
+        <div className="max-w-lg mx-auto space-y-6">
 
           {/* STEP 1: FORM */}
           {step === "form" && (

@@ -68,7 +68,7 @@ const Signup = () => {
 
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
     if (!allowedTypes.includes(file.type)) {
@@ -76,7 +76,7 @@ const Signup = () => {
       return false;
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${label}: File too large. Maximum 10MB.`);
+      toast.error(`${label}: File too large. Maximum 5MB.`);
       return false;
     }
     return true;
@@ -154,7 +154,6 @@ const Signup = () => {
     if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
     if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
 
-    // Duplicate phone detection
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (normalizedPhone.length === 10) {
       const { data: existing } = await supabase
@@ -179,7 +178,6 @@ const Signup = () => {
   };
 
   const validateStep4 = () => {
-    // ID upload is optional — users can skip and upload later
     return true;
   };
 
@@ -241,9 +239,15 @@ const Signup = () => {
       },
     });
 
-    if (fnError || result?.error) {
-      console.error("Signup completion error:", fnError || result?.error);
+    if (fnError) {
+      throw new Error(fnError.message || "We couldn't save your signup details.");
     }
+
+    if (result?.error) {
+      throw new Error(result.error);
+    }
+
+    return result;
   };
 
   // Account is created when entering step 4 so IDV can use the authenticated session.

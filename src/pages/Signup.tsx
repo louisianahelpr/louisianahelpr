@@ -496,52 +496,106 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+              <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
-                placeholder="Tell us about yourself, your experience, and what you're looking for… (minimum 20 characters)"
+                placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
                 required
                 minLength={20}
+                className="rounded-xl"
               />
               <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
                 {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">City <span className="text-destructive">*</span></Label>
-              <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required />
+              <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
+              <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="skills">Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span></Label>
-              <Input id="skills" placeholder="Type your skills, separated by commas" value={skills} onChange={(e) => setSkills(e.target.value)} />
-              <div className="flex flex-wrap gap-1.5">
-                {["Cleaning", "Moving", "Handyman", "Yard Work", "Painting", "Delivery", "Pet Care", "Errands", "Assembly"].map((skill) => {
-                  const isActive = skills.toLowerCase().includes(skill.toLowerCase());
-                  return (
-                    <button
-                      key={skill}
-                      type="button"
-                      onClick={() => {
-                        if (isActive) {
-                          setSkills(skills.split(",").map(s => s.trim()).filter(s => s.toLowerCase() !== skill.toLowerCase()).join(", "));
-                        } else {
-                          setSkills(skills ? `${skills}, ${skill}` : skill);
-                        }
-                      }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {isActive ? "✓ " : "+ "}{skill}
-                    </button>
-                  );
-                })}
-              </div>
+              <Label htmlFor="skill-search" className={labelCls}>
+                Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span>
+              </Label>
+              <Input
+                id="skill-search"
+                placeholder="Search skills…"
+                value={skillSearch}
+                onChange={(e) => setSkillSearch(e.target.value)}
+                className={inputCls}
+              />
+              {(() => {
+                const ALL_SKILLS = [
+                  "Cleaning", "Moving", "Handyman", "Yard Work", "Painting", "Delivery", "Pet Care", "Errands", "Assembly",
+                  "Pressure Washing", "Lawn Care", "Plumbing", "Electrical", "Carpentry", "Tile Work", "Drywall",
+                  "Babysitting", "Senior Care", "Tutoring", "Cooking", "Laundry", "Organizing", "Event Help",
+                  "Photography", "Web Design", "Tech Support", "Junk Removal", "Auto Detailing", "Gutter Cleaning",
+                ];
+                const selectedSkills = skills.split(",").map(s => s.trim()).filter(Boolean);
+                const filtered = ALL_SKILLS.filter(s => s.toLowerCase().includes(skillSearch.toLowerCase()));
+                const toggleSkill = (skill: string) => {
+                  const isActive = selectedSkills.some(s => s.toLowerCase() === skill.toLowerCase());
+                  if (isActive) {
+                    setSkills(selectedSkills.filter(s => s.toLowerCase() !== skill.toLowerCase()).join(", "));
+                  } else {
+                    setSkills([...selectedSkills, skill].join(", "));
+                  }
+                };
+                return (
+                  <>
+                    {selectedSkills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {selectedSkills.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => toggleSkill(s)}
+                            className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary text-primary-foreground border-primary inline-flex items-center gap-1"
+                          >
+                            {s} <X className="w-3 h-3" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="max-h-32 overflow-y-auto rounded-xl border border-border bg-muted/20 p-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {filtered.length === 0 ? (
+                          <p className="text-xs text-muted-foreground px-1 py-1">No matches. Type your own below.</p>
+                        ) : (
+                          filtered.map((skill) => {
+                            const isActive = selectedSkills.some(s => s.toLowerCase() === skill.toLowerCase());
+                            return (
+                              <button
+                                key={skill}
+                                type="button"
+                                onClick={() => toggleSkill(skill)}
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                                  isActive
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background text-foreground border-border hover:border-primary/50"
+                                }`}
+                              >
+                                {isActive ? "✓ " : "+ "}{skill}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                    {skillSearch.trim() && !ALL_SKILLS.some(s => s.toLowerCase() === skillSearch.trim().toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => { toggleSkill(skillSearch.trim()); setSkillSearch(""); }}
+                        className="text-xs text-primary font-medium hover:underline"
+                      >
+                        + Add "{skillSearch.trim()}" as a custom skill
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
               <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
             </div>
 

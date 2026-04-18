@@ -25,7 +25,63 @@ Deno.serve(async (req) => {
     );
 
     const now = new Date().toISOString();
+    const in24h = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const in23h = new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString();
     const resolved: string[] = [];
+    const warned: string[] = [];
+
+    // 0. Proactive 24h warnings — revision deadline approaches and helper hasn't fixed
+    const { data: warnRevisions } = await supabase
+      .from("jobs")
+      .select("id, title, customer_id, helper_id, revision_deadline")
+      .eq("status", "revision_requested")
+      .is("revision_completed_at", null)
+      .not("revision_deadline", "is", null)
+      .gt("revision_deadline", in23h)
+      .lte("revision_deadline", in24h);
+
+    for (const job of warnRevisions || []) {
+      const notifications: any[] = [];
+      if (job.helper_id) {
+        notifications.push({
+          user_id: job.helper_id,
+          title: "⏰ Revision window closing in 24h",
+          message: `Please update your progress on "${job.title}" to avoid a potential dispute.`,
+          type: "warning",
+          link: "/my-jobs?filter=in_progress",
+        });
+      }
+      notifications.push({
+        user_id: job.customer_id,
+        title: "Revision window closing in 24h",
+        message: `The helpr has 24h left to fix "${job.title}". You'll be able to approve or escalate after that.`,
+        type: "info",
+        link: "/my-posts?filter=in_progress",
+      });
+      if (notifications.length) await supabase.from("notifications").insert(notifications);
+      warned.push(job.id);
+    }
+
+    // 0b. Proactive 24h warnings — acceptance deadline approaches (helper fixed, poster hasn't responded)
+    const { data: warnAcceptances } = await supabase
+      .from("jobs")
+      .select("id, title, customer_id, helper_id, revision_acceptance_deadline")
+      .eq("status", "revision_requested")
+      .not("revision_completed_at", "is", null)
+      .not("revision_acceptance_deadline", "is", null)
+      .gt("revision_acceptance_deadline", in23h)
+      .lte("revision_acceptance_deadline", in24h);
+
+    for (const job of warnAcceptances || []) {
+      await supabase.from("notifications").insert([{
+        user_id: job.customer_id,
+        title: "⏰ Approve or dispute in 24h",
+        message: `The helpr fixed "${job.title}". You have 24h to approve or escalate — otherwise payment auto-releases.`,
+        type: "warning",
+        link: "/my-posts?filter=in_progress",
+      }]);
+      warned.push(job.id);
+    }
 
     // 1. Revisions where helper didn't fix within 72h → unlock dispute for poster
     const { data: expiredRevisions } = await supabase

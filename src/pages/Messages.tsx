@@ -5,7 +5,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2 } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +69,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [showAllConvos, setShowAllConvos] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
+  const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);

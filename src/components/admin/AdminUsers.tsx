@@ -730,15 +730,6 @@ const AdminUsers = () => {
                     {stripeBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
-                    {(p as any).email && <span className="truncate max-w-full">{(p as any).email}</span>}
-                    {p.location && <span>{p.location}</span>}
-                    {p.phone && <span>{p.phone}</span>}
-                    <span className="flex items-center gap-0.5">
-                      <Clock className="w-3 h-3" />
-                      {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
-                    </span>
-                  </div>
                   {/* Pending wait-time countdown — only shown in Pending tab */}
                   {tab === "pending" && isPendingReview(p) && (() => {
                     const waitMs = Date.now() - new Date(p.created_at).getTime();
@@ -760,7 +751,7 @@ const AdminUsers = () => {
                       </Badge>
                     );
                   })()}
-                  {/* Standing + Last Activity row */}
+                  {/* Standing + Last login row */}
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
                     {(() => {
                       const strikes = strikesSummary[p.user_id] || 0;
@@ -776,11 +767,11 @@ const AdminUsers = () => {
                         </span>
                       );
                     })()}
-                    {activitySummary[p.user_id] && (
-                      <span className="text-muted-foreground">
-                        Last: {activitySummary[p.user_id].label} · {formatDistanceToNow(new Date(activitySummary[p.user_id].at), { addSuffix: true })}
-                      </span>
-                    )}
+                    <span className="text-muted-foreground">
+                      Last login: {lastLoginSummary[p.user_id]
+                        ? formatDistanceToNow(new Date(lastLoginSummary[p.user_id]), { addSuffix: true })
+                        : "never"}
+                    </span>
                   </div>
                 </div>
               </div>

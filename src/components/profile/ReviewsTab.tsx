@@ -2,6 +2,9 @@ import { ArrowLeft, Star } from "lucide-react";
 
 interface Review {
   rating: number;
+  punctuality: number | null;
+  quality: number | null;
+  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewerName: string;
@@ -16,7 +19,27 @@ interface ReviewsTabProps {
   onBack: () => void;
 }
 
+const MiniStars = ({ value, size = "sm" }: { value: number; size?: "sm" | "xs" }) => {
+  const cls = size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3";
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star key={s} className={`${cls} ${s <= Math.round(value) ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />
+      ))}
+    </div>
+  );
+};
+
 export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }: ReviewsTabProps) {
+  const catAvg = (key: keyof Review) => {
+    const vals = reviews.map((r) => Number(r[key])).filter((n) => Number.isFinite(n) && n > 0);
+    return vals.length > 0 ? vals.reduce((s, n) => s + n, 0) / vals.length : 0;
+  };
+  const punctualityAvg = catAvg("punctuality");
+  const qualityAvg = catAvg("quality");
+  const communicationAvg = catAvg("communication");
+  const hasCategoryData = punctualityAvg > 0 || qualityAvg > 0 || communicationAvg > 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -30,6 +53,22 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
           </p>
         </div>
       </div>
+
+      {hasCategoryData && (
+        <div className="rounded-xl border border-border bg-card p-4 grid grid-cols-3 gap-2">
+          {[
+            { label: "Punctuality", v: punctualityAvg },
+            { label: "Quality", v: qualityAvg },
+            { label: "Communication", v: communicationAvg },
+          ].map((cat) => (
+            <div key={cat.label} className="text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{cat.label}</p>
+              <div className="flex justify-center mb-1"><MiniStars value={cat.v} /></div>
+              <p className="text-xs font-semibold text-foreground">{cat.v > 0 ? cat.v.toFixed(1) : "—"}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading reviews...</p>
@@ -58,6 +97,28 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
                   {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
+              {(review.punctuality || review.quality || review.communication) && (
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {review.punctuality && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                      <MiniStars value={review.punctuality} size="xs" />
+                    </div>
+                  )}
+                  {review.quality && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                      <MiniStars value={review.quality} size="xs" />
+                    </div>
+                  )}
+                  {review.communication && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                      <MiniStars value={review.communication} size="xs" />
+                    </div>
+                  )}
+                </div>
+              )}
               {review.feedback && (
                 <p className="text-sm text-foreground">{review.feedback}</p>
               )}

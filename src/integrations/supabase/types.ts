@@ -1658,28 +1658,37 @@ export type Database = {
       }
       reviews: {
         Row: {
+          communication: number | null
           created_at: string
           feedback: string | null
           id: string
           job_id: string
+          punctuality: number | null
+          quality: number | null
           rating: number
           reviewee_id: string
           reviewer_id: string
         }
         Insert: {
+          communication?: number | null
           created_at?: string
           feedback?: string | null
           id?: string
           job_id: string
+          punctuality?: number | null
+          quality?: number | null
           rating: number
           reviewee_id: string
           reviewer_id: string
         }
         Update: {
+          communication?: number | null
           created_at?: string
           feedback?: string | null
           id?: string
           job_id?: string
+          punctuality?: number | null
+          quality?: number | null
           rating?: number
           reviewee_id?: string
           reviewer_id?: string

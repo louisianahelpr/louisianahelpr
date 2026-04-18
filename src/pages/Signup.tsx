@@ -745,8 +745,14 @@ const Signup = () => {
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              <Button className="flex-1" onClick={() => setStep(4)}>
-                {portfolioFiles.length > 0 ? "Continue" : "Skip"} <ArrowRight className="w-4 h-4 ml-1" />
+              <Button
+                className="flex-1"
+                onClick={createAccountAndEnterStep4}
+                disabled={loading}
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
+                  : <>{portfolioFiles.length > 0 ? "Continue" : "Skip"} <ArrowRight className="w-4 h-4 ml-1" /></>}
               </Button>
             </div>
           </div>
@@ -755,39 +761,82 @@ const Signup = () => {
         {/* Step 4: ID verification */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <div className="text-center space-y-2">
-                <Upload className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Verify your identity <span className="text-muted-foreground text-xs">(optional)</span></h3>
-                <p className="text-sm text-muted-foreground">
-                  Upload a government-issued ID (driver's license, passport, or state ID). This helps verify your identity and builds trust in the community.
-                </p>
-                <p className="text-xs text-muted-foreground italic">You can skip this step and upload later from your profile. ID verification is required before accepting tasks as a helpr.</p>
+            {/* Decide which UI to show */}
+            {idvMode === null && accountCreated && (
+              <IdentityVerificationStep
+                onComplete={(outcome) => {
+                  setIdvOutcome(outcome);
+                  setIdvMode("idv");
+                }}
+                onFallbackToManual={() => setIdvMode("manual")}
+              />
+            )}
+
+            {idvMode === "idv" && idvOutcome && (
+              <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-center">
+                {idvOutcome === "verified" ? (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                      <ShieldCheck className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">You're verified!</h3>
+                    <p className="text-sm text-muted-foreground">Your identity was confirmed instantly. Verify your email next to log in.</p>
+                  </>
+                ) : idvOutcome === "processing" ? (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
+                      <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">Still processing…</h3>
+                    <p className="text-sm text-muted-foreground">Your verification is being reviewed. We'll email you once it's complete.</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+                      <Upload className="w-7 h-7 text-amber-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">We need a closer look</h3>
+                    <p className="text-sm text-muted-foreground">Your submission was sent to our review team. We'll email you within 24–48 hours.</p>
+                  </>
+                )}
               </div>
+            )}
 
-              <label className="cursor-pointer block">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
-                  {idFileName ? (
-                    <p className="text-sm text-foreground font-medium">{idFileName}</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Click to select file (JPG, PNG, or PDF)</p>
-                  )}
+            {idvMode === "manual" && (
+              <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                <div className="text-center space-y-2">
+                  <Upload className="w-10 h-10 text-primary mx-auto" />
+                  <h3 className="font-semibold text-foreground">Upload your ID <span className="text-muted-foreground text-xs">(optional)</span></h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a government-issued ID (driver's license, passport, or state ID). Our team will review it within 24–48 hours.
+                  </p>
                 </div>
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdChange} />
-              </label>
-            </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Your ID will be securely stored and only reviewed by admins for verification purposes.
-            </p>
+                <label className="cursor-pointer block">
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    {idFileName ? (
+                      <p className="text-sm text-foreground font-medium">{idFileName}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Click to select file (JPG, PNG, or PDF)</p>
+                    )}
+                  </div>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdChange} />
+                </label>
+              </div>
+            )}
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={finishSignup}
+                disabled={loading || (idvMode === null && accountCreated)}
+              >
+                Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
-              <Button className="flex-1" size="lg" onClick={handleSignup} disabled={loading}>
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</> : "Submit for review"}
-              </Button>
+            </div>
+          </div>
+        )}
             </div>
           </div>
         )}

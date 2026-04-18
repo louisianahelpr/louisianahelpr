@@ -1,0 +1,316 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { ShieldCheck, ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { formatName } from "@/lib/utils";
+import { logAdminAction } from "@/lib/adminAudit";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface IDVProfile {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  idv_status: string | null;
+  idv_confidence: number | null;
+  idv_failure_reason: string | null;
+  idv_session_id: string | null;
+  idv_attempted_at: string | null;
+  approval_status: string;
+  legacy_manual_review: boolean;
+  created_at: string;
+}
+
+const STATUS_TABS = [
+  { key: "manual_review", label: "Manual Review", icon: ShieldAlert, color: "bg-destructive/10 text-destructive" },
+  { key: "failed", label: "Failed", icon: XCircle, color: "bg-amber-500/10 text-amber-600" },
+  { key: "pending", label: "Pending/Processing", icon: Loader2, color: "bg-blue-500/10 text-blue-600" },
+  { key: "verified", label: "Verified", icon: CheckCircle2, color: "bg-emerald-500/10 text-emerald-600" },
+];
+
+const AdminIDVQueue = () => {
+  const [profiles, setProfiles] = useState<IDVProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("manual_review");
+  const [actioning, setActioning] = useState<string | null>(null);
+  const [selected, setSelected] = useState<IDVProfile | null>(null);
+
+  // Settings
+  const [hybridEnabled, setHybridEnabled] = useState(false);
+  const [threshold, setThreshold] = useState("85");
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const statusFilters = activeTab === "pending"
+      ? ["pending", "processing"]
+      : [activeTab];
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, email, idv_status, idv_confidence, idv_failure_reason, idv_session_id, idv_attempted_at, approval_status, legacy_manual_review, created_at")
+      .in("idv_status", statusFilters)
+      .order("idv_attempted_at", { ascending: false, nullsFirst: false })
+      .limit(100);
+
+    if (error) toast.error(error.message);
+    else setProfiles((data as IDVProfile[]) || []);
+    setLoading(false);
+  };
+
+  const loadSettings = async () => {
+    const { data } = await supabase
+      .from("platform_settings")
+      .select("id, hybrid_idv_enabled, idv_auto_approve_threshold")
+      .maybeSingle();
+    if (data) {
+      setSettingsId(data.id);
+      setHybridEnabled(!!data.hybrid_idv_enabled);
+      setThreshold(String(data.idv_auto_approve_threshold ?? 85));
+    }
+  };
+
+  useEffect(() => { loadSettings(); }, []);
+  useEffect(() => { load(); }, [activeTab]);
+
+  const saveSettings = async () => {
+    if (!settingsId) return;
+    const t = parseFloat(threshold);
+    if (isNaN(t) || t < 0 || t > 100) {
+      toast.error("Threshold must be 0–100");
+      return;
+    }
+    setSavingSettings(true);
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({
+        hybrid_idv_enabled: hybridEnabled,
+        idv_auto_approve_threshold: t,
+      } as any)
+      .eq("id", settingsId);
+    setSavingSettings(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("IDV settings updated");
+      await logAdminAction("update_idv_settings", "platform_settings", settingsId, {
+        hybrid_idv_enabled: hybridEnabled,
+        idv_auto_approve_threshold: t,
+      });
+    }
+  };
+
+  const approveUser = async (p: IDVProfile) => {
+    setActioning(p.user_id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        idv_status: "verified",
+        approval_status: "approved",
+      } as any)
+      .eq("user_id", p.user_id);
+    setActioning(null);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(`${formatName(p.full_name)} approved`);
+      await logAdminAction("idv_manual_approve", "user", p.user_id, { previous_status: p.idv_status });
+      setSelected(null);
+      load();
+    }
+  };
+
+  const denyUser = async (p: IDVProfile) => {
+    setActioning(p.user_id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        idv_status: "failed",
+        approval_status: "denied",
+        denial_reason: "Identity verification could not be confirmed.",
+      } as any)
+      .eq("user_id", p.user_id);
+    setActioning(null);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(`${formatName(p.full_name)} denied`);
+      await logAdminAction("idv_manual_deny", "user", p.user_id, { previous_status: p.idv_status });
+      setSelected(null);
+      load();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+          <ShieldCheck className="w-6 h-6 text-primary" /> Identity Verification
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land here.
+        </p>
+      </div>
+
+      {/* Settings card */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4 max-w-2xl">
+        <h3 className="font-semibold text-foreground">Settings</h3>
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="hybrid-toggle" className="text-sm font-medium">Hybrid IDV enabled</Label>
+            <p className="text-xs text-muted-foreground">When off, all new signups go to the manual queue.</p>
+          </div>
+          <Switch
+            id="hybrid-toggle"
+            checked={hybridEnabled}
+            onCheckedChange={setHybridEnabled}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="threshold" className="text-sm font-medium">Auto-approve confidence threshold</Label>
+          <p className="text-xs text-muted-foreground">Submissions scoring at or above this value are auto-approved (0–100).</p>
+          <Input
+            id="threshold"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={threshold}
+            onChange={(e) => setThreshold(e.target.value)}
+            className="max-w-[120px]"
+          />
+        </div>
+        <Button onClick={saveSettings} disabled={savingSettings} size="sm">
+          {savingSettings ? "Saving…" : "Save settings"}
+        </Button>
+      </div>
+
+      {/* Status tabs */}
+      <div className="flex flex-wrap gap-2">
+        {STATUS_TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+                activeTab === tab.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:border-primary/50"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
+        <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="ml-auto">
+          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </Button>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : profiles.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">No users in this status.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {profiles.map((p) => {
+            const tab = STATUS_TABS.find((t) =>
+              t.key === p.idv_status || (t.key === "pending" && (p.idv_status === "pending" || p.idv_status === "processing"))
+            );
+            return (
+              <div key={p.user_id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
+                    {tab && (
+                      <Badge className={`text-xs ${tab.color}`}>{p.idv_status}</Badge>
+                    )}
+                    {p.idv_confidence !== null && (
+                      <Badge variant="secondary" className="text-xs">
+                        {Math.round(p.idv_confidence)}% confidence
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{p.email || "—"}</p>
+                  {p.idv_failure_reason && (
+                    <p className="text-xs text-destructive mt-1">⚠️ {p.idv_failure_reason}</p>
+                  )}
+                  {p.idv_attempted_at && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Attempted {new Date(p.idv_attempted_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button size="sm" variant="ghost" onClick={() => setSelected(p)}>
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  {(p.idv_status === "manual_review" || p.idv_status === "failed") && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => approveUser(p)}
+                        disabled={actioning === p.user_id}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => denyUser(p)}
+                        disabled={actioning === p.user_id}
+                      >
+                        Deny
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Detail dialog */}
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{formatName(selected?.full_name, "User")}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-3 text-sm">
+              <Row label="Email" value={selected.email || "—"} />
+              <Row label="IDV Status" value={selected.idv_status || "—"} />
+              <Row label="Confidence" value={selected.idv_confidence !== null ? `${Math.round(selected.idv_confidence)}%` : "—"} />
+              <Row label="Failure reason" value={selected.idv_failure_reason || "—"} />
+              <Row label="Stripe session" value={selected.idv_session_id || "—"} mono />
+              <Row label="Approval status" value={selected.approval_status} />
+              <Row label="Attempted" value={selected.idv_attempted_at ? new Date(selected.idv_attempted_at).toLocaleString() : "—"} />
+              <Row label="Legacy manual review" value={selected.legacy_manual_review ? "Yes" : "No"} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+  <div className="flex justify-between gap-4 border-b border-border pb-1.5">
+    <span className="text-muted-foreground text-xs uppercase tracking-wide">{label}</span>
+    <span className={`text-foreground text-right break-all ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
+  </div>
+);
+
+export default AdminIDVQueue;

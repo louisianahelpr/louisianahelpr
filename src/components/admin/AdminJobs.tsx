@@ -5,7 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2 } from "lucide-react";
+
+const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
+const getResolvedFlags = (): Set<string> => {
+  try { return new Set(JSON.parse(localStorage.getItem(RESOLVED_FLAGS_KEY) || "[]")); }
+  catch { return new Set(); }
+};
+const saveResolvedFlags = (set: Set<string>) => {
+  localStorage.setItem(RESOLVED_FLAGS_KEY, JSON.stringify([...set]));
+};
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -87,6 +96,7 @@ const AdminJobs = () => {
   const [deleting, setDeleting] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged">("all");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
+  const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
   useEffect(() => {
     const load = async () => {
@@ -96,7 +106,6 @@ const AdminJobs = () => {
         .order("created_at", { ascending: false });
       if (data) {
         setJobs(data);
-        // Auto-detect flags
         const flagMap = new Map<string, string[]>();
         for (const job of data) {
           const existingFlags = (job as any).flag_reasons || [];
@@ -110,6 +119,21 @@ const AdminJobs = () => {
     };
     load();
   }, []);
+
+  const markFlagResolved = (jobId: string) => {
+    const next = new Set(resolvedFlags);
+    next.add(jobId);
+    setResolvedFlags(next);
+    saveResolvedFlags(next);
+    toast.success("Flag marked as resolved");
+  };
+
+  const reopenFlag = (jobId: string) => {
+    const next = new Set(resolvedFlags);
+    next.delete(jobId);
+    setResolvedFlags(next);
+    saveResolvedFlags(next);
+  };
 
   const openJob = async (job: Job) => {
     setDetailJob(job);
@@ -181,8 +205,8 @@ const AdminJobs = () => {
     }
   };
 
-  const flaggedCount = jobFlags.size;
-  const filteredJobs = filter === "flagged" ? jobs.filter((j) => jobFlags.has(j.id)) : jobs;
+  const flaggedCount = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id)).length;
+  const filteredJobs = filter === "flagged" ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id)) : jobs;
 
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
 
@@ -205,34 +229,38 @@ const AdminJobs = () => {
       <div className="space-y-3">
         {filteredJobs.map((job) => {
           const flags = jobFlags.get(job.id);
+          const isResolved = resolvedFlags.has(job.id);
+          const showFlagStyle = flags && !isResolved;
           const isRemoved = !!(job as any).removal_reason;
           return (
             <div
               key={job.id}
               onClick={() => openJob(job)}
               className={`rounded-xl border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors ${
-                flags ? "border-destructive/30" : "border-border"
+                showFlagStyle ? "border-destructive/30" : "border-border"
               } ${isRemoved ? "opacity-60" : ""}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {flags && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
+                    {showFlagStyle && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
+                    {flags && isResolved && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
                     <p className="font-semibold text-foreground truncate">{job.title}</p>
                     <Badge variant="secondary" className="text-xs capitalize">{categoryLabels[job.category] || job.category}</Badge>
                     {isRemoved && <Badge variant="destructive" className="text-xs">Removed</Badge>}
+                    {flags && isResolved && <Badge variant="outline" className="text-xs gap-1"><CheckCircle2 className="w-3 h-3" />Resolved</Badge>}
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
                     <span className="font-medium text-foreground">${job.budget}</span>
                   </div>
-                  {flags && (
+                  {showFlagStyle && (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {flags.slice(0, 2).map((f, i) => (
+                      {flags!.slice(0, 2).map((f, i) => (
                         <span key={i} className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{f}</span>
                       ))}
-                      {flags.length > 2 && <span className="text-[10px] text-destructive">+{flags.length - 2} more</span>}
+                      {flags!.length > 2 && <span className="text-[10px] text-destructive">+{flags!.length - 2} more</span>}
                     </div>
                   )}
                 </div>
@@ -265,14 +293,33 @@ const AdminJobs = () => {
             <div className="space-y-4">
               {/* Flags banner */}
               {jobFlags.has(detailJob.id) && (
-                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-1.5">
-                  <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
-                  </p>
-                  {jobFlags.get(detailJob.id)!.map((flag, i) => (
-                    <p key={i} className="text-xs text-destructive/80 pl-5">• {flag}</p>
-                  ))}
-                </div>
+                resolvedFlags.has(detailJob.id) ? (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start justify-between gap-3">
+                    <div className="space-y-1.5 flex-1">
+                      <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Flags marked as resolved
+                      </p>
+                      <p className="text-xs text-muted-foreground pl-5">An admin reviewed this job and confirmed it's fine.</p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => reopenFlag(detailJob.id)}>
+                      Reopen
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
+                      </p>
+                      <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => markFlagResolved(detailJob.id)}>
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark Resolved
+                      </Button>
+                    </div>
+                    {jobFlags.get(detailJob.id)!.map((flag, i) => (
+                      <p key={i} className="text-xs text-destructive/80 pl-5">• {flag}</p>
+                    ))}
+                  </div>
+                )
               )}
 
               {/* Removal info */}

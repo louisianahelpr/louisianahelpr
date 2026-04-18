@@ -777,7 +777,7 @@ const Signup = () => {
         {/* Step 3: Portfolio & Documents */}
         {step === 3 && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex gap-3">
               <div className="text-2xl">💡</div>
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">Why this matters</p>

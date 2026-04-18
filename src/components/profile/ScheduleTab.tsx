@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, DollarSign, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { HelperAvailability } from "@/components/HelperAvailability";
+import { PreferredParishes } from "@/components/PreferredParishes";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -146,6 +147,13 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack 
           )}
         </>
       )}
+
+      {/* Preferred parishes — instant alerts */}
+      <div className="border-t border-border pt-6">
+        <h2 className="text-lg font-display font-bold text-foreground mb-1">Home Parishes</h2>
+        <p className="text-muted-foreground text-xs mb-4">Get instant alerts when jobs drop in your preferred territory</p>
+        <PreferredParishes helperId={userId} />
+      </div>
 
       {/* Availability section */}
       <div className="border-t border-border pt-6">

@@ -788,48 +788,22 @@ const AdminUsers = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-1.5 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                {p.approval_status === "pending" && isVerifiedEmail(p) && (
-                  <>
-                    <Button size="sm" className="h-8 px-3" onClick={() => approveUser(p)}>
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                      {wasFlaggedByStripe(p) ? "Override & Approve" : "Approve"}
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => { setDenyProfile(p); setDenyReason(""); }}>
-                      <XCircle className="w-3.5 h-3.5 mr-1" /> Deny
-                    </Button>
-                    {wasFlaggedByStripe(p) && (
-                      <Badge variant="outline" className="h-8 px-2 flex items-center gap-1 text-[10px] bg-accent/10 text-accent-foreground border-accent/30">
-                        <ShieldAlert className="w-3 h-3" />
-                        Flagged by Stripe
-                      </Badge>
-                    )}
-                  </>
-                )}
-                {p.approval_status === "pending" && !isVerifiedEmail(p) && (
-                  <Badge variant="outline" className="h-8 px-2 flex items-center gap-1 text-[10px] bg-muted text-muted-foreground border-border">
-                    <MailIcon className="w-3 h-3" />
-                    Awaiting email verification
-                  </Badge>
-                )}
-                {p.approval_status === "approved" && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-3 bg-accent/10 text-accent-foreground border-accent/40 hover:bg-accent/20"
-                      onClick={() => { setWarningProfile(p); setWarningNote(""); setWarningCategory("conduct"); setWarningBypass(false); }}
-                    >
-                      <MessageSquareWarning className="w-3.5 h-3.5 mr-1" /> Warn
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
-                      <ShieldAlert className="w-3.5 h-3.5 mr-1" /> Ban
-                    </Button>
-                  </>
-                )}
-              </div>
+              {((p.approval_status === "pending" && !isVerifiedEmail(p)) || (p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p))) && (
+                <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                  {p.approval_status === "pending" && !isVerifiedEmail(p) && (
+                    <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-muted text-muted-foreground border-border">
+                      <MailIcon className="w-3 h-3" />
+                      Awaiting email verification
+                    </Badge>
+                  )}
+                  {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (
+                    <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-accent/10 text-accent-foreground border-accent/30">
+                      <ShieldAlert className="w-3 h-3" />
+                      Flagged by Stripe
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

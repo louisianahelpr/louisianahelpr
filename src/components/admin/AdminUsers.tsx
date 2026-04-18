@@ -812,12 +812,12 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-7">
+          <DialogHeader className="pb-2 mb-2 border-b border-border">
             <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-4">
+            <div className="space-y-6 sm:space-y-7">
               {/* Header: Avatar + Basic Info */}
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (

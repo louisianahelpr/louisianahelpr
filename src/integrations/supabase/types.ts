@@ -2472,6 +2472,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_hero_parishes: {
+        Args: never
+        Returns: {
+          hero_count: number
+          parish: string
+        }[]
+      }
       get_parish_for_zip: { Args: { p_zip: string }; Returns: string }
       get_safe_profiles: {
         Args: { user_ids: string[] }
@@ -2489,11 +2496,32 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_top_helpers_by_parish: {
+        Args: { p_limit?: number; p_parish?: string }
+        Returns: {
+          avatar_url: string
+          avg_rating: number
+          bio: string
+          completed_jobs: number
+          full_name: string
+          hero_score: number
+          location: string
+          parish: string
+          review_count: number
+          skills: string
+          subscription_tier: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_category_taxable: {
+        Args: { _category: Database["public"]["Enums"]["job_category"] }
         Returns: boolean
       }
       move_to_dlq: {

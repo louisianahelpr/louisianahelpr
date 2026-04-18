@@ -108,6 +108,22 @@ const AccountPending = () => {
     }
   };
 
+  const handleTryAgain = async () => {
+    setResetting(true);
+    try {
+      const { error } = await supabase.functions.invoke("reset-idv-attempt");
+      if (error) throw new Error(error.message || "Could not reset verification");
+      toast.success("Reset! Launching a fresh verification…");
+      setShowRetry(false);
+      setIdvStatus("not_started");
+      setDenialReason(null);
+    } catch (e: any) {
+      toast.error(e.message || "Could not reset. Please contact support.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md text-center space-y-8">

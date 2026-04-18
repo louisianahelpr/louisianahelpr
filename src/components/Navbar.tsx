@@ -9,8 +9,18 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const navigate = useNavigate();
 
   return (
-    <nav ref={ref} className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+    <nav
+      ref={ref}
+      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div
+        className="container mx-auto flex items-center justify-between h-16 px-6"
+        style={{
+          paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
+          paddingRight: "max(1.5rem, env(safe-area-inset-right))",
+        }}
+      >
         <Link to="/" className="text-2xl font-display font-bold text-primary tracking-tight">
           Helpr
         </Link>
@@ -49,7 +59,13 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-background border-b border-border px-4 pb-4 space-y-3">
+        <div
+          className="md:hidden bg-background border-b border-border px-6 pb-4 space-y-3"
+          style={{
+            paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
+            paddingRight: "max(1.5rem, env(safe-area-inset-right))",
+          }}
+        >
           <a href="#how-it-works" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             How it works
           </a>

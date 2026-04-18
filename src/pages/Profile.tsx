@@ -811,9 +811,18 @@ const ProfilePage = () => {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={saving}>
-                  {saving ? "Saving…" : "Save profile"}
-                </Button>
+
+                {/* Spacer so content isn't hidden behind sticky bar */}
+                <div className="h-20" aria-hidden="true" />
+
+                {/* Sticky Save bar */}
+                <div className="sticky bottom-16 sm:bottom-4 left-0 right-0 -mx-4 sm:mx-0 px-4 sm:px-0 z-30 pointer-events-none">
+                  <div className="pointer-events-auto rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3">
+                    <Button type="submit" className="w-full" size="lg" disabled={saving}>
+                      {saving ? "Saving…" : "Save Changes"}
+                    </Button>
+                  </div>
+                </div>
               </form>
             </div>
           )}

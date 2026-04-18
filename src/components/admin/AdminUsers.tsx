@@ -83,7 +83,6 @@ const AdminUsers = () => {
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
 
   // Filters
-  const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "no_id">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const loadProfiles = async () => {
@@ -565,19 +564,21 @@ const AdminUsers = () => {
     else if (tab === "denied" && p.approval_status !== "denied") return false;
     else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
 
-    // Issue filter
-    if (issueFilter === "strikes" && (strikesSummary[p.user_id] || 0) === 0) return false;
-    if (issueFilter === "no_id" && p.role !== "customer" && (p as any).idv_status) return false;
-    if (issueFilter === "no_id" && p.role === "customer") return false;
-
-    // Search
+    // Search by name (also matches email for convenience)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const hay = `${p.full_name || ""} ${(p as any).email || ""} ${p.location || ""} ${(p as any).parish || ""}`.toLowerCase();
+      const hay = `${p.full_name || ""} ${(p as any).email || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
 
     return true;
+  }).sort((a, b) => {
+    const aLogin = lastLoginSummary[a.user_id];
+    const bLogin = lastLoginSummary[b.user_id];
+    if (!aLogin && !bLogin) return 0;
+    if (!aLogin) return 1;
+    if (!bLogin) return -1;
+    return new Date(bLogin).getTime() - new Date(aLogin).getTime();
   });
 
   const pendingCount = profiles.filter(isPendingReview).length;
@@ -671,10 +672,7 @@ const AdminUsers = () => {
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => {
-              setTab(t.key);
-              if (t.key === "approved" && issueFilter === "no_id") setIssueFilter("all");
-            }}
+            onClick={() => setTab(t.key)}
             className={`flex-1 min-w-fit px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -687,38 +685,26 @@ const AdminUsers = () => {
         ))}
       </div>
 
-      {/* Search + Filter Power-Ups */}
+      {/* Search */}
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
-          placeholder="Search name, email, parish…"
+          placeholder="Search by name…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-sm flex-1"
         />
-        <div className="flex gap-2">
-          <Select value={issueFilter} onValueChange={(v) => setIssueFilter(v as any)}>
-            <SelectTrigger className="h-9 text-xs flex-1 sm:w-[160px]">
-              <SelectValue placeholder="Issue" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Issues</SelectItem>
-              <SelectItem value="strikes">Has Strikes</SelectItem>
-              {tab !== "approved" && (
-                <SelectItem value="no_id">No ID Submitted</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
-        {(issueFilter !== "all" || searchQuery) && (
+        <p className="text-xs text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "user" : "users"} · sorted by recently active
+        </p>
+        {searchQuery && (
           <button
-            onClick={() => { setIssueFilter("all"); setSearchQuery(""); }}
+            onClick={() => setSearchQuery("")}
             className="text-[11px] text-primary hover:underline"
           >
-            Clear filters
+            Clear search
           </button>
         )}
       </div>

@@ -40,7 +40,7 @@ const AdminUsers = () => {
   const [banProfile, setBanProfile] = useState<Profile | null>(null);
   const [banType, setBanType] = useState<"warning" | "temporary" | "permanent">("warning");
   const [banReason, setBanReason] = useState("");
-  const [banDuration, setBanDuration] = useState("7"); // days
+  const [banDuration, setBanDuration] = useState("7"); // days — presets 2 / 7 / 30
   const [banning, setBanning] = useState(false);
 
   // Edit email dialog

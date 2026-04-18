@@ -28,9 +28,8 @@ export function useDashboardData() {
       // Phase 1: jobs + settings + availability + user applications in parallel
       const [openJobsRes, feeRes, availRes, appliedRes] = await Promise.all([
         supabase
-          .from("jobs")
+          .from("open_jobs_browse" as any)
           .select("id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status")
-          .eq("status", "open")
           .neq("payment_status", "abandoned")
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
@@ -52,7 +51,7 @@ export function useDashboardData() {
 
       const platformFee = (feeRes.data as any)?.helper_fee_percent ?? 10;
       const helperAvailability = availRes.data ?? [];
-      const rawJobs = openJobsRes.data ?? [];
+      const rawJobs = (openJobsRes.data ?? []) as any[];
 
       if (rawJobs.length === 0) {
         return { allJobs: [] as EnrichedJob[], platformFee, helperAvailability, recommendedJobs: [] as EnrichedJob[], helprTier: null as string | null };

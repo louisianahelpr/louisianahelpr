@@ -64,6 +64,13 @@ export type Database = {
             foreignKeyName: "addon_requests_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -149,6 +156,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -407,6 +421,13 @@ export type Database = {
             foreignKeyName: "fraud_flags_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fraud_flags_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -447,6 +468,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_job_helpers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -603,6 +631,13 @@ export type Database = {
             foreignKeyName: "job_checkins_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_checkins_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -661,6 +696,13 @@ export type Database = {
             foreignKeyName: "job_milestones_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_milestones_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -701,6 +743,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_scope_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -759,6 +808,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tracking_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -1030,6 +1086,13 @@ export type Database = {
             foreignKeyName: "jobs_parent_job_id_fkey"
             columns: ["parent_job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -1121,6 +1184,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -1633,6 +1703,13 @@ export type Database = {
             foreignKeyName: "reviews_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -1670,6 +1747,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -1785,6 +1869,13 @@ export type Database = {
             foreignKeyName: "tips_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "open_jobs_safe"
             referencedColumns: ["id"]
           },
@@ -1885,6 +1976,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_violations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
@@ -2098,6 +2196,135 @@ export type Database = {
             columns: ["parent_job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_jobs_browse: {
+        Row: {
+          boost_expires_at: string | null
+          boosted_at: string | null
+          budget: number | null
+          category: Database["public"]["Enums"]["job_category"] | null
+          created_at: string | null
+          customer_id: string | null
+          date_needed: string | null
+          description: string | null
+          estimated_hours: number | null
+          expires_at: string | null
+          helpers_needed: number | null
+          id: string | null
+          is_flexible_schedule: boolean | null
+          is_group_job: boolean | null
+          is_recurring: boolean | null
+          is_urgent: boolean | null
+          location: string | null
+          parent_job_id: string | null
+          payment_status: string | null
+          photos: string[] | null
+          recurrence_end_date: string | null
+          recurrence_interval: string | null
+          special_requirements: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          title: string | null
+          updated_at: string | null
+          urgent_fee: number | null
+        }
+        Insert: {
+          boost_expires_at?: string | null
+          boosted_at?: string | null
+          budget?: number | null
+          category?: Database["public"]["Enums"]["job_category"] | null
+          created_at?: string | null
+          customer_id?: string | null
+          date_needed?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          expires_at?: string | null
+          helpers_needed?: number | null
+          id?: string | null
+          is_flexible_schedule?: boolean | null
+          is_group_job?: boolean | null
+          is_recurring?: boolean | null
+          is_urgent?: boolean | null
+          location?: string | null
+          parent_job_id?: string | null
+          payment_status?: string | null
+          photos?: string[] | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: string | null
+          special_requirements?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          title?: string | null
+          updated_at?: string | null
+          urgent_fee?: number | null
+        }
+        Update: {
+          boost_expires_at?: string | null
+          boosted_at?: string | null
+          budget?: number | null
+          category?: Database["public"]["Enums"]["job_category"] | null
+          created_at?: string | null
+          customer_id?: string | null
+          date_needed?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          expires_at?: string | null
+          helpers_needed?: number | null
+          id?: string | null
+          is_flexible_schedule?: boolean | null
+          is_group_job?: boolean | null
+          is_recurring?: boolean | null
+          is_urgent?: boolean | null
+          location?: string | null
+          parent_job_id?: string | null
+          payment_status?: string | null
+          photos?: string[] | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: string | null
+          special_requirements?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          title?: string | null
+          updated_at?: string | null
+          urgent_fee?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {

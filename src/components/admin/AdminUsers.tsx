@@ -544,7 +544,7 @@ const AdminUsers = () => {
                     </Button>
                   )}
                   <div className="mt-1">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bio</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Professional Summary</p>
                     <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
                       {viewProfile.bio || "Not provided"}
                     </p>

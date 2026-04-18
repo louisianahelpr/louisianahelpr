@@ -94,7 +94,7 @@ const AdminJobs = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [filter, setFilter] = useState<"all" | "flagged">("all");
+  const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("all");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
@@ -205,13 +205,72 @@ const AdminJobs = () => {
     }
   };
 
-  const flaggedCount = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id)).length;
-  const filteredJobs = filter === "flagged" ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id)) : jobs;
+  const flaggedIds = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id));
+  const flaggedCount = flaggedIds.length;
+  const resolvedCount = [...jobFlags.keys()].filter((id) => resolvedFlags.has(id)).length;
+  const filteredJobs =
+    filter === "flagged"
+      ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
+      : filter === "resolved"
+      ? jobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
+      : jobs;
+
+  const markAllFlaggedResolved = () => {
+    if (flaggedIds.length === 0) return;
+    const next = new Set(resolvedFlags);
+    flaggedIds.forEach((id) => next.add(id));
+    setResolvedFlags(next);
+    saveResolvedFlags(next);
+    toast.success(`Marked ${flaggedIds.length} job${flaggedIds.length === 1 ? "" : "s"} as resolved`);
+  };
 
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
 
   return (
     <div className="space-y-6">
+      {jobFlags.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("all")}
+            >
+              All ({jobs.length})
+            </Button>
+            <Button
+              variant={filter === "flagged" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("flagged")}
+              className="gap-1.5"
+            >
+              <Flag className="w-3.5 h-3.5" />
+              Flagged ({flaggedCount})
+            </Button>
+            <Button
+              variant={filter === "resolved" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("resolved")}
+              className="gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Resolved ({resolvedCount})
+            </Button>
+          </div>
+          {flaggedCount > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={markAllFlaggedResolved}
+              className="gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Mark all resolved
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
 
         {filteredJobs.map((job) => {

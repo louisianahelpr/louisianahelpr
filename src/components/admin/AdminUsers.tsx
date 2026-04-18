@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, Shield } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -452,6 +452,32 @@ const AdminUsers = () => {
     return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending</Badge>;
   };
 
+  // Stripe IDV badge — shows verification trust at a glance.
+  // Only relevant for helpers (customers don't submit ID).
+  const stripeBadge = (profile: Profile) => {
+    if (profile.role === "customer") return null;
+    const s = (profile as any).idv_status as string | null | undefined;
+    if (s === "verified" || s === "approved") {
+      return (
+        <Badge className="bg-primary/10 text-primary text-[10px] border border-primary/20" title="Stripe Verified">
+          <ShieldCheck className="w-3 h-3 mr-0.5" /> Stripe Verified
+        </Badge>
+      );
+    }
+    if (s === "manual_review" || s === "failed" || s === "requires_input") {
+      return (
+        <Badge className="bg-accent/20 text-accent-foreground text-[10px] border border-accent/30" title={`Stripe Flagged (${s})`}>
+          <ShieldAlert className="w-3 h-3 mr-0.5" /> Stripe Flagged
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-[10px] text-muted-foreground border-border" title="Identity not submitted">
+        <Shield className="w-3 h-3 mr-0.5" /> ID Not Submitted
+      </Badge>
+    );
+  };
+
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
@@ -501,9 +527,10 @@ const AdminUsers = () => {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
                     {statusBadge(p)}
+                    {stripeBadge(p)}
                   </div>
                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
                     {(p as any).email && <span className="truncate max-w-full">{(p as any).email}</span>}
@@ -587,6 +614,7 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 className="text-sm sm:text-lg font-bold text-foreground break-words leading-tight w-full sm:w-auto sm:truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
+                    {stripeBadge(viewProfile)}
 
                     {((viewProfile as any).application_count || 1) > 1 && (
                       <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent-foreground border-accent/30">

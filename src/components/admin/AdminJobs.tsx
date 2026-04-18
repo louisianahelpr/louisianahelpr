@@ -205,8 +205,8 @@ const AdminJobs = () => {
     }
   };
 
-  const flaggedCount = jobFlags.size;
-  const filteredJobs = filter === "flagged" ? jobs.filter((j) => jobFlags.has(j.id)) : jobs;
+  const flaggedCount = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id)).length;
+  const filteredJobs = filter === "flagged" ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id)) : jobs;
 
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
 

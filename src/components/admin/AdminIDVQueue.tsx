@@ -113,14 +113,36 @@ const AdminIDVQueue = () => {
         approval_status: "approved",
       } as any)
       .eq("user_id", p.user_id);
-    setActioning(null);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`${formatName(p.full_name)} approved`);
-      await logAdminAction("idv_manual_approve", "user", p.user_id, { previous_status: p.idv_status });
-      setSelected(null);
-      load();
+
+    if (error) {
+      setActioning(null);
+      toast.error(error.message);
+      return;
     }
+
+    // In-app notification (auto-fires browser push via useRealtimePush)
+    await supabase.from("notifications").insert({
+      user_id: p.user_id,
+      title: "✅ Verification Successful",
+      message: "An admin verified your identity. You're cleared to start using Helpr!",
+      type: "success",
+      link: "/dashboard",
+    } as any);
+
+    // Branded "Verification Successful" email
+    try {
+      await supabase.functions.invoke("send-account-status-email", {
+        body: { userId: p.user_id, status: "verified" },
+      });
+    } catch (e) {
+      console.error("Verification email dispatch failed:", e);
+    }
+
+    setActioning(null);
+    toast.success(`${formatName(p.full_name)} approved`);
+    await logAdminAction("idv_manual_approve", "user", p.user_id, { previous_status: p.idv_status });
+    setSelected(null);
+    load();
   };
 
   const denyUser = async (p: IDVProfile) => {

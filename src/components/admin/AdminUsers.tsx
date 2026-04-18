@@ -1451,14 +1451,15 @@ const AdminUsers = () => {
 
       {/* Formal Warning */}
       <Dialog open={!!warningProfile} onOpenChange={() => !actionBusy && setWarningProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Manual Strike
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-4">
+          <DialogHeader className="pr-8">
+            <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
+              <MessageSquareWarning className="w-5 h-5 text-accent shrink-0" />
+              <span className="truncate">Issue Manual Strike</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
             </p>
             <div className="space-y-2">
@@ -1484,23 +1485,24 @@ const AdminUsers = () => {
                 rows={3}
               />
             </div>
-            <label className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
+            <label className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
               <Checkbox
                 checked={warningBypass}
                 onCheckedChange={(v) => setWarningBypass(v === true)}
-                className="mt-0.5"
+                className="mt-0.5 shrink-0"
               />
-              <div className="space-y-0.5">
+              <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
-                <p className="text-[11px] text-muted-foreground">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
               </div>
             </label>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote, { reasonCategory: warningCategory, bypassStrike: warningBypass })}
               disabled={actionBusy || !warningNote.trim()}
+              className="w-full sm:w-auto"
             >
               {actionBusy ? "Issuing…" : warningBypass ? "Issue (no escalation)" : "Issue Strike"}
             </Button>

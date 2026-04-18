@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -40,7 +40,7 @@ const AdminUsers = () => {
   const [banProfile, setBanProfile] = useState<Profile | null>(null);
   const [banType, setBanType] = useState<"warning" | "temporary" | "permanent">("warning");
   const [banReason, setBanReason] = useState("");
-  const [banDuration, setBanDuration] = useState("7"); // days
+  const [banDuration, setBanDuration] = useState("7"); // days — presets 2 / 7 / 30
   const [banning, setBanning] = useState(false);
 
   // Edit email dialog
@@ -54,6 +54,18 @@ const AdminUsers = () => {
   // Delete denied account
   const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Re-upload ID dialog
+  const [reuploadProfile, setReuploadProfile] = useState<Profile | null>(null);
+  const [reuploadNote, setReuploadNote] = useState("");
+  // Formal warning dialog
+  const [warningProfile, setWarningProfile] = useState<Profile | null>(null);
+  const [warningNote, setWarningNote] = useState("");
+  // Manual verify confirm
+  const [manualVerifyProfile, setManualVerifyProfile] = useState<Profile | null>(null);
+  // Reset password confirm
+  const [resetPwProfile, setResetPwProfile] = useState<Profile | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -359,6 +371,44 @@ const AdminUsers = () => {
     } finally {
       setUpdatingEmail(false);
     }
+  };
+
+  const callAdminAction = async (
+    action: "manual_verify" | "request_id_reupload" | "reset_password" | "formal_warning",
+    profile: Profile,
+    note?: string,
+  ) => {
+    setActionBusy(true);
+    try {
+      const { error } = await supabase.functions.invoke("admin-user-actions", {
+        body: { action, userId: profile.user_id, note: note || "" },
+      });
+      if (error) throw error;
+      const labels: Record<string, string> = {
+        manual_verify: "User manually verified.",
+        request_id_reupload: "ID re-upload request sent.",
+        reset_password: "Password reset email sent.",
+        formal_warning: "Formal warning issued.",
+      };
+      toast.success(labels[action]);
+      loadProfiles();
+      setReuploadProfile(null); setReuploadNote("");
+      setWarningProfile(null); setWarningNote("");
+      setManualVerifyProfile(null);
+      setResetPwProfile(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Action failed");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const viewHistoryFor = (profile: Profile) => {
+    // Notify the Admin page to switch to notification logs filtered for this user
+    window.dispatchEvent(new CustomEvent("admin:view-user-history", {
+      detail: { userId: profile.user_id, email: (profile as any).email },
+    }));
+    setViewProfile(null);
   };
 
   const filtered = profiles.filter((p) => {
@@ -793,43 +843,65 @@ const AdminUsers = () => {
                 </div>
               )}
 
-              {/* Action buttons */}
+              {/* Action buttons — primary lifecycle */}
               <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
                 {viewProfile.approval_status === "pending" && (
                   <>
-                    <Button className="flex-1" onClick={() => approveUser(viewProfile)}>
+                    <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
                       <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                     </Button>
-                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                  <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
                     <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                   </Button>
                 )}
-                <Button variant="destructive" className="flex-1" onClick={() => setDeleteProfile(viewProfile)}>
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete Account
-                </Button>
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
-                    <Button variant="outline" className="flex-1" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
                       <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
                     </Button>
-                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                      <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
+                      <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
                     </Button>
                   </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1" onClick={() => unbanUser(viewProfile)}>
+                  <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}
+              </div>
+
+              {/* Trust & Verification + Support actions */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
+                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
+                    <Camera className="w-4 h-4 mr-1.5 text-accent" /> Request ID Re-upload
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
+                    <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
+                    <History className="w-4 h-4 mr-1.5" /> View History
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
+                    <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -890,10 +962,8 @@ const AdminUsers = () => {
                 <Select value={banDuration} onValueChange={setBanDuration}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 day</SelectItem>
-                    <SelectItem value="3">3 days</SelectItem>
+                    <SelectItem value="2">48 hours (2 days)</SelectItem>
                     <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days</SelectItem>
                     <SelectItem value="30">30 days</SelectItem>
                   </SelectContent>
                 </Select>
@@ -994,6 +1064,114 @@ const AdminUsers = () => {
             <Button variant="ghost" onClick={() => setDeleteProfile(null)}>Cancel</Button>
             <Button variant="destructive" onClick={deleteDeniedUser} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete Permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manually Verify Confirm */}
+      <Dialog open={!!manualVerifyProfile} onOpenChange={() => !actionBusy && setManualVerifyProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" /> Manually Verify {formatName(manualVerifyProfile?.full_name)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Use this for someone you know personally, or whose ID is valid but our system couldn't read it.
+              Their identity status will be set to <strong className="text-foreground">verified</strong> and approval will be set to <strong className="text-foreground">approved</strong>, bypassing automated checks.
+            </p>
+            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+              <p className="text-xs text-muted-foreground">This action is logged in the admin audit log.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setManualVerifyProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button onClick={() => manualVerifyProfile && callAdminAction("manual_verify", manualVerifyProfile)} disabled={actionBusy}>
+              {actionBusy ? "Verifying…" : "Manually Verify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request ID Re-upload */}
+      <Dialog open={!!reuploadProfile} onOpenChange={() => !actionBusy && setReuploadProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Camera className="w-5 h-5 text-accent" /> Request ID Re-upload
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Send {formatName(reuploadProfile?.full_name)} a friendly email asking for a clearer ID photo. Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
+              <Textarea value={reuploadNote} onChange={(e) => setReuploadNote(e.target.value)} placeholder="e.g. Photo was too blurry — please retake in good lighting." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReuploadProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button onClick={() => reuploadProfile && callAdminAction("request_id_reupload", reuploadProfile, reuploadNote)} disabled={actionBusy}>
+              {actionBusy ? "Sending…" : "Send Re-upload Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Confirm */}
+      <Dialog open={!!resetPwProfile} onOpenChange={() => !actionBusy && setResetPwProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" /> Send Password Reset Link
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Email a one-time password reset link to <strong className="text-foreground">{(resetPwProfile as any)?.email || "this user"}</strong>. The link expires in 1 hour.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setResetPwProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button onClick={() => resetPwProfile && callAdminAction("reset_password", resetPwProfile)} disabled={actionBusy}>
+              {actionBusy ? "Sending…" : "Send Reset Link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Formal Warning */}
+      <Dialog open={!!warningProfile} onOpenChange={() => !actionBusy && setWarningProfile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Formal Warning
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Per the Repeat Offender Policy: <strong>1st</strong> violation = warning, <strong>2nd</strong> = 7-day suspension, <strong>3rd</strong> = permanent ban. This adds a note to {formatName(warningProfile?.full_name)}'s file and sends them an email.
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Specific policy violation</p>
+              <Textarea
+                value={warningNote}
+                onChange={(e) => setWarningNote(e.target.value)}
+                placeholder="e.g. Late cancellation under 2 hours before scheduled job."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy}>Cancel</Button>
+            <Button
+              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote)}
+              disabled={actionBusy || !warningNote.trim()}
+            >
+              {actionBusy ? "Issuing…" : "Issue Warning"}
             </Button>
           </DialogFooter>
         </DialogContent>

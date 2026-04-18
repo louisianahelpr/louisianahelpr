@@ -111,6 +111,7 @@ const Admin = () => {
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
+  const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
@@ -258,6 +259,18 @@ const Admin = () => {
     if (view === "home" && !loading) { loadStats(); loadUnreadCounts(); }
   }, [view]);
 
+  // Listen for "View History" requests from AdminUsers
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const search = detail.email || detail.userId || "";
+      setNotifLogsInitialSearch(search);
+      handleViewChange("notiflogs");
+    };
+    window.addEventListener("admin:view-user-history", handler as EventListener);
+    return () => window.removeEventListener("admin:view-user-history", handler as EventListener);
+  }, [handleViewChange]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -302,7 +315,7 @@ const Admin = () => {
       case "disputes": return <AdminDisputes />;
       case "broadcasts": return <AdminBroadcasts />;
       case "notifications": return <AdminNotifications />;
-      case "notiflogs": return <AdminNotificationLogs />;
+      case "notiflogs": return <AdminNotificationLogs initialSearch={notifLogsInitialSearch} />;
       case "reports": return <AdminReports />;
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;

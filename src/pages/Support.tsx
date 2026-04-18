@@ -6,12 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft, MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, Send, CheckCircle2,
+  MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, Send, CheckCircle2,
   Mail, Clock, FileText, Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import PageHeader from "@/components/PageHeader";
 
 type Category = "message" | "suggestion" | "report" | "help";
 
@@ -87,26 +88,13 @@ const SupportPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto flex items-center h-16 px-4 gap-4">
-          <Link to="/" className="text-2xl font-display font-bold text-primary">Helpr</Link>
-        </div>
-      </header>
+      <PageHeader title="Support & Help Center" />
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-8">
-          {/* Header */}
-          <div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <h1 className="text-2xl font-display font-bold text-foreground">Support & Help Center</h1>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1 ml-11">
-              Find answers, get help, or contact our team
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Find answers, get help, or contact our team
+          </p>
 
           {/* Contact info — always visible, no login required */}
           <section className="rounded-xl border border-border bg-card p-5 space-y-4">

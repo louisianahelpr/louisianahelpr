@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, MapPin, Star, Briefcase, Clock, Zap, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
@@ -199,33 +200,31 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <DashboardHeader />
+      <PageHeader
+        title="Profile Review"
+        rightSlot={
+          !isOwnProfile && currentUserId ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowReport(true)}>
+                  <Flag className="w-4 h-4 mr-2" /> Report user
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowBlock(true)}>
+                  <Ban className="w-4 h-4 mr-2" /> Block user
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
+      />
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-lg mx-auto space-y-5">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-2xl font-display font-bold text-foreground flex-1">Profile Review</h1>
-            {!isOwnProfile && currentUserId && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowReport(true)}>
-                    <Flag className="w-4 h-4 mr-2" /> Report user
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowBlock(true)}>
-                    <Ban className="w-4 h-4 mr-2" /> Block user
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
           {/* Profile Card */}
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
             {profile.avatar_url ? (

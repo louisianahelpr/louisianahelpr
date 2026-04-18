@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TimePickerSelect } from "@/components/TimePickerSelect";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import PageHeader from "@/components/PageHeader";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -415,51 +415,25 @@ const PostJob = () => {
       ]))
     : [25, 50, 100];
 
+  const handlePostJobBack = () => {
+    if (step === "checkout") setStep("form");
+    else navigate("/dashboard");
+  };
+
   return (
     <div className="min-h-screen bg-background pb-32 sm:pb-20">
-      <DashboardHeader />
+      <PageHeader
+        title={step === "checkout" ? "Order Summary" : "Post a task"}
+        onBack={handlePostJobBack}
+      />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6">
         <div className="max-w-lg mx-auto space-y-6">
 
           {/* STEP 1: FORM */}
           {step === "form" && (
             <>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="rounded-xl h-9 w-9 shrink-0">
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <h1 className="text-3xl font-display font-bold text-foreground">Post a task</h1>
-                </div>
-                <p className="text-muted-foreground mt-1 ml-11">Describe what you need help with</p>
-              </div>
-
-              {/* Section progress bar (3 steps) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-medium">Step {Math.min(sectionsCompleted + 1, 3)} of 3</span>
-                  <span>{sectionsCompleted}/3 sections complete</span>
-                </div>
-                <div className="flex gap-1.5">
-                  {[
-                    { label: "Details", done: detailsComplete },
-                    { label: "Logistics", done: logisticsComplete },
-                    { label: "Budget", done: budgetComplete },
-                  ].map((s) => (
-                    <div key={s.label} className="flex-1 space-y-1">
-                      <div
-                        className={`h-1.5 rounded-full transition-colors ${
-                          s.done ? "bg-primary" : "bg-secondary"
-                        }`}
-                      />
-                      <p className={`text-[10px] font-medium uppercase tracking-wide ${s.done ? "text-primary" : "text-muted-foreground"}`}>
-                        {s.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <p className="text-muted-foreground text-sm">Describe what you need help with</p>
 
               {/* Draft Prompt */}
               {showDraftPrompt && (
@@ -862,15 +836,7 @@ const PostJob = () => {
 
           {step === "checkout" && (
             <>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => setStep("form")} className="rounded-xl h-9 w-9 shrink-0">
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <h1 className="text-3xl font-display font-bold text-foreground">Order Summary</h1>
-                </div>
-                <p className="text-muted-foreground mt-1 ml-11">Review your task before paying</p>
-              </div>
+              <p className="text-muted-foreground text-sm">Review your task before paying</p>
 
               {/* Task Details Card */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden">

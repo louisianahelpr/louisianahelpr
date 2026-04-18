@@ -3,7 +3,8 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, MapPin, DollarSign, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, DollarSign, Clock } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -76,16 +77,10 @@ const Schedule = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <DashboardHeader />
+      <PageHeader title="My Schedule" />
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl h-9 w-9 shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
-          </div>
 
           {loading ? (
             <div className="space-y-3">

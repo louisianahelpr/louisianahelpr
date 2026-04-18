@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign, TrendingUp, Gift, Briefcase, MapPin } from "lucide-react";
+import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -14,6 +16,14 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-destructive/10 text-destructive",
 };
 
+const payoutStatusColors: Record<string, string> = {
+  paid: "bg-primary/10 text-primary",
+  in_transit: "bg-accent/20 text-accent-foreground",
+  pending: "bg-secondary text-secondary-foreground",
+  failed: "bg-destructive/10 text-destructive",
+  canceled: "bg-destructive/10 text-destructive",
+};
+
 interface EarningsTabProps {
   earningsJobs: Job[];
   tips: { amount: number; job_id: string; created_at: string }[];
@@ -21,8 +31,60 @@ interface EarningsTabProps {
   onBack: () => void;
 }
 
+interface StripePayout {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  arrival_date: number;
+  method: string;
+  created: number;
+  description: string | null;
+}
+
+interface StripePayoutData {
+  connected: boolean;
+  payouts_enabled: boolean;
+  available: { amount: number; currency: string }[];
+  pending: { amount: number; currency: string }[];
+  payouts: StripePayout[];
+}
+
+const formatCents = (cents: number, currency = "usd") =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
+
+const formatDate = (unixSec: number) =>
+  new Date(unixSec * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTabProps) {
   const navigate = useNavigate();
+  const [stripeData, setStripeData] = useState<StripePayoutData | null>(null);
+  const [stripeLoading, setStripeLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchPayouts = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke<StripePayoutData>("stripe-payouts", { body: {} });
+      if (error) throw error;
+      setStripeData(data ?? null);
+    } catch (err) {
+      console.warn("[EarningsTab] payouts fetch failed:", err);
+      setStripeData({ connected: false, payouts_enabled: false, available: [], pending: [], payouts: [] });
+    } finally {
+      setStripeLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayouts();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchPayouts();
+  };
+
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   const totalEarnings = completedJobs.reduce((sum, j) => {
@@ -34,6 +96,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
+  const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
+  const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -42,6 +107,103 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
         </button>
         <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
       </div>
+
+      {/* ─── LIVE STRIPE WALLET ─── */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-display font-semibold text-foreground">Wallet</h2>
+            {stripeData?.connected && (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide">Live · Stripe</span>
+            )}
+          </div>
+          {stripeData?.connected && (
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              aria-label="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+          )}
+        </div>
+
+        {stripeLoading ? (
+          <div className="rounded-xl border border-border bg-card p-5 flex items-center gap-3">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading live payout data…</p>
+          </div>
+        ) : !stripeData?.connected ? (
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Connect your payout account to see your live Stripe balance, pending funds, and payout history.
+            </p>
+            <Button size="sm" onClick={() => navigate("/profile?tab=payment")}>Set up payouts</Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">Available</span>
+                  <Banknote className="w-4 h-4 text-primary" />
+                </div>
+                <p className="text-xl font-bold text-foreground">{formatCents(availableTotal)}</p>
+                <p className="text-xs text-muted-foreground mt-1">ready to pay out</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">Pending</span>
+                  <Loader2 className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-xl font-bold text-foreground">{formatCents(pendingTotal)}</p>
+                <p className="text-xs text-muted-foreground mt-1">clearing soon</p>
+              </div>
+            </div>
+
+            {!stripeData.payouts_enabled && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-xs text-destructive">
+                  Payouts are not yet enabled on your account. Finish payout setup to start receiving funds.
+                </p>
+              </div>
+            )}
+
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-2 mt-4">Payout History</h3>
+              {stripeData.payouts.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card p-4 text-center">
+                  <p className="text-sm text-muted-foreground">No payouts yet — your first one will land here automatically.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {stripeData.payouts.map((p) => (
+                    <div key={p.id} className="rounded-xl border border-border bg-card p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-foreground text-sm">{formatCents(p.amount, p.currency)}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
+                              {p.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* ─── JOB-LEVEL EARNINGS ─── */}
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : (

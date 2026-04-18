@@ -65,30 +65,30 @@ const HeroSection = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 pt-2 sm:flex sm:flex-wrap sm:gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md mx-auto lg:mx-0">
               {loggedIn ? (
                 <>
-                  <Button variant="hero" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/dashboard")}>
+                  <Button variant="hero" size="xl" className="w-full" onClick={() => navigate("/dashboard")}>
                     Browse jobs
                   </Button>
-                  <Button variant="hero-outline" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/post-job")}>
+                  <Button variant="hero-outline" size="xl" className="w-full" onClick={() => navigate("/post-job")}>
                     Post a task
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="hero" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/signup")}>
+                  <Button variant="hero" size="xl" className="w-full" onClick={() => navigate("/signup")}>
                     Post your first task
                   </Button>
-                  <Button variant="hero-outline" size="xl" className="w-full sm:w-auto" onClick={() => navigate("/login")}>
+                  <Button variant="hero-outline" size="xl" className="w-full" onClick={() => navigate("/login")}>
                     Offer help today
                   </Button>
                 </>
               )}
             </div>
           </div>
-          <div className="animate-fade-in [animation-delay:200ms]">
-            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full rounded-2xl shadow-lg" loading="eager" width={1200} height={800} />
+          <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0">
+            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full h-auto rounded-2xl shadow-lg object-contain" loading="eager" width={1200} height={800} />
           </div>
         </div>
       </div>

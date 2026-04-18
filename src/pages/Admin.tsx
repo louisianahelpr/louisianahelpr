@@ -111,6 +111,7 @@ const Admin = () => {
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   const [view, setView] = useState<View>("home");
+  const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
@@ -302,7 +303,7 @@ const Admin = () => {
       case "disputes": return <AdminDisputes />;
       case "broadcasts": return <AdminBroadcasts />;
       case "notifications": return <AdminNotifications />;
-      case "notiflogs": return <AdminNotificationLogs />;
+      case "notiflogs": return <AdminNotificationLogs initialSearch={notifLogsInitialSearch} />;
       case "reports": return <AdminReports />;
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;

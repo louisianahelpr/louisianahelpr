@@ -635,7 +635,10 @@ const AdminUsers = () => {
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => {
+              setTab(t.key);
+              if (t.key === "approved" && issueFilter === "no_id") setIssueFilter("all");
+            }}
             className={`flex-1 min-w-fit px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -665,7 +668,9 @@ const AdminUsers = () => {
               <SelectItem value="all">All Issues</SelectItem>
               <SelectItem value="strikes">Has Strikes</SelectItem>
               <SelectItem value="failed_id">Failed/Flagged ID</SelectItem>
-              <SelectItem value="no_id">No ID Submitted</SelectItem>
+              {tab !== "approved" && (
+                <SelectItem value="no_id">No ID Submitted</SelectItem>
+              )}
             </SelectContent>
           </Select>
           <Select value={parishFilter} onValueChange={setParishFilter}>

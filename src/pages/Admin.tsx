@@ -269,6 +269,7 @@ const Admin = () => {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
+    idv: "Identity Verify",
   };
 
   const renderContent = () => {
@@ -292,6 +293,7 @@ const Admin = () => {
       case "payouts": return <AdminPayoutBatches />;
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
+      case "idv": return <AdminIDVQueue />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };

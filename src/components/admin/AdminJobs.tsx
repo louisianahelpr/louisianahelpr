@@ -229,34 +229,38 @@ const AdminJobs = () => {
       <div className="space-y-3">
         {filteredJobs.map((job) => {
           const flags = jobFlags.get(job.id);
+          const isResolved = resolvedFlags.has(job.id);
+          const showFlagStyle = flags && !isResolved;
           const isRemoved = !!(job as any).removal_reason;
           return (
             <div
               key={job.id}
               onClick={() => openJob(job)}
               className={`rounded-xl border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors ${
-                flags ? "border-destructive/30" : "border-border"
+                showFlagStyle ? "border-destructive/30" : "border-border"
               } ${isRemoved ? "opacity-60" : ""}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {flags && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
+                    {showFlagStyle && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
+                    {flags && isResolved && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
                     <p className="font-semibold text-foreground truncate">{job.title}</p>
                     <Badge variant="secondary" className="text-xs capitalize">{categoryLabels[job.category] || job.category}</Badge>
                     {isRemoved && <Badge variant="destructive" className="text-xs">Removed</Badge>}
+                    {flags && isResolved && <Badge variant="outline" className="text-xs gap-1"><CheckCircle2 className="w-3 h-3" />Resolved</Badge>}
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
                     <span className="font-medium text-foreground">${job.budget}</span>
                   </div>
-                  {flags && (
+                  {showFlagStyle && (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {flags.slice(0, 2).map((f, i) => (
+                      {flags!.slice(0, 2).map((f, i) => (
                         <span key={i} className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{f}</span>
                       ))}
-                      {flags.length > 2 && <span className="text-[10px] text-destructive">+{flags.length - 2} more</span>}
+                      {flags!.length > 2 && <span className="text-[10px] text-destructive">+{flags!.length - 2} more</span>}
                     </div>
                   )}
                 </div>

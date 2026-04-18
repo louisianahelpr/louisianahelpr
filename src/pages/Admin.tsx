@@ -18,6 +18,7 @@ import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
 import AdminParishActivity from "@/components/admin/AdminParishActivity";
 import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));

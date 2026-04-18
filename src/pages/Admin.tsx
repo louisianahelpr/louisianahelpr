@@ -376,7 +376,7 @@ const Admin = () => {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+          <main className="flex-1 p-3 md:p-6 lg:p-8 overflow-auto">
             {view !== "home" && (
               <div className="mb-4 flex items-center gap-2">
                 <Button
@@ -466,15 +466,15 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-xl border border-border bg-card p-3 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", accentClasses)}>
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center", accentClasses)}>
           <Icon className="w-4 h-4" />
         </div>
         {trend && (
           <span className={cn(
-            "text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
+            "text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -482,8 +482,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-foreground tabular-nums">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{label}</p>
+      <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{label}</p>
     </button>
   );
 };
@@ -518,11 +518,11 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
   const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl">
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
-        <p className="text-sm text-muted-foreground mt-1">Here's what's happening on the platform today.</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Here's what's happening on the platform today.</p>
       </div>
 
       {/* KPI Summary cards */}
@@ -586,7 +586,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       {/* Two-column: Secondary metrics + Parish activity */}
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
           <div className="grid grid-cols-2 gap-3">
             <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
             <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
@@ -599,7 +599,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
+          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
           <AdminParishActivity />
         </div>
       </div>

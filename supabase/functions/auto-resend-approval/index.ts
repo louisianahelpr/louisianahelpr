@@ -60,6 +60,20 @@ Deno.serve(async (req) => {
     for (const profile of profiles) {
       if (!profile.email) continue
 
+      // Enforce exact cadence per reminder count:
+      //   #1: any time (no prior send)
+      //   #2: 1 day after #1
+      //   #3: 7 days after #2
+      const sentSoFar = profile.approval_email_count || 0
+      const lastSentMs = profile.last_approval_email_at
+        ? new Date(profile.last_approval_email_at).getTime()
+        : 0
+      const hoursSinceLast = lastSentMs ? (nowMs - lastSentMs) / (1000 * 60 * 60) : Infinity
+      const requiredHours = sentSoFar === 0 ? 0 : sentSoFar === 1 ? 24 : 24 * 7
+      if (hoursSinceLast < requiredHours) {
+        continue
+      }
+
       // Skip if user is "active":
       // - already verified via Stripe IDV
       // - has connected a Stripe payout account

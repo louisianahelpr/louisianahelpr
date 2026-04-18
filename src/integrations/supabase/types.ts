@@ -581,6 +581,33 @@ export type Database = {
         }
         Relationships: []
       }
+      helper_late_cancellations: {
+        Row: {
+          cancelled_at: string
+          helper_id: string
+          id: string
+          job_id: string
+          minutes_before_start: number | null
+          reason: string | null
+        }
+        Insert: {
+          cancelled_at?: string
+          helper_id: string
+          id?: string
+          job_id: string
+          minutes_before_start?: number | null
+          reason?: string | null
+        }
+        Update: {
+          cancelled_at?: string
+          helper_id?: string
+          id?: string
+          job_id?: string
+          minutes_before_start?: number | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       helper_preferred_parishes: {
         Row: {
           created_at: string
@@ -599,6 +626,33 @@ export type Database = {
           helper_id?: string
           id?: string
           parish?: string
+        }
+        Relationships: []
+      }
+      helper_shadowbans: {
+        Row: {
+          created_by: string
+          expires_at: string
+          helper_id: string
+          id: string
+          reason: string
+          started_at: string
+        }
+        Insert: {
+          created_by?: string
+          expires_at: string
+          helper_id: string
+          id?: string
+          reason: string
+          started_at?: string
+        }
+        Update: {
+          created_by?: string
+          expires_at?: string
+          helper_id?: string
+          id?: string
+          reason?: string
+          started_at?: string
         }
         Relationships: []
       }
@@ -1171,6 +1225,8 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          flag_reason: string | null
+          flagged_hidden: boolean
           id: string
           job_id: string
           read: boolean
@@ -1180,6 +1236,8 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          flag_reason?: string | null
+          flagged_hidden?: boolean
           id?: string
           job_id: string
           read?: boolean
@@ -1189,6 +1247,8 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          flag_reason?: string | null
+          flagged_hidden?: boolean
           id?: string
           job_id?: string
           read?: boolean
@@ -1384,6 +1444,7 @@ export type Database = {
           application_count: number
           approval_email_count: number
           approval_status: string
+          auto_suspended_until: string | null
           availability: string | null
           avatar_url: string | null
           ban_status: string | null
@@ -1426,6 +1487,7 @@ export type Database = {
           application_count?: number
           approval_email_count?: number
           approval_status?: string
+          auto_suspended_until?: string | null
           availability?: string | null
           avatar_url?: string | null
           ban_status?: string | null
@@ -1468,6 +1530,7 @@ export type Database = {
           application_count?: number
           approval_email_count?: number
           approval_status?: string
+          auto_suspended_until?: string | null
           availability?: string | null
           avatar_url?: string | null
           ban_status?: string | null
@@ -2511,6 +2574,22 @@ export type Database = {
           tax_status: string
         }[]
       }
+      get_helper_tiers: {
+        Args: { p_limit?: number }
+        Returns: {
+          avatar_url: string
+          avg_rating: number
+          completed_jobs: number
+          full_name: string
+          growth_score: number
+          parish: string
+          recent_avg_rating: number
+          recent_reviews: number
+          tier: string
+          total_reviews: number
+          user_id: string
+        }[]
+      }
       get_hero_parishes: {
         Args: never
         Returns: {
@@ -2519,6 +2598,18 @@ export type Database = {
         }[]
       }
       get_parish_for_zip: { Args: { p_zip: string }; Returns: string }
+      get_payout_batches: {
+        Args: never
+        Returns: {
+          helper_email: string
+          helper_id: string
+          helper_name: string
+          job_count: number
+          oldest_completed_at: string
+          stripe_account_id: string
+          total_payout: number
+        }[]
+      }
       get_safe_profiles: {
         Args: { user_ids: string[] }
         Returns: {
@@ -2563,6 +2654,7 @@ export type Database = {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
         Returns: boolean
       }
+      is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string

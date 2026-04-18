@@ -83,7 +83,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const fetchApplicants = async (jobId: string): Promise<EnrichedApplication[]> => {
     const { data: apps } = await supabase.from("applications").select("*").eq("job_id", jobId);
     if (apps && apps.length > 0) {
-      const helperIds = apps.map((a) => a.helper_id);
+      // Filter out applicants the current user has blocked (or who blocked them)
+      const { getBlockedUserIds } = await import("@/lib/userBlocks");
+      const blockedSet = user ? await getBlockedUserIds(user.id) : new Set<string>();
+      const visibleApps = apps.filter((a: any) => !blockedSet.has(a.helper_id));
+      if (visibleApps.length === 0) return [];
+
+      const helperIds = visibleApps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds),
@@ -93,7 +99,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
         reviewMap.get(r.reviewee_id)!.push(r.rating);
       });
-      const enriched = apps.map((app) => {
+      const enriched = visibleApps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
         const ratings = reviewMap.get(app.helper_id) || [];
         return { ...app, profiles: prof, reviewCount: ratings.length, avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };

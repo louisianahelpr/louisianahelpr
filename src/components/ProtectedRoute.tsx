@@ -27,6 +27,11 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
   }
 
   if (!allowUnapproved) {
+    // Email verification gate — must verify email before reaching the dashboard.
+    // The auth user object holds the source of truth (email_confirmed_at).
+    if (user && !user.email_confirmed_at) {
+      return <Navigate to="/account-pending" replace />;
+    }
     if (profile?.approval_status === "pending") {
       return <Navigate to="/account-pending" replace />;
     }

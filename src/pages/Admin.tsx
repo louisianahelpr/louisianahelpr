@@ -585,24 +585,17 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
         </div>
       )}
 
-      {/* Two-column: Secondary metrics + Parish activity */}
-      <div className="grid lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="lg:col-span-2 space-y-1.5 sm:space-y-2">
-          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
-            <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
-            <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
-            <KpiCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} accent="primary" onClick={() => onNavigate("analytics")} />
-            {stats.lateCancellationRevenue > 0 && (
-              <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-1.5 sm:space-y-2">
-          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
-          <AdminParishActivity />
+      {/* Financial Health — full width */}
+      <div className="space-y-1.5 sm:space-y-2">
+        <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+          <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
+          <KpiCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} accent="primary" onClick={() => onNavigate("analytics")} />
+          {stats.lateCancellationRevenue > 0 && (
+            <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
+          )}
         </div>
       </div>
     </div>

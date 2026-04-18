@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw } from "lucide-react";
+import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import IdentityVerificationStep from "@/components/IdentityVerificationStep";
+import { getDenialReason } from "@/lib/denialReasons";
 
 const AccountPending = () => {
   const navigate = useNavigate();
@@ -13,6 +15,9 @@ const AccountPending = () => {
   const [resending, setResending] = useState(false);
   const [idvStatus, setIdvStatus] = useState<string | null>(null);
   const [legacyManual, setLegacyManual] = useState(false);
+  const [denialReason, setDenialReason] = useState<string | null>(null);
+  const [showRetry, setShowRetry] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     const check = async () => {

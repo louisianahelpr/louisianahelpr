@@ -767,11 +767,24 @@ const AdminUsers = () => {
                         </span>
                       );
                     })()}
-                    <span className="text-muted-foreground">
-                      Last login: {lastLoginSummary[p.user_id]
-                        ? formatDistanceToNow(new Date(lastLoginSummary[p.user_id]), { addSuffix: true })
-                        : "never"}
-                    </span>
+                    {(() => {
+                      const lastLogin = lastLoginSummary[p.user_id];
+                      const isApproved = p.approval_status === "approved";
+                      if (isApproved && !lastLogin) {
+                        return (
+                          <span className="font-semibold text-destructive">
+                            Never logged in since approval
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-muted-foreground">
+                          Last login: {lastLogin
+                            ? formatDistanceToNow(new Date(lastLogin), { addSuffix: true })
+                            : "never"}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

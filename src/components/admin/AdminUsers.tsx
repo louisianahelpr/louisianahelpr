@@ -1214,14 +1214,15 @@ const AdminUsers = () => {
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}
+                </div>
               </div>
 
               {/* Internal Admin Notes — private notes about this user, admin-only */}
               <AdminUserNotes userId={viewProfile.user_id} />
 
               {/* Trust & Verification + Support actions */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
                     <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify

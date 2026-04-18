@@ -94,6 +94,37 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
   return { html, text }
 }
 
+async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ html: string; text: string }> {
+  const siteUrl = `https://${ROOT_DOMAIN}`
+  const ctaUrl = await trackedLink(userId, 'identity_verified', `${siteUrl}/dashboard`)
+  const pixelUrl = await trackingPixelUrl(userId, 'identity_verified')
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
+<body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
+<div style="padding:32px 28px;max-width:480px">
+  <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
+  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Verification Successful ✅</h1>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
+    Hey ${fullName || 'there'},
+  </p>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
+    Your identity has been <strong style="color:hsl(158,45%,42%)">verified</strong> and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.
+  </p>
+  <a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+    Go to Dashboard
+  </a>
+  <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
+    Welcome to the Helpr community — geaux help out! 🌿
+  </p>
+  <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
+</div>
+</body></html>`
+
+  const text = `Verification Successful!\n\nHey ${fullName || 'there'},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
+
+  return { html, text }
+}
+
 async function renderDeniedEmail(fullName: string, userId: string, reason?: string): Promise<{ html: string; text: string }> {
   const siteUrl = `https://${ROOT_DOMAIN}`
   const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}/login`)
@@ -156,43 +187,43 @@ Deno.serve(async (req) => {
       })
     }
 
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      serviceRoleKey
     )
 
-    // Verify caller identity via JWT
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    )
-
+    // Allow service-role (server-to-server, e.g. stripe-idv-webhook) OR an admin JWT
     const token = authHeader.replace('Bearer ', '')
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser(token)
-    if (userError || !userData?.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const isServiceRole = token === serviceRoleKey
+
+    if (!isServiceRole) {
+      const supabaseUser = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!
+      )
+      const { data: userData, error: userError } = await supabaseUser.auth.getUser(token)
+      if (userError || !userData?.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
+        _user_id: userData.user.id,
+        _role: 'admin',
       })
-    }
-
-    const adminId = userData.user.id
-
-    const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
-      _user_id: adminId,
-      _role: 'admin',
-    })
-
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     const { userId, status, reason } = await req.json()
 
-    if (!userId || !status || !['approved', 'denied'].includes(status)) {
+    if (!userId || !status || !['approved', 'denied', 'verified'].includes(status)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -212,13 +243,17 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { html, text } = status === 'approved'
-      ? await renderApprovedEmail(profile.full_name || '', userId)
-      : await renderDeniedEmail(profile.full_name || '', userId, reason)
-
-    const subject = status === 'approved'
-      ? 'Your Helpr account has been approved! 🎉'
-      : 'Helpr Account Update'
+    let html: string, text: string, subject: string
+    if (status === 'verified') {
+      ({ html, text } = await renderVerifiedEmail(profile.full_name || '', userId))
+      subject = 'Your identity is verified ✅ — welcome to Helpr!'
+    } else if (status === 'approved') {
+      ({ html, text } = await renderApprovedEmail(profile.full_name || '', userId))
+      subject = 'Your Helpr account has been approved! 🎉'
+    } else {
+      ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason))
+      subject = 'Helpr Account Update'
+    }
 
     const messageId = crypto.randomUUID()
 
@@ -229,7 +264,7 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    if (status === 'approved') {
+    if (status === 'approved' || status === 'verified') {
       await supabaseAdmin.from('profiles').update({
         denial_email_count: 0,
         last_denial_email_at: null,

@@ -26,7 +26,7 @@ const AdminSidebar = ({
   navGroups, activeView, onSelect, getBadge, getBadgeColor, onLogout,
 }: AdminSidebarProps) => {
   const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
-  const collapsed = state === "collapsed";
+  const collapsed = !isMobile && state === "collapsed";
 
   const handleSelect = (id: string) => {
     onSelect(id);

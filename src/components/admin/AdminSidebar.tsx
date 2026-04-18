@@ -50,10 +50,10 @@ const AdminSidebar = ({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => onSelect("home")}
+                  onClick={() => handleSelect("home")}
                   isActive={activeView === "home"}
                   tooltip="Dashboard"
-                  className="font-medium"
+                  className="font-medium h-9"
                 >
                   <Home className="w-4 h-4" />
                   {!collapsed && <span>Dashboard</span>}
@@ -64,9 +64,9 @@ const AdminSidebar = ({
         </SidebarGroup>
 
         {navGroups.map((group) => (
-          <SidebarGroup key={group.title}>
+          <SidebarGroup key={group.title} className="py-1">
             {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">
+              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 h-6">
                 {group.title}
               </SidebarGroupLabel>
             )}
@@ -78,13 +78,13 @@ const AdminSidebar = ({
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        onClick={() => onSelect(item.id)}
+                        onClick={() => handleSelect(item.id)}
                         isActive={activeView === item.id}
                         tooltip={item.label}
-                        className="font-medium relative"
+                        className="font-medium relative h-9"
                       >
                         <item.icon className="w-4 h-4" />
-                        {!collapsed && <span className="flex-1">{item.label}</span>}
+                        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                         {badge !== undefined && (
                           <span className={cn(
                             "text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",

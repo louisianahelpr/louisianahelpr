@@ -520,7 +520,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
   const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (
-    <div className="space-y-5 sm:space-y-6 max-w-7xl">
+    <div className="space-y-5 sm:space-y-6 w-full">
       {/* Greeting — desktop only, mobile saves space */}
       <div className="hidden sm:block">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>

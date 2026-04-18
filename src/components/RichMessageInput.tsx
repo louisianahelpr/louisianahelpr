@@ -1,9 +1,20 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, ImagePlus, MapPin, X } from "lucide-react";
+import { Send, ImagePlus, MapPin, X, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { scanMessage } from "@/lib/messageScanner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface RichMessageInputProps {
   onSend: (content: string) => void;
@@ -16,6 +27,7 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingViolation, setPendingViolation] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,9 +70,7 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
     );
   };
 
-  const handleSend = async () => {
-    if (uploading) return;
-    
+  const performSend = async () => {
     if (imageFile) {
       const url = await uploadImage();
       if (url) {
@@ -75,6 +85,27 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
     if (!text.trim()) return;
     onSend(text.trim());
     setText("");
+  };
+
+  const handleSend = async () => {
+    if (uploading) return;
+
+    // Layer 1 (UX): warn before sending if message contains forbidden content.
+    // The server will still hide & flag if they bypass — this just educates first.
+    if (text.trim()) {
+      const violations = scanMessage(text);
+      if (violations.length > 0) {
+        setPendingViolation(violations[0].label);
+        return;
+      }
+    }
+
+    await performSend();
+  };
+
+  const confirmSendAnyway = async () => {
+    setPendingViolation(null);
+    await performSend();
   };
 
   return (
@@ -124,6 +155,33 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
         </Button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
       </div>
+
+      <AlertDialog open={!!pendingViolation} onOpenChange={(open) => !open && setPendingViolation(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-destructive" />
+              This violates platform rules
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 pt-2">
+              <span className="block">
+                We detected <strong className="text-foreground">{pendingViolation?.toLowerCase()}</strong> in your message.
+              </span>
+              <span className="block text-xs">
+                Payments and conversations outside Helpr aren't protected by our dispute policy, escrow, or insurance.
+                Sending anyway will hide the message from the recipient and add a fraud flag to your account.
+                Two flags within 24 hours triggers an automatic 7-day suspension.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Edit message</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSendAnyway} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Send anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

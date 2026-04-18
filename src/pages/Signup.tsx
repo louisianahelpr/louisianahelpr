@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import IdentityVerificationStep from "@/components/IdentityVerificationStep";
+import PageHeader from "@/components/PageHeader";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";

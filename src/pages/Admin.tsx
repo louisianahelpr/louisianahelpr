@@ -494,20 +494,20 @@ const PriorityAlert = ({ label, count, color, onClick }: {
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all w-full hover:shadow-sm",
+      "flex items-center gap-2.5 rounded-xl border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
       color === "destructive"
         ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
         : "border-accent/30 bg-accent/5 hover:bg-accent/10"
     )}
   >
     <span className={cn(
-      "w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold tabular-nums",
+      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold tabular-nums shrink-0",
       color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
     )}>
       {count}
     </span>
-    <span className="text-sm font-semibold text-foreground flex-1">{label}</span>
-    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+    <span className="text-xs sm:text-sm font-semibold text-foreground flex-1 leading-tight">{label}</span>
+    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
   </button>
 );
 

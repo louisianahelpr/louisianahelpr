@@ -837,9 +837,6 @@ const Signup = () => {
             </div>
           </div>
         )}
-            </div>
-          </div>
-        )}
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}

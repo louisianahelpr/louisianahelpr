@@ -43,7 +43,7 @@ const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -60,6 +60,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "people", label: "Users", icon: Users },
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "jobs", label: "Jobs", icon: Briefcase },
+      { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
       { id: "disputes", label: "Disputes", icon: ShieldAlert },
       { id: "reports", label: "Reports", icon: AlertTriangle },
@@ -306,7 +307,7 @@ const Admin = () => {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
-    idv: "Identity Verify",
+    idv: "Identity Verify", geography: "Geography",
   };
 
   const renderContent = () => {
@@ -332,6 +333,7 @@ const Admin = () => {
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
+      case "geography": return <AdminParishActivity />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };
@@ -583,24 +585,17 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
         </div>
       )}
 
-      {/* Two-column: Secondary metrics + Parish activity */}
-      <div className="grid lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="lg:col-span-2 space-y-1.5 sm:space-y-2">
-          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
-            <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
-            <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
-            <KpiCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} accent="primary" onClick={() => onNavigate("analytics")} />
-            {stats.lateCancellationRevenue > 0 && (
-              <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-1.5 sm:space-y-2">
-          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Geography</p>
-          <AdminParishActivity />
+      {/* Financial Health — full width */}
+      <div className="space-y-1.5 sm:space-y-2">
+        <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+          <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
+          <KpiCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} accent="primary" onClick={() => onNavigate("analytics")} />
+          {stats.lateCancellationRevenue > 0 && (
+            <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
+          )}
         </div>
       </div>
     </div>

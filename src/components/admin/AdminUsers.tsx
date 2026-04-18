@@ -687,9 +687,11 @@ const AdminUsers = () => {
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
+                    {roleBadge(viewProfile)}
+                    {stripeBadge(viewProfile)}
 
                     {((viewProfile as any).application_count || 1) > 1 && (
                       <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent-foreground border-accent/30">

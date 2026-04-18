@@ -230,6 +230,7 @@ const Admin = () => {
     notifications: "Notifications", reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
+    payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
   };
 
   const renderContent = () => {

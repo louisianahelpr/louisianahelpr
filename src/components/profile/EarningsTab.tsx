@@ -11,6 +11,7 @@ import {
 import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { EarningsExport } from "@/components/EarningsExport";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -37,6 +38,8 @@ interface EarningsTabProps {
   tips: { amount: number; job_id: string; created_at: string }[];
   loading: boolean;
   onBack: () => void;
+  helperId: string;
+  helperName: string;
 }
 
 interface StripePayout {
@@ -64,7 +67,7 @@ const formatCents = (cents: number, currency = "usd") =>
 const formatDate = (unixSec: number) =>
   new Date(unixSec * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTabProps) {
+export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const [stripeData, setStripeData] = useState<StripePayoutData | null>(null);
   const [stripeLoading, setStripeLoading] = useState(true);
@@ -189,7 +192,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack }: EarningsTab
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-display font-bold text-foreground">My Earnings</h1>
+        <h1 className="text-2xl font-display font-bold text-foreground flex-1">My Earnings</h1>
+        <EarningsExport helperId={helperId} helperName={helperName} />
       </div>
 
       {/* ─── LIVE STRIPE WALLET ─── */}

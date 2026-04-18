@@ -778,8 +778,15 @@ const ProfilePage = () => {
           )}
 
           {/* EXTRACTED TAB COMPONENTS */}
-          {tab === "earnings" && (
-            <EarningsTab earningsJobs={earningsJobs} tips={tips} loading={earningsLoading} onBack={() => setTab("landing")} />
+          {tab === "earnings" && user && (
+            <EarningsTab
+              earningsJobs={earningsJobs}
+              tips={tips}
+              loading={earningsLoading}
+              onBack={() => setTab("landing")}
+              helperId={user.id}
+              helperName={profile?.full_name || user.email || "Helper"}
+            />
           )}
 
           {tab === "schedule" && user && (

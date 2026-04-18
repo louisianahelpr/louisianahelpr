@@ -832,11 +832,6 @@ const AdminUsers = () => {
                     </Button>
                   </>
                 )}
-                {p.approval_status === "denied" && (
-                  <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => resendDenialEmail(p)} disabled={resending === p.id}>
-                    {resending === p.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><MailIcon className="w-3.5 h-3.5 mr-1" /> Resend</>}
-                  </Button>
-                )}
               </div>
             </div>
           ))}
@@ -886,24 +881,53 @@ const AdminUsers = () => {
                     </button>
                   </div>
                   {viewProfile.approval_status === "denied" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8"
-                      onClick={async () => {
-                        const currentCount = (viewProfile as any).application_count || 1;
-                        await supabase.from("profiles").update({
-                          approval_status: "pending",
-                          denial_reason: null,
-                          application_count: currentCount + 1,
-                        } as any).eq("id", viewProfile.id);
-                        toast.success("User moved back to pending for re-review.");
-                        loadProfiles();
-                        setViewProfile(null);
-                      }}
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Move to Pending
-                    </Button>
+                    <div className="flex flex-wrap gap-2 items-center pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        onClick={async () => {
+                          const currentCount = (viewProfile as any).application_count || 1;
+                          await supabase.from("profiles").update({
+                            approval_status: "pending",
+                            denial_reason: null,
+                            application_count: currentCount + 1,
+                          } as any).eq("id", viewProfile.id);
+                          toast.success("User moved back to pending for re-review.");
+                          loadProfiles();
+                          setViewProfile(null);
+                        }}
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Move to Pending
+                      </Button>
+                      {(() => {
+                        const sent = (viewProfile as any).denial_email_count || 0;
+                        const maxReached = sent >= 3;
+                        return (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8"
+                              disabled={resending === viewProfile.id || maxReached}
+                              onClick={async () => {
+                                await resendDenialEmail(viewProfile);
+                                // refresh local view state count
+                                setViewProfile({ ...(viewProfile as any), denial_email_count: sent + 1, last_denial_email_at: new Date().toISOString() } as any);
+                              }}
+                              title={maxReached ? "Max 3 reminder emails reached" : "Send denial reminder email"}
+                            >
+                              {resending === viewProfile.id
+                                ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                : <><MailIcon className="w-3.5 h-3.5 mr-1.5" /> Resend Email</>}
+                            </Button>
+                            <Badge variant="outline" className={`text-[10px] ${maxReached ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground"}`}>
+                              Sent {sent}/3
+                            </Badge>
+                          </>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
               </div>

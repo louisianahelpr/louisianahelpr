@@ -109,8 +109,8 @@ const AccountPending = () => {
             </h1>
             <p className="text-muted-foreground">
               {emailVerified 
-                ? "Your email is verified ✓ Your account is now under review by our team."
-                : "Your email has not been verified yet. Please check your inbox and click the verification link, then your account will be reviewed by our team."}
+                ? "Your email is verified ✓ Your account is now in a manual safety review by the Helpr Trust & Safety Team. This usually takes 1–2 business days."
+                : "Your email has not been verified yet. Please check your inbox and click the verification link. Once verified, the Helpr Trust & Safety Team will manually review your account (usually within 1–2 business days)."}
             </p>
           </div>
 
@@ -162,8 +162,8 @@ const AccountPending = () => {
                 <ShieldCheck className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Profile review</p>
-                <p className="text-xs text-muted-foreground">Our team is reviewing your profile details. This usually takes 24–48 hours.</p>
+                <p className="text-sm font-medium text-foreground">Manual safety review</p>
+                <p className="text-xs text-muted-foreground">The Helpr Trust & Safety Team is personally reviewing your profile details. This usually takes 1–2 business days.</p>
               </div>
             </div>
 

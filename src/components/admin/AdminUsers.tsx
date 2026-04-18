@@ -689,38 +689,26 @@ const AdminUsers = () => {
         ))}
       </div>
 
-      {/* Search + Filter Power-Ups */}
+      {/* Search */}
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
-          placeholder="Search name, email, parish…"
+          placeholder="Search by name…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-sm flex-1"
         />
-        <div className="flex gap-2">
-          <Select value={issueFilter} onValueChange={(v) => setIssueFilter(v as any)}>
-            <SelectTrigger className="h-9 text-xs flex-1 sm:w-[160px]">
-              <SelectValue placeholder="Issue" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Issues</SelectItem>
-              <SelectItem value="strikes">Has Strikes</SelectItem>
-              {tab !== "approved" && (
-                <SelectItem value="no_id">No ID Submitted</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
-        {(issueFilter !== "all" || searchQuery) && (
+        <p className="text-xs text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "user" : "users"} · sorted by recently active
+        </p>
+        {searchQuery && (
           <button
-            onClick={() => { setIssueFilter("all"); setSearchQuery(""); }}
+            onClick={() => setSearchQuery("")}
             className="text-[11px] text-primary hover:underline"
           >
-            Clear filters
+            Clear search
           </button>
         )}
       </div>

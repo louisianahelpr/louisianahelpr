@@ -1188,6 +1188,39 @@ const AdminUsers = () => {
                 </div>
               )}
 
+              {/* Email Send History — total emails sent to this user across all templates */}
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <MailIcon className="w-4 h-4" /> Emails Sent
+                  {emailSendStats.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-[10px]">
+                      {emailSendStats.reduce((sum, s) => sum + s.count, 0)} total
+                    </Badge>
+                  )}
+                </h4>
+                {emailSendStats.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No emails on record</p>
+                ) : (
+                  <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
+                    {emailSendStats.map((s) => (
+                      <div key={s.template_name} className="flex items-center justify-between gap-3 p-3 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-foreground truncate capitalize">
+                            {s.template_name.replace(/[-_]/g, " ")}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Last sent {formatDistanceToNow(new Date(s.last_sent), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="font-semibold shrink-0">
+                          ×{s.count}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Action buttons — primary lifecycle */}
               <div className="space-y-2 pt-4 border-t border-border">
                 <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -54,6 +54,18 @@ const AdminUsers = () => {
   // Delete denied account
   const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Re-upload ID dialog
+  const [reuploadProfile, setReuploadProfile] = useState<Profile | null>(null);
+  const [reuploadNote, setReuploadNote] = useState("");
+  // Formal warning dialog
+  const [warningProfile, setWarningProfile] = useState<Profile | null>(null);
+  const [warningNote, setWarningNote] = useState("");
+  // Manual verify confirm
+  const [manualVerifyProfile, setManualVerifyProfile] = useState<Profile | null>(null);
+  // Reset password confirm
+  const [resetPwProfile, setResetPwProfile] = useState<Profile | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const loadProfiles = async () => {
     const { data } = await supabase

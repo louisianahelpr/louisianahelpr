@@ -435,6 +435,32 @@ const PostJob = () => {
                 <p className="text-muted-foreground mt-1 ml-11">Describe what you need help with</p>
               </div>
 
+              {/* Section progress bar (3 steps) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-medium">Step {Math.min(sectionsCompleted + 1, 3)} of 3</span>
+                  <span>{sectionsCompleted}/3 sections complete</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[
+                    { label: "Details", done: detailsComplete },
+                    { label: "Logistics", done: logisticsComplete },
+                    { label: "Budget", done: budgetComplete },
+                  ].map((s) => (
+                    <div key={s.label} className="flex-1 space-y-1">
+                      <div
+                        className={`h-1.5 rounded-full transition-colors ${
+                          s.done ? "bg-primary" : "bg-secondary"
+                        }`}
+                      />
+                      <p className={`text-[10px] font-medium uppercase tracking-wide ${s.done ? "text-primary" : "text-muted-foreground"}`}>
+                        {s.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Draft Prompt */}
               {showDraftPrompt && (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3">
@@ -484,27 +510,25 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* AI Job Builder */}
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+              {/* AI Job Builder — secondary helper, collapsed by default */}
+              <div className="rounded-lg border border-dashed border-border bg-muted/30">
                 <button
                   type="button"
                   onClick={() => setAiOpen(!aiOpen)}
-                  className="flex items-center gap-2 w-full text-left"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2.5"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">AI Job Builder</p>
-                    <p className="text-xs text-muted-foreground">Describe your task in plain English and let AI fill in the details</p>
-                  </div>
+                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground flex-1">
+                    <span className="font-medium text-foreground">Try the AI Job Builder</span> — describe your task and let AI fill the form
+                  </span>
+                  <span className="text-xs text-muted-foreground">{aiOpen ? "Hide" : "Show"}</span>
                 </button>
                 {aiOpen && (
-                  <div className="space-y-3 pt-2 border-t border-primary/10">
+                  <div className="space-y-2 p-3 pt-0 border-t border-dashed border-border">
                     <Textarea
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="e.g. I need help moving furniture from my apartment to a new house across town. It's a 2-bedroom apartment with heavy items like a couch and dresser."
+                      placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
                       rows={3}
                       className="text-sm"
                     />
@@ -513,6 +537,7 @@ const PostJob = () => {
                       onClick={handleAiBuild}
                       disabled={aiLoading}
                       size="sm"
+                      variant="outline"
                       className="w-full"
                     >
                       {aiLoading ? (
@@ -526,246 +551,315 @@ const PostJob = () => {
               </div>
 
               <form onSubmit={handleReview} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
-                  <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
-                  <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
-                </div>
-
-                {/* Image Upload */}
-                <div className="space-y-2">
-                  <Label>Photos (optional, max 5)</Label>
-                  <div className="flex flex-wrap gap-3">
-                    {imagePreviews.map((src, i) => (
-                      <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                        <img src={src} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(i)}
-                          className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                {/* SECTION 1: DETAILS */}
+                <section className="rounded-2xl border border-border bg-card p-5 space-y-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Briefcase className="w-3.5 h-3.5 text-primary" />
                       </div>
-                    ))}
-                    {imageFiles.length < 5 && (
-                      <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                        <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={handleImageSelect}
-                        />
-                      </label>
-                    )}
+                      <h2 className="font-display text-base font-semibold">Details</h2>
+                    </div>
+                    {detailsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>Category <span className="text-destructive">*</span></Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
+                    <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
+                    <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Category <span className="text-destructive">*</span></Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Image Upload */}
+                  <div className="space-y-2">
+                    <Label>Photos (optional, max 5)</Label>
+                    <div className="flex flex-wrap gap-3">
+                      {imagePreviews.map((src, i) => (
+                        <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                          <img src={src} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(i)}
+                            className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Location <span className="text-destructive">*</span></Label>
-                  <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
-                  <div className="grid grid-cols-3 gap-3">
-                    <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
-                    <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} />
-                    <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
+                      {imageFiles.length < 5 && (
+                        <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                          <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleImageSelect}
+                          />
+                        </label>
+                      )}
+                    </div>
                   </div>
-                  {parish && (
-                    <p className="text-xs text-primary flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Parish detected: <span className="font-medium">{parish}</span> · used for Louisiana sales tax
+                </section>
+
+                {/* SECTION 2: LOGISTICS */}
+                <section className="rounded-2xl border border-border bg-card p-5 space-y-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <h2 className="font-display text-base font-semibold">Logistics</h2>
+                    </div>
+                    {logisticsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Location <span className="text-destructive">*</span></Label>
+                    <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
+                    <div className="grid grid-cols-3 gap-3">
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
+                      <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} />
+                      <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
+                    </div>
+                    {parish && (
+                      <p className="text-xs text-primary flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Parish detected: <span className="font-medium">{parish}</span> · used for Louisiana sales tax
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Only the city will be visible to applicants until you select a helper.
                     </p>
-                  )}
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Shield className="w-3 h-3" />
-                    Only the city will be visible to applicants until you select a helper.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
-                    <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} min={new Date().toISOString().split("T")[0]} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
-                    <TimePickerSelect value={startTime} onChange={setStartTime} />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 px-1">
-                  <Checkbox
-                    id="flexible"
-                    checked={isFlexibleSchedule}
-                    onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
-                  />
-                  <label htmlFor="flexible" className="text-sm text-muted-foreground cursor-pointer">
-                    <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
-                  </label>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
+                      <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} min={new Date().toISOString().split("T")[0]} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
+                      <TimePickerSelect value={startTime} onChange={setStartTime} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 px-1">
+                    <Checkbox
+                      id="flexible"
+                      checked={isFlexibleSchedule}
+                      onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
+                    />
+                    <label htmlFor="flexible" className="text-sm text-muted-foreground cursor-pointer">
+                      <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
+                    </label>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
                     <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="requirements">Special requirements</Label>
+                    <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
+                  </div>
+
+                  {/* Recurring Job */}
+                  <div className="rounded-xl border border-border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Repeat className="w-4 h-4 text-primary" />
+                        <Label htmlFor="recurring" className="cursor-pointer">Recurring task</Label>
+                      </div>
+                      <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                    </div>
+                    {isRecurring && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="space-y-2">
+                          <Label>Frequency</Label>
+                          <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Until</Label>
+                          <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Group Job */}
+                  <div className="rounded-xl border border-border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        <Label htmlFor="group" className="cursor-pointer">Group job (multiple helprs)</Label>
+                      </div>
+                      <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
+                    </div>
+                    {isGroupJob && (
+                      <div className="space-y-2 pt-1">
+                        <Label>How many helprs needed?</Label>
+                        <Input
+                          type="number"
+                          min="2"
+                          max="10"
+                          value={helpersNeeded}
+                          onChange={(e) => setHelpersNeeded(e.target.value)}
+                          className="w-24"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* SECTION 3: BUDGET */}
+                <section className="rounded-2xl border border-border bg-card p-5 space-y-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                        <DollarSign className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <h2 className="font-display text-base font-semibold">Budget</h2>
+                    </div>
+                    {budgetComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget ($) <span className="text-destructive">*</span></Label>
                     <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
-                    {category && categoryPricing[category] && (
+                    {suggested && (
                       <p className="text-xs text-muted-foreground">
-                        💡 Suggested: <span className="font-medium text-primary">${categoryPricing[category].min}–${categoryPricing[category].max}</span> for {categoryPricing[category].label} jobs
+                        💡 Suggested: <span className="font-medium text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
                       </p>
                     )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="requirements">Special requirements</Label>
-                  <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
-                </div>
-
-                {/* Recurring Job */}
-                <div className="rounded-xl border border-border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Repeat className="w-4 h-4 text-primary" />
-                      <Label htmlFor="recurring" className="cursor-pointer">Recurring task</Label>
-                    </div>
-                    <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
-                  </div>
-                  {isRecurring && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div className="space-y-2">
-                        <Label>Frequency</Label>
-                        <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Until</Label>
-                        <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Group Job */}
-                <div className="rounded-xl border border-border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
-                      <Label htmlFor="group" className="cursor-pointer">Group job (multiple helprs)</Label>
-                    </div>
-                    <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
-                  </div>
-                  {isGroupJob && (
-                    <div className="space-y-2 pt-1">
-                      <Label>How many helprs needed?</Label>
-                      <Input
-                        type="number"
-                        min="2"
-                        max="10"
-                        value={helpersNeeded}
-                        onChange={(e) => setHelpersNeeded(e.target.value)}
-                        className="w-24"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Urgent Job */}
-                <div className={`rounded-xl border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-accent" />
-                      <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent</Label>
-                    </div>
-                    <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
-                  </div>
-                  {isUrgent && (
-                    <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent tip goes directly to the helpr — no platform fee applied.
-                      </p>
-                      <Label className="text-xs">Urgent tip ($5 minimum)</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {["5", "10", "15", "20"].map((amt) => (
+                    {/* Quick-tap budget presets */}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {budgetPresets.map((amt) => {
+                        const isActive = budget === String(amt);
+                        return (
                           <button
                             key={amt}
                             type="button"
-                            onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
+                            onClick={() => setBudget(String(amt))}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                              urgentFee === amt && !customUrgentFee
-                                ? "bg-accent text-accent-foreground"
+                              isActive
+                                ? "bg-primary text-primary-foreground"
                                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                             }`}
                           >
                             ${amt}
                           </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                            customUrgentFee
-                              ? "bg-accent text-accent-foreground"
-                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                          }`}
-                        >
-                          Custom
-                        </button>
-                      </div>
-                      {customUrgentFee && (
-                        <Input
-                          type="number"
-                          min="5"
-                          step="1"
-                          value={urgentFee}
-                          onChange={(e) => setUrgentFee(e.target.value)}
-                          placeholder="Enter amount ($5+)"
-                          className="w-32"
-                        />
-                      )}
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
+                  </div>
 
+                  {/* Urgent Job */}
+                  <div className={`rounded-xl border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-accent" />
+                        <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent</Label>
+                      </div>
+                      <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
+                    </div>
+                    {isUrgent && (
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent tip goes directly to the helpr — no platform fee applied.
+                        </p>
+                        <Label className="text-xs">Urgent tip ($5 minimum)</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {["5", "10", "15", "20"].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                urgentFee === amt && !customUrgentFee
+                                  ? "bg-accent text-accent-foreground"
+                                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                              }`}
+                            >
+                              ${amt}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              customUrgentFee
+                                ? "bg-accent text-accent-foreground"
+                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                            }`}
+                          >
+                            Custom
+                          </button>
+                        </div>
+                        {customUrgentFee && (
+                          <Input
+                            type="number"
+                            min="5"
+                            step="1"
+                            value={urgentFee}
+                            onChange={(e) => setUrgentFee(e.target.value)}
+                            placeholder="Enter amount ($5+)"
+                            className="w-32"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </section>
 
-                <Button type="submit" className="w-full" size="lg">
+                {/* Desktop submit (inline) */}
+                <Button type="submit" className="w-full hidden sm:flex" size="lg">
                   Review & Pay
                 </Button>
+
+                {/* Mobile sticky submit */}
+                <div
+                  className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
+                  style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+                >
+                  <Button type="submit" className="w-full" size="lg">
+                    Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(0)}` : ""}
+                  </Button>
+                </div>
               </form>
             </>
           )}
 
           {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
+
           {step === "checkout" && (
             <>
               <div>

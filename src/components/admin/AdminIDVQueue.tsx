@@ -361,7 +361,7 @@ const AdminIDVQueue = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => denyUser(p)}
+                        onClick={() => openDenyDialog(p)}
                         disabled={actioning === p.user_id}
                       >
                         Deny
@@ -393,6 +393,88 @@ const AdminIDVQueue = () => {
               <Row label="Legacy manual review" value={selected.legacy_manual_review ? "Yes" : "No"} />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reason-picker denial dialog */}
+      <Dialog
+        open={!!denyTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDenyTarget(null);
+            setDenyReasonKey(null);
+            setCustomReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deny {formatName(denyTarget?.full_name, "user")}</DialogTitle>
+            <DialogDescription>
+              Pick a reason. The user will see this exact message and (when applicable) a "Try Again" button.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {DENIAL_REASONS.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => setDenyReasonKey(r.key)}
+                className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                  denyReasonKey === r.key
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{r.label}</p>
+                  {r.canRetry ? (
+                    <Badge variant="secondary" className="text-[10px]">Retryable</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">Final</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{r.userMessage}</p>
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setDenyReasonKey("custom")}
+              className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                denyReasonKey === "custom"
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/50"
+              }`}
+            >
+              <p className="text-sm font-semibold text-foreground">Custom reason…</p>
+              <p className="text-xs text-muted-foreground mt-1">Write your own message to the user.</p>
+            </button>
+
+            {denyReasonKey === "custom" && (
+              <Textarea
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                placeholder="Explain how the user can fix this…"
+                rows={3}
+                className="mt-2"
+              />
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setDenyTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeny}
+              disabled={!denyReasonKey || actioning === denyTarget?.user_id}
+            >
+              {actioning === denyTarget?.user_id ? "Denying…" : "Deny & Notify User"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

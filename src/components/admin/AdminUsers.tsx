@@ -843,43 +843,65 @@ const AdminUsers = () => {
                 </div>
               )}
 
-              {/* Action buttons */}
+              {/* Action buttons — primary lifecycle */}
               <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
                 {viewProfile.approval_status === "pending" && (
                   <>
-                    <Button className="flex-1" onClick={() => approveUser(viewProfile)}>
+                    <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
                       <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                     </Button>
-                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="flex-1" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                  <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
                     <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                   </Button>
                 )}
-                <Button variant="destructive" className="flex-1" onClick={() => setDeleteProfile(viewProfile)}>
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete Account
-                </Button>
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
-                    <Button variant="outline" className="flex-1" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
                       <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
                     </Button>
-                    <Button variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                      <ShieldAlert className="w-4 h-4 mr-1" /> Take Action
+                      <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
                     </Button>
                   </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1" onClick={() => unbanUser(viewProfile)}>
+                  <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}
+              </div>
+
+              {/* Trust & Verification + Support actions */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
+                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
+                    <Camera className="w-4 h-4 mr-1.5 text-accent" /> Request ID Re-upload
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
+                    <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
+                    <History className="w-4 h-4 mr-1.5" /> View History
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
+                    <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
+                  </Button>
+                </div>
               </div>
             </div>
           )}

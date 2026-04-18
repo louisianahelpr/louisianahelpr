@@ -187,43 +187,43 @@ Deno.serve(async (req) => {
       })
     }
 
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      serviceRoleKey
     )
 
-    // Verify caller identity via JWT
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    )
-
+    // Allow service-role (server-to-server, e.g. stripe-idv-webhook) OR an admin JWT
     const token = authHeader.replace('Bearer ', '')
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser(token)
-    if (userError || !userData?.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const isServiceRole = token === serviceRoleKey
+
+    if (!isServiceRole) {
+      const supabaseUser = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!
+      )
+      const { data: userData, error: userError } = await supabaseUser.auth.getUser(token)
+      if (userError || !userData?.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
+        _user_id: userData.user.id,
+        _role: 'admin',
       })
-    }
-
-    const adminId = userData.user.id
-
-    const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
-      _user_id: adminId,
-      _role: 'admin',
-    })
-
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     const { userId, status, reason } = await req.json()
 
-    if (!userId || !status || !['approved', 'denied'].includes(status)) {
+    if (!userId || !status || !['approved', 'denied', 'verified'].includes(status)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -243,13 +243,17 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { html, text } = status === 'approved'
-      ? await renderApprovedEmail(profile.full_name || '', userId)
-      : await renderDeniedEmail(profile.full_name || '', userId, reason)
-
-    const subject = status === 'approved'
-      ? 'Your Helpr account has been approved! 🎉'
-      : 'Helpr Account Update'
+    let html: string, text: string, subject: string
+    if (status === 'verified') {
+      ({ html, text } = await renderVerifiedEmail(profile.full_name || '', userId))
+      subject = 'Your identity is verified ✅ — welcome to Helpr!'
+    } else if (status === 'approved') {
+      ({ html, text } = await renderApprovedEmail(profile.full_name || '', userId))
+      subject = 'Your Helpr account has been approved! 🎉'
+    } else {
+      ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason))
+      subject = 'Helpr Account Update'
+    }
 
     const messageId = crypto.randomUUID()
 
@@ -260,7 +264,7 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    if (status === 'approved') {
+    if (status === 'approved' || status === 'verified') {
       await supabaseAdmin.from('profiles').update({
         denial_email_count: 0,
         last_denial_email_at: null,

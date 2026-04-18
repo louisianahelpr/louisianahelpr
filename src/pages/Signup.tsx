@@ -233,10 +233,13 @@ const Signup = () => {
     }
   };
 
-  const handleSignup = async () => {
-    if (!validateStep4()) return;
+  // Account is created when entering step 4 so IDV can use the authenticated session.
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
+  const createAccountAndEnterStep4 = async () => {
     setLoading(true);
+
     // Rate limiting
     const lastAttempt = parseInt(localStorage.getItem(SIGNUP_COOLDOWN_KEY) || "0", 10);
     const elapsed = Date.now() - lastAttempt;
@@ -249,7 +252,6 @@ const Signup = () => {
     localStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
     try {
-      // 1. Create account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -259,41 +261,65 @@ const Signup = () => {
         },
       });
 
-      // Generic error for existing accounts — prevents email enumeration
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
         toast.success("If this email isn't registered, you'll receive a verification link shortly.");
         navigate("/signup-pending");
-        setLoading(false);
         return;
       }
-
       if (authError) throw authError;
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // 2. Complete profile with uploads
+      // Complete profile with uploads
       await completeProfile(userId);
 
-      // 3. Process referral code if provided
+      // Process referral code if provided
       if (referralCode.trim()) {
         try {
           await supabase.rpc("process_referral", {
             p_referral_code: referralCode.trim().toUpperCase(),
             p_new_user_id: userId,
           });
-        } catch (refErr) {
-          // Referral processing skipped silently
-        }
+        } catch { /* silent */ }
       }
 
-      toast.success("Account created! Please check your email to verify.");
-      navigate("/signup-pending");
+      setAccountCreated(true);
+      setCreatedUserId(userId);
+      setStep(4);
     } catch (err: any) {
       toast.error(err.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
+
+  const finishSignup = async () => {
+    // If user opted for legacy manual upload, persist that flag + (optional) ID file
+    if (idvMode === "manual" && createdUserId) {
+      // Mark as legacy manual review so the IDV gate doesn't block them
+      await supabase
+        .from("profiles")
+        .update({ legacy_manual_review: true } as any)
+        .eq("user_id", createdUserId);
+
+      // If they uploaded an ID file in manual mode, send it through complete-signup
+      if (idFile) {
+        const idBase64 = await fileToBase64(idFile);
+        await supabase.functions.invoke("complete-signup", {
+          body: {
+            userId: createdUserId,
+            idBase64,
+            idExt: idFile.name.split(".").pop(),
+            idContentType: idFile.type,
+          },
+        });
+      }
+    }
+
+    toast.success("Account created! Please check your email to verify.");
+    navigate("/signup-pending");
+  };
+
 
   const totalSteps = 4;
 

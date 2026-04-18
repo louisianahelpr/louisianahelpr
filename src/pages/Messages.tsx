@@ -130,7 +130,7 @@ const Messages = () => {
     });
 
     const convoMap = new Map<string, { otherUserId: string; jobId: string; messages: Message[] }>();
-    for (const m of msgs) {
+    for (const m of filteredMsgs) {
       const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
       const key = `${m.job_id}_${other}`;
       if (!convoMap.has(key)) convoMap.set(key, { otherUserId: other, jobId: m.job_id, messages: [] });

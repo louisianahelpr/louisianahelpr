@@ -5,7 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2 } from "lucide-react";
+
+const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
+const getResolvedFlags = (): Set<string> => {
+  try { return new Set(JSON.parse(localStorage.getItem(RESOLVED_FLAGS_KEY) || "[]")); }
+  catch { return new Set(); }
+};
+const saveResolvedFlags = (set: Set<string>) => {
+  localStorage.setItem(RESOLVED_FLAGS_KEY, JSON.stringify([...set]));
+};
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 

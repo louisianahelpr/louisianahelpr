@@ -397,11 +397,7 @@ const AdminUsers = () => {
   const viewBanStatus = (viewProfile as any)?.ban_status || "active";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <span className="text-sm text-muted-foreground">{profiles.length} total</span>
-      </div>
-
+    <div className="space-y-3">
       <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
         {tabs.map((t) => (
           <button
@@ -418,6 +414,8 @@ const AdminUsers = () => {
           </button>
         ))}
       </div>
+
+      <p className="text-xs text-muted-foreground px-1">{filtered.length} {filtered.length === 1 ? "user" : "users"}</p>
 
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">No users in this category.</p>

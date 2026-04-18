@@ -293,14 +293,33 @@ const AdminJobs = () => {
             <div className="space-y-4">
               {/* Flags banner */}
               {jobFlags.has(detailJob.id) && (
-                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-1.5">
-                  <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
-                  </p>
-                  {jobFlags.get(detailJob.id)!.map((flag, i) => (
-                    <p key={i} className="text-xs text-destructive/80 pl-5">• {flag}</p>
-                  ))}
-                </div>
+                resolvedFlags.has(detailJob.id) ? (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start justify-between gap-3">
+                    <div className="space-y-1.5 flex-1">
+                      <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Flags marked as resolved
+                      </p>
+                      <p className="text-xs text-muted-foreground pl-5">An admin reviewed this job and confirmed it's fine.</p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => reopenFlag(detailJob.id)}>
+                      Reopen
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
+                      </p>
+                      <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => markFlagResolved(detailJob.id)}>
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark Resolved
+                      </Button>
+                    </div>
+                    {jobFlags.get(detailJob.id)!.map((flag, i) => (
+                      <p key={i} className="text-xs text-destructive/80 pl-5">• {flag}</p>
+                    ))}
+                  </div>
+                )
               )}
 
               {/* Removal info */}

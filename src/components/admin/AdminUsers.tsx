@@ -876,36 +876,36 @@ const AdminUsers = () => {
               )}
 
               {/* Action buttons — primary lifecycle */}
-              <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border sm:flex-wrap">
                 {viewProfile.approval_status === "pending" && (
                   <>
-                    <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
+                    <Button className="w-full sm:flex-1 sm:min-w-[140px] h-10" onClick={() => approveUser(viewProfile)}>
                       <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                     </Button>
-                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                  <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[160px] h-10" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
                     <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                   </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
-                    <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[160px] h-10" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
                       <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
                     </Button>
-                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
                       <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
                     </Button>
                   </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
+                  <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10" onClick={() => unbanUser(viewProfile)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}

@@ -80,8 +80,30 @@ const AdminUsers = () => {
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false });
-    if (data) setProfiles(data);
+    if (data) {
+      setProfiles(data);
+      // Load admin notes summary in parallel (non-blocking)
+      loadNotesSummary(data.map((p) => p.user_id));
+    }
     setLoading(false);
+  };
+
+  const loadNotesSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await (supabase.from("admin_user_notes" as any) as any)
+      .select("user_id, note, created_at, category")
+      .in("user_id", userIds)
+      .order("created_at", { ascending: false });
+    if (!data) return;
+    const summary: Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }> = {};
+    for (const row of data as any[]) {
+      if (!summary[row.user_id]) summary[row.user_id] = { count: 0, recent: [] };
+      summary[row.user_id].count += 1;
+      if (summary[row.user_id].recent.length < 2) {
+        summary[row.user_id].recent.push({ note: row.note, created_at: row.created_at, category: row.category });
+      }
+    }
+    setNotesSummary(summary);
   };
 
   useEffect(() => {

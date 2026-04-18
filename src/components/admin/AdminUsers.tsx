@@ -672,10 +672,7 @@ const AdminUsers = () => {
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => {
-              setTab(t.key);
-              if (t.key === "approved" && issueFilter === "no_id") setIssueFilter("all");
-            }}
+            onClick={() => setTab(t.key)}
             className={`flex-1 min-w-fit px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}

@@ -777,6 +777,15 @@ const Signup = () => {
         {/* Step 3: Portfolio & Documents */}
         {step === 3 && (
           <div className="space-y-4">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3">
+              <div className="text-2xl">💡</div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Why this matters</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Photos of your tools, equipment, or past work help posters trust you instantly — verified portfolios get hired up to <span className="font-semibold text-foreground">3x faster</span>.
+                </p>
+              </div>
+            </div>
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />

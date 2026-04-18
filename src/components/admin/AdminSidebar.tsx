@@ -50,8 +50,8 @@ const AdminSidebar = ({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-3">
-        <SidebarGroup>
+      <SidebarContent className="px-2 py-2 gap-0">
+        <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>

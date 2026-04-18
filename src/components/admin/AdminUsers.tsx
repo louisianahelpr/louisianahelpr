@@ -487,7 +487,7 @@ const AdminUsers = () => {
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">{formatName(viewProfile?.full_name, "User Profile")}</DialogTitle>
+            <DialogTitle className="font-display text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
             <div className="space-y-6">

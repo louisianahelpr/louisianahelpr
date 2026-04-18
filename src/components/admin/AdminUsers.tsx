@@ -13,6 +13,7 @@ import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert,
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
+import AdminUserNotes from "./AdminUserNotes";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

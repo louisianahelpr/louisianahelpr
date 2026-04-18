@@ -45,13 +45,14 @@ const AdminHealth = () => {
       cancelled: cancelRes.count || 0,
     });
 
-    // Health check
+    // Health check (uses logged-in admin's JWT via functions.invoke)
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/health-check`;
-      const resp = await fetch(url, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      });
-      setHealthStatus(resp.ok ? "ok" : "degraded");
+      const { data, error } = await supabase.functions.invoke("health-check");
+      if (error) {
+        setHealthStatus("degraded");
+      } else {
+        setHealthStatus(data?.status === "healthy" ? "ok" : "degraded");
+      }
     } catch {
       setHealthStatus("degraded");
     }

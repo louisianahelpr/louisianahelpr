@@ -38,8 +38,11 @@ serve(async (req) => {
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
   if (!stripeKey) {
-    logStep("ERROR: STRIPE_SECRET_KEY not set");
-    return new Response("Server error", { status: 500 });
+    console.error("[STRIPE-WEBHOOK] STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });

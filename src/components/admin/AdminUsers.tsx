@@ -712,7 +712,6 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
                     {statusBadge(p)}
-                    {roleBadge(p)}
                     {stripeBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
@@ -849,7 +848,6 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
-                    {roleBadge(viewProfile)}
                     {stripeBadge(viewProfile)}
 
                     {((viewProfile as any).application_count || 1) > 1 && (

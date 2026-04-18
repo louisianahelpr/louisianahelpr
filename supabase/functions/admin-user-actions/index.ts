@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
         action: actionTaken === 'suspension' ? 'auto_suspend_3_strikes' : (actionTaken === 'final_warning' ? 'final_warning' : 'formal_warning'),
         target_id: targetUserId,
         target_type: 'user',
-        details: { note, strike_number: strikeNumber, prior_strikes: priorStrikes || 0 },
+        details: { note, reason_category: reasonCategory, strike_number: strikeNumber, prior_strikes: priorStrikes || 0, bypass_strike: bypassStrike },
       })
 
       await admin.from('notifications').insert({

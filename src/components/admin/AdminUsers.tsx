@@ -452,6 +452,32 @@ const AdminUsers = () => {
     return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending</Badge>;
   };
 
+  // Stripe IDV badge — shows verification trust at a glance.
+  // Only relevant for helpers (customers don't submit ID).
+  const stripeBadge = (profile: Profile) => {
+    if (profile.role === "customer") return null;
+    const s = (profile as any).idv_status as string | null | undefined;
+    if (s === "verified" || s === "approved") {
+      return (
+        <Badge className="bg-primary/10 text-primary text-[10px] border border-primary/20" title="Stripe Verified">
+          <ShieldCheck className="w-3 h-3 mr-0.5" /> Stripe Verified
+        </Badge>
+      );
+    }
+    if (s === "manual_review" || s === "failed" || s === "requires_input") {
+      return (
+        <Badge className="bg-accent/20 text-accent-foreground text-[10px] border border-accent/30" title={`Stripe Flagged (${s})`}>
+          <ShieldAlert className="w-3 h-3 mr-0.5" /> Stripe Flagged
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-[10px] text-muted-foreground border-border" title="Identity not submitted">
+        <Shield className="w-3 h-3 mr-0.5" /> ID Not Submitted
+      </Badge>
+    );
+  };
+
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [

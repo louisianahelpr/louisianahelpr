@@ -107,13 +107,26 @@ serve(async (req) => {
       // Notify user + admins
       const status = updateData.idv_status as string;
       if (status === "verified") {
+        // 1) In-app notification (auto-triggers browser push via useRealtimePush)
         await supabase.from("notifications").insert({
           user_id: userId,
-          title: "✅ Identity verified!",
-          message: "Your account is approved. Welcome to Helpr!",
+          title: "✅ Verification Successful",
+          message: "Your identity has been verified! You're cleared to start using Helpr.",
           type: "success",
           link: "/dashboard",
         });
+
+        // 2) Branded "Verification Successful" email (server-to-server with service role)
+        try {
+          await supabase.functions.invoke("send-account-status-email", {
+            body: { userId, status: "verified" },
+            headers: {
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+            },
+          });
+        } catch (emailErr) {
+          console.error("Verification email dispatch failed:", emailErr);
+        }
       } else if (status === "manual_review" || status === "failed") {
         // Flag admins
         const { data: admins } = await supabase

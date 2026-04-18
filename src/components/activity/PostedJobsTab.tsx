@@ -465,25 +465,35 @@ export const PostedJobsTab = ({
                             variant="warning"
                           />
                         )}
-                        {/* Approve & Complete */}
+                        {/* Approve & Complete (primary) — only after helper marks done */}
                         {(job as any).helper_completed_at && (
                           <Button size="sm" className="w-full" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
                             <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
                           </Button>
                         )}
-                        {/* Request Revision */}
+                        {/* Message — primary action while work is in progress */}
+                        <Button
+                          size="sm"
+                          variant={(job as any).helper_completed_at ? "outline" : "default"}
+                          className="w-full"
+                          onClick={() => navigate("/messages")}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-1" /> Message Helper
+                        </Button>
+                        {/* Request Revision — only after helper marks complete (Stage 2) */}
                         {job.status === "in_progress" && !(job as any).poster_completed_at && (job as any).helper_completed_at && (
-                          <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
-                            <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
+                          <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-xs" onClick={() => onRevision(job.id)}>
+                            <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Request a revision instead
                           </Button>
                         )}
-                        {/* Message */}
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
-                        {/* Dispute available after revision requested */}
-                        {(job.status === "revision_requested" || (job as any).revision_requested_at) && (
-                          <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
-                            <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
-                          </Button>
+                        {/* Dispute — Stage 3, only after revision deadline has passed without resolution */}
+                        {job.status === "revision_requested" && (job as any).revision_deadline && new Date((job as any).revision_deadline) < new Date() && !(job as any).revision_completed_at && (
+                          <button
+                            onClick={() => onDispute(job)}
+                            className="w-full text-[11px] text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors"
+                          >
+                            Still unresolved? File a formal dispute
+                          </button>
                         )}
                       </div>
                     )}

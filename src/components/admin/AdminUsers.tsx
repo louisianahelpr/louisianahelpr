@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, Shield } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, MessageCircle, User as UserIcon, Briefcase } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -62,19 +64,46 @@ const AdminUsers = () => {
   // Formal warning dialog
   const [warningProfile, setWarningProfile] = useState<Profile | null>(null);
   const [warningNote, setWarningNote] = useState("");
+  const [warningCategory, setWarningCategory] = useState<string>("conduct");
+  const [warningBypass, setWarningBypass] = useState(false);
   // Manual verify confirm
   const [manualVerifyProfile, setManualVerifyProfile] = useState<Profile | null>(null);
   // Reset password confirm
   const [resetPwProfile, setResetPwProfile] = useState<Profile | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
 
+  // Per-user admin notes summary: { [user_id]: { count, recent: [{note, created_at, category}] } }
+  const [notesSummary, setNotesSummary] = useState<Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }>>({});
+
   const loadProfiles = async () => {
     const { data } = await supabase
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false });
-    if (data) setProfiles(data);
+    if (data) {
+      setProfiles(data);
+      // Load admin notes summary in parallel (non-blocking)
+      loadNotesSummary(data.map((p) => p.user_id));
+    }
     setLoading(false);
+  };
+
+  const loadNotesSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await (supabase.from("admin_user_notes" as any) as any)
+      .select("user_id, note, created_at, category")
+      .in("user_id", userIds)
+      .order("created_at", { ascending: false });
+    if (!data) return;
+    const summary: Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }> = {};
+    for (const row of data as any[]) {
+      if (!summary[row.user_id]) summary[row.user_id] = { count: 0, recent: [] };
+      summary[row.user_id].count += 1;
+      if (summary[row.user_id].recent.length < 2) {
+        summary[row.user_id].recent.push({ note: row.note, created_at: row.created_at, category: row.category });
+      }
+    }
+    setNotesSummary(summary);
   };
 
   useEffect(() => {
@@ -378,11 +407,18 @@ const AdminUsers = () => {
     action: "manual_verify" | "request_id_reupload" | "reset_password" | "formal_warning",
     profile: Profile,
     note?: string,
+    extras?: { reasonCategory?: string; bypassStrike?: boolean },
   ) => {
     setActionBusy(true);
     try {
       const { error } = await supabase.functions.invoke("admin-user-actions", {
-        body: { action, userId: profile.user_id, note: note || "" },
+        body: {
+          action,
+          userId: profile.user_id,
+          note: note || "",
+          reasonCategory: extras?.reasonCategory || "",
+          bypassStrike: extras?.bypassStrike === true,
+        },
       });
       if (error) throw error;
       const labels: Record<string, string> = {
@@ -394,7 +430,7 @@ const AdminUsers = () => {
       toast.success(labels[action]);
       loadProfiles();
       setReuploadProfile(null); setReuploadNote("");
-      setWarningProfile(null); setWarningNote("");
+      setWarningProfile(null); setWarningNote(""); setWarningCategory("conduct"); setWarningBypass(false);
       setManualVerifyProfile(null);
       setResetPwProfile(null);
     } catch (err: any) {
@@ -452,29 +488,59 @@ const AdminUsers = () => {
     return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending</Badge>;
   };
 
-  // Stripe IDV badge — shows verification trust at a glance.
-  // Only relevant for helpers (customers don't submit ID).
+  // Stripe Identity verification badge — green / yellow / gray.
+  // Hidden for customer-only users (they don't go through helper IDV).
   const stripeBadge = (profile: Profile) => {
     if (profile.role === "customer") return null;
-    const s = (profile as any).idv_status as string | null | undefined;
-    if (s === "verified" || s === "approved") {
-      return (
-        <Badge className="bg-primary/10 text-primary text-[10px] border border-primary/20" title="Stripe Verified">
-          <ShieldCheck className="w-3 h-3 mr-0.5" /> Stripe Verified
-        </Badge>
-      );
+    const s = (profile as any).idv_status;
+    if (s === "verified" || s === "approved" || (profile as any).legacy_manual_review) {
+      return <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Stripe Verified</Badge>;
     }
-    if (s === "manual_review" || s === "failed" || s === "requires_input") {
-      return (
-        <Badge className="bg-accent/20 text-accent-foreground text-[10px] border border-accent/30" title={`Stripe Flagged (${s})`}>
-          <ShieldAlert className="w-3 h-3 mr-0.5" /> Stripe Flagged
-        </Badge>
-      );
+    if (s === "manual_review" || s === "failed" || s === "requires_input" || s === "action_needed") {
+      return <Badge className="bg-accent/20 text-accent-foreground border-accent/30 text-[10px] gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Flagged</Badge>;
     }
+    return <Badge variant="outline" className="text-muted-foreground text-[10px] gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />ID Not Submitted</Badge>;
+  };
+
+  // Role badge — Helper / Poster (Customer)
+  const roleBadge = (profile: Profile) => {
+    if (profile.role === "admin") return <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Admin</Badge>;
+    if (profile.role === "customer") return <Badge variant="outline" className="text-[10px] gap-0.5"><UserIcon className="w-2.5 h-2.5" />Poster</Badge>;
+    // helpers / dual-role default
+    return <Badge variant="outline" className="text-[10px] gap-0.5"><Briefcase className="w-2.5 h-2.5" />Helper</Badge>;
+  };
+
+  // Notes icon w/ count badge + hover preview of recent 2 notes
+  const NotesIndicator = ({ userId }: { userId: string }) => {
+    const summary = notesSummary[userId];
+    if (!summary || summary.count === 0) return null;
     return (
-      <Badge variant="outline" className="text-[10px] text-muted-foreground border-border" title="Identity not submitted">
-        <Shield className="w-3 h-3 mr-0.5" /> ID Not Submitted
-      </Badge>
+      <HoverCard openDelay={120}>
+        <HoverCardTrigger asChild>
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="relative inline-flex items-center justify-center text-accent-foreground hover:text-primary transition-colors"
+            aria-label={`${summary.count} admin note${summary.count > 1 ? "s" : ""}`}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center border border-background">
+              {summary.count}
+            </span>
+          </button>
+        </HoverCardTrigger>
+        <HoverCardContent side="top" className="w-72 p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Recent admin notes ({summary.count})</p>
+          {summary.recent.map((n, i) => (
+            <div key={i} className="text-xs space-y-0.5 border-l-2 border-accent/40 pl-2">
+              <p className="text-foreground line-clamp-3">{n.note}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {n.category} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+              </p>
+            </div>
+          ))}
+        </HoverCardContent>
+      </HoverCard>
     );
   };
 
@@ -530,7 +596,9 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
                     {statusBadge(p)}
+                    {roleBadge(p)}
                     {stripeBadge(p)}
+                    <NotesIndicator userId={p.user_id} />
                   </div>
                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
                     {(p as any).email && <span className="truncate max-w-full">{(p as any).email}</span>}
@@ -573,6 +641,14 @@ const AdminUsers = () => {
                     <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => resendApprovalEmail(p)} disabled={resending === p.id}>
                       {resending === p.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><MailIcon className="w-3.5 h-3.5 mr-1" /> Resend</>}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 bg-accent/10 text-accent-foreground border-accent/40 hover:bg-accent/20"
+                      onClick={() => { setWarningProfile(p); setWarningNote(""); setWarningCategory("conduct"); setWarningBypass(false); }}
+                    >
+                      <MessageSquareWarning className="w-3.5 h-3.5 mr-1" /> Warn
+                    </Button>
                     <Button size="sm" variant="outline" className="h-8 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(p); setBanReason(""); setBanType("warning"); }}>
                       <ShieldAlert className="w-3.5 h-3.5 mr-1" /> Ban
@@ -593,9 +669,9 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-y-auto p-3 sm:p-6 rounded-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-base sm:text-xl pr-6">User Profile</DialogTitle>
+            <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
             <div className="space-y-4">
@@ -603,17 +679,18 @@ const AdminUsers = () => {
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={viewProfile.avatar_url} alt="" className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                    <img src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
                   </a>
                 ) : (
-                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-xl sm:text-2xl font-medium flex-shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-2xl font-medium flex-shrink-0">
                     {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="text-sm sm:text-lg font-bold text-foreground break-words leading-tight w-full sm:w-auto sm:truncate">{formatName(viewProfile.full_name, "—")}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
+                    {roleBadge(viewProfile)}
                     {stripeBadge(viewProfile)}
 
                     {((viewProfile as any).application_count || 1) > 1 && (
@@ -623,10 +700,10 @@ const AdminUsers = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-[11px] sm:text-sm text-muted-foreground truncate break-all">{(viewProfile as any).email || "No email"}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
                     <button
                       onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
-                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0 p-1 -m-1"
+                      className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
                       title="Edit email"
                     >
                       <Pencil className="w-3 h-3" />
@@ -636,7 +713,7 @@ const AdminUsers = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 w-full sm:w-auto"
+                      className="h-8"
                       onClick={async () => {
                         const currentCount = (viewProfile as any).application_count || 1;
                         await supabase.from("profiles").update({
@@ -664,7 +741,7 @@ const AdminUsers = () => {
               </div>
 
               {/* Info Grid — always show all fields */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl bg-secondary/30 border border-border p-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl bg-secondary/30 border border-border p-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
                   <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
@@ -721,7 +798,7 @@ const AdminUsers = () => {
                 return (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Signup Answers</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-3 sm:p-4">
+                    <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/30 border border-border p-4">
                       {fields.map((f, i) => (
                         <div key={i}>
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
@@ -904,36 +981,36 @@ const AdminUsers = () => {
               )}
 
               {/* Action buttons — primary lifecycle */}
-              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border sm:flex-wrap">
+              <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
                 {viewProfile.approval_status === "pending" && (
                   <>
-                    <Button className="w-full sm:flex-1 sm:min-w-[140px] h-10" onClick={() => approveUser(viewProfile)}>
+                    <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
                       <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                     </Button>
-                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
                       <XCircle className="w-4 h-4 mr-1" /> Deny
                     </Button>
                   </>
                 )}
                 {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[160px] h-10" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                  <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
                     <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                   </Button>
                 )}
                 {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
                   <>
-                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[160px] h-10" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                    <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendApprovalEmail(viewProfile)} disabled={resending === viewProfile.id}>
                       <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Approval Email"}
                     </Button>
-                    <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
                       <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
                     </Button>
                   </>
                 )}
                 {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="w-full sm:flex-1 sm:min-w-[140px] h-10" onClick={() => unbanUser(viewProfile)}>
+                  <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
                   </Button>
                 )}
@@ -945,24 +1022,24 @@ const AdminUsers = () => {
               {/* Trust & Verification + Support actions */}
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Admin Tools</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => setManualVerifyProfile(viewProfile)}>
-                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary shrink-0" /> Manually Verify
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
+                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
                   </Button>
-                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
-                    <Camera className="w-4 h-4 mr-1.5 text-accent shrink-0" /> Request ID Re-upload
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setReuploadProfile(viewProfile); setReuploadNote(""); }}>
+                    <Camera className="w-4 h-4 mr-1.5 text-accent" /> Request ID Re-upload
                   </Button>
-                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
-                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent shrink-0" /> Formal Warning
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
                   </Button>
-                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => setResetPwProfile(viewProfile)}>
-                    <KeyRound className="w-4 h-4 mr-1.5 text-primary shrink-0" /> Reset Password
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
+                    <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
                   </Button>
-                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm" onClick={() => viewHistoryFor(viewProfile)}>
-                    <History className="w-4 h-4 mr-1.5 shrink-0" /> View History
+                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
+                    <History className="w-4 h-4 mr-1.5" /> View History
                   </Button>
-                  <Button variant="outline" size="sm" className="h-10 justify-start text-xs sm:text-sm text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
-                    <Trash2 className="w-4 h-4 mr-1.5 shrink-0" /> Delete Account
+                  <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
+                    <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
                   </Button>
                 </div>
               </div>
@@ -1211,30 +1288,55 @@ const AdminUsers = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
-              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Formal Warning
+              <MessageSquareWarning className="w-5 h-5 text-accent" /> Issue Manual Strike
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Per the Repeat Offender Policy: <strong>1st</strong> violation = warning, <strong>2nd</strong> = 7-day suspension, <strong>3rd</strong> = permanent ban. This adds a note to {formatName(warningProfile?.full_name)}'s file and sends them an email.
+              Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
             </p>
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Specific policy violation</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
+              <Select value={warningCategory} onValueChange={setWarningCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="conduct">Conduct (rude / disrespectful)</SelectItem>
+                  <SelectItem value="no_show">No-show / late cancellation</SelectItem>
+                  <SelectItem value="payment_policy">Payment policy (off-platform)</SelectItem>
+                  <SelectItem value="inappropriate_content">Inappropriate content</SelectItem>
+                  <SelectItem value="quality">Poor work quality</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
               <Textarea
                 value={warningNote}
                 onChange={(e) => setWarningNote(e.target.value)}
-                placeholder="e.g. Late cancellation under 2 hours before scheduled job."
+                placeholder="e.g. Customer complaint: helper left gate open. Verified via phone call."
                 rows={3}
               />
             </div>
+            <label className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
+              <Checkbox
+                checked={warningBypass}
+                onCheckedChange={(v) => setWarningBypass(v === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
+                <p className="text-[11px] text-muted-foreground">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
+              </div>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy}>Cancel</Button>
             <Button
-              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote)}
+              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote, { reasonCategory: warningCategory, bypassStrike: warningBypass })}
               disabled={actionBusy || !warningNote.trim()}
             >
-              {actionBusy ? "Issuing…" : "Issue Warning"}
+              {actionBusy ? "Issuing…" : warningBypass ? "Issue (no escalation)" : "Issue Strike"}
             </Button>
           </DialogFooter>
         </DialogContent>

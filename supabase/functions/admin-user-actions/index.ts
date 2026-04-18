@@ -87,6 +87,8 @@ Deno.serve(async (req) => {
     const action: ActionType = body.action
     const targetUserId: string = body.userId
     const note: string = (body.note || '').toString().slice(0, 1000)
+    const reasonCategory: string = (body.reasonCategory || '').toString().slice(0, 100)
+    const bypassStrike: boolean = body.bypassStrike === true
 
     if (!action || !targetUserId) {
       return new Response(JSON.stringify({ error: 'Missing action or userId' }), {
@@ -228,7 +230,10 @@ Deno.serve(async (req) => {
         .eq('user_id', targetUserId)
         .in('action_taken', ['warning', 'final_warning'])
 
-      const strikeNumber = (priorStrikes || 0) + 1
+      // If admin chose to bypass the next strike (one-time courtesy), keep
+      // strike number at the current level (still log the warning, but don't escalate).
+      const effectivePriorStrikes = bypassStrike ? Math.max(0, (priorStrikes || 0) - 1) : (priorStrikes || 0)
+      const strikeNumber = effectivePriorStrikes + 1
       let actionTaken: 'warning' | 'final_warning' | 'suspension' = 'warning'
       let banStatusUpdate: any = { ban_status: 'warned' }
       let notifTitle = '⚠️ Formal warning (Strike 1 of 3)'
@@ -261,10 +266,13 @@ Deno.serve(async (req) => {
           .eq('helper_id', targetUserId).eq('status', 'pending')
       }
 
+      const violationDescription = reasonCategory
+        ? `[${reasonCategory}] ${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
+        : `${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
       await admin.from('user_violations').insert({
         user_id: targetUserId,
         violation_type: 'admin_warning',
-        description: note,
+        description: violationDescription,
         action_taken: actionTaken,
         reported_by: userData.user.id,
       })
@@ -275,7 +283,7 @@ Deno.serve(async (req) => {
         action: actionTaken === 'suspension' ? 'auto_suspend_3_strikes' : (actionTaken === 'final_warning' ? 'final_warning' : 'formal_warning'),
         target_id: targetUserId,
         target_type: 'user',
-        details: { note, strike_number: strikeNumber, prior_strikes: priorStrikes || 0 },
+        details: { note, reason_category: reasonCategory, strike_number: strikeNumber, prior_strikes: priorStrikes || 0, bypass_strike: bypassStrike },
       })
 
       await admin.from('notifications').insert({

@@ -41,6 +41,11 @@ const AdminIDVQueue = () => {
   const [actioning, setActioning] = useState<string | null>(null);
   const [selected, setSelected] = useState<IDVProfile | null>(null);
 
+  // Denial dialog
+  const [denyTarget, setDenyTarget] = useState<IDVProfile | null>(null);
+  const [denyReasonKey, setDenyReasonKey] = useState<DenialReasonKey | "custom" | null>(null);
+  const [customReason, setCustomReason] = useState("");
+
   // Settings
   const [hybridEnabled, setHybridEnabled] = useState(false);
   const [threshold, setThreshold] = useState("85");

@@ -78,6 +78,8 @@ const AdminUsers = () => {
   const [strikesSummary, setStrikesSummary] = useState<Record<string, number>>({});
   // Per-user last activity { [user_id]: { label, at } }
   const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
+  // Per-user last login time
+  const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
 
   // Filters
   const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "failed_id" | "no_id">("all");
@@ -130,6 +132,14 @@ const AdminUsers = () => {
     (jobsRes.data as any[] | null)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
     (appsRes.data as any[] | null)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
     (loginRes.data as any[] | null)?.forEach((l: any) => consider(l.user_id, "Logged In", l.created_at));
+    // Track most-recent login separately for the user list row
+    const logins: Record<string, string> = {};
+    (loginRes.data as any[] | null)?.forEach((l: any) => {
+      if (!logins[l.user_id] || new Date(l.created_at) > new Date(logins[l.user_id])) {
+        logins[l.user_id] = l.created_at;
+      }
+    });
+    setLastLoginSummary(logins);
     // Also surface failed ID upload from profiles
     profiles.forEach((p) => {
       if ((p as any).idv_status === "failed" && (p as any).idv_attempted_at) {
@@ -720,15 +730,6 @@ const AdminUsers = () => {
                     {stripeBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
-                    {(p as any).email && <span className="truncate max-w-full">{(p as any).email}</span>}
-                    {p.location && <span>{p.location}</span>}
-                    {p.phone && <span>{p.phone}</span>}
-                    <span className="flex items-center gap-0.5">
-                      <Clock className="w-3 h-3" />
-                      {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
-                    </span>
-                  </div>
                   {/* Pending wait-time countdown — only shown in Pending tab */}
                   {tab === "pending" && isPendingReview(p) && (() => {
                     const waitMs = Date.now() - new Date(p.created_at).getTime();
@@ -750,7 +751,7 @@ const AdminUsers = () => {
                       </Badge>
                     );
                   })()}
-                  {/* Standing + Last Activity row */}
+                  {/* Standing + Last login row */}
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
                     {(() => {
                       const strikes = strikesSummary[p.user_id] || 0;
@@ -766,11 +767,11 @@ const AdminUsers = () => {
                         </span>
                       );
                     })()}
-                    {activitySummary[p.user_id] && (
-                      <span className="text-muted-foreground">
-                        Last: {activitySummary[p.user_id].label} · {formatDistanceToNow(new Date(activitySummary[p.user_id].at), { addSuffix: true })}
-                      </span>
-                    )}
+                    <span className="text-muted-foreground">
+                      Last login: {lastLoginSummary[p.user_id]
+                        ? formatDistanceToNow(new Date(lastLoginSummary[p.user_id]), { addSuffix: true })
+                        : "never"}
+                    </span>
                   </div>
                 </div>
               </div>

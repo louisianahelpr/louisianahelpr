@@ -152,24 +152,88 @@ const AdminIDVQueue = () => {
     load();
   };
 
-  const denyUser = async (p: IDVProfile) => {
-    setActioning(p.user_id);
+  const openDenyDialog = (p: IDVProfile) => {
+    setDenyTarget(p);
+    setDenyReasonKey(null);
+    setCustomReason("");
+  };
+
+  const confirmDeny = async () => {
+    if (!denyTarget || !denyReasonKey) return;
+
+    let reasonKey: string;
+    let userMessage: string;
+    let canRetry: boolean;
+
+    if (denyReasonKey === "custom") {
+      if (!customReason.trim() || customReason.trim().length < 10) {
+        toast.error("Custom reason must be at least 10 characters");
+        return;
+      }
+      reasonKey = "custom";
+      userMessage = customReason.trim();
+      canRetry = true;
+    } else {
+      const meta = DENIAL_REASONS.find((r) => r.key === denyReasonKey);
+      if (!meta) return;
+      reasonKey = meta.key;
+      userMessage = meta.userMessage;
+      canRetry = meta.canRetry;
+    }
+
+    setActioning(denyTarget.user_id);
     const { error } = await supabase
       .from("profiles")
       .update({
         idv_status: "failed",
         approval_status: "denied",
-        denial_reason: "Identity verification could not be confirmed.",
+        denial_reason: `[${reasonKey}] ${userMessage}`,
+        idv_failure_reason: userMessage,
       } as any)
-      .eq("user_id", p.user_id);
-    setActioning(null);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`${formatName(p.full_name)} denied`);
-      await logAdminAction("idv_manual_deny", "user", p.user_id, { previous_status: p.idv_status });
-      setSelected(null);
-      load();
+      .eq("user_id", denyTarget.user_id);
+
+    if (error) {
+      setActioning(null);
+      toast.error(error.message);
+      return;
     }
+
+    // In-app notification with the specific reason
+    await supabase.from("notifications").insert({
+      user_id: denyTarget.user_id,
+      title: canRetry ? "⚠️ Verification needs another try" : "Account update",
+      message: userMessage,
+      type: "warning",
+      link: "/account-pending",
+    } as any);
+
+    // Branded denial email with reason + Try Again CTA
+    try {
+      await supabase.functions.invoke("send-account-status-email", {
+        body: {
+          userId: denyTarget.user_id,
+          status: "denied",
+          reason: userMessage,
+          canRetry,
+        },
+      });
+    } catch (e) {
+      console.error("Denial email dispatch failed:", e);
+    }
+
+    await logAdminAction("idv_manual_deny", "user", denyTarget.user_id, {
+      previous_status: denyTarget.idv_status,
+      reason_key: reasonKey,
+      can_retry: canRetry,
+    });
+
+    setActioning(null);
+    toast.success(`${formatName(denyTarget.full_name)} denied`);
+    setDenyTarget(null);
+    setDenyReasonKey(null);
+    setCustomReason("");
+    setSelected(null);
+    load();
   };
 
   return (

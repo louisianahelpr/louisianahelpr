@@ -78,6 +78,8 @@ const AdminUsers = () => {
   const [strikesSummary, setStrikesSummary] = useState<Record<string, number>>({});
   // Per-user last activity { [user_id]: { label, at } }
   const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
+  // Per-user last login time
+  const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
 
   // Filters
   const [issueFilter, setIssueFilter] = useState<"all" | "strikes" | "failed_id" | "no_id">("all");

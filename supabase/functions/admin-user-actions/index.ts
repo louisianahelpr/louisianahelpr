@@ -221,55 +221,85 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'formal_warning') {
-      // Per platform rules: 1st violation = warning, 2nd = 7-day suspension, 3rd = ban.
-      // Count prior warnings to inform the admin (auto-escalation handled by separate flows; we just record).
-      const { count: priorWarnings } = await admin.from('user_violations')
+      // 3-strike system: 1st = warning, 2nd = final warning (banner shown in app), 3rd = 7-day auto-suspension
+      // Count prior strikes (warning + final_warning) to determine escalation tier
+      const { count: priorStrikes } = await admin.from('user_violations')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', targetUserId)
-        .eq('action_taken', 'warning')
+        .in('action_taken', ['warning', 'final_warning'])
+
+      const strikeNumber = (priorStrikes || 0) + 1
+      let actionTaken: 'warning' | 'final_warning' | 'suspension' = 'warning'
+      let banStatusUpdate: any = { ban_status: 'warned' }
+      let notifTitle = '⚠️ Formal warning (Strike 1 of 3)'
+      let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
+      let emailSubject = 'Helpr — Formal warning issued'
+      let emailHeading = 'Formal warning (Strike 1 of 3)'
+      let escalationHtml = '<p style="font-size:14px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>'
+
+      if (strikeNumber === 2) {
+        actionTaken = 'final_warning'
+        banStatusUpdate = { ban_status: 'final_warning' }
+        notifTitle = '🚨 Final warning (Strike 2 of 3)'
+        notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app.'
+        emailSubject = 'Helpr — FINAL warning'
+        emailHeading = 'Final warning (Strike 2 of 3)'
+        escalationHtml = '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>⚠️ This is your final warning.</strong> One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.</p>'
+      } else if (strikeNumber >= 3) {
+        actionTaken = 'suspension'
+        const suspendUntil = new Date()
+        suspendUntil.setDate(suspendUntil.getDate() + 7)
+        banStatusUpdate = { ban_status: 'temp_banned', auto_suspended_until: suspendUntil.toISOString() }
+        notifTitle = '🚫 Account suspended for 7 days (Strike 3)'
+        notifMsg = `Your account is suspended until ${suspendUntil.toLocaleDateString()}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Active bids have been cancelled.`
+        emailSubject = 'Helpr — Account suspended (7 days)'
+        emailHeading = 'Account suspended for 7 days'
+        escalationHtml = `<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>Your account has reached 3 strikes and is now suspended.</strong> Access will be restored on <strong>${suspendUntil.toLocaleDateString()}</strong>. All active bids have been cancelled.</p>`
+
+        // Cancel all pending applications (active bids)
+        await admin.from('applications').update({ status: 'rejected' } as any)
+          .eq('helper_id', targetUserId).eq('status', 'pending')
+      }
 
       await admin.from('user_violations').insert({
         user_id: targetUserId,
         violation_type: 'admin_warning',
         description: note,
-        action_taken: 'warning',
+        action_taken: actionTaken,
         reported_by: userData.user.id,
       })
-      await admin.from('profiles').update({ ban_status: 'warned' } as any).eq('user_id', targetUserId)
+      await admin.from('profiles').update(banStatusUpdate).eq('user_id', targetUserId)
 
       await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
-        action: 'formal_warning',
+        action: actionTaken === 'suspension' ? 'auto_suspend_3_strikes' : (actionTaken === 'final_warning' ? 'final_warning' : 'formal_warning'),
         target_id: targetUserId,
         target_type: 'user',
-        details: { note, prior_warnings: priorWarnings || 0 },
+        details: { note, strike_number: strikeNumber, prior_strikes: priorStrikes || 0 },
       })
 
       await admin.from('notifications').insert({
         user_id: targetUserId,
-        title: '⚠️ Formal warning from admin',
-        message: note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.',
+        title: notifTitle,
+        message: notifMsg,
         type: 'warning',
         link: '/rules',
       })
 
       if (resendApiKey) {
-        const escalation = (priorWarnings || 0) >= 1
-          ? '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>Heads up:</strong> Per our Repeat Offender Policy, your next violation will result in a 7-day account suspension.</p>'
-          : '<p style="font-size:14px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">This is a 1st violation. A 2nd violation will result in a 7-day suspension; a 3rd in a permanent ban.</p>'
         const html = wrapEmail(
-          'Formal warning',
+          emailHeading,
           `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
-           <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">You've received a <strong>formal warning</strong> regarding a platform policy violation:</p>
+           <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">${strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:'}</p>
            ${note ? `<p style="font-size:14px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${note}</p>` : ''}
-           ${escalation}`,
+           ${escalationHtml}`,
           `${SITE_URL}/rules`,
           'Review Platform Rules',
         )
-        const text = `Hey ${fullName},\n\nYou've received a formal warning regarding a platform policy violation.\n${note ? `\nDetails: ${note}\n` : ''}\nReview rules: ${SITE_URL}/rules`
-        await sendEmail(resendApiKey, profile.email, 'Helpr — Formal warning issued', html, text).catch((e) => console.error('email failed', e))
+        const text = `Hey ${fullName},\n\nStrike ${strikeNumber} of 3.\n${note ? `\nDetails: ${note}\n` : ''}\nReview rules: ${SITE_URL}/rules`
+        await sendEmail(resendApiKey, profile.email, emailSubject, html, text).catch((e) => console.error('email failed', e))
       }
-      return new Response(JSON.stringify({ success: true, prior_warnings: priorWarnings || 0 }), {
+      return new Response(JSON.stringify({ success: true, strike_number: strikeNumber, action_taken: actionTaken }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

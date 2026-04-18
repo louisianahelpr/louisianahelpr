@@ -125,41 +125,47 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
   return { html, text }
 }
 
-async function renderDeniedEmail(fullName: string, userId: string, reason?: string): Promise<{ html: string; text: string }> {
+async function renderDeniedEmail(fullName: string, userId: string, reason?: string, canRetry?: boolean): Promise<{ html: string; text: string }> {
   const siteUrl = `https://${ROOT_DOMAIN}`
-  const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}/login`)
+  // Strip the internal "[reason_key] " prefix the webhook adds before showing it to the user
+  const cleanReason = reason ? reason.replace(/^\[[a-z_]+\]\s*/i, '') : undefined
+  const ctaPath = canRetry ? '/account-pending' : '/login'
+  const ctaLabel = canRetry ? 'Try Verification Again' : 'Update My Profile'
+  const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}${ctaPath}`)
   const pixelUrl = await trackingPixelUrl(userId, 'account_denied')
-  const reasonText = reason
-    ? `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
+  const reasonText = cleanReason
+    ? `<div style="background-color:hsl(45,100%,96%);border-left:3px solid hsl(38,92%,50%);padding:14px 16px;border-radius:8px;margin:0 0 20px"><p style="font-size:13px;color:hsl(38,80%,30%);font-weight:600;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px">Here's how to fix it</p><p style="font-size:14px;color:hsl(160,10%,12%);line-height:1.5;margin:0">${cleanReason}</p></div>`
     : ''
-  const reasonPlain = reason ? `\nReason: ${reason}` : ''
+  const reasonPlain = cleanReason ? `\nHere's how to fix it: ${cleanReason}` : ''
+  const heading = canRetry ? "Almost there — let's try again" : 'Account Update'
+  const intro = canRetry
+    ? "We weren't quite able to verify your identity, but it's an easy fix."
+    : "We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time."
+  const introPlain = canRetry
+    ? "We weren't quite able to verify your identity, but it's an easy fix."
+    : "We've reviewed your account application and unfortunately we're unable to approve it at this time."
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Account Update</h1>
+  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">${heading}</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Hey ${fullName || 'there'},
   </p>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time.
-  </p>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">${intro}</p>
   ${reasonText}
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    You can update your profile and resubmit for review:
-  </p>
   <a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
-    Update My Profile
+    ${ctaLabel}
   </a>
   <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
-    If you believe this was a mistake, please contact our support team.
+    If you believe this was a mistake, please reply to this email or contact our support team.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
 </div>
 </body></html>`
 
-  const text = `Account Update\n\nHey ${fullName || 'there'},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
+  const text = `${heading}\n\nHey ${fullName || 'there'},\n\n${introPlain}${reasonPlain}\n\n${ctaLabel}: ${siteUrl}${ctaPath}\n\nIf you believe this was a mistake, please contact our support team.`
 
   return { html, text }
 }
@@ -221,7 +227,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { userId, status, reason } = await req.json()
+    const { userId, status, reason, canRetry } = await req.json()
 
     if (!userId || !status || !['approved', 'denied', 'verified'].includes(status)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
@@ -251,8 +257,8 @@ Deno.serve(async (req) => {
       ({ html, text } = await renderApprovedEmail(profile.full_name || '', userId))
       subject = 'Your Helpr account has been approved! 🎉'
     } else {
-      ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason))
-      subject = 'Helpr Account Update'
+      ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason, !!canRetry))
+      subject = canRetry ? "Almost there — let's try your verification again" : 'Helpr Account Update'
     }
 
     const messageId = crypto.randomUUID()

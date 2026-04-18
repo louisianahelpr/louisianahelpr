@@ -202,7 +202,9 @@ const AdminJobs = () => {
               {flaggedCount} flagged
             </Button>
           )}
-          <span className="text-sm text-muted-foreground">{filteredJobs.length} {filter === "flagged" ? "flagged" : "total"}</span>
+          {filter !== "flagged" && (
+            <span className="text-sm text-muted-foreground">{filteredJobs.length} total</span>
+          )}
         </div>
       </div>
 

@@ -830,6 +830,10 @@ const AdminUsers = () => {
                       );
                     })()}
                     {(() => {
+                      // Skip last-login entirely for unverified users — they can't log in yet
+                      if (!isVerifiedEmail(p)) {
+                        return null;
+                      }
                       const lastLogin = lastLoginSummary[p.user_id];
                       const isApproved = p.approval_status === "approved";
                       if (isApproved && !lastLogin) {

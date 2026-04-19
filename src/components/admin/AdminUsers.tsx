@@ -98,7 +98,7 @@ const AdminUsers = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low" | "joined_new" | "joined_old">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low" | "joined_new" | "joined_old" | "never_logged_in">("desc");
 
   // Track which user IDs the admin has already seen (per tab category) — persisted in localStorage
   const SEEN_KEY = "admin_seen_user_ids_v1";
@@ -783,6 +783,19 @@ const AdminUsers = () => {
       const bJoined = new Date(b.created_at || 0).getTime();
       return sortDir === "joined_new" ? bJoined - aJoined : aJoined - bJoined;
     }
+    if (sortDir === "never_logged_in") {
+      // Never-logged-in users first, then those with the oldest signup date among them.
+      // Logged-in users fall to the bottom, sorted by most recent login last.
+      const aLogin = lastLoginSummary[a.user_id];
+      const bLogin = lastLoginSummary[b.user_id];
+      if (!aLogin && !bLogin) {
+        // Both never logged in — oldest signups first (most concerning)
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      }
+      if (!aLogin) return -1;
+      if (!bLogin) return 1;
+      return new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;
@@ -953,6 +966,7 @@ const AdminUsers = () => {
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
             <SelectItem value="joined_new">Joined: Newest First</SelectItem>
             <SelectItem value="joined_old">Joined: Oldest First</SelectItem>
+            <SelectItem value="never_logged_in">Never Logged In First</SelectItem>
             <SelectItem value="pay_high">Pay: High → Low</SelectItem>
             <SelectItem value="pay_low">Pay: Low → High</SelectItem>
             {tab === "approved" && (

@@ -1650,6 +1650,15 @@ const AdminUsers = () => {
                       <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
                         <History className="w-4 h-4 mr-1.5" /> View History
                       </Button>
+                      {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
+                        <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                          <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => unbanUser(viewProfile)}>
+                          <CheckCircle2 className="w-4 h-4 mr-1.5 text-primary" /> Lift Ban
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setDeleteProfile(viewProfile)}>
                         <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
                       </Button>

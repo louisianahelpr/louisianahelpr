@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
     version: '1.0.4',
     build: '17',
     category: 'public.app-category.lifestyle',
+    supportUrl: 'https://louisianahelpr.com/support',
+    privacyPolicyUrl: 'https://louisianahelpr.com/privacy',
+    marketingUrl: 'https://louisianahelpr.com',
     content: `
       <key>NSCameraUsageDescription</key>
       <string>Helpr needs camera access so you can take photos of tasks or completed jobs.</string>

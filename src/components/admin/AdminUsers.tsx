@@ -682,7 +682,7 @@ const AdminUsers = () => {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "pending", label: "Pending", count: pendingCount },
-    { key: "awaiting_email", label: "Awaiting Email", count: awaitingEmailCount },
+    { key: "awaiting_email", label: "Email", count: awaitingEmailCount },
     { key: "approved", label: "Active" },
     { key: "banned", label: "Banned", count: bannedCount },
     { key: "denied", label: "Denied" },

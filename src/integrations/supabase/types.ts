@@ -1517,6 +1517,7 @@ export type Database = {
           idv_auto_approve_threshold: number
           onboarding_fee_cents: number
           platform_fee_percent: number
+          social_webhook_url: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -1528,6 +1529,7 @@ export type Database = {
           idv_auto_approve_threshold?: number
           onboarding_fee_cents?: number
           platform_fee_percent?: number
+          social_webhook_url?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -1539,6 +1541,7 @@ export type Database = {
           idv_auto_approve_threshold?: number
           onboarding_fee_cents?: number
           platform_fee_percent?: number
+          social_webhook_url?: string | null
           updated_at?: string
           updated_by?: string | null
         }

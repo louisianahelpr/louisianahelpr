@@ -4,6 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { StickyNote, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -52,6 +62,10 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [editingCategory, setEditingCategory] = useState("general");
+
+  // Delete confirmation
+  const [deleteNote, setDeleteNote] = useState<NoteRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadNotes = async () => {
     setLoading(true);
@@ -149,13 +163,16 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     loadNotes();
   };
 
-  const removeNote = async (id: string) => {
-    if (!confirm("Delete this note? This can't be undone.")) return;
-    const { error } = await (supabase.from as any)("admin_user_notes").delete().eq("id", id);
+  const removeNote = async () => {
+    if (!deleteNote) return;
+    setDeleting(true);
+    const { error } = await (supabase.from as any)("admin_user_notes").delete().eq("id", deleteNote.id);
+    setDeleting(false);
     if (error) {
       toast.error(error.message || "Failed to delete note");
       return;
     }
+    setDeleteNote(null);
     toast.success("Note deleted");
     loadNotes();
   };
@@ -259,7 +276,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={() => removeNote(n.id)}
+                        onClick={() => setDeleteNote(n)}
                         title="Delete"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -309,6 +326,33 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
           })}
         </div>
       )}
+
+      <AlertDialog open={!!deleteNote} onOpenChange={(open) => !open && setDeleteNote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This internal admin note will be permanently removed. This action can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteNote && (
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
+              {deleteNote.note}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); removeNote(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}
+              Delete Note
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -849,12 +849,12 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-7">
-          <DialogHeader className="pb-2 mb-2 border-b border-border">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[90vh] overflow-hidden p-3 sm:p-5 flex flex-col gap-0">
+          <DialogHeader className="pb-2 mb-2 border-b border-border flex-shrink-0">
             <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-6 sm:space-y-7 min-w-0 break-words">
+            <div className="flex flex-col flex-1 min-h-0 min-w-0 break-words gap-3">
               {/* Header: Avatar + Basic Info */}
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
@@ -942,8 +942,8 @@ const AdminUsers = () => {
 
 
 
-              <Tabs defaultValue="actions" className="w-full">
-                <TabsList className="grid grid-cols-4 w-full">
+              <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
+                <TabsList className="grid grid-cols-4 w-full flex-shrink-0">
                   <TabsTrigger value="actions" className="text-xs sm:text-sm">Actions</TabsTrigger>
                   <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
                   <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
@@ -951,7 +951,7 @@ const AdminUsers = () => {
                 </TabsList>
 
                 {/* ===== OVERVIEW TAB ===== */}
-                <TabsContent value="overview" className="space-y-6 mt-4">
+                <TabsContent value="overview" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Bio */}
                   <div className="space-y-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
@@ -1062,7 +1062,7 @@ const AdminUsers = () => {
                 </TabsContent>
 
                 {/* ===== DOCUMENTS TAB ===== */}
-                <TabsContent value="documents" className="space-y-6 mt-4">
+                <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* ID Document */}
                   <div className="space-y-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
@@ -1138,7 +1138,7 @@ const AdminUsers = () => {
                 </TabsContent>
 
                 {/* ===== EMAILS TAB ===== */}
-                <TabsContent value="emails" className="space-y-6 mt-4">
+                <TabsContent value="emails" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Approval email tracking */}
                   {viewProfile.approval_status === "approved" && (
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
@@ -1243,7 +1243,7 @@ const AdminUsers = () => {
                 </TabsContent>
 
                 {/* ===== ACTIONS TAB ===== */}
-                <TabsContent value="actions" className="space-y-6 mt-4">
+                <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Primary lifecycle actions */}
                   <div className="space-y-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>

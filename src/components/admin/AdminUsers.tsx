@@ -792,7 +792,7 @@ const AdminUsers = () => {
   const activeTab = tabs.find((t) => t.key === tab);
   const tabCountLabel: Record<Tab, string> = {
     pending: "pending",
-    awaiting_email: "awaiting email",
+    awaiting_email: "pending email verification",
     approved: "active",
     banned: "banned",
     denied: "denied",

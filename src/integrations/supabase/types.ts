@@ -2773,6 +2773,18 @@ export type Database = {
           total_payout: number
         }[]
       }
+      get_public_platform_settings: {
+        Args: never
+        Returns: {
+          customer_fee_percent: number
+          helper_fee_percent: number
+          hybrid_idv_enabled: boolean
+          id: string
+          idv_auto_approve_threshold: number
+          onboarding_fee_cents: number
+          platform_fee_percent: number
+        }[]
+      }
       get_safe_profiles: {
         Args: { user_ids: string[] }
         Returns: {

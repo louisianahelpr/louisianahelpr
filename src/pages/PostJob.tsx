@@ -83,16 +83,16 @@ const PostJob = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    // Auth is already checked by ProtectedRoute — just fetch platform fee
-    supabase.from("platform_settings").select("platform_fee_percent, customer_fee_percent, helper_fee_percent").limit(1).maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          // Use customer_fee_percent as the poster-facing fee (service fee at checkout)
-          const custFee = (data as any).customer_fee_percent ?? 10;
-          setPlatformFee(custFee);
-          setCustomerFee(custFee);
-        }
-      });
+    // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC
+    supabase.rpc("get_public_platform_settings").then(({ data }) => {
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) {
+        // Use customer_fee_percent as the poster-facing fee (service fee at checkout)
+        const custFee = row.customer_fee_percent ?? 10;
+        setPlatformFee(custFee);
+        setCustomerFee(custFee);
+      }
+    });
   }, []);
 
   

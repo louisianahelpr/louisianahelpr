@@ -34,7 +34,7 @@ export function useDashboardData() {
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(0, 499),
-        supabase.from("platform_settings").select("platform_fee_percent, helper_fee_percent").limit(1).maybeSingle(),
+        supabase.rpc("get_public_platform_settings"),
         supabase
           .from("helper_availability")
           .select("day_of_week, is_available, start_time, end_time")
@@ -60,7 +60,8 @@ export function useDashboardData() {
         if (row.blocked_id === userId) blockedUserIds.add(row.blocker_id);
       }
 
-      const platformFee = (feeRes.data as any)?.helper_fee_percent ?? 10;
+      const feeRow = Array.isArray(feeRes.data) ? (feeRes.data as any[])[0] : null;
+      const platformFee = feeRow?.helper_fee_percent ?? 10;
       const helperAvailability = availRes.data ?? [];
       const rawJobs = ((openJobsRes.data ?? []) as any[]).filter(
         (j) => !blockedUserIds.has(j.customer_id),

@@ -966,6 +966,7 @@ const AdminUsers = () => {
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
             <SelectItem value="joined_new">Joined: Newest First</SelectItem>
             <SelectItem value="joined_old">Joined: Oldest First</SelectItem>
+            <SelectItem value="never_logged_in">Never Logged In First</SelectItem>
             <SelectItem value="pay_high">Pay: High → Low</SelectItem>
             <SelectItem value="pay_low">Pay: Low → High</SelectItem>
             {tab === "approved" && (

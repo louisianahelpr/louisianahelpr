@@ -58,94 +58,6 @@ async function generateImageForPost(postText: string, apiKey: string): Promise<s
   }
 }
 
-/**
- * Generates a short, narrator-friendly voiceover script from the post text
- * using Gemini, then synthesises it with ElevenLabs and uploads the MP3 to storage.
- */
-async function generateVoiceoverForPost(postText: string, lovableApiKey: string): Promise<string | null> {
-  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-  if (!ELEVENLABS_API_KEY) {
-    console.warn("ELEVENLABS_API_KEY not configured — skipping voiceover");
-    return null;
-  }
-
-  try {
-    // 1) Rewrite the post into a tight ~15s spoken script (warm Louisiana narrator)
-    const scriptResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${lovableApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You rewrite social posts into short, spoken voiceover scripts for a friendly Louisiana narrator. Output ONLY the spoken words — no stage directions, no emojis, no hashtags, no quotation marks. Keep it 2-3 short sentences, max ~40 words, conversational, warm, and easy to read aloud in 12-18 seconds. Drop any 'Download today' style CTAs unless they sound natural spoken.",
-          },
-          { role: "user", content: postText.substring(0, 600) },
-        ],
-      }),
-    });
-
-    let script = postText.substring(0, 280);
-    if (scriptResp.ok) {
-      const scriptData = await scriptResp.json();
-      const generated = scriptData.choices?.[0]?.message?.content?.trim();
-      if (generated) script = generated.replace(/^["']|["']$/g, "");
-    }
-
-    // 2) ElevenLabs TTS — "Sarah" voice (warm, clear, friendly female)
-    const voiceId = "EXAVITQu4vr4xnSDxMaL";
-    const ttsResp = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: script,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.55,
-            similarity_boost: 0.8,
-            style: 0.35,
-            use_speaker_boost: true,
-            speed: 1.0,
-          },
-        }),
-      }
-    );
-
-    if (!ttsResp.ok) {
-      const errText = await ttsResp.text();
-      console.error("ElevenLabs TTS failed:", ttsResp.status, errText);
-      return null;
-    }
-
-    const audioBuffer = new Uint8Array(await ttsResp.arrayBuffer());
-
-    // 3) Upload MP3 to storage
-    const supabase = getSupabase();
-    const filename = `voiceover-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.mp3`;
-    const { error: upErr } = await supabase.storage
-      .from("social-posts")
-      .upload(filename, audioBuffer, { contentType: "audio/mpeg", upsert: false });
-
-    if (upErr) {
-      console.error("Voiceover upload failed:", upErr);
-      return null;
-    }
-
-    const { data: pub } = supabase.storage.from("social-posts").getPublicUrl(filename);
-    return pub.publicUrl;
-  } catch (e) {
-    console.error("generateVoiceoverForPost error:", e);
-    return null;
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -153,20 +65,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { action, message, image_url, video_url, voiceover_url } = await req.json();
+    const { action, message, image_url } = await req.json();
 
-    const supabaseClient = getSupabase();
-
-    // Action: generate post (text + image OR video) + voiceover
+    // Action: generate post (text + image)
     if (action === "generate") {
-      const { data: lastDraft } = await supabaseClient
-        .from("social_post_drafts")
-        .select("media_type")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const nextMediaType = lastDraft?.media_type === "image" ? "video" : "image";
-
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -211,20 +113,13 @@ You output ONLY the post text. No labels, no quotes, no hashtag lists at the end
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content?.trim() ?? "";
-
-      // Run image + voiceover in parallel
-      const [imageUrl, voiceoverUrl] = await Promise.all([
-        text ? generateImageForPost(text, LOVABLE_API_KEY) : Promise.resolve(null),
-        text ? generateVoiceoverForPost(text, LOVABLE_API_KEY) : Promise.resolve(null),
-      ]);
+      const imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
 
       return new Response(
         JSON.stringify({
           post: text,
           image_url: imageUrl,
-          video_url: null, // video is attached client-side from sample/manual URL
-          voiceover_url: voiceoverUrl,
-          media_type: nextMediaType,
+          media_type: "image",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -244,9 +139,7 @@ You output ONLY the post text. No labels, no quotes, no hashtag lists at the end
         body: JSON.stringify({
           message: message.trim(),
           image_url: image_url || null,
-          video_url: video_url || null,
-          voiceover_url: voiceover_url || null,
-          media_type: video_url ? "video" : "image",
+          media_type: "image",
         }),
       });
 

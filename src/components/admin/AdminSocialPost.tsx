@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2, Video, Image as ImageIcon, Volume2 } from "lucide-react";
+import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-// Public Supabase Storage URL — works for Make/Facebook (the in-editor /__l5e/ path does NOT)
-const SAMPLE_VIDEO_URL =
-  "https://steigdwrpkosbiycshwz.supabase.co/storage/v1/object/public/social-posts/samples/sample-social-video-v2.mp4";
 
 interface Draft {
   id: string;
@@ -20,17 +16,12 @@ interface Draft {
   created_at: string;
   published_at: string | null;
   image_url: string | null;
-  video_url: string | null;
-  voiceover_url: string | null;
   media_type: string;
 }
 
 const AdminSocialPost = () => {
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState<string | null>(null);
-  const [postVideo, setPostVideo] = useState<string | null>(null);
-  const [postVoiceover, setPostVoiceover] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -38,13 +29,6 @@ const AdminSocialPost = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [sendingToSocial, setSendingToSocial] = useState(false);
-
-  // Determine which media type the NEXT generated post will be
-  const [nextSlot, setNextSlot] = useState<"image" | "video">("image");
-  useEffect(() => {
-    const last = drafts[0];
-    setNextSlot(last?.media_type === "image" ? "video" : "image");
-  }, [drafts]);
 
   const handleSendToSocial = async () => {
     if (!postText.trim()) {
@@ -57,9 +41,6 @@ const AdminSocialPost = () => {
         body: {
           post_text: postText.trim(),
           image_url: postImage,
-          video_url: postVideo,
-          voiceover_url: postVoiceover,
-          media_type: postVideo ? "video" : "image",
           timing_priority: "Optimized",
         },
       });
@@ -95,12 +76,7 @@ const AdminSocialPost = () => {
       if (data?.error) throw new Error(data.error);
       setPostText(data.post || "");
       setPostImage(data.image_url || null);
-      setPostVideo(data.video_url || null);
-      setPostVoiceover(data.voiceover_url || null);
-      setMediaType(data.media_type === "video" ? "video" : "image");
-      const slotMsg = data.media_type === "video" ? "video slot" : "image post";
-      const voMsg = data.voiceover_url ? " + voiceover" : "";
-      toast.success(`Generated ${slotMsg}${voMsg}${data.image_url ? "" : " (image failed)"}`);
+      toast.success(`Generated post${data.image_url ? " with image" : " (image failed)"}`);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate post");
     } finally {
@@ -110,7 +86,6 @@ const AdminSocialPost = () => {
 
   const handleSaveDraft = async () => {
     if (!postText.trim()) { toast.error("Write or generate a post first"); return; }
-    const finalMediaType = postVideo ? "video" : "image";
     const { error } = await supabase
       .from("social_post_drafts")
       .insert({
@@ -118,17 +93,12 @@ const AdminSocialPost = () => {
         style: "manual",
         status: "draft",
         image_url: postImage,
-        video_url: postVideo,
-        voiceover_url: postVoiceover,
-        media_type: finalMediaType,
+        media_type: "image",
       } as any);
     if (error) { toast.error("Failed to save draft"); return; }
     toast.success("Draft saved!");
     setPostText("");
     setPostImage(null);
-    setPostVideo(null);
-    setPostVoiceover(null);
-    setMediaType("image");
     fetchDrafts();
   };
 
@@ -140,8 +110,6 @@ const AdminSocialPost = () => {
           action: "publish",
           message: draft.content,
           image_url: draft.image_url,
-          video_url: draft.video_url,
-          voiceover_url: draft.voiceover_url,
         },
       });
       if (error) throw error;
@@ -182,12 +150,6 @@ const AdminSocialPost = () => {
     fetchDrafts();
   };
 
-  const useSampleVideo = () => {
-    setPostVideo(SAMPLE_VIDEO_URL);
-    setMediaType("video");
-    toast.success("Sample video attached");
-  };
-
   const statusBadge = (status: string) => {
     switch (status) {
       case "draft": return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pending Review</Badge>;
@@ -196,13 +158,6 @@ const AdminSocialPost = () => {
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
-
-  const mediaBadge = (type: string) =>
-    type === "video" ? (
-      <Badge variant="outline" className="gap-1"><Video className="h-3 w-3" />Video</Badge>
-    ) : (
-      <Badge variant="outline" className="gap-1"><ImageIcon className="h-3 w-3" />Image</Badge>
-    );
 
   return (
     <div className="space-y-6">
@@ -214,21 +169,14 @@ const AdminSocialPost = () => {
             Facebook Post Generator
           </CardTitle>
           <CardDescription>
-            Posts alternate: picture → video → picture → video. Next slot:{" "}
-            <span className="font-semibold">{nextSlot === "video" ? "🎥 Video" : "🖼️ Image"}</span>.
+            Generates a Louisiana-flavored launch post with an AI-generated image.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <Button onClick={handleGenerate} disabled={generating} className="gap-2">
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {generating ? "Generating…" : "Generate Post"}
-            </Button>
-            <Button onClick={useSampleVideo} variant="outline" className="gap-2">
-              <Video className="h-4 w-4" />
-              Use Sample Video
-            </Button>
-          </div>
+          <Button onClick={handleGenerate} disabled={generating} className="gap-2">
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {generating ? "Generating…" : "Generate Post"}
+          </Button>
 
           <Textarea
             placeholder="Your post will appear here. You can also type or edit manually…"
@@ -239,7 +187,7 @@ const AdminSocialPost = () => {
           />
 
           {/* Image preview */}
-          {postImage && !postVideo && (
+          {postImage && (
             <div className="rounded-lg border overflow-hidden bg-muted">
               <img src={postImage} alt="Generated post" className="w-full max-h-80 object-cover" />
               <div className="p-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -249,50 +197,10 @@ const AdminSocialPost = () => {
             </div>
           )}
 
-          {/* Video preview */}
-          {postVideo && (
-            <div className="rounded-lg border overflow-hidden bg-muted">
-              <video src={postVideo} controls className="w-full max-h-80 object-cover bg-black" />
-              <div className="p-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Video attached for this post</span>
-                <button onClick={() => setPostVideo(null)} className="hover:text-foreground underline">Remove</button>
-              </div>
-            </div>
-          )}
-
-          {/* Voiceover preview */}
-          {postVoiceover && (
-            <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Volume2 className="h-3.5 w-3.5" />
-                AI voiceover narration (will be sent to Make for video merging)
-              </div>
-              <audio src={postVoiceover} controls className="w-full" />
-              <button
-                onClick={() => setPostVoiceover(null)}
-                className="text-xs text-muted-foreground hover:text-foreground underline"
-              >
-                Remove voiceover
-              </button>
-            </div>
-          )}
-
-          {/* Manual video URL paste — for when user generates a video elsewhere */}
-          {nextSlot === "video" && !postVideo && (
-            <div className="space-y-2 rounded-md border border-dashed p-3 bg-muted/30">
-              <p className="text-xs font-medium">📹 This is a video slot — paste a video URL or use the sample above</p>
-              <Input
-                placeholder="https://your-video-url.mp4"
-                onChange={(e) => {
-                  const v = e.target.value.trim();
-                  if (v) { setPostVideo(v); setMediaType("video"); }
-                }}
-              />
-            </div>
-          )}
-
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-xs text-muted-foreground">{postText.length} characters · {mediaBadge(postVideo ? "video" : "image")}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              {postText.length} characters · <Badge variant="outline" className="gap-1"><ImageIcon className="h-3 w-3" />Image</Badge>
+            </p>
             <div className="flex gap-2">
               <Button onClick={handleSaveDraft} disabled={!postText.trim()} variant="secondary" className="gap-2">
                 <Eye className="h-4 w-4" />
@@ -331,7 +239,7 @@ const AdminSocialPost = () => {
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {statusBadge(draft.status)}
-                      {mediaBadge(draft.media_type)}
+                      <Badge variant="outline" className="gap-1"><ImageIcon className="h-3 w-3" />Image</Badge>
                       {draft.style && <span className="text-xs text-muted-foreground capitalize">{draft.style}</span>}
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -355,20 +263,12 @@ const AdminSocialPost = () => {
                   ) : (
                     <>
                       <p className="text-sm whitespace-pre-wrap">{draft.content}</p>
-                      {draft.video_url ? (
-                        <video src={draft.video_url} controls className="rounded-md border max-h-64 w-full bg-black" />
-                      ) : draft.image_url ? (
+                      {draft.image_url && (
                         <img
                           src={draft.image_url}
                           alt="Post image"
                           className="rounded-md border max-h-64 object-cover w-full"
                         />
-                      ) : null}
-                      {draft.voiceover_url && (
-                        <div className="flex items-center gap-2">
-                          <Volume2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <audio src={draft.voiceover_url} controls className="w-full h-8" />
-                        </div>
                       )}
                     </>
                   )}

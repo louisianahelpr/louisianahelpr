@@ -1531,6 +1531,31 @@ const AdminUsers = () => {
                       <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
                     </Button>
                   )}
+                  {/* Send approval follow-up (only when user hasn't shown activity yet) */}
+                  {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (() => {
+                    const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
+                    const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+                    const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
+                    const idvVerified = (viewProfile as any).idv_status === 'verified';
+                    const hasStripe = !!(viewProfile as any).stripe_account_id;
+                    const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
+                    const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
+                    if (isActive) return null;
+                    const sent = (viewProfile as any).approval_email_count || 0;
+                    const maxReached = sent >= 3;
+                    return (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => resendApprovalEmail(viewProfile)}
+                        disabled={resending === viewProfile.id || maxReached}
+                        title={maxReached ? "Max 3 follow-up emails reached" : "Send a manual follow-up reminder (auto-reminders also run every 3 days)"}
+                      >
+                        <MailIcon className="w-4 h-4 mr-1" />
+                        {resending === viewProfile.id ? "Sending…" : `Send Approval Follow-up (${sent}/3)`}
+                      </Button>
+                    );
+                  })()}
                   {/* Approval email tracking */}
                   {viewProfile.approval_status === "approved" && (
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">

@@ -36,7 +36,7 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --popover: 0 0% 100%;
     --popover-foreground: 160 10% 12%;
 
-    --primary: 158 45% 42%;
+    --primary: 158 67% 37%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 150 20% 94%;
@@ -53,26 +53,26 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 
     --border: 150 12% 90%;
     --input: 150 12% 88%;
-    --ring: 158 45% 42%;
+    --ring: 158 67% 37%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 150 15% 97%;
     --sidebar-foreground: 160 10% 20%;
-    --sidebar-primary: 158 45% 42%;
+    --sidebar-primary: 158 67% 37%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 150 20% 94%;
     --sidebar-accent-foreground: 160 10% 20%;
     --sidebar-border: 150 12% 90%;
-    --sidebar-ring: 158 45% 42%;
+    --sidebar-ring: 158 67% 37%;
 
     /* Custom tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(158 45% 42%), hsl(158 35% 55%));
+    --hero-gradient: linear-gradient(135deg, hsl(158 67% 37%), hsl(159 43% 51%));
     --soft-shadow: 0 4px 24px -4px hsl(160 10% 12% / 0.06);
     --card-shadow: 0 2px 12px -2px hsl(160 10% 12% / 0.05);
-    --card-hover-shadow: 0 12px 40px -8px hsl(158 45% 42% / 0.15);
-    --dashboard-gradient: linear-gradient(135deg, hsl(158 45% 42% / 0.08), hsl(40 80% 58% / 0.06), hsl(260 50% 60% / 0.04));
-    --section-glow: 0 0 40px -10px hsl(158 45% 42% / 0.15);
+    --card-hover-shadow: 0 12px 40px -8px hsl(158 67% 37% / 0.15);
+    --dashboard-gradient: linear-gradient(135deg, hsl(158 67% 37% / 0.08), hsl(40 80% 58% / 0.06), hsl(260 50% 60% / 0.04));
+    --section-glow: 0 0 40px -10px hsl(158 67% 37% / 0.15);
     --glass-bg: hsl(0 0% 100% / 0.7);
     --glass-border: hsl(0 0% 100% / 0.3);
 
@@ -86,7 +86,7 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --card-foreground: 150 15% 95%;
     --popover: 160 10% 11%;
     --popover-foreground: 150 15% 95%;
-    --primary: 158 45% 50%;
+    --primary: 159 43% 51%;
     --primary-foreground: 0 0% 100%;
     --secondary: 160 10% 16%;
     --secondary-foreground: 150 15% 90%;
@@ -98,15 +98,15 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --destructive-foreground: 0 0% 100%;
     --border: 160 8% 20%;
     --input: 160 8% 20%;
-    --ring: 158 45% 50%;
+    --ring: 159 43% 51%;
     --sidebar-background: 160 10% 10%;
     --sidebar-foreground: 150 15% 90%;
-    --sidebar-primary: 158 45% 50%;
+    --sidebar-primary: 159 43% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 160 10% 16%;
     --sidebar-accent-foreground: 150 15% 90%;
     --sidebar-border: 160 8% 20%;
-    --sidebar-ring: 158 45% 50%;
+    --sidebar-ring: 159 43% 51%;
     --glass-bg: hsl(160 10% 11% / 0.7);
     --glass-border: hsl(0 0% 100% / 0.08);
   }

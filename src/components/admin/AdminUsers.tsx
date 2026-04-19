@@ -181,8 +181,9 @@ const AdminUsers = () => {
     setIdDocSignedUrl(null);
     setEmailTracking([]);
     setEmailSendStats([]);
+    setProfileJobs([]);
 
-    const [reviewsRes, violationsRes, bansRes, trackingRes, sendLogRes] = await Promise.all([
+    const [reviewsRes, violationsRes, bansRes, trackingRes, sendLogRes, jobsRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
@@ -194,7 +195,15 @@ const AdminUsers = () => {
             .order("created_at", { ascending: false })
             .limit(500)
         : Promise.resolve({ data: [] as any[] }),
+      supabase
+        .from("jobs")
+        .select("id, title, status, payment_status, budget, helper_fee_percent, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish")
+        .or(`customer_id.eq.${profile.user_id},helper_id.eq.${profile.user_id}`)
+        .order("created_at", { ascending: false })
+        .limit(500),
     ]);
+
+    setProfileJobs(jobsRes.data || []);
 
     // Generate signed URL for private ID document
     if (profile.id_document_url) {

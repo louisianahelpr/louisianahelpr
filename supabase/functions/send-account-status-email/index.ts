@@ -10,6 +10,30 @@ const SENDER_DOMAIN = "louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
 
+function getGreetingName(fullName?: string | null): string {
+  const normalized = (fullName || '').trim()
+  if (!normalized) return 'there'
+
+  const firstName = normalized.split(/\s+/)[0]?.replace(/[^a-zA-Z'-]/g, '') || ''
+  const lowered = firstName.toLowerCase()
+  const blockedNames = new Set([
+    'helpr',
+    'admin',
+    'support',
+    'team',
+    'user',
+    'customer',
+    'helper',
+    'test',
+  ])
+
+  if (!firstName || firstName.length < 2 || blockedNames.has(lowered)) {
+    return 'there'
+  }
+
+  return firstName
+}
+
 async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -67,6 +91,7 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
   const siteUrl = `https://${ROOT_DOMAIN}`
   const ctaUrl = await trackedLink(userId, 'account_approved', `${siteUrl}/login`)
   const pixelUrl = await trackingPixelUrl(userId, 'account_approved')
+  const greetingName = getGreetingName(fullName)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
@@ -74,7 +99,7 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
   <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">You're approved! 🎉</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    Hey ${fullName || 'there'},
+    Hey ${greetingName},
   </p>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Great news — your account has been reviewed and <strong style="color:hsl(158,45%,42%)">approved</strong>! You now have full access to the Helpr platform.
@@ -89,7 +114,7 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
 </div>
 </body></html>`
 
-  const text = `You're approved!\n\nHey ${fullName || 'there'},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
+  const text = `You're approved!\n\nHey ${greetingName},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }
@@ -98,6 +123,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
   const siteUrl = `https://${ROOT_DOMAIN}`
   const ctaUrl = await trackedLink(userId, 'identity_verified', `${siteUrl}/dashboard`)
   const pixelUrl = await trackingPixelUrl(userId, 'identity_verified')
+  const greetingName = getGreetingName(fullName)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
@@ -105,7 +131,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
   <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Verification Successful ✅</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    Hey ${fullName || 'there'},
+    Hey ${greetingName},
   </p>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Your identity has been <strong style="color:hsl(158,45%,42%)">verified</strong> and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.
@@ -120,7 +146,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
 </div>
 </body></html>`
 
-  const text = `Verification Successful!\n\nHey ${fullName || 'there'},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
+  const text = `Verification Successful!\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }
@@ -129,6 +155,7 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
   const siteUrl = `https://${ROOT_DOMAIN}`
   const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}/login`)
   const pixelUrl = await trackingPixelUrl(userId, 'account_denied')
+  const greetingName = getGreetingName(fullName)
   const reasonText = reason
     ? `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
     : ''
@@ -140,7 +167,7 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
   <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Account Update</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
-    Hey ${fullName || 'there'},
+    Hey ${greetingName},
   </p>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time.
@@ -159,7 +186,7 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
 </div>
 </body></html>`
 
-  const text = `Account Update\n\nHey ${fullName || 'there'},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
+  const text = `Account Update\n\nHey ${greetingName},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
 
   return { html, text }
 }

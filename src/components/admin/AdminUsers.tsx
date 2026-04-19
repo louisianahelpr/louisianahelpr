@@ -1302,6 +1302,69 @@ const AdminUsers = () => {
                   })()}
                 </TabsContent>
 
+                {/* ===== REVIEWS TAB ===== */}
+                <TabsContent value="reviews" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
+                  {/* Reviews Received */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <Star className="w-4 h-4" /> Reviews Received ({profileReviews.length})
+                    </h4>
+                    {profileReviews.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No reviews received yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {profileReviews.map((r, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground">From {r.reviewer_name}</p>
+                                {r.job_title && <p className="text-[11px] text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
+                              </div>
+                              <div className="flex items-center gap-0.5 flex-shrink-0">
+                                {Array.from({ length: 5 }).map((_, idx) => (
+                                  <Star key={idx} className={`w-3.5 h-3.5 ${idx < r.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                                ))}
+                              </div>
+                            </div>
+                            {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
+                            {r.created_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reviews Left */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <Star className="w-4 h-4" /> Reviews Left ({profileReviewsLeft.length})
+                    </h4>
+                    {profileReviewsLeft.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">Hasn't left any reviews yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {profileReviewsLeft.map((r, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground">For {r.reviewee_name}</p>
+                                {r.job_title && <p className="text-[11px] text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
+                              </div>
+                              <div className="flex items-center gap-0.5 flex-shrink-0">
+                                {Array.from({ length: 5 }).map((_, idx) => (
+                                  <Star key={idx} className={`w-3.5 h-3.5 ${idx < r.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                                ))}
+                              </div>
+                            </div>
+                            {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
+                            {r.created_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
                 {/* ===== DOCUMENTS TAB ===== */}
                 <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* ID Document */}

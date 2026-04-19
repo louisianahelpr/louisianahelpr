@@ -1201,14 +1201,6 @@ const AdminUsers = () => {
                               <SelectItem value="posted">Posted (Customer)</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Select value={jobsSort} onValueChange={(v: any) => setJobsSort(v)}>
-                            <SelectTrigger className="h-8 text-xs w-[170px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="recent">Most Recent</SelectItem>
-                              <SelectItem value="earnings_desc">Earnings: High → Low</SelectItem>
-                              <SelectItem value="earnings_asc">Earnings: Low → High</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
 
                         {/* List */}

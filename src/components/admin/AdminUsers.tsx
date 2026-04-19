@@ -803,8 +803,10 @@ const AdminUsers = () => {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, profiles.length, loading]);
-  const pendingCount = profiles.filter((p) => isPendingReview(p) && isUnseen(p)).length;
-  const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p) && isUnseen(p)).length;
+  // Pending + Email badges always show the FULL queue so admins know what's outstanding
+  // (other tabs continue to use the "unseen" filter as a new-since-last-visit indicator)
+  const pendingCount = profiles.filter((p) => isPendingReview(p)).length;
+  const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p)).length;
   const bannedCount = profiles.filter(
     (p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") && isUnseen(p),
   ).length;
@@ -1012,8 +1014,8 @@ const AdminUsers = () => {
                     {statusBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
-                  {/* Pending wait-time countdown — only shown in Pending tab */}
-                  {tab === "pending" && isPendingReview(p) && (() => {
+                  {/* Wait-time countdown — shown for both pending review and awaiting-email-verification */}
+                  {(tab === "pending" || tab === "awaiting_email") && (isPendingReview(p) || isAwaitingEmail(p)) && (() => {
                     const waitMs = Date.now() - new Date(p.created_at).getTime();
                     const waitHours = waitMs / (1000 * 60 * 60);
                     const waitDays = Math.floor(waitHours / 24);

@@ -1075,6 +1075,123 @@ const AdminUsers = () => {
                   )}
                 </TabsContent>
 
+                {/* ===== JOBS TAB ===== */}
+                <TabsContent value="jobs" className="space-y-4 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
+                  {(() => {
+                    const calcEarning = (j: any) => {
+                      const isHelper = j.helper_id === viewProfile.user_id;
+                      const isCustomer = j.customer_id === viewProfile.user_id;
+                      const budget = Number(j.budget) || 0;
+                      if (isHelper) {
+                        const fee = (Number(j.helper_fee_percent) || 10) / 100;
+                        return budget * (1 - fee); // net payout to helper
+                      }
+                      if (isCustomer) {
+                        // total paid by poster
+                        return budget + (Number(j.customer_fee_amount) || 0) + (Number(j.sales_tax_amount) || 0);
+                      }
+                      return 0;
+                    };
+
+                    const filtered = profileJobs.filter((j: any) => {
+                      if (jobsRole === "worked") return j.helper_id === viewProfile.user_id;
+                      if (jobsRole === "posted") return j.customer_id === viewProfile.user_id;
+                      return true;
+                    });
+
+                    const sorted = [...filtered].sort((a: any, b: any) => {
+                      if (jobsSort === "earnings_desc") return calcEarning(b) - calcEarning(a);
+                      if (jobsSort === "earnings_asc") return calcEarning(a) - calcEarning(b);
+                      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                    });
+
+                    const workedCompleted = profileJobs.filter((j: any) => j.helper_id === viewProfile.user_id && j.status === "completed");
+                    const postedCompleted = profileJobs.filter((j: any) => j.customer_id === viewProfile.user_id && j.status === "completed");
+                    const totalEarned = workedCompleted.reduce((s, j) => s + calcEarning(j), 0);
+                    const totalSpent = postedCompleted.reduce((s, j) => s + calcEarning(j), 0);
+
+                    return (
+                      <>
+                        {/* Summary */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
+                            <p className="text-lg font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">{workedCompleted.length} completed</p>
+                          </div>
+                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
+                            <p className="text-lg font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">{postedCompleted.length} completed</p>
+                          </div>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex flex-wrap gap-2">
+                          <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
+                            <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Jobs</SelectItem>
+                              <SelectItem value="worked">Worked (Helper)</SelectItem>
+                              <SelectItem value="posted">Posted (Customer)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={jobsSort} onValueChange={(v: any) => setJobsSort(v)}>
+                            <SelectTrigger className="h-8 text-xs w-[170px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="recent">Most Recent</SelectItem>
+                              <SelectItem value="earnings_desc">Earnings: High → Low</SelectItem>
+                              <SelectItem value="earnings_asc">Earnings: Low → High</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* List */}
+                        {sorted.length === 0 ? (
+                          <p className="text-sm text-muted-foreground italic">No jobs found.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {sorted.map((j: any) => {
+                              const isHelper = j.helper_id === viewProfile.user_id;
+                              const earning = calcEarning(j);
+                              const dateRef = j.poster_completed_at || j.helper_completed_at || j.created_at;
+                              return (
+                                <div key={j.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <p className="text-sm font-medium text-foreground line-clamp-1">{j.title}</p>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                                      j.status === "completed" ? "bg-primary/10 text-primary" :
+                                      j.status === "cancelled" ? "bg-destructive/10 text-destructive" :
+                                      "bg-muted text-muted-foreground"
+                                    }`}>{j.status}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Badge variant="outline" className="text-[10px] h-5">{isHelper ? "Worked" : "Posted"}</Badge>
+                                      {j.parish && <span>{j.parish}</span>}
+                                      <span>·</span>
+                                      <span>{new Date(dateRef).toLocaleDateString()}</span>
+                                      {j.payment_status && (
+                                        <>
+                                          <span>·</span>
+                                          <span className="capitalize">{j.payment_status}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {isHelper ? "+" : "-"}${earning.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </TabsContent>
+
                 {/* ===== DOCUMENTS TAB ===== */}
                 <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* ID Document */}

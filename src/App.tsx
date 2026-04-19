@@ -42,7 +42,7 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const Heroes = lazy(() => import("./pages/Heroes"));
 
 // Lazy load less-critical global components
-const InstallPrompt = lazy(() => import("./components/InstallPrompt"));
+
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers
@@ -136,9 +136,6 @@ const App = () => (
             </Suspense>
           </div>
           <MobileNav />
-          <Suspense fallback={null}>
-            <InstallPrompt />
-          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

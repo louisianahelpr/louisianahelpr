@@ -29,7 +29,8 @@ const AdminUsers = () => {
 
   // Profile detail view
   const [viewProfile, setViewProfile] = useState<Profile | null>(null);
-  const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string }[]>([]);
+  const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]>([]);
+  const [profileReviewsLeft, setProfileReviewsLeft] = useState<{ rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]>([]);
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
   const [profileBans, setProfileBans] = useState<any[]>([]);
   const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);

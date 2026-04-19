@@ -1431,8 +1431,8 @@ const AdminUsers = () => {
 
                     return (
                       <>
-                        {/* Stripe payout connection status */}
-                        {(() => {
+                        {/* Stripe payout connection status — only relevant for helpers */}
+                        {viewProfile.role !== "customer" && (() => {
                           const hasStripe = !!(viewProfile as any).stripe_account_id;
                           return (
                             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${

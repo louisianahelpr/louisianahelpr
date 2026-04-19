@@ -63,7 +63,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { action, message, image_url } = await req.json();
+    const { action, message, image_url, video_url } = await req.json();
 
     // Determine alternation: look at last draft, flip media type
     const supabaseClient = createClient(
@@ -172,7 +172,7 @@ Rules:
         return new Response(JSON.stringify({ error: "Post message is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      const { video_url } = (await req.clone().json().catch(() => ({}))) as { video_url?: string | null };
+      
 
       const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
         method: "POST",

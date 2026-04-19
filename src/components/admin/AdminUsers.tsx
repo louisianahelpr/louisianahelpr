@@ -1355,31 +1355,6 @@ const AdminUsers = () => {
                   </div>
                 </TabsContent>
               </Tabs>
-
-              {/* Internal Admin Notes — private notes about this user, admin-only */}
-              <AdminUserNotes userId={viewProfile.user_id} />
-
-              {/* Trust & Verification + Support actions */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
-                    <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
-                    <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
-                    <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
-                    <History className="w-4 h-4 mr-1.5" /> View History
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
-                    <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
         </DialogContent>

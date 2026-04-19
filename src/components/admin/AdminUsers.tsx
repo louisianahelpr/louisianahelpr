@@ -730,6 +730,16 @@ const AdminUsers = () => {
   });
 
   const isUnseen = (p: Profile) => !seenUserIds.has(p.user_id);
+
+  // When the admin views a tab, mark the users they're seeing as "seen" so the
+  // notification badge clears after a short dwell. Runs on tab change + new data.
+  useEffect(() => {
+    if (loading || filtered.length === 0) return;
+    const ids = filtered.map((p) => p.user_id);
+    const t = setTimeout(() => markUsersSeen(ids), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, profiles.length, loading]);
   const pendingCount = profiles.filter((p) => isPendingReview(p) && isUnseen(p)).length;
   const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p) && isUnseen(p)).length;
   const bannedCount = profiles.filter(

@@ -849,12 +849,12 @@ const AdminUsers = () => {
 
       {/* Profile Detail Dialog */}
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-7">
-          <DialogHeader className="pb-2 mb-2 border-b border-border">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[90vh] overflow-hidden p-3 sm:p-5 flex flex-col gap-0">
+          <DialogHeader className="pb-2 mb-2 border-b border-border flex-shrink-0">
             <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
-            <div className="space-y-6 sm:space-y-7 min-w-0 break-words">
+            <div className="flex flex-col flex-1 min-h-0 min-w-0 break-words gap-3">
               {/* Header: Avatar + Basic Info */}
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (

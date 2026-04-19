@@ -288,6 +288,10 @@ const AdminUsers = () => {
       approval_status: "approved",
       approval_email_count: 1,
       last_approval_email_at: new Date().toISOString(),
+      // Clear denial info so re-approved users are fully removed from the Denied tab
+      denial_reason: null,
+      denial_email_count: 0,
+      last_denial_email_at: null,
     } as any).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {

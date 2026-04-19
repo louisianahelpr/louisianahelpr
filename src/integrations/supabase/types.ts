@@ -1579,6 +1579,7 @@ export type Database = {
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
+          last_verification_email_at: string | null
           legacy_manual_review: boolean
           location: string | null
           onboarding_fee_charged_at: string | null
@@ -1595,6 +1596,7 @@ export type Database = {
           transportation: string | null
           updated_at: string
           user_id: string
+          verification_email_count: number
           zip_code: string | null
         }
         Insert: {
@@ -1631,6 +1633,7 @@ export type Database = {
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
+          last_verification_email_at?: string | null
           legacy_manual_review?: boolean
           location?: string | null
           onboarding_fee_charged_at?: string | null
@@ -1647,6 +1650,7 @@ export type Database = {
           transportation?: string | null
           updated_at?: string
           user_id: string
+          verification_email_count?: number
           zip_code?: string | null
         }
         Update: {
@@ -1683,6 +1687,7 @@ export type Database = {
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
+          last_verification_email_at?: string | null
           legacy_manual_review?: boolean
           location?: string | null
           onboarding_fee_charged_at?: string | null
@@ -1699,6 +1704,7 @@ export type Database = {
           transportation?: string | null
           updated_at?: string
           user_id?: string
+          verification_email_count?: number
           zip_code?: string | null
         }
         Relationships: []

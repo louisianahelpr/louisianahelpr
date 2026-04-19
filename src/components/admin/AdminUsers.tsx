@@ -105,8 +105,33 @@ const AdminUsers = () => {
       loadNotesSummary(ids);
       loadStrikesSummary(ids);
       loadActivitySummary(ids);
+      loadPaySummary(ids);
     }
     setLoading(false);
+  };
+
+  const loadPaySummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    // Pull only completed/escrowed jobs for pay totals
+    const { data } = await supabase
+      .from("jobs")
+      .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")
+      .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
+      .in("payment_status", ["escrow", "payout_pending", "released"]);
+    if (!data) return;
+    const totals: Record<string, number> = {};
+    for (const j of data as any[]) {
+      const budget = Number(j.budget) || 0;
+      if (j.helper_id && userIds.includes(j.helper_id)) {
+        const fee = (Number(j.helper_fee_percent) || 10) / 100;
+        totals[j.helper_id] = (totals[j.helper_id] || 0) + budget * (1 - fee);
+      }
+      if (j.customer_id && userIds.includes(j.customer_id)) {
+        totals[j.customer_id] = (totals[j.customer_id] || 0)
+          + budget + (Number(j.customer_fee_amount) || 0) + (Number(j.sales_tax_amount) || 0);
+      }
+    }
+    setPaySummary(totals);
   };
 
   const loadStrikesSummary = async (userIds: string[]) => {

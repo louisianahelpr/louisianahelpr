@@ -941,374 +941,420 @@ const AdminUsers = () => {
               </div>
 
 
-              {/* ID Document — always show */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <FileText className="w-4 h-4" /> ID Document
-                </h4>
-                {viewProfile.id_document_url ? (
-                  <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
-                    {idDocSignedUrl ? (
-                      /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
-                        <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
-                          <img src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
-                        </a>
-                      ) : (
-                        <div className="p-4 flex items-center gap-3">
-                          <FileText className="w-8 h-8 text-primary" />
-                          <div>
-                            <p className="text-sm font-medium text-foreground break-all">{viewProfile.id_document_url.split("/").pop()}</p>
-                            <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
-                              Open document ↗
-                            </a>
-                          </div>
-                        </div>
-                      )
-                    ) : (
-                      <div className="p-4 text-center">
-                        <p className="text-sm text-muted-foreground">Loading document…</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Not provided</p>
-                )}
-              </div>
 
-              {/* Profile Picture — always show */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
-                {viewProfile.avatar_url ? (
-                  <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
-                    <img src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
-                  </a>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Not provided</p>
-                )}
-              </div>
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid grid-cols-4 w-full">
+                  <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+                  <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+                  <TabsTrigger value="emails" className="text-xs sm:text-sm">Emails</TabsTrigger>
+                  <TabsTrigger value="actions" className="text-xs sm:text-sm">Actions</TabsTrigger>
+                </TabsList>
 
-              {/* Portfolio — always show */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <FileText className="w-4 h-4" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
-                </h4>
-                {((viewProfile as any).portfolio_urls as string[] || []).length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
-                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-                      const fileName = url.split("/").pop() || "Document";
-                      return isImage ? (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden border border-border hover:border-primary transition-colors block group">
-                          <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                        </a>
-                      ) : (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
-                          <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-                          <p className="text-[10px] text-muted-foreground text-center truncate w-full">{fileName}</p>
-                        </a>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Not provided</p>
-                )}
-              </div>
-
-              {/* Violations History */}
-              {profileViolations.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-destructive" /> Violations ({profileViolations.length})
-                  </h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {profileViolations.map((v: any) => (
-                      <div key={v.id} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
-                            v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive" :
-                            "bg-accent/20 text-accent-foreground"
-                          }`}>
-                            {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}
-                          </span>
-                          <span className="text-xs text-muted-foreground capitalize">{v.violation_type?.replace(/_/g, " ")}</span>
-                          <span className="text-xs text-muted-foreground ml-auto">{new Date(v.created_at).toLocaleDateString()}</span>
-                        </div>
-                        {v.description && <p className="text-xs text-foreground">{v.description}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-
-              {/* Approval email tracking */}
-              {viewProfile.approval_status === "approved" && (
-                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
-                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Emails sent: {(viewProfile as any).approval_email_count || 0} / 3</span>
-                    {(viewProfile as any).last_approval_email_at && (
-                      <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                  {(() => {
-                    const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
-                    const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
-                    return (opens.length > 0 || clicks.length > 0) ? (
-                      <div className="flex gap-4 pt-1">
-                        <span className="flex items-center gap-1 text-xs text-primary">
-                          <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
-                          {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-primary">
-                          <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
-                          {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Denial email tracking */}
-              {viewProfile.approval_status === "denied" && (
-                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
-                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Emails sent: {(viewProfile as any).denial_email_count || 0} / 3</span>
-                    {(viewProfile as any).last_denial_email_at && (
-                      <span>Last sent: {new Date((viewProfile as any).last_denial_email_at).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                  {(viewProfile as any).denial_reason && (
-                    <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
-                  )}
-                  {(() => {
-                    const opens = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'open');
-                    const clicks = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'click');
-                    return (opens.length > 0 || clicks.length > 0) ? (
-                      <div className="flex gap-4 pt-1">
-                        <span className="flex items-center gap-1 text-xs text-destructive">
-                          <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
-                          {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-destructive">
-                          <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
-                          {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Email Send History — total emails sent to this user across all templates */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <MailIcon className="w-4 h-4" /> Emails Sent
-                  {emailSendStats.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 text-[10px]">
-                      {emailSendStats.reduce((sum, s) => sum + s.count, 0)} total
-                    </Badge>
-                  )}
-                </h4>
-                {emailSendStats.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">No emails on record</p>
-                ) : (
-                  <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
-                    {emailSendStats.map((s) => (
-                      <div key={s.template_name} className="flex items-center justify-between gap-3 p-3 text-sm">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-foreground truncate capitalize">
-                            {s.template_name.replace(/[-_]/g, " ")}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Last sent {formatDistanceToNow(new Date(s.last_sent), { addSuffix: true })}
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="font-semibold shrink-0">
-                          ×{s.count}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Bio — moved to bottom */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
-                <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
-                  {viewProfile.bio || "Not provided"}
-                </p>
-              </div>
-
-              {/* Info Grid — moved to bottom */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
-                    <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
-                    <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-                    <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
-                      {(viewProfile as any).date_of_birth
-                        ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                        : "Not provided"}
+                {/* ===== OVERVIEW TAB ===== */}
+                <TabsContent value="overview" className="space-y-6 mt-4">
+                  {/* Bio */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
+                    <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
+                      {viewProfile.bio || "Not provided"}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
-                    <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
-                    <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Skills — moved to bottom */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Skills</h4>
-                {viewProfile.skills ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {viewProfile.skills.split(",").map((skill, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Not provided</p>
-                )}
-              </div>
-
-              {/* Signup Answers — moved to bottom */}
-              {(() => {
-                const p = viewProfile as any;
-                const fields = [
-                  { label: "Experience Level", value: p.experience_level },
-                  { label: "Availability", value: p.availability },
-                  { label: "Transportation", value: p.transportation },
-                  { label: "Tools / Equipment", value: p.tools_equipment },
-                  { label: "Preferred Job Radius", value: p.job_radius },
-                  { label: "How They Heard About Us", value: p.hear_about_us },
-                  { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
-                  { label: "Extra Comments", value: p.extra_comments },
-                ];
-                return (
+                  {/* Contact & Account */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
-                      {fields.map((f, i) => (
-                        <div key={i}>
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
-                          <p className={`text-sm font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
-                        </div>
-                      ))}
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
+                        <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
+                        <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
+                        <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
+                          {(viewProfile as any).date_of_birth
+                            ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                            : "Not provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
+                        <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
+                        <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                      </div>
                     </div>
                   </div>
-                );
-              })()}
 
-              {/* Action buttons — primary lifecycle */}
-              <div className="space-y-2 pt-4 border-t border-border">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
-                <div className="flex gap-2 flex-wrap">
-                {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
-                  <Button
-                    variant="outline"
-                    className="flex-1 min-w-[160px]"
-                    onClick={() => resendVerificationEmail(viewProfile)}
-                    disabled={resending === viewProfile.id}
-                  >
-                    <MailIcon className="w-4 h-4 mr-1" />
-                    {resending === viewProfile.id
-                      ? "Sending…"
-                      : `Resend Verification${((viewProfile as any).verification_email_count || 0) > 0 ? ` (${(viewProfile as any).verification_email_count}/3)` : ""}`}
-                  </Button>
-                )}
-                {viewProfile.approval_status === "pending" && (
-                  <>
-                    <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
-                      <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
-                    </Button>
-                    <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
-                      <XCircle className="w-4 h-4 mr-1" /> Deny
-                    </Button>
-                  </>
-                )}
-                {viewProfile.approval_status === "denied" && (
-                  <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
-                    <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
-                  </Button>
-                )}
-                {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (() => {
-                  const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
-                  const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
-                  const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
-                  const idvVerified = (viewProfile as any).idv_status === 'verified';
-                  const hasStripe = !!(viewProfile as any).stripe_account_id;
-                  const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
-                  const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
-                  const sent = (viewProfile as any).approval_email_count || 0;
-                  const maxReached = sent >= 3;
-                  const activeLabel = idvVerified
-                    ? "ID verified"
-                    : hasStripe
-                    ? "Stripe payout connected"
-                    : hasLoggedIn
-                    ? "Active — has logged in"
-                    : "Has opened approval email";
-                  return (
-                    <>
-                      {!isActive && (
-                        <Button
-                          variant="outline"
-                          className="flex-1 min-w-[160px]"
-                          onClick={() => resendApprovalEmail(viewProfile)}
-                          disabled={resending === viewProfile.id || maxReached}
-                          title={maxReached ? "Max 3 follow-up emails reached" : "Send a manual follow-up reminder (auto-reminders also run every 3 days)"}
-                        >
-                          <MailIcon className="w-4 h-4 mr-1" />
-                          {resending === viewProfile.id ? "Sending…" : `Send Follow-up (${sent}/3)`}
-                        </Button>
-                      )}
-                      {isActive && (
-                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {activeLabel}
+                  {/* Skills */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Skills</h4>
+                    {viewProfile.skills ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {viewProfile.skills.split(",").map((skill, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                    )}
+                  </div>
+
+                  {/* Signup Answers */}
+                  {(() => {
+                    const p = viewProfile as any;
+                    const fields = [
+                      { label: "Experience Level", value: p.experience_level },
+                      { label: "Availability", value: p.availability },
+                      { label: "Transportation", value: p.transportation },
+                      { label: "Tools / Equipment", value: p.tools_equipment },
+                      { label: "Preferred Job Radius", value: p.job_radius },
+                      { label: "How They Heard About Us", value: p.hear_about_us },
+                      { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
+                      { label: "Extra Comments", value: p.extra_comments },
+                    ];
+                    return (
+                      <div className="space-y-2">
+                        <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                          {fields.map((f, i) => (
+                            <div key={i}>
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
+                              <p className={`text-sm font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
+                            </div>
+                          ))}
                         </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Violations History */}
+                  {profileViolations.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-destructive" /> Violations ({profileViolations.length})
+                      </h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profileViolations.map((v: any) => (
+                          <div key={v.id} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
+                                v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive" :
+                                "bg-accent/20 text-accent-foreground"
+                              }`}>
+                                {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}
+                              </span>
+                              <span className="text-xs text-muted-foreground capitalize">{v.violation_type?.replace(/_/g, " ")}</span>
+                              <span className="text-xs text-muted-foreground ml-auto">{new Date(v.created_at).toLocaleDateString()}</span>
+                            </div>
+                            {v.description && <p className="text-xs text-foreground">{v.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ===== DOCUMENTS TAB ===== */}
+                <TabsContent value="documents" className="space-y-6 mt-4">
+                  {/* ID Document */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <FileText className="w-4 h-4" /> ID Document
+                    </h4>
+                    {viewProfile.id_document_url ? (
+                      <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
+                        {idDocSignedUrl ? (
+                          /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
+                            <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
+                              <img src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
+                            </a>
+                          ) : (
+                            <div className="p-4 flex items-center gap-3">
+                              <FileText className="w-8 h-8 text-primary" />
+                              <div>
+                                <p className="text-sm font-medium text-foreground break-all">{viewProfile.id_document_url.split("/").pop()}</p>
+                                <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                                  Open document ↗
+                                </a>
+                              </div>
+                            </div>
+                          )
+                        ) : (
+                          <div className="p-4 text-center">
+                            <p className="text-sm text-muted-foreground">Loading document…</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                    )}
+                  </div>
+
+                  {/* Profile Picture */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
+                    {viewProfile.avatar_url ? (
+                      <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
+                        <img src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
+                      </a>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                    )}
+                  </div>
+
+                  {/* Portfolio */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <FileText className="w-4 h-4" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
+                    </h4>
+                    {((viewProfile as any).portfolio_urls as string[] || []).length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
+                          const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                          const fileName = url.split("/").pop() || "Document";
+                          return isImage ? (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden border border-border hover:border-primary transition-colors block group">
+                              <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                            </a>
+                          ) : (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
+                              <FileText className="w-6 h-6 text-muted-foreground mb-1" />
+                              <p className="text-[10px] text-muted-foreground text-center truncate w-full">{fileName}</p>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* ===== EMAILS TAB ===== */}
+                <TabsContent value="emails" className="space-y-6 mt-4">
+                  {/* Approval email tracking */}
+                  {viewProfile.approval_status === "approved" && (
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
+                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Emails sent: {(viewProfile as any).approval_email_count || 0} / 3</span>
+                        {(viewProfile as any).last_approval_email_at && (
+                          <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                      {(() => {
+                        const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
+                        const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+                        return (opens.length > 0 || clicks.length > 0) ? (
+                          <div className="flex gap-4 pt-1">
+                            <span className="flex items-center gap-1 text-xs text-primary">
+                              <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                              {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-primary">
+                              <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
+                              {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Denial email tracking */}
+                  {viewProfile.approval_status === "denied" && (
+                    <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Emails sent: {(viewProfile as any).denial_email_count || 0} / 3</span>
+                        {(viewProfile as any).last_denial_email_at && (
+                          <span>Last sent: {new Date((viewProfile as any).last_denial_email_at).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                      {(viewProfile as any).denial_reason && (
+                        <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
                       )}
-                      <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                        onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                        <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
+                      {(() => {
+                        const opens = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'open');
+                        const clicks = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'click');
+                        return (opens.length > 0 || clicks.length > 0) ? (
+                          <div className="flex gap-4 pt-1">
+                            <span className="flex items-center gap-1 text-xs text-destructive">
+                              <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                              {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-destructive">
+                              <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
+                              {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Email Send History */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <MailIcon className="w-4 h-4" /> Emails Sent
+                      {emailSendStats.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 text-[10px]">
+                          {emailSendStats.reduce((sum, s) => sum + s.count, 0)} total
+                        </Badge>
+                      )}
+                    </h4>
+                    {emailSendStats.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No emails on record</p>
+                    ) : (
+                      <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
+                        {emailSendStats.map((s) => (
+                          <div key={s.template_name} className="flex items-center justify-between gap-3 p-3 text-sm">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-foreground truncate capitalize">
+                                {s.template_name.replace(/[-_]/g, " ")}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Last sent {formatDistanceToNow(new Date(s.last_sent), { addSuffix: true })}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="font-semibold shrink-0">
+                              ×{s.count}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* ===== ACTIONS TAB ===== */}
+                <TabsContent value="actions" className="space-y-6 mt-4">
+                  {/* Primary lifecycle actions */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
+                    <div className="flex gap-2 flex-wrap">
+                    {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
+                      <Button
+                        variant="outline"
+                        className="flex-1 min-w-[160px]"
+                        onClick={() => resendVerificationEmail(viewProfile)}
+                        disabled={resending === viewProfile.id}
+                      >
+                        <MailIcon className="w-4 h-4 mr-1" />
+                        {resending === viewProfile.id
+                          ? "Sending…"
+                          : `Resend Verification${((viewProfile as any).verification_email_count || 0) > 0 ? ` (${(viewProfile as any).verification_email_count}/3)` : ""}`}
                       </Button>
-                    </>
-                  );
-                })()}
-                {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                  <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
-                  </Button>
-                )}
-                </div>
-              </div>
+                    )}
+                    {viewProfile.approval_status === "pending" && (
+                      <>
+                        <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
+                        </Button>
+                        <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                          onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
+                          <XCircle className="w-4 h-4 mr-1" /> Deny
+                        </Button>
+                      </>
+                    )}
+                    {viewProfile.approval_status === "denied" && (
+                      <Button variant="outline" className="flex-1 min-w-[160px]" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                        <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
+                      </Button>
+                    )}
+                    {viewProfile.approval_status === "approved" && !["permanently_banned", "temp_banned"].includes(viewBanStatus) && (() => {
+                      const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
+                      const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+                      const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
+                      const idvVerified = (viewProfile as any).idv_status === 'verified';
+                      const hasStripe = !!(viewProfile as any).stripe_account_id;
+                      const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
+                      const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
+                      const sent = (viewProfile as any).approval_email_count || 0;
+                      const maxReached = sent >= 3;
+                      const activeLabel = idvVerified
+                        ? "ID verified"
+                        : hasStripe
+                        ? "Stripe payout connected"
+                        : hasLoggedIn
+                        ? "Active — has logged in"
+                        : "Has opened approval email";
+                      return (
+                        <>
+                          {!isActive && (
+                            <Button
+                              variant="outline"
+                              className="flex-1 min-w-[160px]"
+                              onClick={() => resendApprovalEmail(viewProfile)}
+                              disabled={resending === viewProfile.id || maxReached}
+                              title={maxReached ? "Max 3 follow-up emails reached" : "Send a manual follow-up reminder (auto-reminders also run every 3 days)"}
+                            >
+                              <MailIcon className="w-4 h-4 mr-1" />
+                              {resending === viewProfile.id ? "Sending…" : `Send Follow-up (${sent}/3)`}
+                            </Button>
+                          )}
+                          {isActive && (
+                            <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {activeLabel}
+                            </div>
+                          )}
+                          <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
+                            onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                            <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
+                          </Button>
+                        </>
+                      );
+                    })()}
+                    {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
+                      <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
+                      </Button>
+                    )}
+                    </div>
+                  </div>
+
+                  {/* Internal Admin Notes */}
+                  <AdminUserNotes userId={viewProfile.user_id} />
+
+                  {/* Trust & Verification + Support actions */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
+                        <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                        <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
+                        <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
+                        <History className="w-4 h-4 mr-1.5" /> View History
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteProfile(viewProfile)}>
+                        <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               {/* Internal Admin Notes — private notes about this user, admin-only */}
               <AdminUserNotes userId={viewProfile.user_id} />

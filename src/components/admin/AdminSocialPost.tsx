@@ -4,11 +4,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2, Video, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2, Video, Image as ImageIcon, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import sampleVideoAsset from "@/assets/sample-social-video.mp4.asset.json";
+import sampleVideoAsset from "@/assets/sample-social-video-v2.mp4.asset.json";
 
 interface Draft {
   id: string;
@@ -19,6 +19,7 @@ interface Draft {
   published_at: string | null;
   image_url: string | null;
   video_url: string | null;
+  voiceover_url: string | null;
   media_type: string;
 }
 
@@ -26,6 +27,7 @@ const AdminSocialPost = () => {
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState<string | null>(null);
   const [postVideo, setPostVideo] = useState<string | null>(null);
+  const [postVoiceover, setPostVoiceover] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -54,6 +56,7 @@ const AdminSocialPost = () => {
           post_text: postText.trim(),
           image_url: postImage,
           video_url: postVideo,
+          voiceover_url: postVoiceover,
           media_type: postVideo ? "video" : "image",
           timing_priority: "Optimized",
         },
@@ -91,9 +94,11 @@ const AdminSocialPost = () => {
       setPostText(data.post || "");
       setPostImage(data.image_url || null);
       setPostVideo(data.video_url || null);
+      setPostVoiceover(data.voiceover_url || null);
       setMediaType(data.media_type === "video" ? "video" : "image");
       const slotMsg = data.media_type === "video" ? "video slot" : "image post";
-      toast.success(`Generated (${slotMsg})${data.image_url ? "" : " — image failed"}`);
+      const voMsg = data.voiceover_url ? " + voiceover" : "";
+      toast.success(`Generated ${slotMsg}${voMsg}${data.image_url ? "" : " (image failed)"}`);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate post");
     } finally {
@@ -112,6 +117,7 @@ const AdminSocialPost = () => {
         status: "draft",
         image_url: postImage,
         video_url: postVideo,
+        voiceover_url: postVoiceover,
         media_type: finalMediaType,
       } as any);
     if (error) { toast.error("Failed to save draft"); return; }
@@ -119,6 +125,7 @@ const AdminSocialPost = () => {
     setPostText("");
     setPostImage(null);
     setPostVideo(null);
+    setPostVoiceover(null);
     setMediaType("image");
     fetchDrafts();
   };
@@ -132,6 +139,7 @@ const AdminSocialPost = () => {
           message: draft.content,
           image_url: draft.image_url,
           video_url: draft.video_url,
+          voiceover_url: draft.voiceover_url,
         },
       });
       if (error) throw error;
@@ -254,6 +262,23 @@ const AdminSocialPost = () => {
             </div>
           )}
 
+          {/* Voiceover preview */}
+          {postVoiceover && (
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Volume2 className="h-3.5 w-3.5" />
+                AI voiceover narration (will be sent to Make for video merging)
+              </div>
+              <audio src={postVoiceover} controls className="w-full" />
+              <button
+                onClick={() => setPostVoiceover(null)}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Remove voiceover
+              </button>
+            </div>
+          )}
+
           {/* Manual video URL paste — for when user generates a video elsewhere */}
           {nextSlot === "video" && !postVideo && (
             <div className="space-y-2 rounded-md border border-dashed p-3 bg-muted/30">
@@ -341,6 +366,12 @@ const AdminSocialPost = () => {
                           className="rounded-md border max-h-64 object-cover w-full"
                         />
                       ) : null}
+                      {draft.voiceover_url && (
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <audio src={draft.voiceover_url} controls className="w-full h-8" />
+                        </div>
+                      )}
                     </>
                   )}
 

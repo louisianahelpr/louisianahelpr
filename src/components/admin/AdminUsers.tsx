@@ -815,7 +815,8 @@ const AdminUsers = () => {
     const banStatus = (profile as any).ban_status || "active";
     if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Permanently Banned</Badge>;
     if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Temp Banned</Badge>;
-    if (banStatus === "warned") return <Badge className="bg-accent/20 text-accent-foreground text-xs">Warned</Badge>;
+    // "warned" status is intentionally not surfaced as a status badge — the strike chip
+    // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
     // Email not yet verified — applies to all roles
     if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Email Verification</Badge>;
     // Customers: just show Active once email is verified

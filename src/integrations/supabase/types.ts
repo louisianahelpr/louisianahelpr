@@ -2004,6 +2004,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          image_url: string | null
           published_at: string | null
           reviewed_by: string | null
           status: string
@@ -2013,6 +2014,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          image_url?: string | null
           published_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -2022,6 +2024,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           published_at?: string | null
           reviewed_by?: string | null
           status?: string

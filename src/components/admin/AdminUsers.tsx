@@ -1244,6 +1244,25 @@ const AdminUsers = () => {
                           </div>
                         </div>
 
+                        {/* Stripe payout connection status */}
+                        {(() => {
+                          const hasStripe = !!(viewProfile as any).stripe_account_id;
+                          return (
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
+                              hasStripe
+                                ? "bg-primary/5 border-primary/20 text-primary"
+                                : "bg-muted/50 border-border text-muted-foreground"
+                            }`}>
+                              {hasStripe ? (
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              ) : (
+                                <XCircle className="w-3.5 h-3.5" />
+                              )}
+                              {hasStripe ? "Stripe payout connected" : "Stripe payout not connected"}
+                            </div>
+                          );
+                        })()}
+
                         {/* Filters */}
                         <div className="flex justify-center">
                           <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>

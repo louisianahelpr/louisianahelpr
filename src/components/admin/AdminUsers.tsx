@@ -693,18 +693,18 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-0.5 bg-secondary/50 rounded-lg p-0.5 overflow-x-auto">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-0.5 bg-secondary/50 rounded-lg p-0.5">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 min-w-fit px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`min-w-0 px-1.5 py-1.5 rounded-md text-[11px] sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t.label}
+            <span className="truncate">{t.label}</span>
             {t.count !== undefined && t.count > 0 && (
-              <span className="ml-1 text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{t.count}</span>
+              <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
             )}
           </button>
         ))}

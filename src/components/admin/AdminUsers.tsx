@@ -956,10 +956,11 @@ const AdminUsers = () => {
 
 
               <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
-                <TabsList className="grid grid-cols-4 w-full flex-shrink-0">
+                <TabsList className="grid grid-cols-5 w-full flex-shrink-0">
                   <TabsTrigger value="actions" className="text-xs sm:text-sm">Actions</TabsTrigger>
                   <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-                  <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+                  <TabsTrigger value="jobs" className="text-xs sm:text-sm">Jobs</TabsTrigger>
+                  <TabsTrigger value="documents" className="text-xs sm:text-sm">Docs</TabsTrigger>
                   <TabsTrigger value="emails" className="text-xs sm:text-sm">Emails</TabsTrigger>
                 </TabsList>
 

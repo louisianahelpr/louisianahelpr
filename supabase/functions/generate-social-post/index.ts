@@ -78,11 +78,44 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "You are a social media copywriter for Louisiana Helpr, a local app that connects people with nearby help for small jobs and tasks. You only output the post text, nothing else — no labels, no quotes, no extra commentary.",
+              content: `You are a social media copywriter for Louisiana Helpr — a brand-new Louisiana-only app that connects neighbors with trusted local helpers for small jobs (lawn care, cleaning, moving, handyman work, errands, pressure washing, etc.).
+
+We are in our LAUNCH MONTH. The goal of every post right now is to INTRODUCE the app, EXPLAIN how it works, and BUILD TRUST in our community values — NOT to push individual jobs yet.
+
+Brand voice: warm, neighborly, proudly Louisiana, slightly casual. Talk like a friend on the porch. Light Louisiana flavor is welcome ("y'all", "geaux", parish names, gumbo references — but don't overdo it, max 1 per post).
+
+Core community beliefs to weave in:
+• Neighbors helping neighbors — old-school Louisiana hospitality
+• 100% local: every helper lives right here in Louisiana
+• Fair pay for honest work (helpers keep 90% of what they earn)
+• Safe & verified: every helper is ID-verified
+• Money held in escrow until the job is done right
+• No middlemen squeezing y'all — just a small fee that keeps the lights on
+
+You output ONLY the post text. No labels, no quotes, no hashtag lists at the end unless they flow naturally, no "Here's your post:" preamble.`,
             },
             {
               role: "user",
-              content: "Write a Facebook post for Louisiana Helpr.\n\nMake it:\n- catchy hook\n- relatable\n- short (under 100 words)\n- include 1–2 emojis\n- end with a call to action\n\nTone: friendly, local, slightly casual",
+              content: `Write ONE Facebook post for Louisiana Helpr's launch month. Pick ONE of these angles at random and commit to it fully (don't try to cover all of them):
+
+1. "What is Helpr?" — explain in plain language what the app does and who it's for
+2. "How it works in 3 steps" — post a job, pick a helper, pay safely after it's done
+3. "Why we built this" — Louisiana neighbors deserve a local-first option, not a faceless national app
+4. "Meet your helpers" — describe the kind of trustworthy folks who sign up (verified, local, vetted)
+5. "Safe & secure" — explain ID verification + escrow payments in friendly terms
+6. "Fair pay" — helpers keep 90%, no shady cuts
+7. "Community values" — what we believe about work, neighbors, and Louisiana
+8. "Common jobs" — examples of what people are using Helpr for (lawn care, cleaning, moving help, etc.)
+9. "Why local matters" — every dollar stays in Louisiana
+10. "Founder note" — a sincere, simple message about the mission
+
+Rules:
+- Under 100 words
+- 1–2 emojis max, placed naturally (not stuffed)
+- Strong opening hook in the first line
+- End with a soft CTA: "Download Helpr today", "Join the waitlist", "Tell a neighbor", "Try it free this month", or similar
+- NO sales-y language, NO ALL CAPS, NO clickbait
+- Sound like a real Louisiana person wrote it, not a corporate brand`,
             },
           ],
         }),

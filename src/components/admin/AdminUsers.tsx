@@ -1179,6 +1179,8 @@ const AdminUsers = () => {
                             lastAt = (p as any).last_verification_email_at;
                             label = "Verify";
                           } else if (status === "approved") {
+                            // Hide if user is already actively logged in — no need to track welcome nudges
+                            if (lastLogin) return null;
                             count = (p as any).approval_email_count || 0;
                             lastAt = (p as any).last_approval_email_at;
                             label = "Welcome";

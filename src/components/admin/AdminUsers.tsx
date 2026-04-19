@@ -35,6 +35,10 @@ const AdminUsers = () => {
   const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
   const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
   const [emailSendStats, setEmailSendStats] = useState<{ template_name: string; count: number; last_sent: string }[]>([]);
+  // Jobs history (worked as helper + posted as customer)
+  const [profileJobs, setProfileJobs] = useState<any[]>([]);
+  const [jobsRole, setJobsRole] = useState<"all" | "worked" | "posted">("all");
+  const [jobsSort, setJobsSort] = useState<"recent" | "earnings_desc" | "earnings_asc">("recent");
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);

@@ -809,10 +809,15 @@ const AdminUsers = () => {
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
   const approvedCount = profiles.filter(
-    (p) => p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""),
+    (p) =>
+      p.approval_status === "approved" &&
+      !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") &&
+      isUnseen(p),
   ).length;
-  const deniedCount = profiles.filter((p) => p.approval_status === "denied" && p.role !== "customer").length;
-  const allCount = profiles.length;
+  const deniedCount = profiles.filter(
+    (p) => p.approval_status === "denied" && p.role !== "customer" && isUnseen(p),
+  ).length;
+  const allCount = profiles.filter(isUnseen).length;
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "pending", label: "Pending", count: pendingCount },

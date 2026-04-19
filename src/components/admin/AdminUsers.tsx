@@ -1194,9 +1194,9 @@ const AdminUsers = () => {
                         </div>
 
                         {/* Filters */}
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap justify-center gap-2">
                           <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
-                            <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs w-[180px] justify-center [&>span]:flex-1 [&>span]:text-center"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Jobs</SelectItem>
                               <SelectItem value="worked">Worked (Helper)</SelectItem>

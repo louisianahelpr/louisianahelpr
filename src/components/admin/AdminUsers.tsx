@@ -1270,12 +1270,12 @@ const AdminUsers = () => {
                     <div className="flex gap-2 flex-wrap">
                     {viewProfile.approval_status === "pending" && (
                       <>
-                        <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
-                          <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
-                        </Button>
                         <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
                           onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
                           <XCircle className="w-4 h-4 mr-1" /> Deny
+                        </Button>
+                        <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                         </Button>
                       </>
                     )}

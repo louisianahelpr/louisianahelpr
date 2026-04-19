@@ -364,6 +364,8 @@ const AdminUsers = () => {
       toast.error("Failed to resend email");
       console.error(err);
     } finally {
+      setResending(null);
+    }
   };
 
   const resendVerificationEmail = async (profile: Profile) => {
@@ -384,7 +386,7 @@ const AdminUsers = () => {
     }
   };
 
-
+  const handleBanAction = async () => {
     if (!banProfile) return;
     setBanning(true);
     const { data: { user } } = await supabase.auth.getUser();

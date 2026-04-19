@@ -675,11 +675,13 @@ const AdminUsers = () => {
     if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Permanently Banned</Badge>;
     if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Temp Banned</Badge>;
     if (banStatus === "warned") return <Badge className="bg-accent/20 text-accent-foreground text-xs">Warned</Badge>;
-    // Customers don't go through approval — skip approval/pending/denied badges
-    if (profile.role === "customer") return null;
-    if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-xs">Approved</Badge>;
+    // Email not yet verified — applies to all roles
+    if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Email Verification</Badge>;
+    // Customers: just show Active once email is verified
+    if (profile.role === "customer") return <Badge className="bg-primary/10 text-primary text-xs">Active</Badge>;
+    if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-xs">Active</Badge>;
     if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-xs">Denied</Badge>;
-    return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending</Badge>;
+    return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Review</Badge>;
   };
 
   // Stripe Identity verification badge — green / yellow / gray.

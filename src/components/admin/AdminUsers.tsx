@@ -871,6 +871,9 @@ const AdminUsers = () => {
                         </span>
                       );
                     })()}
+                    <span className="text-muted-foreground">
+                      Joined: {new Date(p.created_at).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>

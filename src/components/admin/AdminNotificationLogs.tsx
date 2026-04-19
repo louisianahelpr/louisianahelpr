@@ -107,12 +107,9 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-2xl font-display font-bold">Notification Logs</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Every alert sent via in-app or email. Failed deliveries are highlighted in red.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Every alert sent via in-app or email. Failed deliveries are highlighted in red.
+        </p>
         <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
           <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
           Refresh

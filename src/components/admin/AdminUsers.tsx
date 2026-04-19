@@ -746,14 +746,20 @@ const AdminUsers = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-sm flex-1"
         />
-        <Select value={sortDir} onValueChange={(v) => setSortDir(v as "desc" | "asc" | "alpha")}>
-          <SelectTrigger className="h-9 text-sm sm:w-[200px]">
+        <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
+          <SelectTrigger className="h-9 text-sm sm:w-[220px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="desc">Most Recent</SelectItem>
             <SelectItem value="asc">Longest Inactive</SelectItem>
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
+            {tab === "approved" && (
+              <>
+                <SelectItem value="standing_worst">Standing: Worst First</SelectItem>
+                <SelectItem value="standing_best">Standing: Best First</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>

@@ -835,30 +835,15 @@ const AdminUsers = () => {
               {((p.approval_status === "pending" && !isVerifiedEmail(p)) || (p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p))) && (
                 <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
                   {p.approval_status === "pending" && !isVerifiedEmail(p) && (
-                    <>
-                      <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-muted text-muted-foreground border-border">
-                        <MailIcon className="w-3 h-3" />
-                        Awaiting email verification
-                        {((p as any).verification_email_count || 0) > 0 && (
-                          <span className="ml-1 opacity-70">
-                            · {(p as any).verification_email_count}/3 sent
-                          </span>
-                        )}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-[10px] gap-1"
-                        disabled={resending === p.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          resendVerificationEmail(p);
-                        }}
-                      >
-                        <MailIcon className="w-3 h-3" />
-                        {resending === p.id ? "Sending…" : "Resend now"}
-                      </Button>
-                    </>
+                    <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-muted text-muted-foreground border-border">
+                      <MailIcon className="w-3 h-3" />
+                      Awaiting email verification
+                      {((p as any).verification_email_count || 0) > 0 && (
+                        <span className="ml-1 opacity-70">
+                          · {(p as any).verification_email_count}/3 sent
+                        </span>
+                      )}
+                    </Badge>
                   )}
                   {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (
                     <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-accent/10 text-accent-foreground border-accent/30">

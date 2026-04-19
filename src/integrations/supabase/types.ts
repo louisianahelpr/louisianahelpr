@@ -2008,30 +2008,36 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          media_type: string
           published_at: string | null
           reviewed_by: string | null
           status: string
           style: string | null
+          video_url: string | null
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
           image_url?: string | null
+          media_type?: string
           published_at?: string | null
           reviewed_by?: string | null
           status?: string
           style?: string | null
+          video_url?: string | null
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
           image_url?: string | null
+          media_type?: string
           published_at?: string | null
           reviewed_by?: string | null
           status?: string
           style?: string | null
+          video_url?: string | null
         }
         Relationships: []
       }

@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2 } from "lucide-react";
+import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2, Video, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import sampleVideoAsset from "@/assets/sample-social-video.mp4.asset.json";
 
 interface Draft {
   id: string;
@@ -16,11 +18,15 @@ interface Draft {
   created_at: string;
   published_at: string | null;
   image_url: string | null;
+  video_url: string | null;
+  media_type: string;
 }
 
 const AdminSocialPost = () => {
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState<string | null>(null);
+  const [postVideo, setPostVideo] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -28,6 +34,13 @@ const AdminSocialPost = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [sendingToSocial, setSendingToSocial] = useState(false);
+
+  // Determine which media type the NEXT generated post will be
+  const [nextSlot, setNextSlot] = useState<"image" | "video">("image");
+  useEffect(() => {
+    const last = drafts[0];
+    setNextSlot(last?.media_type === "image" ? "video" : "image");
+  }, [drafts]);
 
   const handleSendToSocial = async () => {
     if (!postText.trim()) {
@@ -40,6 +53,8 @@ const AdminSocialPost = () => {
         body: {
           post_text: postText.trim(),
           image_url: postImage,
+          video_url: postVideo,
+          media_type: postVideo ? "video" : "image",
           timing_priority: "Optimized",
         },
       });
@@ -75,7 +90,10 @@ const AdminSocialPost = () => {
       if (data?.error) throw new Error(data.error);
       setPostText(data.post || "");
       setPostImage(data.image_url || null);
-      toast.success(data.image_url ? "Post + image generated!" : "Post generated (image failed)");
+      setPostVideo(data.video_url || null);
+      setMediaType(data.media_type === "video" ? "video" : "image");
+      const slotMsg = data.media_type === "video" ? "video slot" : "image post";
+      toast.success(`Generated (${slotMsg})${data.image_url ? "" : " — image failed"}`);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate post");
     } finally {
@@ -85,13 +103,23 @@ const AdminSocialPost = () => {
 
   const handleSaveDraft = async () => {
     if (!postText.trim()) { toast.error("Write or generate a post first"); return; }
+    const finalMediaType = postVideo ? "video" : "image";
     const { error } = await supabase
       .from("social_post_drafts")
-      .insert({ content: postText.trim(), style: "manual", status: "draft", image_url: postImage } as any);
+      .insert({
+        content: postText.trim(),
+        style: "manual",
+        status: "draft",
+        image_url: postImage,
+        video_url: postVideo,
+        media_type: finalMediaType,
+      } as any);
     if (error) { toast.error("Failed to save draft"); return; }
     toast.success("Draft saved!");
     setPostText("");
     setPostImage(null);
+    setPostVideo(null);
+    setMediaType("image");
     fetchDrafts();
   };
 
@@ -99,7 +127,12 @@ const AdminSocialPost = () => {
     setPublishing(draft.id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-social-post", {
-        body: { action: "publish", message: draft.content, image_url: draft.image_url },
+        body: {
+          action: "publish",
+          message: draft.content,
+          image_url: draft.image_url,
+          video_url: draft.video_url,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -139,6 +172,16 @@ const AdminSocialPost = () => {
     fetchDrafts();
   };
 
+  const useSampleVideo = () => {
+    // Build absolute URL so Make/Facebook can fetch it
+    const absolute = sampleVideoAsset.url.startsWith("http")
+      ? sampleVideoAsset.url
+      : `${window.location.origin}${sampleVideoAsset.url}`;
+    setPostVideo(absolute);
+    setMediaType("video");
+    toast.success("Sample video attached");
+  };
+
   const statusBadge = (status: string) => {
     switch (status) {
       case "draft": return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pending Review</Badge>;
@@ -147,6 +190,13 @@ const AdminSocialPost = () => {
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  const mediaBadge = (type: string) =>
+    type === "video" ? (
+      <Badge variant="outline" className="gap-1"><Video className="h-3 w-3" />Video</Badge>
+    ) : (
+      <Badge variant="outline" className="gap-1"><ImageIcon className="h-3 w-3" />Image</Badge>
+    );
 
   return (
     <div className="space-y-6">
@@ -158,16 +208,22 @@ const AdminSocialPost = () => {
             Facebook Post Generator
           </CardTitle>
           <CardDescription>
-            Generate AI posts, review them, then approve to publish. Auto-generated drafts appear every 3 days for your review.
+            Posts alternate: picture → video → picture → video. Next slot:{" "}
+            <span className="font-semibold">{nextSlot === "video" ? "🎥 Video" : "🖼️ Image"}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={handleGenerate} disabled={generating} className="gap-2">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {generating ? "Generating…" : "Generate Post"}
             </Button>
+            <Button onClick={useSampleVideo} variant="outline" className="gap-2">
+              <Video className="h-4 w-4" />
+              Use Sample Video
+            </Button>
           </div>
+
           <Textarea
             placeholder="Your post will appear here. You can also type or edit manually…"
             value={postText}
@@ -175,7 +231,9 @@ const AdminSocialPost = () => {
             rows={5}
             className="text-base"
           />
-          {postImage && (
+
+          {/* Image preview */}
+          {postImage && !postVideo && (
             <div className="rounded-lg border overflow-hidden bg-muted">
               <img src={postImage} alt="Generated post" className="w-full max-h-80 object-cover" />
               <div className="p-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -184,8 +242,34 @@ const AdminSocialPost = () => {
               </div>
             </div>
           )}
+
+          {/* Video preview */}
+          {postVideo && (
+            <div className="rounded-lg border overflow-hidden bg-muted">
+              <video src={postVideo} controls className="w-full max-h-80 object-cover bg-black" />
+              <div className="p-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Video attached for this post</span>
+                <button onClick={() => setPostVideo(null)} className="hover:text-foreground underline">Remove</button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual video URL paste — for when user generates a video elsewhere */}
+          {nextSlot === "video" && !postVideo && (
+            <div className="space-y-2 rounded-md border border-dashed p-3 bg-muted/30">
+              <p className="text-xs font-medium">📹 This is a video slot — paste a video URL or use the sample above</p>
+              <Input
+                placeholder="https://your-video-url.mp4"
+                onChange={(e) => {
+                  const v = e.target.value.trim();
+                  if (v) { setPostVideo(v); setMediaType("video"); }
+                }}
+              />
+            </div>
+          )}
+
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-xs text-muted-foreground">{postText.length} characters</p>
+            <p className="text-xs text-muted-foreground">{postText.length} characters · {mediaBadge(postVideo ? "video" : "image")}</p>
             <div className="flex gap-2">
               <Button onClick={handleSaveDraft} disabled={!postText.trim()} variant="secondary" className="gap-2">
                 <Eye className="h-4 w-4" />
@@ -196,11 +280,7 @@ const AdminSocialPost = () => {
                 disabled={!postText.trim() || sendingToSocial}
                 className="gap-2"
               >
-                {sendingToSocial ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Share2 className="h-4 w-4" />
-                )}
+                {sendingToSocial ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
                 Send to Social
               </Button>
             </div>
@@ -225,9 +305,10 @@ const AdminSocialPost = () => {
             <div className="space-y-4">
               {drafts.map((draft) => (
                 <div key={draft.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {statusBadge(draft.status)}
+                      {mediaBadge(draft.media_type)}
                       {draft.style && <span className="text-xs text-muted-foreground capitalize">{draft.style}</span>}
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -251,18 +332,20 @@ const AdminSocialPost = () => {
                   ) : (
                     <>
                       <p className="text-sm whitespace-pre-wrap">{draft.content}</p>
-                      {draft.image_url && (
+                      {draft.video_url ? (
+                        <video src={draft.video_url} controls className="rounded-md border max-h-64 w-full bg-black" />
+                      ) : draft.image_url ? (
                         <img
                           src={draft.image_url}
                           alt="Post image"
                           className="rounded-md border max-h-64 object-cover w-full"
                         />
-                      )}
+                      ) : null}
                     </>
                   )}
 
                   {draft.status === "draft" && editingId !== draft.id && (
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-2 pt-1 flex-wrap">
                       <Button
                         size="sm"
                         onClick={() => handlePublish(draft)}

@@ -21,6 +21,35 @@
     <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest?v=helpr2" />
 
+    <!-- Performance: preconnect + non-blocking font load -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap"
+      />
+    </noscript>
+
+    <!-- Preload LCP hero image so the browser fetches it before React mounts -->
+    <link
+      rel="preload"
+      as="image"
+      href="/src/assets/hero-illustration-v5-1000.webp"
+      fetchpriority="high"
+    />
+
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://louisianahelpr.com" />
     <meta property="og:title" content="Helpr — Louisiana's Trusted Marketplace for Everyday Tasks" />

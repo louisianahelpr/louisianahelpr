@@ -61,4 +61,17 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Bundle all lucide icons into a single chunk so we don't ship 40+
+        // tiny per-icon files (HTTP overhead > byte savings).
+        manualChunks(id) {
+          if (id.includes("node_modules/lucide-react")) return "lucide";
+          if (id.includes("node_modules/@radix-ui")) return "radix";
+          if (id.includes("node_modules/react-dom")) return "react-dom";
+        },
+      },
+    },
+  },
 }));

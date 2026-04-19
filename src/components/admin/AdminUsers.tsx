@@ -942,12 +942,12 @@ const AdminUsers = () => {
 
 
 
-              <Tabs defaultValue="overview" className="w-full">
+              <Tabs defaultValue="actions" className="w-full">
                 <TabsList className="grid grid-cols-4 w-full">
+                  <TabsTrigger value="actions" className="text-xs sm:text-sm">Actions</TabsTrigger>
                   <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
                   <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
                   <TabsTrigger value="emails" className="text-xs sm:text-sm">Emails</TabsTrigger>
-                  <TabsTrigger value="actions" className="text-xs sm:text-sm">Actions</TabsTrigger>
                 </TabsList>
 
                 {/* ===== OVERVIEW TAB ===== */}

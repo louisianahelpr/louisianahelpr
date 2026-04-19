@@ -244,16 +244,37 @@ const AdminUsers = () => {
       }
     }
 
-    if (reviewsRes.data && reviewsRes.data.length > 0) {
-      const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))];
-      const { data: reviewerProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", reviewerIds);
-      const nameMap = new Map(reviewerProfiles?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
-      setProfileReviews(reviewsRes.data.map((r: any) => ({
-        rating: r.rating, feedback: r.feedback, reviewer_name: nameMap.get(r.reviewer_id) || "User",
-      })));
-    } else {
-      setProfileReviews([]);
-    }
+    // Build a single lookup of all related users + jobs from both review sets
+    const relatedUserIds = new Set<string>();
+    const relatedJobIds = new Set<string>();
+    (reviewsRes.data || []).forEach((r: any) => { relatedUserIds.add(r.reviewer_id); if (r.job_id) relatedJobIds.add(r.job_id); });
+    (reviewsLeftRes.data || []).forEach((r: any) => { relatedUserIds.add(r.reviewee_id); if (r.job_id) relatedJobIds.add(r.job_id); });
+
+    const [relatedUsersRes, relatedJobsRes] = await Promise.all([
+      relatedUserIds.size > 0
+        ? supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(relatedUserIds))
+        : Promise.resolve({ data: [] as any[] }),
+      relatedJobIds.size > 0
+        ? supabase.from("jobs").select("id, title").in("id", Array.from(relatedJobIds))
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const nameMap = new Map((relatedUsersRes.data || []).map((p: any) => [p.user_id, formatName(p.full_name)]));
+    const jobMap = new Map((relatedJobsRes.data || []).map((j: any) => [j.id, j.title]));
+
+    setProfileReviews((reviewsRes.data || []).map((r: any) => ({
+      rating: r.rating,
+      feedback: r.feedback,
+      reviewer_name: nameMap.get(r.reviewer_id) || "User",
+      created_at: r.created_at,
+      job_title: r.job_id ? jobMap.get(r.job_id) : undefined,
+    })));
+    setProfileReviewsLeft((reviewsLeftRes.data || []).map((r: any) => ({
+      rating: r.rating,
+      feedback: r.feedback,
+      reviewee_name: nameMap.get(r.reviewee_id) || "User",
+      created_at: r.created_at,
+      job_title: r.job_id ? jobMap.get(r.job_id) : undefined,
+    })));
 
     setProfileViolations(violationsRes.data || []);
     setProfileBans(bansRes.data || []);

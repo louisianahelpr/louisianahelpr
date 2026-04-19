@@ -43,10 +43,10 @@ export default defineConfig(({ mode }) => ({
         description: "Connect with trusted neighbors for everyday tasks",
         theme_color: "#16a34a",
         background_color: "#ffffff",
-        display: "standalone",
+        display: "browser",
         orientation: "portrait",
         scope: "/",
-        start_url: "/login?source=pwa",
+        start_url: "/",
         icons: [
           { src: "/pwa-192x192-v2.png", sizes: "192x192", type: "image/png" },
           { src: "/pwa-512x512-v2.png", sizes: "512x512", type: "image/png" },

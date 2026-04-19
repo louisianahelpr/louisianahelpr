@@ -20,6 +20,22 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+
+  const handleOAuth = async (provider: "google" | "apple") => {
+    setOauthLoading(provider);
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setOauthLoading(null);
+      toast.error(result.error.message || `Could not sign in with ${provider}`);
+      return;
+    }
+    if (result.redirected) return;
+    queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    navigate("/dashboard", { replace: true });
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

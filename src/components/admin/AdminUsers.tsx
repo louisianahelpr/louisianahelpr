@@ -89,7 +89,7 @@ const AdminUsers = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best">("desc");
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -611,6 +611,20 @@ const AdminUsers = () => {
       const bName = (b.full_name || b.email || "").toLowerCase();
       return aName.localeCompare(bName);
     }
+    if (sortDir === "standing_worst" || sortDir === "standing_best") {
+      const aStrikes = strikesSummary[a.user_id] || 0;
+      const bStrikes = strikesSummary[b.user_id] || 0;
+      if (aStrikes !== bStrikes) {
+        return sortDir === "standing_worst" ? bStrikes - aStrikes : aStrikes - bStrikes;
+      }
+      // Tiebreaker: most recent login
+      const aLogin = lastLoginSummary[a.user_id];
+      const bLogin = lastLoginSummary[b.user_id];
+      if (!aLogin && !bLogin) return 0;
+      if (!aLogin) return 1;
+      if (!bLogin) return -1;
+      return new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;
@@ -732,14 +746,20 @@ const AdminUsers = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-sm flex-1"
         />
-        <Select value={sortDir} onValueChange={(v) => setSortDir(v as "desc" | "asc" | "alpha")}>
-          <SelectTrigger className="h-9 text-sm sm:w-[200px]">
+        <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
+          <SelectTrigger className="h-9 text-sm sm:w-[220px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="desc">Most Recent</SelectItem>
             <SelectItem value="asc">Longest Inactive</SelectItem>
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
+            {tab === "approved" && (
+              <>
+                <SelectItem value="standing_worst">Standing: Worst First</SelectItem>
+                <SelectItem value="standing_best">Standing: Best First</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>

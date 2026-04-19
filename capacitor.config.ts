@@ -10,8 +10,10 @@ const config: CapacitorConfig = {
   },
   ios: {
     appleId: '6754470134',
+    sku: 'Helpr',
     version: '1.0.4',
     build: '17',
+    category: 'public.app-category.lifestyle',
     content: `
       <key>NSCameraUsageDescription</key>
       <string>Helpr needs camera access so you can take photos of tasks or completed jobs.</string>
@@ -19,6 +21,8 @@ const config: CapacitorConfig = {
       <string>Helpr uses your location to show you available help and jobs in your local community.</string>
       <key>NSPhotoLibraryUsageDescription</key>
       <string>Allows you to upload photos from your library to show details of a task.</string>
+      <key>ITSAppUsesNonExemptEncryption</key>
+      <false/>
     `
   },
   plugins: {

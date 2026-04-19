@@ -15,10 +15,12 @@ interface Draft {
   status: string;
   created_at: string;
   published_at: string | null;
+  image_url: string | null;
 }
 
 const AdminSocialPost = () => {
   const [postText, setPostText] = useState("");
+  const [postImage, setPostImage] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -47,7 +49,8 @@ const AdminSocialPost = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setPostText(data.post || "");
-      toast.success("Post generated!");
+      setPostImage(data.image_url || null);
+      toast.success(data.image_url ? "Post + image generated!" : "Post generated (image failed)");
     } catch (e: any) {
       toast.error(e.message || "Failed to generate post");
     } finally {
@@ -59,10 +62,11 @@ const AdminSocialPost = () => {
     if (!postText.trim()) { toast.error("Write or generate a post first"); return; }
     const { error } = await supabase
       .from("social_post_drafts")
-      .insert({ content: postText.trim(), style: "manual", status: "draft" } as any);
+      .insert({ content: postText.trim(), style: "manual", status: "draft", image_url: postImage } as any);
     if (error) { toast.error("Failed to save draft"); return; }
     toast.success("Draft saved!");
     setPostText("");
+    setPostImage(null);
     fetchDrafts();
   };
 
@@ -70,7 +74,7 @@ const AdminSocialPost = () => {
     setPublishing(draft.id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-social-post", {
-        body: { action: "publish", message: draft.content },
+        body: { action: "publish", message: draft.content, image_url: draft.image_url },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -146,6 +150,15 @@ const AdminSocialPost = () => {
             rows={5}
             className="text-base"
           />
+          {postImage && (
+            <div className="rounded-lg border overflow-hidden bg-muted">
+              <img src={postImage} alt="Generated post" className="w-full max-h-80 object-cover" />
+              <div className="p-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>AI-generated image</span>
+                <button onClick={() => setPostImage(null)} className="hover:text-foreground underline">Remove</button>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">{postText.length} characters</p>
             <Button onClick={handleSaveDraft} disabled={!postText.trim()} variant="secondary" className="gap-2">
@@ -197,7 +210,16 @@ const AdminSocialPost = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap">{draft.content}</p>
+                    <>
+                      <p className="text-sm whitespace-pre-wrap">{draft.content}</p>
+                      {draft.image_url && (
+                        <img
+                          src={draft.image_url}
+                          alt="Post image"
+                          className="rounded-md border max-h-64 object-cover w-full"
+                        />
+                      )}
+                    </>
                   )}
 
                   {draft.status === "draft" && editingId !== draft.id && (

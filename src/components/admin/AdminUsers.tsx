@@ -1247,7 +1247,7 @@ const AdminUsers = () => {
                         {/* Filters */}
                         <div className="flex justify-center">
                           <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
-                            <SelectTrigger className="h-9 text-xs w-[200px] justify-center [&>span]:text-center"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-9 text-xs w-[200px]"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Jobs</SelectItem>
                               <SelectItem value="worked">Worked (Helper)</SelectItem>

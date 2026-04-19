@@ -732,7 +732,7 @@ const AdminUsers = () => {
 
       <div className="flex items-center justify-between px-1">
         <p className="text-xs text-muted-foreground">
-          {pendingCount} pending {pendingCount === 1 ? "user" : "users"} · {sortDir === "desc" ? "most recent" : sortDir === "asc" ? "longest inactive" : "alphabetical (A–Z)"}
+          {pendingCount} pending {pendingCount === 1 ? "user" : "users"}
         </p>
         {searchQuery && (
           <button

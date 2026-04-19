@@ -17,6 +17,54 @@ const POST_STYLES = [
   "Short & Punchy: Ultra-short post, 2-3 lines max. Like a reel caption. Post → Match → Done energy.",
 ];
 
+async function generateImageForPost(
+  postText: string,
+  apiKey: string,
+  supabase: ReturnType<typeof createClient>
+): Promise<string | null> {
+  try {
+    const imagePrompt = `A warm, photorealistic lifestyle image representing this Facebook post for Louisiana Helpr (a local app connecting people for small jobs in Louisiana). Avoid any text or logos in the image. Scene should be authentic, sunny, neighborly, and feel like Louisiana (porches, oak trees, friendly neighbors helping with yard work, cleaning, moving, etc). Post: "${postText.substring(0, 400)}"`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: imagePrompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error("Image generation failed:", resp.status, await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    const dataUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!dataUrl?.startsWith("data:image/")) return null;
+
+    const base64 = dataUrl.split(",")[1];
+    const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+    const filename = `auto-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
+    const { error: upErr } = await supabase.storage
+      .from("social-posts")
+      .upload(filename, binary, { contentType: "image/png", upsert: false });
+
+    if (upErr) {
+      console.error("Storage upload failed:", upErr);
+      return null;
+    }
+
+    const { data: pub } = supabase.storage.from("social-posts").getPublicUrl(filename);
+    return pub.publicUrl;
+  } catch (e) {
+    console.error("generateImageForPost error:", e);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -68,11 +116,14 @@ serve(async (req) => {
     const postText = aiData.choices?.[0]?.message?.content?.trim();
     if (!postText) throw new Error("AI returned empty content");
 
+    // Generate matching image (best-effort)
+    const imageUrl = await generateImageForPost(postText, LOVABLE_API_KEY, supabase);
+
     // Post directly to Facebook via Make webhook
     const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: postText }),
+      body: JSON.stringify({ message: postText, image_url: imageUrl }),
     });
 
     if (!webhookResp.ok) {
@@ -83,11 +134,11 @@ serve(async (req) => {
     // Log the published post
     await supabase
       .from("social_post_drafts")
-      .insert({ content: postText, style, status: "published", published_at: new Date().toISOString() });
+      .insert({ content: postText, style, status: "published", published_at: new Date().toISOString(), image_url: imageUrl });
 
     console.log("Auto-posted to Facebook:", postText.substring(0, 80) + "...");
 
-    return new Response(JSON.stringify({ success: true, post: postText, style }), {
+    return new Response(JSON.stringify({ success: true, post: postText, style, image_url: imageUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

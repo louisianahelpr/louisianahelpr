@@ -1,9 +1,60 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+async function generateImageForPost(postText: string, apiKey: string): Promise<string | null> {
+  try {
+    const imagePrompt = `A warm, photorealistic lifestyle image representing this Facebook post for Louisiana Helpr (a local app connecting people for small jobs in Louisiana). Avoid any text or logos in the image. Scene should be authentic, sunny, neighborly, and feel like Louisiana (porches, oak trees, friendly neighbors helping with yard work, cleaning, moving, etc). Post: "${postText.substring(0, 400)}"`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: imagePrompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error("Image generation failed:", resp.status, await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    const dataUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!dataUrl?.startsWith("data:image/")) return null;
+
+    // Decode base64 → upload to storage bucket
+    const base64 = dataUrl.split(",")[1];
+    const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const filename = `post-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
+    const { error: upErr } = await supabase.storage
+      .from("social-posts")
+      .upload(filename, binary, { contentType: "image/png", upsert: false });
+
+    if (upErr) {
+      console.error("Storage upload failed:", upErr);
+      return null;
+    }
+
+    const { data: pub } = supabase.storage.from("social-posts").getPublicUrl(filename);
+    return pub.publicUrl;
+  } catch (e) {
+    console.error("generateImageForPost error:", e);
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -12,9 +63,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { action, message } = await req.json();
+    const { action, message, image_url } = await req.json();
 
-    // Action: generate post
+    // Action: generate post (text + image)
     if (action === "generate") {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -46,7 +97,11 @@ serve(async (req) => {
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content?.trim() ?? "";
-      return new Response(JSON.stringify({ post: text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      // Generate matching image (best-effort)
+      const imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
+
+      return new Response(JSON.stringify({ post: text, image_url: imageUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Action: publish to Make webhook
@@ -60,7 +115,7 @@ serve(async (req) => {
       const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message.trim() }),
+        body: JSON.stringify({ message: message.trim(), image_url: image_url || null }),
       });
 
       if (!webhookResp.ok) {

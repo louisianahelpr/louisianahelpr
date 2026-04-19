@@ -1,0 +1,1 @@
+GRANT SELECT ON public.open_jobs_safe TO anon, authenticated;

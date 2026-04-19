@@ -8,7 +8,9 @@ import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2, V
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import sampleVideoAsset from "@/assets/sample-social-video-v2.mp4.asset.json";
+// Public Supabase Storage URL — works for Make/Facebook (the in-editor /__l5e/ path does NOT)
+const SAMPLE_VIDEO_URL =
+  "https://steigdwrpkosbiycshwz.supabase.co/storage/v1/object/public/social-posts/samples/sample-social-video-v2.mp4";
 
 interface Draft {
   id: string;
@@ -181,11 +183,7 @@ const AdminSocialPost = () => {
   };
 
   const useSampleVideo = () => {
-    // Build absolute URL so Make/Facebook can fetch it
-    const absolute = sampleVideoAsset.url.startsWith("http")
-      ? sampleVideoAsset.url
-      : `${window.location.origin}${sampleVideoAsset.url}`;
-    setPostVideo(absolute);
+    setPostVideo(SAMPLE_VIDEO_URL);
     setMediaType("video");
     toast.success("Sample video attached");
   };

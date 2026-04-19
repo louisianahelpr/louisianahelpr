@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function getSupabase() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+}
+
 async function generateImageForPost(postText: string, apiKey: string): Promise<string | null> {
   try {
     const imagePrompt = `A warm, photorealistic lifestyle image representing this Facebook post for Louisiana Helpr (a local app connecting people for small jobs in Louisiana). Avoid any text or logos in the image. Scene should be authentic, sunny, neighborly, and feel like Louisiana (porches, oak trees, friendly neighbors helping with yard work, cleaning, moving, etc). Post: "${postText.substring(0, 400)}"`;
@@ -29,15 +36,10 @@ async function generateImageForPost(postText: string, apiKey: string): Promise<s
     const dataUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!dataUrl?.startsWith("data:image/")) return null;
 
-    // Decode base64 → upload to storage bucket
     const base64 = dataUrl.split(",")[1];
     const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+    const supabase = getSupabase();
     const filename = `post-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
     const { error: upErr } = await supabase.storage
       .from("social-posts")
@@ -56,6 +58,94 @@ async function generateImageForPost(postText: string, apiKey: string): Promise<s
   }
 }
 
+/**
+ * Generates a short, narrator-friendly voiceover script from the post text
+ * using Gemini, then synthesises it with ElevenLabs and uploads the MP3 to storage.
+ */
+async function generateVoiceoverForPost(postText: string, lovableApiKey: string): Promise<string | null> {
+  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+  if (!ELEVENLABS_API_KEY) {
+    console.warn("ELEVENLABS_API_KEY not configured — skipping voiceover");
+    return null;
+  }
+
+  try {
+    // 1) Rewrite the post into a tight ~15s spoken script (warm Louisiana narrator)
+    const scriptResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${lovableApiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You rewrite social posts into short, spoken voiceover scripts for a friendly Louisiana narrator. Output ONLY the spoken words — no stage directions, no emojis, no hashtags, no quotation marks. Keep it 2-3 short sentences, max ~40 words, conversational, warm, and easy to read aloud in 12-18 seconds. Drop any 'Download today' style CTAs unless they sound natural spoken.",
+          },
+          { role: "user", content: postText.substring(0, 600) },
+        ],
+      }),
+    });
+
+    let script = postText.substring(0, 280);
+    if (scriptResp.ok) {
+      const scriptData = await scriptResp.json();
+      const generated = scriptData.choices?.[0]?.message?.content?.trim();
+      if (generated) script = generated.replace(/^["']|["']$/g, "");
+    }
+
+    // 2) ElevenLabs TTS — "Sarah" voice (warm, clear, friendly female)
+    const voiceId = "EXAVITQu4vr4xnSDxMaL";
+    const ttsResp = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: script,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.55,
+            similarity_boost: 0.8,
+            style: 0.35,
+            use_speaker_boost: true,
+            speed: 1.0,
+          },
+        }),
+      }
+    );
+
+    if (!ttsResp.ok) {
+      const errText = await ttsResp.text();
+      console.error("ElevenLabs TTS failed:", ttsResp.status, errText);
+      return null;
+    }
+
+    const audioBuffer = new Uint8Array(await ttsResp.arrayBuffer());
+
+    // 3) Upload MP3 to storage
+    const supabase = getSupabase();
+    const filename = `voiceover-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.mp3`;
+    const { error: upErr } = await supabase.storage
+      .from("social-posts")
+      .upload(filename, audioBuffer, { contentType: "audio/mpeg", upsert: false });
+
+    if (upErr) {
+      console.error("Voiceover upload failed:", upErr);
+      return null;
+    }
+
+    const { data: pub } = supabase.storage.from("social-posts").getPublicUrl(filename);
+    return pub.publicUrl;
+  } catch (e) {
+    console.error("generateVoiceoverForPost error:", e);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -63,17 +153,12 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { action, message, image_url, video_url } = await req.json();
+    const { action, message, image_url, video_url, voiceover_url } = await req.json();
 
-    // Determine alternation: look at last draft, flip media type
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabaseClient = getSupabase();
 
-    // Action: generate post (text + image OR video)
+    // Action: generate post (text + image OR video) + voiceover
     if (action === "generate") {
-      // Decide media type — alternate from last draft
       const { data: lastDraft } = await supabaseClient
         .from("social_post_drafts")
         .select("media_type")
@@ -81,6 +166,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
       const nextMediaType = lastDraft?.media_type === "image" ? "video" : "image";
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -110,26 +196,7 @@ You output ONLY the post text. No labels, no quotes, no hashtag lists at the end
             },
             {
               role: "user",
-              content: `Write ONE Facebook post for Louisiana Helpr's launch month. Pick ONE of these angles at random and commit to it fully (don't try to cover all of them):
-
-1. "What is Helpr?" — explain in plain language what the app does and who it's for
-2. "How it works in 3 steps" — post a job, pick a helper, pay safely after it's done
-3. "Why we built this" — Louisiana neighbors deserve a local-first option, not a faceless national app
-4. "Meet your helpers" — describe the kind of trustworthy folks who sign up (verified, local, vetted)
-5. "Safe & secure" — explain ID verification + escrow payments in friendly terms
-6. "Fair pay" — helpers keep 90%, no shady cuts
-7. "Community values" — what we believe about work, neighbors, and Louisiana
-8. "Common jobs" — examples of what people are using Helpr for (lawn care, cleaning, moving help, etc.)
-9. "Why local matters" — every dollar stays in Louisiana
-10. "Founder note" — a sincere, simple message about the mission
-
-Rules:
-- Under 100 words
-- 1–2 emojis max, placed naturally (not stuffed)
-- Strong opening hook in the first line
-- End with a soft CTA: "Download Helpr today", "Join the waitlist", "Tell a neighbor", "Try it free this month", or similar
-- NO sales-y language, NO ALL CAPS, NO clickbait
-- Sound like a real Louisiana person wrote it, not a corporate brand`,
+              content: `Write ONE Facebook post for Louisiana Helpr's launch month. Pick ONE angle at random and commit to it. Under 100 words, 1-2 emojis max, strong opening hook, soft CTA, no ALL CAPS, no clickbait.`,
             },
           ],
         }),
@@ -145,21 +212,20 @@ Rules:
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content?.trim() ?? "";
 
-      // Generate matching media (image or video, depending on alternation)
-      let imageUrl: string | null = null;
-      let videoUrl: string | null = null;
-
-      if (nextMediaType === "image") {
-        imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
-      } else {
-        // Video generation requires a third-party API (not yet wired).
-        // For now: still generate a poster image, and flag this draft as a video slot.
-        imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
-        videoUrl = null; // admin can attach a video URL manually until video API is wired
-      }
+      // Run image + voiceover in parallel
+      const [imageUrl, voiceoverUrl] = await Promise.all([
+        text ? generateImageForPost(text, LOVABLE_API_KEY) : Promise.resolve(null),
+        text ? generateVoiceoverForPost(text, LOVABLE_API_KEY) : Promise.resolve(null),
+      ]);
 
       return new Response(
-        JSON.stringify({ post: text, image_url: imageUrl, video_url: videoUrl, media_type: nextMediaType }),
+        JSON.stringify({
+          post: text,
+          image_url: imageUrl,
+          video_url: null, // video is attached client-side from sample/manual URL
+          voiceover_url: voiceoverUrl,
+          media_type: nextMediaType,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -172,8 +238,6 @@ Rules:
         return new Response(JSON.stringify({ error: "Post message is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      
-
       const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,6 +245,7 @@ Rules:
           message: message.trim(),
           image_url: image_url || null,
           video_url: video_url || null,
+          voiceover_url: voiceover_url || null,
           media_type: video_url ? "video" : "image",
         }),
       });

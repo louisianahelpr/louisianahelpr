@@ -364,11 +364,27 @@ const AdminUsers = () => {
       toast.error("Failed to resend email");
       console.error(err);
     } finally {
+  };
+
+  const resendVerificationEmail = async (profile: Profile) => {
+    setResending(profile.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-resend-verification", {
+        body: { userId: profile.user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Verification email resent");
+      loadProfiles();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend verification email");
+      console.error(err);
+    } finally {
       setResending(null);
     }
   };
 
-  const handleBanAction = async () => {
+
     if (!banProfile) return;
     setBanning(true);
     const { data: { user } } = await supabase.auth.getUser();

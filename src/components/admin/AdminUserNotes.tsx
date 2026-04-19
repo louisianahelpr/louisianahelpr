@@ -326,6 +326,33 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
           })}
         </div>
       )}
+
+      <AlertDialog open={!!deleteNote} onOpenChange={(open) => !open && setDeleteNote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This internal admin note will be permanently removed. This action can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteNote && (
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
+              {deleteNote.note}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); removeNote(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}
+              Delete Note
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

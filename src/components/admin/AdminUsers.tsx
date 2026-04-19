@@ -91,7 +91,7 @@ const AdminUsers = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low" | "joined_new" | "joined_old">("desc");
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -661,6 +661,11 @@ const AdminUsers = () => {
       const bPay = paySummary[b.user_id] || 0;
       return sortDir === "pay_high" ? bPay - aPay : aPay - bPay;
     }
+    if (sortDir === "joined_new" || sortDir === "joined_old") {
+      const aJoined = new Date(a.created_at || 0).getTime();
+      const bJoined = new Date(b.created_at || 0).getTime();
+      return sortDir === "joined_new" ? bJoined - aJoined : aJoined - bJoined;
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;
@@ -808,6 +813,8 @@ const AdminUsers = () => {
             <SelectItem value="desc">Most Recent</SelectItem>
             <SelectItem value="asc">Longest Inactive</SelectItem>
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
+            <SelectItem value="joined_new">Joined: Newest First</SelectItem>
+            <SelectItem value="joined_old">Joined: Oldest First</SelectItem>
             <SelectItem value="pay_high">Pay: High → Low</SelectItem>
             <SelectItem value="pay_low">Pay: Low → High</SelectItem>
             {tab === "approved" && (

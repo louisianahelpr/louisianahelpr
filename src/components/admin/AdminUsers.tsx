@@ -661,6 +661,11 @@ const AdminUsers = () => {
       const bPay = paySummary[b.user_id] || 0;
       return sortDir === "pay_high" ? bPay - aPay : aPay - bPay;
     }
+    if (sortDir === "joined_new" || sortDir === "joined_old") {
+      const aJoined = new Date(a.created_at || 0).getTime();
+      const bJoined = new Date(b.created_at || 0).getTime();
+      return sortDir === "joined_new" ? bJoined - aJoined : aJoined - bJoined;
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;

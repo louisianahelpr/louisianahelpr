@@ -16,6 +16,8 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 const AdminSettings = () => {
   const [customerFee, setCustomerFee] = useState("");
   const [helperFee, setHelperFee] = useState("");
+  const [socialWebhookUrl, setSocialWebhookUrl] = useState("");
+  const [savingWebhook, setSavingWebhook] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,9 +46,30 @@ const AdminSettings = () => {
     if (data) {
       setCustomerFee(String((data as any).customer_fee_percent ?? 10));
       setHelperFee(String((data as any).helper_fee_percent ?? 10));
+      setSocialWebhookUrl(String((data as any).social_webhook_url ?? ""));
       setSettingsId(data.id);
     }
     setLoading(false);
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!settingsId) return;
+    const url = socialWebhookUrl.trim();
+    if (url && !/^https?:\/\//i.test(url)) {
+      toast.error("Webhook URL must start with http:// or https://");
+      return;
+    }
+    setSavingWebhook(true);
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({ social_webhook_url: url || null } as any)
+      .eq("id", settingsId);
+    setSavingWebhook(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Webhook URL saved!");
+      await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
+    }
   };
 
   const loadAdmins = async () => {
@@ -212,6 +235,33 @@ const AdminSettings = () => {
         </div>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save fee settings"}
+        </Button>
+      </div>
+
+      {/* Social Webhook URL */}
+      <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-foreground">Social Webhook URL</h3>
+          <p className="text-xs text-muted-foreground">
+            Paste the Make.com webhook URL here. The "Send to Social" button on the Facebook Post Generator will send each post (text + image + timing) to this URL for scheduling.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="socialWebhook">Webhook URL</Label>
+          <Input
+            id="socialWebhook"
+            type="url"
+            placeholder="https://hook.us2.make.com/..."
+            value={socialWebhookUrl}
+            onChange={(e) => setSocialWebhookUrl(e.target.value)}
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            Payload sent: <code className="text-foreground">{`{ post_text, image_url, timing_priority }`}</code>
+          </p>
+        </div>
+        <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
+          {savingWebhook ? "Saving…" : "Save webhook URL"}
         </Button>
       </div>
 

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye } from "lucide-react";
+import { Sparkles, Send, Loader2, Facebook, Trash2, Check, Clock, Eye, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -27,6 +27,31 @@ const AdminSocialPost = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [sendingToSocial, setSendingToSocial] = useState(false);
+
+  const handleSendToSocial = async () => {
+    if (!postText.trim()) {
+      toast.error("Write or generate a post first");
+      return;
+    }
+    setSendingToSocial(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-to-social", {
+        body: {
+          post_text: postText.trim(),
+          image_url: postImage,
+          timing_priority: "Optimized",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Sent to Make for scheduling!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to send to Make");
+    } finally {
+      setSendingToSocial(false);
+    }
+  };
 
   const fetchDrafts = async () => {
     const { data, error } = await supabase
@@ -159,12 +184,26 @@ const AdminSocialPost = () => {
               </div>
             </div>
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-xs text-muted-foreground">{postText.length} characters</p>
-            <Button onClick={handleSaveDraft} disabled={!postText.trim()} variant="secondary" className="gap-2">
-              <Eye className="h-4 w-4" />
-              Save as Draft
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleSaveDraft} disabled={!postText.trim()} variant="secondary" className="gap-2">
+                <Eye className="h-4 w-4" />
+                Save as Draft
+              </Button>
+              <Button
+                onClick={handleSendToSocial}
+                disabled={!postText.trim() || sendingToSocial}
+                className="gap-2"
+              >
+                {sendingToSocial ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+                Send to Social
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

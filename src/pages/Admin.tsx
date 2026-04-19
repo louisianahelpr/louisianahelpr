@@ -468,15 +468,15 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl border border-border bg-card p-2.5 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-xl border border-border bg-card p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
-      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-        <div className={cn("w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center", accentClasses)}>
-          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center", accentClasses)}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         {trend && (
           <span className={cn(
-            "text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
+            "text-xs sm:text-[11px] font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -484,8 +484,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-lg sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{label}</p>
+      <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
     </button>
   );
 };
@@ -528,7 +528,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       </div>
 
       {/* KPI Summary cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:gap-4">
 
         <KpiCard
           label="Total Users"
@@ -589,7 +589,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       {/* Financial Health — full width */}
       <div className="space-y-2 sm:space-y-3">
         <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:gap-4">
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />

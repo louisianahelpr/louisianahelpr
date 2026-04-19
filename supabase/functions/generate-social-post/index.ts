@@ -65,8 +65,22 @@ serve(async (req) => {
 
     const { action, message, image_url } = await req.json();
 
-    // Action: generate post (text + image)
+    // Determine alternation: look at last draft, flip media type
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Action: generate post (text + image OR video)
     if (action === "generate") {
+      // Decide media type — alternate from last draft
+      const { data: lastDraft } = await supabaseClient
+        .from("social_post_drafts")
+        .select("media_type")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextMediaType = lastDraft?.media_type === "image" ? "video" : "image";
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {

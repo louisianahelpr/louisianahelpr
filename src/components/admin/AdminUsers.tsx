@@ -1256,6 +1256,19 @@ const AdminUsers = () => {
               <div className="space-y-2 pt-4 border-t border-border">
                 <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
                 <div className="flex gap-2 flex-wrap">
+                {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 min-w-[160px]"
+                    onClick={() => resendVerificationEmail(viewProfile)}
+                    disabled={resending === viewProfile.id}
+                  >
+                    <MailIcon className="w-4 h-4 mr-1" />
+                    {resending === viewProfile.id
+                      ? "Sending…"
+                      : `Resend Verification${((viewProfile as any).verification_email_count || 0) > 0 ? ` (${(viewProfile as any).verification_email_count}/3)` : ""}`}
+                  </Button>
+                )}
                 {viewProfile.approval_status === "pending" && (
                   <>
                     <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, CheckCircle } from "lucide-react";
-import heroImg from "@/assets/hero-illustration-v5.webp";
+import heroImg from "@/assets/hero-illustration-v5-1000.webp";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -88,7 +88,16 @@ const HeroSection = () => {
             </div>
           </div>
           <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center md:items-center lg:justify-end lg:items-start">
-            <img src={heroImg} alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees" className="w-full h-auto rounded-2xl shadow-lg object-contain md:max-w-sm lg:max-w-md" loading="eager" width={1200} height={800} />
+            <img
+              src={heroImg}
+              alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
+              className="w-full h-auto rounded-2xl shadow-lg object-contain md:max-w-sm lg:max-w-md"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              width={1000}
+              height={1000}
+            />
           </div>
         </div>
       </div>

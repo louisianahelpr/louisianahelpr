@@ -368,6 +368,24 @@ const AdminUsers = () => {
     }
   };
 
+  const resendVerificationEmail = async (profile: Profile) => {
+    setResending(profile.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-resend-verification", {
+        body: { userId: profile.user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Verification email resent");
+      loadProfiles();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend verification email");
+      console.error(err);
+    } finally {
+      setResending(null);
+    }
+  };
+
   const handleBanAction = async () => {
     if (!banProfile) return;
     setBanning(true);
@@ -815,12 +833,32 @@ const AdminUsers = () => {
                 </div>
               </div>
               {((p.approval_status === "pending" && !isVerifiedEmail(p)) || (p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p))) && (
-                <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
                   {p.approval_status === "pending" && !isVerifiedEmail(p) && (
-                    <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-muted text-muted-foreground border-border">
-                      <MailIcon className="w-3 h-3" />
-                      Awaiting email verification
-                    </Badge>
+                    <>
+                      <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-muted text-muted-foreground border-border">
+                        <MailIcon className="w-3 h-3" />
+                        Awaiting email verification
+                        {((p as any).verification_email_count || 0) > 0 && (
+                          <span className="ml-1 opacity-70">
+                            · {(p as any).verification_email_count}/3 sent
+                          </span>
+                        )}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px] gap-1"
+                        disabled={resending === p.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resendVerificationEmail(p);
+                        }}
+                      >
+                        <MailIcon className="w-3 h-3" />
+                        {resending === p.id ? "Sending…" : "Resend now"}
+                      </Button>
+                    </>
                   )}
                   {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (
                     <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-accent/10 text-accent-foreground border-accent/30">

@@ -1595,10 +1595,10 @@ const AdminUsers = () => {
                       const maxReached = sent >= 3;
                       const activeLabel = idvVerified
                         ? "ID verified"
-                        : hasStripe
-                        ? "Stripe payout connected"
                         : hasLoggedIn
                         ? "Active — has logged in"
+                        : hasStripe
+                        ? "Stripe payout connected"
                         : "Has opened approval email";
                       return (
                         <>

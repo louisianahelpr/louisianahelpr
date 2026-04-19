@@ -777,7 +777,7 @@ const AdminUsers = () => {
   const approvedCount = profiles.filter(
     (p) => p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""),
   ).length;
-  const deniedCount = profiles.filter((p) => p.approval_status === "denied").length;
+  const deniedCount = profiles.filter((p) => p.approval_status === "denied" && p.role !== "customer").length;
   const allCount = profiles.length;
 
   const tabs: { key: Tab; label: string; count: number }[] = [

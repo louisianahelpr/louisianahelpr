@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, MessageCircle, User as UserIcon, Briefcase } from "lucide-react";
+import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, MessageCircle, User as UserIcon, Briefcase, MapPin, CreditCard, Flag, DollarSign } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -89,6 +89,12 @@ const AdminUsers = () => {
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
   // Per-user pay totals: earned (as helper) + spent (as poster)
   const [paySummary, setPaySummary] = useState<Record<string, number>>({});
+  // Per-user rating summary: { avg, count }
+  const [ratingSummary, setRatingSummary] = useState<Record<string, { avg: number; count: number }>>({});
+  // Per-user completed jobs (helper or poster)
+  const [jobsCompletedSummary, setJobsCompletedSummary] = useState<Record<string, number>>({});
+  // Per-user open reports/disputes count (filed against them)
+  const [openReportsSummary, setOpenReportsSummary] = useState<Record<string, number>>({});
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,8 +144,65 @@ const AdminUsers = () => {
       loadStrikesSummary(ids);
       loadActivitySummary(ids);
       loadPaySummary(ids);
+      loadRatingSummary(ids);
+      loadJobsCompletedSummary(ids);
+      loadOpenReportsSummary(ids);
     }
     setLoading(false);
+  };
+
+  const loadRatingSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await supabase
+      .from("reviews")
+      .select("reviewee_id, rating")
+      .in("reviewee_id", userIds);
+    if (!data) return;
+    const agg: Record<string, { sum: number; count: number }> = {};
+    for (const r of data as any[]) {
+      if (!agg[r.reviewee_id]) agg[r.reviewee_id] = { sum: 0, count: 0 };
+      agg[r.reviewee_id].sum += Number(r.rating) || 0;
+      agg[r.reviewee_id].count += 1;
+    }
+    const out: Record<string, { avg: number; count: number }> = {};
+    for (const uid of Object.keys(agg)) {
+      out[uid] = { avg: agg[uid].sum / agg[uid].count, count: agg[uid].count };
+    }
+    setRatingSummary(out);
+  };
+
+  const loadJobsCompletedSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await supabase
+      .from("jobs")
+      .select("helper_id, customer_id, status")
+      .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
+      .eq("status", "completed");
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    for (const j of data as any[]) {
+      if (j.helper_id && userIds.includes(j.helper_id)) counts[j.helper_id] = (counts[j.helper_id] || 0) + 1;
+      if (j.customer_id && userIds.includes(j.customer_id)) counts[j.customer_id] = (counts[j.customer_id] || 0) + 1;
+    }
+    setJobsCompletedSummary(counts);
+  };
+
+  const loadOpenReportsSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    // Reports filed against the user that are still pending
+    const [reportsRes, disputesRes] = await Promise.all([
+      supabase.from("reports").select("reported_id, status").in("reported_id", userIds).neq("status", "resolved"),
+      supabase.from("jobs").select("customer_id, helper_id, dispute_status").in("dispute_status", ["open", "under_review"]),
+    ]);
+    const counts: Record<string, number> = {};
+    (reportsRes.data as any[] | null)?.forEach((r) => {
+      counts[r.reported_id] = (counts[r.reported_id] || 0) + 1;
+    });
+    (disputesRes.data as any[] | null)?.forEach((j) => {
+      if (j.customer_id && userIds.includes(j.customer_id)) counts[j.customer_id] = (counts[j.customer_id] || 0) + 1;
+      if (j.helper_id && userIds.includes(j.helper_id)) counts[j.helper_id] = (counts[j.helper_id] || 0) + 1;
+    });
+    setOpenReportsSummary(counts);
   };
 
   const loadPaySummary = async (userIds: string[]) => {
@@ -920,18 +983,33 @@ const AdminUsers = () => {
           {filtered.map((p) => (
             <div key={p.id} className="rounded-xl border border-border bg-card p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
               <div className="flex items-start gap-3">
-                {p.avatar_url ? (
-                  <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium flex-shrink-0">
-                    {formatName(p.full_name, "?")[0]?.toUpperCase()}
-                  </div>
-                )}
+                {(() => {
+                  const lastLogin = lastLoginSummary[p.user_id];
+                  const isOnline = lastLogin
+                    ? (Date.now() - new Date(lastLogin).getTime()) < 24 * 60 * 60 * 1000
+                    : false;
+                  return (
+                    <div className="relative flex-shrink-0">
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium">
+                          {formatName(p.full_name, "?")[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      {isOnline && (
+                        <span
+                          className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-card"
+                          title="Active in last 24h"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
                     {statusBadge(p)}
-                    {stripeBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
                   {/* Pending wait-time countdown — only shown in Pending tab */}
@@ -955,61 +1033,135 @@ const AdminUsers = () => {
                       </Badge>
                     );
                   })()}
-                  {/* Standing + Last login row */}
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
-                    {(() => {
-                      // Denied users show denial reason instead of standing
-                      if (p.approval_status === "denied") {
-                        const reason = (p as any).denial_reason;
-                        return (
-                          <span className="font-medium text-destructive truncate max-w-full">
-                            Denied: {reason ? reason : "No reason on file"}
-                          </span>
-                        );
-                      }
-                      // No standing for users who haven't verified their email — they're not active
-                      if (!isVerifiedEmail(p)) {
-                        return null;
-                      }
-                      const strikes = strikesSummary[p.user_id] || 0;
-                      const standingClass = strikes === 0
-                        ? "text-primary"
-                        : strikes >= 3 ? "text-destructive" : "text-accent-foreground";
-                      const standingLabel = strikes === 0
-                        ? "Good"
-                        : `${strikes} Strike${strikes > 1 ? "s" : ""}`;
-                      return (
-                        <span className={`font-medium ${standingClass}`}>
-                          Standing: {standingLabel}
-                        </span>
-                      );
-                    })()}
-                    {(() => {
-                      // Skip last-login entirely for unverified users — they can't log in yet
-                      if (!isVerifiedEmail(p)) {
-                        return null;
-                      }
-                      const lastLogin = lastLoginSummary[p.user_id];
-                      const isApproved = p.approval_status === "approved";
-                      if (isApproved && !lastLogin) {
-                        return (
-                          <span className="font-semibold text-destructive">
-                            Never logged in since approval
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="text-muted-foreground">
-                          Last login: {lastLogin
-                            ? formatDistanceToNow(new Date(lastLogin), { addSuffix: true })
-                            : "never"}
-                        </span>
-                      );
-                    })()}
-                    <span className="text-muted-foreground">
-                      Joined: {new Date(p.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
+
+                  {/* Denial reason — surfaced prominently for denied users */}
+                  {p.approval_status === "denied" && (
+                    <p className="text-[11px] font-medium text-destructive truncate mt-1" title={(p as any).denial_reason || "No reason on file"}>
+                      Denied: {(p as any).denial_reason || "No reason on file"}
+                    </p>
+                  )}
+
+                  {/* Meta chips — only for verified users */}
+                  {isVerifiedEmail(p) && p.approval_status !== "denied" && (() => {
+                    const strikes = strikesSummary[p.user_id] || 0;
+                    const rating = ratingSummary[p.user_id];
+                    const jobsDone = jobsCompletedSummary[p.user_id] || 0;
+                    const ltv = paySummary[p.user_id] || 0;
+                    const openReports = openReportsSummary[p.user_id] || 0;
+                    const lastLogin = lastLoginSummary[p.user_id];
+                    const isApproved = p.approval_status === "approved";
+                    const neverLoggedIn = isApproved && !lastLogin;
+                    const hasIdv = (p as any).idv_status === "verified";
+                    const hasStripe = !!(p as any).stripe_account_id;
+                    const isHelper = p.role !== "customer";
+                    const parish = (p as any).parish;
+
+                    const chip = (key: string, content: React.ReactNode, tone = "bg-secondary/40 text-muted-foreground") => (
+                      <span key={key} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10.5px] font-medium ${tone}`}>
+                        {content}
+                      </span>
+                    );
+
+                    return (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {/* Standing — neutral when good, alarming when not */}
+                        {chip(
+                          "standing",
+                          <>
+                            <ShieldCheck className="w-3 h-3" />
+                            {strikes === 0 ? "Good" : `${strikes} Strike${strikes > 1 ? "s" : ""}`}
+                          </>,
+                          strikes === 0
+                            ? "bg-primary/10 text-primary"
+                            : strikes >= 3
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-accent/20 text-accent-foreground"
+                        )}
+
+                        {/* Open reports/disputes — only show when present */}
+                        {openReports > 0 && chip(
+                          "reports",
+                          <>
+                            <Flag className="w-3 h-3" />
+                            {openReports} open
+                          </>,
+                          "bg-destructive/15 text-destructive"
+                        )}
+
+                        {/* Rating + count (helpers especially, but show for anyone with reviews) */}
+                        {rating && rating.count > 0 && chip(
+                          "rating",
+                          <>
+                            <Star className="w-3 h-3 fill-current" />
+                            {rating.avg.toFixed(1)} ({rating.count})
+                          </>
+                        )}
+
+                        {/* Jobs completed */}
+                        {jobsDone > 0 && chip(
+                          "jobs",
+                          <>
+                            <Briefcase className="w-3 h-3" />
+                            {jobsDone} job{jobsDone > 1 ? "s" : ""}
+                          </>
+                        )}
+
+                        {/* Lifetime value (earned for helpers, spent for customers) */}
+                        {ltv > 0 && chip(
+                          "ltv",
+                          <>
+                            <DollarSign className="w-3 h-3" />
+                            {ltv >= 1000 ? `${(ltv / 1000).toFixed(1)}k` : Math.round(ltv)}
+                          </>
+                        )}
+
+                        {/* Parish — moderation/location signal */}
+                        {parish && chip(
+                          "parish",
+                          <>
+                            <MapPin className="w-3 h-3" />
+                            {parish}
+                          </>
+                        )}
+
+                        {/* Online / last seen */}
+                        {neverLoggedIn ? chip(
+                          "online",
+                          <>
+                            <Clock className="w-3 h-3" />
+                            Never logged in
+                          </>,
+                          "bg-destructive/15 text-destructive font-semibold"
+                        ) : lastLogin && chip(
+                          "online",
+                          <>
+                            <Clock className="w-3 h-3" />
+                            {formatDistanceToNow(new Date(lastLogin), { addSuffix: true })}
+                          </>
+                        )}
+
+                        {/* IDV verified — small icon-only chip for helpers */}
+                        {isHelper && hasIdv && chip(
+                          "idv",
+                          <>
+                            <ShieldCheck className="w-3 h-3" />
+                            ID
+                          </>,
+                          "bg-primary/10 text-primary"
+                        )}
+
+                        {/* Stripe connected — icon-only chip for helpers */}
+                        {isHelper && hasStripe && chip(
+                          "stripe",
+                          <>
+                            <CreditCard className="w-3 h-3" />
+                            Payout
+                          </>,
+                          "bg-primary/10 text-primary"
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (

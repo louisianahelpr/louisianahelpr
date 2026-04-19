@@ -194,7 +194,7 @@ const AdminSocialPost = () => {
               <Button
                 onClick={handleSendToSocial}
                 disabled={!postText.trim() || sendingToSocial}
-                className="gap-2 bg-green-600 hover:bg-green-700"
+                className="gap-2"
               >
                 {sendingToSocial ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

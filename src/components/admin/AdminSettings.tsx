@@ -16,6 +16,8 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 const AdminSettings = () => {
   const [customerFee, setCustomerFee] = useState("");
   const [helperFee, setHelperFee] = useState("");
+  const [socialWebhookUrl, setSocialWebhookUrl] = useState("");
+  const [savingWebhook, setSavingWebhook] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,9 +46,30 @@ const AdminSettings = () => {
     if (data) {
       setCustomerFee(String((data as any).customer_fee_percent ?? 10));
       setHelperFee(String((data as any).helper_fee_percent ?? 10));
+      setSocialWebhookUrl(String((data as any).social_webhook_url ?? ""));
       setSettingsId(data.id);
     }
     setLoading(false);
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!settingsId) return;
+    const url = socialWebhookUrl.trim();
+    if (url && !/^https?:\/\//i.test(url)) {
+      toast.error("Webhook URL must start with http:// or https://");
+      return;
+    }
+    setSavingWebhook(true);
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({ social_webhook_url: url || null } as any)
+      .eq("id", settingsId);
+    setSavingWebhook(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Webhook URL saved!");
+      await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
+    }
   };
 
   const loadAdmins = async () => {

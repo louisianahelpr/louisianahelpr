@@ -212,11 +212,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       {/* Notes list */}
       {loading ? (
         <p className="text-xs text-muted-foreground py-2">Loading notes…</p>
-      ) : notes.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border bg-card/40 p-4 text-center">
-          <p className="text-xs text-muted-foreground">No notes yet for this user.</p>
-        </div>
-      ) : (
+      ) : notes.length === 0 ? null : (
         <div className="space-y-2">
           {notes.map((n) => {
             const isOwner = currentAdminId === n.admin_id;

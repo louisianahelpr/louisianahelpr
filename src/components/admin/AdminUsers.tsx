@@ -783,6 +783,19 @@ const AdminUsers = () => {
       const bJoined = new Date(b.created_at || 0).getTime();
       return sortDir === "joined_new" ? bJoined - aJoined : aJoined - bJoined;
     }
+    if (sortDir === "never_logged_in") {
+      // Never-logged-in users first, then those with the oldest signup date among them.
+      // Logged-in users fall to the bottom, sorted by most recent login last.
+      const aLogin = lastLoginSummary[a.user_id];
+      const bLogin = lastLoginSummary[b.user_id];
+      if (!aLogin && !bLogin) {
+        // Both never logged in — oldest signups first (most concerning)
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      }
+      if (!aLogin) return -1;
+      if (!bLogin) return 1;
+      return new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;

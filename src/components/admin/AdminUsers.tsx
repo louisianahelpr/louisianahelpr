@@ -211,8 +211,9 @@ const AdminUsers = () => {
     setEmailSendStats([]);
     setProfileJobs([]);
 
-    const [reviewsRes, violationsRes, bansRes, trackingRes, sendLogRes, jobsRes] = await Promise.all([
-      supabase.from("reviews").select("rating, feedback, reviewer_id").eq("reviewee_id", profile.user_id),
+    const [reviewsRes, reviewsLeftRes, violationsRes, bansRes, trackingRes, sendLogRes, jobsRes] = await Promise.all([
+      supabase.from("reviews").select("rating, feedback, reviewer_id, created_at, job_id").eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
+      supabase.from("reviews").select("rating, feedback, reviewee_id, created_at, job_id").eq("reviewer_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       (supabase.from("email_tracking" as any) as any).select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),

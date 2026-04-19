@@ -136,9 +136,6 @@ const App = () => (
             </Suspense>
           </div>
           <MobileNav />
-          <Suspense fallback={null}>
-            <InstallPrompt />
-          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

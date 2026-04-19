@@ -144,8 +144,65 @@ const AdminUsers = () => {
       loadStrikesSummary(ids);
       loadActivitySummary(ids);
       loadPaySummary(ids);
+      loadRatingSummary(ids);
+      loadJobsCompletedSummary(ids);
+      loadOpenReportsSummary(ids);
     }
     setLoading(false);
+  };
+
+  const loadRatingSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await supabase
+      .from("reviews")
+      .select("reviewee_id, rating")
+      .in("reviewee_id", userIds);
+    if (!data) return;
+    const agg: Record<string, { sum: number; count: number }> = {};
+    for (const r of data as any[]) {
+      if (!agg[r.reviewee_id]) agg[r.reviewee_id] = { sum: 0, count: 0 };
+      agg[r.reviewee_id].sum += Number(r.rating) || 0;
+      agg[r.reviewee_id].count += 1;
+    }
+    const out: Record<string, { avg: number; count: number }> = {};
+    for (const uid of Object.keys(agg)) {
+      out[uid] = { avg: agg[uid].sum / agg[uid].count, count: agg[uid].count };
+    }
+    setRatingSummary(out);
+  };
+
+  const loadJobsCompletedSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    const { data } = await supabase
+      .from("jobs")
+      .select("helper_id, customer_id, status")
+      .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
+      .eq("status", "completed");
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    for (const j of data as any[]) {
+      if (j.helper_id && userIds.includes(j.helper_id)) counts[j.helper_id] = (counts[j.helper_id] || 0) + 1;
+      if (j.customer_id && userIds.includes(j.customer_id)) counts[j.customer_id] = (counts[j.customer_id] || 0) + 1;
+    }
+    setJobsCompletedSummary(counts);
+  };
+
+  const loadOpenReportsSummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    // Reports filed against the user that are still pending
+    const [reportsRes, disputesRes] = await Promise.all([
+      supabase.from("reports").select("reported_id, status").in("reported_id", userIds).neq("status", "resolved"),
+      supabase.from("jobs").select("customer_id, helper_id, dispute_status").in("dispute_status", ["open", "under_review"]),
+    ]);
+    const counts: Record<string, number> = {};
+    (reportsRes.data as any[] | null)?.forEach((r) => {
+      counts[r.reported_id] = (counts[r.reported_id] || 0) + 1;
+    });
+    (disputesRes.data as any[] | null)?.forEach((j) => {
+      if (j.customer_id && userIds.includes(j.customer_id)) counts[j.customer_id] = (counts[j.customer_id] || 0) + 1;
+      if (j.helper_id && userIds.includes(j.helper_id)) counts[j.helper_id] = (counts[j.helper_id] || 0) + 1;
+    });
+    setOpenReportsSummary(counts);
   };
 
   const loadPaySummary = async (userIds: string[]) => {

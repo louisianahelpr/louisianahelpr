@@ -86,10 +86,12 @@ const AdminUsers = () => {
   const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
   // Per-user last login time
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
+  // Per-user pay totals: earned (as helper) + spent (as poster)
+  const [paySummary, setPaySummary] = useState<Record<string, number>>({});
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low">("desc");
 
   const loadProfiles = async () => {
     const { data } = await supabase

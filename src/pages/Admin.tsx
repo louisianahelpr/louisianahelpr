@@ -378,7 +378,9 @@ const Admin = () => {
             </div>
           </header>
 
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          <main
+            className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-8"
+          >
             {view !== "home" && (
               <div className="mb-5 sm:mb-6 flex items-center gap-2">
                 <Button

@@ -786,6 +786,8 @@ const AdminUsers = () => {
             <SelectItem value="desc">Most Recent</SelectItem>
             <SelectItem value="asc">Longest Inactive</SelectItem>
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
+            <SelectItem value="pay_high">Pay: High → Low</SelectItem>
+            <SelectItem value="pay_low">Pay: Low → High</SelectItem>
             {tab === "approved" && (
               <>
                 <SelectItem value="standing_worst">Standing: Worst First</SelectItem>

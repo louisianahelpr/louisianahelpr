@@ -656,6 +656,14 @@ const AdminUsers = () => {
       const bPay = paySummary[b.user_id] || 0;
       return sortDir === "pay_high" ? bPay - aPay : aPay - bPay;
     }
+    const aLogin = lastLoginSummary[a.user_id];
+    const bLogin = lastLoginSummary[b.user_id];
+    if (!aLogin && !bLogin) return 0;
+    if (!aLogin) return 1;
+    if (!bLogin) return -1;
+    const diff = new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    return sortDir === "desc" ? diff : -diff;
+  });
 
   const pendingCount = profiles.filter(isPendingReview).length;
   const awaitingEmailCount = profiles.filter(isAwaitingEmail).length;

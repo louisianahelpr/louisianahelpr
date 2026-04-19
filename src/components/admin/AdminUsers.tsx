@@ -967,86 +967,6 @@ const AdminUsers = () => {
                 </div>
               </div>
 
-              {/* Bio — full width below header */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
-                <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
-                  {viewProfile.bio || "Not provided"}
-                </p>
-              </div>
-
-              {/* Info Grid — always show all fields */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
-                    <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
-                    <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-                    <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
-                      {(viewProfile as any).date_of_birth
-                        ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                        : "Not provided"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
-                    <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
-                    <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Skills — always show */}
-              <div className="space-y-2">
-                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Skills</h4>
-                {viewProfile.skills ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {viewProfile.skills.split(",").map((skill, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Not provided</p>
-                )}
-              </div>
-
-              {/* Signup Answers — always show all fields */}
-              {(() => {
-                const p = viewProfile as any;
-                const fields = [
-                  { label: "Availability", value: p.availability },
-                  { label: "Transportation", value: p.transportation },
-                  { label: "Experience Level", value: p.experience_level },
-                  { label: "Tools / Equipment", value: p.tools_equipment },
-                  { label: "Preferred Job Radius", value: p.job_radius },
-                  { label: "How They Heard About Us", value: p.hear_about_us },
-                  { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
-                  { label: "Extra Comments", value: p.extra_comments },
-                ];
-                return (
-                  <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
-                      {fields.map((f, i) => (
-                        <div key={i}>
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
-                          <p className={`text-sm font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* ID Document — always show */}
               <div className="space-y-2">
@@ -1250,6 +1170,87 @@ const AdminUsers = () => {
                   </div>
                 )}
               </div>
+
+              {/* Bio — moved to bottom */}
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
+                <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
+                  {viewProfile.bio || "Not provided"}
+                </p>
+              </div>
+
+              {/* Info Grid — moved to bottom */}
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
+                    <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
+                    <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
+                    <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
+                      {(viewProfile as any).date_of_birth
+                        ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                        : "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
+                    <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
+                    <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills — moved to bottom */}
+              <div className="space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Skills</h4>
+                {viewProfile.skills ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewProfile.skills.split(",").map((skill, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Not provided</p>
+                )}
+              </div>
+
+              {/* Signup Answers — moved to bottom */}
+              {(() => {
+                const p = viewProfile as any;
+                const fields = [
+                  { label: "Experience Level", value: p.experience_level },
+                  { label: "Availability", value: p.availability },
+                  { label: "Transportation", value: p.transportation },
+                  { label: "Tools / Equipment", value: p.tools_equipment },
+                  { label: "Preferred Job Radius", value: p.job_radius },
+                  { label: "How They Heard About Us", value: p.hear_about_us },
+                  { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
+                  { label: "Extra Comments", value: p.extra_comments },
+                ];
+                return (
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                      {fields.map((f, i) => (
+                        <div key={i}>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
+                          <p className={`text-sm font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Action buttons — primary lifecycle */}
               <div className="space-y-2 pt-4 border-t border-border">

@@ -1064,18 +1064,26 @@ const AdminUsers = () => {
 
                     return (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {/* Standing — neutral when good, alarming when not */}
+                        {/* Standing — shows the specific strike level they received */}
                         {chip(
                           "standing",
                           <>
                             <ShieldCheck className="w-3 h-3" />
-                            {strikes === 0 ? "Good" : `${strikes} Strike${strikes > 1 ? "s" : ""}`}
+                            {strikes === 0
+                              ? "Good"
+                              : strikes === 1
+                                ? "1st Strike"
+                                : strikes === 2
+                                  ? "Final Warning"
+                                  : "Banned"}
                           </>,
                           strikes === 0
                             ? "bg-primary/10 text-primary"
                             : strikes >= 3
                               ? "bg-destructive/15 text-destructive"
-                              : "bg-accent/20 text-accent-foreground"
+                              : strikes === 2
+                                ? "bg-destructive/15 text-destructive"
+                                : "bg-accent/20 text-accent-foreground"
                         )}
 
                         {/* Open reports/disputes — only show when present */}

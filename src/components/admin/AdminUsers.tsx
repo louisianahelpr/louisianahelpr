@@ -729,9 +729,12 @@ const AdminUsers = () => {
     return sortDir === "desc" ? diff : -diff;
   });
 
-  const pendingCount = profiles.filter(isPendingReview).length;
-  const awaitingEmailCount = profiles.filter(isAwaitingEmail).length;
-  const bannedCount = profiles.filter((p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")).length;
+  const isUnseen = (p: Profile) => !seenUserIds.has(p.user_id);
+  const pendingCount = profiles.filter((p) => isPendingReview(p) && isUnseen(p)).length;
+  const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p) && isUnseen(p)).length;
+  const bannedCount = profiles.filter(
+    (p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") && isUnseen(p),
+  ).length;
 
   const statusBadge = (profile: Profile) => {
     const banStatus = (profile as any).ban_status || "active";

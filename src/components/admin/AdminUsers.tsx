@@ -648,7 +648,7 @@ const AdminUsers = () => {
     if (tab === "pending" && !isPendingReview(p)) return false;
     else if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
     else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""))) return false;
-    else if (tab === "denied" && p.approval_status !== "denied") return false;
+    else if (tab === "denied" && (p.approval_status !== "denied" || p.role === "customer")) return false;
     else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
 
     // Search by name (also matches email for convenience)

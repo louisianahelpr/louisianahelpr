@@ -533,11 +533,10 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       <div className="grid grid-cols-2 gap-4 sm:gap-4">
 
         <KpiCard
-          label="Total Users"
-          value={v(stats.totalUsers.toLocaleString())}
+          label="Pending Users"
+          value={v(stats.pendingApprovals.toLocaleString())}
           icon={Users}
-          trend={userTrend}
-          accent="primary"
+          accent="accent"
           onClick={() => onNavigate("people")}
         />
         <KpiCard

@@ -275,7 +275,7 @@ serve(async (req) => {
       });
     }
 
-    // Notify all admins about the new signup
+    // Notify all admins about the new signup (deduped: skip if we already sent one for this user in the last 24h)
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -283,25 +283,38 @@ serve(async (req) => {
         .eq("user_id", userId)
         .single();
 
-      const { data: admins } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
+      const userName = profile?.full_name || "Someone";
+      const userLocation = profile?.location ? ` from ${profile.location}` : "";
+      const userRole = profile?.role || "user";
+      const notifMessage = `${userName}${userLocation} just signed up as a ${userRole}. Tap to review their profile.`;
 
-      if (admins?.length) {
-        const userName = profile?.full_name || "Someone";
-        const userLocation = profile?.location ? ` from ${profile.location}` : "";
-        const userRole = profile?.role || "user";
+      // Dedupe: skip if an identical notification was sent in the last 24h
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: existing } = await supabase
+        .from("notifications")
+        .select("id")
+        .eq("title", "👤 New signup pending review")
+        .eq("message", notifMessage)
+        .gte("created_at", since)
+        .limit(1);
 
-        const adminNotifs = admins.map((admin: { user_id: string }) => ({
-          user_id: admin.user_id,
-          title: "👤 New signup pending review",
-          message: `${userName}${userLocation} just signed up as a ${userRole}. Tap to review their profile.`,
-          type: "info",
-          link: "/admin",
-        }));
+      if (!existing?.length) {
+        const { data: admins } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
 
-        await supabase.from("notifications").insert(adminNotifs);
+        if (admins?.length) {
+          const adminNotifs = admins.map((admin: { user_id: string }) => ({
+            user_id: admin.user_id,
+            title: "👤 New signup pending review",
+            message: notifMessage,
+            type: "info",
+            link: "/admin",
+          }));
+
+          await supabase.from("notifications").insert(adminNotifs);
+        }
       }
     } catch (notifErr) {
       console.error("Failed to notify admins:", notifErr);

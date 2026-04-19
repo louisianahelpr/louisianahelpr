@@ -611,6 +611,20 @@ const AdminUsers = () => {
       const bName = (b.full_name || b.email || "").toLowerCase();
       return aName.localeCompare(bName);
     }
+    if (sortDir === "standing_worst" || sortDir === "standing_best") {
+      const aStrikes = strikesSummary[a.user_id] || 0;
+      const bStrikes = strikesSummary[b.user_id] || 0;
+      if (aStrikes !== bStrikes) {
+        return sortDir === "standing_worst" ? bStrikes - aStrikes : aStrikes - bStrikes;
+      }
+      // Tiebreaker: most recent login
+      const aLogin = lastLoginSummary[a.user_id];
+      const bLogin = lastLoginSummary[b.user_id];
+      if (!aLogin && !bLogin) return 0;
+      if (!aLogin) return 1;
+      if (!bLogin) return -1;
+      return new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;

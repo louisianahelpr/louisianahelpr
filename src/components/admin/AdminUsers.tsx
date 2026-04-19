@@ -189,10 +189,19 @@ const AdminUsers = () => {
 
   const loadOpenReportsSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    // Reports filed against the user that are still pending
+    // Reports filed against the user that are still pending (exclude resolved/dismissed)
+    // Disputes: only count those still open AND not yet marked resolved.
     const [reportsRes, disputesRes] = await Promise.all([
-      supabase.from("reports").select("reported_id, status").in("reported_id", userIds).neq("status", "resolved"),
-      supabase.from("jobs").select("customer_id, helper_id, dispute_status").in("dispute_status", ["open", "under_review"]),
+      supabase
+        .from("reports")
+        .select("reported_id, status")
+        .in("reported_id", userIds)
+        .not("status", "in", "(resolved,dismissed)"),
+      supabase
+        .from("jobs")
+        .select("customer_id, helper_id, dispute_status, dispute_resolved_at")
+        .in("dispute_status", ["open", "under_review", "helper_responded"])
+        .is("dispute_resolved_at", null),
     ]);
     const counts: Record<string, number> = {};
     (reportsRes.data as any[] | null)?.forEach((r) => {

@@ -1,0 +1,1 @@
+ALTER TABLE public.social_post_drafts ADD COLUMN IF NOT EXISTS voiceover_url text;

@@ -942,8 +942,8 @@ const AdminUsers = () => {
 
 
 
-              <Tabs defaultValue="actions" className="w-full">
-                <TabsList className="grid grid-cols-4 w-full">
+              <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
+                <TabsList className="grid grid-cols-4 w-full flex-shrink-0">
                   <TabsTrigger value="actions" className="text-xs sm:text-sm">Actions</TabsTrigger>
                   <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
                   <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
@@ -951,7 +951,7 @@ const AdminUsers = () => {
                 </TabsList>
 
                 {/* ===== OVERVIEW TAB ===== */}
-                <TabsContent value="overview" className="space-y-6 mt-4">
+                <TabsContent value="overview" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Bio */}
                   <div className="space-y-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>

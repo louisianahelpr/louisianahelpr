@@ -86,10 +86,12 @@ const AdminUsers = () => {
   const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
   // Per-user last login time
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
+  // Per-user pay totals: earned (as helper) + spent (as poster)
+  const [paySummary, setPaySummary] = useState<Record<string, number>>({});
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low">("desc");
 
   const loadProfiles = async () => {
     const { data } = await supabase
@@ -103,8 +105,33 @@ const AdminUsers = () => {
       loadNotesSummary(ids);
       loadStrikesSummary(ids);
       loadActivitySummary(ids);
+      loadPaySummary(ids);
     }
     setLoading(false);
+  };
+
+  const loadPaySummary = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    // Pull only completed/escrowed jobs for pay totals
+    const { data } = await supabase
+      .from("jobs")
+      .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")
+      .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
+      .in("payment_status", ["escrow", "payout_pending", "released"]);
+    if (!data) return;
+    const totals: Record<string, number> = {};
+    for (const j of data as any[]) {
+      const budget = Number(j.budget) || 0;
+      if (j.helper_id && userIds.includes(j.helper_id)) {
+        const fee = (Number(j.helper_fee_percent) || 10) / 100;
+        totals[j.helper_id] = (totals[j.helper_id] || 0) + budget * (1 - fee);
+      }
+      if (j.customer_id && userIds.includes(j.customer_id)) {
+        totals[j.customer_id] = (totals[j.customer_id] || 0)
+          + budget + (Number(j.customer_fee_amount) || 0) + (Number(j.sales_tax_amount) || 0);
+      }
+    }
+    setPaySummary(totals);
   };
 
   const loadStrikesSummary = async (userIds: string[]) => {
@@ -625,6 +652,11 @@ const AdminUsers = () => {
       if (!bLogin) return -1;
       return new Date(bLogin).getTime() - new Date(aLogin).getTime();
     }
+    if (sortDir === "pay_high" || sortDir === "pay_low") {
+      const aPay = paySummary[a.user_id] || 0;
+      const bPay = paySummary[b.user_id] || 0;
+      return sortDir === "pay_high" ? bPay - aPay : aPay - bPay;
+    }
     const aLogin = lastLoginSummary[a.user_id];
     const bLogin = lastLoginSummary[b.user_id];
     if (!aLogin && !bLogin) return 0;
@@ -754,6 +786,8 @@ const AdminUsers = () => {
             <SelectItem value="desc">Most Recent</SelectItem>
             <SelectItem value="asc">Longest Inactive</SelectItem>
             <SelectItem value="alpha">Alphabetical (A–Z)</SelectItem>
+            <SelectItem value="pay_high">Pay: High → Low</SelectItem>
+            <SelectItem value="pay_low">Pay: Low → High</SelectItem>
             {tab === "approved" && (
               <>
                 <SelectItem value="standing_worst">Standing: Worst First</SelectItem>
@@ -1165,14 +1199,6 @@ const AdminUsers = () => {
                               <SelectItem value="all">All Jobs</SelectItem>
                               <SelectItem value="worked">Worked (Helper)</SelectItem>
                               <SelectItem value="posted">Posted (Customer)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select value={jobsSort} onValueChange={(v: any) => setJobsSort(v)}>
-                            <SelectTrigger className="h-8 text-xs w-[170px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="recent">Most Recent</SelectItem>
-                              <SelectItem value="earnings_desc">Earnings: High → Low</SelectItem>
-                              <SelectItem value="earnings_asc">Earnings: Low → High</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

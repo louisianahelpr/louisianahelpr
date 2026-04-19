@@ -1012,8 +1012,8 @@ const AdminUsers = () => {
                     {statusBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
-                  {/* Pending wait-time countdown — only shown in Pending tab */}
-                  {tab === "pending" && isPendingReview(p) && (() => {
+                  {/* Wait-time countdown — shown for both pending review and awaiting-email-verification */}
+                  {(tab === "pending" || tab === "awaiting_email") && (isPendingReview(p) || isAwaitingEmail(p)) && (() => {
                     const waitMs = Date.now() - new Date(p.created_at).getTime();
                     const waitHours = waitMs / (1000 * 60 * 60);
                     const waitDays = Math.floor(waitHours / 24);

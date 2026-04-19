@@ -1293,6 +1293,25 @@ const AdminUsers = () => {
                           </div>
                         </div>
 
+                        {/* Stripe payout connection status */}
+                        {(() => {
+                          const hasStripe = !!(viewProfile as any).stripe_account_id;
+                          return (
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
+                              hasStripe
+                                ? "bg-primary/5 border-primary/20 text-primary"
+                                : "bg-muted/50 border-border text-muted-foreground"
+                            }`}>
+                              {hasStripe ? (
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              ) : (
+                                <XCircle className="w-3.5 h-3.5" />
+                              )}
+                              {hasStripe ? "Stripe payout connected" : "Stripe payout not connected"}
+                            </div>
+                          );
+                        })()}
+
                         {/* Filters */}
                         <div className="flex justify-center">
                           <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
@@ -1644,10 +1663,10 @@ const AdminUsers = () => {
                       const maxReached = sent >= 3;
                       const activeLabel = idvVerified
                         ? "ID verified"
-                        : hasStripe
-                        ? "Stripe payout connected"
                         : hasLoggedIn
                         ? "Active — has logged in"
+                        : hasStripe
+                        ? "Stripe payout connected"
                         : "Has opened approval email";
                       return (
                         <>
@@ -1669,18 +1688,9 @@ const AdminUsers = () => {
                               {activeLabel}
                             </div>
                           )}
-                          <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                            onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                            <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
-                          </Button>
                         </>
                       );
                     })()}
-                    {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                      <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
-                      </Button>
-                    )}
                     </div>
                   </div>
 
@@ -1703,6 +1713,15 @@ const AdminUsers = () => {
                       <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
                         <History className="w-4 h-4 mr-1.5" /> View History
                       </Button>
+                      {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
+                        <Button variant="outline" size="sm" className="h-9 justify-start text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                          <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => unbanUser(viewProfile)}>
+                          <CheckCircle2 className="w-4 h-4 mr-1.5 text-primary" /> Lift Ban
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setDeleteProfile(viewProfile)}>
                         <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
                       </Button>

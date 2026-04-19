@@ -742,14 +742,30 @@ const AdminUsers = () => {
 
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
+  const approvedCount = profiles.filter(
+    (p) => p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""),
+  ).length;
+  const deniedCount = profiles.filter((p) => p.approval_status === "denied").length;
+  const allCount = profiles.length;
+
+  const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "pending", label: "Pending", count: pendingCount },
     { key: "awaiting_email", label: "Email", count: awaitingEmailCount },
-    { key: "approved", label: "Active" },
+    { key: "approved", label: "Active", count: approvedCount },
     { key: "banned", label: "Banned", count: bannedCount },
-    { key: "denied", label: "Denied" },
-    { key: "all", label: "All" },
+    { key: "denied", label: "Denied", count: deniedCount },
+    { key: "all", label: "All", count: allCount },
   ];
+
+  const activeTab = tabs.find((t) => t.key === tab);
+  const tabCountLabel: Record<Tab, string> = {
+    pending: "pending",
+    awaiting_email: "awaiting email",
+    approved: "active",
+    banned: "banned",
+    denied: "denied",
+    all: "total",
+  };
 
   const viewBanStatus = (viewProfile as any)?.ban_status || "active";
 

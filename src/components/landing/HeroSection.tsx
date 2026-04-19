@@ -66,25 +66,22 @@ const HeroSection = () => {
             )}
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md mx-auto md:mx-0">
-              {loggedIn ? (
-                <>
-                  <Button variant="hero" size="xl" className="w-full" onClick={() => navigate("/dashboard")}>
-                    Browse jobs
-                  </Button>
-                  <Button variant="hero-outline" size="xl" className="w-full" onClick={() => navigate("/post-job")}>
-                    Post a task
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="hero" size="xl" className="w-full" onClick={() => navigate("/signup")}>
-                    Post your first task
-                  </Button>
-                  <Button variant="hero-outline" size="xl" className="w-full" onClick={() => navigate("/login")}>
-                    Offer help today
-                  </Button>
-                </>
-              )}
+              <Button
+                variant="hero"
+                size="xl"
+                className="w-full"
+                onClick={() => navigate(loggedIn ? "/dashboard" : "/jobs")}
+              >
+                Browse jobs
+              </Button>
+              <Button
+                variant="hero-outline"
+                size="xl"
+                className="w-full"
+                onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+              >
+                Post a task
+              </Button>
             </div>
           </div>
           <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center md:items-center lg:justify-end lg:items-start">

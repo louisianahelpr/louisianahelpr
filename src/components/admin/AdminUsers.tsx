@@ -1623,11 +1623,6 @@ const AdminUsers = () => {
                         </>
                       );
                     })()}
-                    {["permanently_banned", "temp_banned"].includes(viewBanStatus) && (
-                      <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => unbanUser(viewProfile)}>
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> Lift Ban
-                      </Button>
-                    )}
                     </div>
                   </div>
 

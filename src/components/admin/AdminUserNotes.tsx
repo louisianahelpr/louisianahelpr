@@ -63,6 +63,10 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const [editingText, setEditingText] = useState("");
   const [editingCategory, setEditingCategory] = useState("general");
 
+  // Delete confirmation
+  const [deleteNote, setDeleteNote] = useState<NoteRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const loadNotes = async () => {
     setLoading(true);
     const { data: notesData, error } = await (supabase.from as any)("admin_user_notes")

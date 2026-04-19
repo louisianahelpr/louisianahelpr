@@ -52,9 +52,6 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const post_text = (body?.post_text ?? "").toString().trim();
     const image_url = body?.image_url ? String(body.image_url) : null;
-    const video_url = body?.video_url ? String(body.video_url) : null;
-    const voiceover_url = body?.voiceover_url ? String(body.voiceover_url) : null;
-    const media_type = (body?.media_type ?? (video_url ? "video" : "image")).toString();
     const timing_priority = (body?.timing_priority ?? "Optimized").toString();
 
     if (!post_text) {
@@ -89,9 +86,7 @@ serve(async (req) => {
     const payload = {
       post_text,
       image_url,
-      video_url,
-      voiceover_url,
-      media_type,
+      media_type: "image",
       timing_priority,
     };
 

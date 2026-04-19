@@ -1062,7 +1062,7 @@ const AdminUsers = () => {
                 </TabsContent>
 
                 {/* ===== DOCUMENTS TAB ===== */}
-                <TabsContent value="documents" className="space-y-6 mt-4">
+                <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* ID Document */}
                   <div className="space-y-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
@@ -1138,7 +1138,7 @@ const AdminUsers = () => {
                 </TabsContent>
 
                 {/* ===== EMAILS TAB ===== */}
-                <TabsContent value="emails" className="space-y-6 mt-4">
+                <TabsContent value="emails" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Approval email tracking */}
                   {viewProfile.approval_status === "approved" && (
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
@@ -1243,7 +1243,7 @@ const AdminUsers = () => {
                 </TabsContent>
 
                 {/* ===== ACTIONS TAB ===== */}
-                <TabsContent value="actions" className="space-y-6 mt-4">
+                <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Primary lifecycle actions */}
                   <div className="space-y-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>

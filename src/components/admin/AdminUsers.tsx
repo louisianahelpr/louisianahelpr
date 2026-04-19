@@ -89,6 +89,12 @@ const AdminUsers = () => {
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
   // Per-user pay totals: earned (as helper) + spent (as poster)
   const [paySummary, setPaySummary] = useState<Record<string, number>>({});
+  // Per-user rating summary: { avg, count }
+  const [ratingSummary, setRatingSummary] = useState<Record<string, { avg: number; count: number }>>({});
+  // Per-user completed jobs (helper or poster)
+  const [jobsCompletedSummary, setJobsCompletedSummary] = useState<Record<string, number>>({});
+  // Per-user open reports/disputes count (filed against them)
+  const [openReportsSummary, setOpenReportsSummary] = useState<Record<string, number>>({});
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");

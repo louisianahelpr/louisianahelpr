@@ -1279,20 +1279,6 @@ const AdminUsers = () => {
 
                     return (
                       <>
-                        {/* Summary */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
-                            <p className="text-lg font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
-                            <p className="text-[10px] text-muted-foreground">{workedCompleted.length} completed</p>
-                          </div>
-                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
-                            <p className="text-lg font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
-                            <p className="text-[10px] text-muted-foreground">{postedCompleted.length} completed</p>
-                          </div>
-                        </div>
-
                         {/* Stripe payout connection status */}
                         {(() => {
                           const hasStripe = !!(viewProfile as any).stripe_account_id;
@@ -1311,6 +1297,21 @@ const AdminUsers = () => {
                             </div>
                           );
                         })()}
+
+                        {/* Summary */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
+                            <p className="text-lg font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">{workedCompleted.length} completed</p>
+                          </div>
+                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
+                            <p className="text-lg font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">{postedCompleted.length} completed</p>
+                          </div>
+                        </div>
+
 
                         {/* Filters */}
                         <div className="w-full">

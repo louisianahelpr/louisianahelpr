@@ -163,13 +163,16 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     loadNotes();
   };
 
-  const removeNote = async (id: string) => {
-    if (!confirm("Delete this note? This can't be undone.")) return;
-    const { error } = await (supabase.from as any)("admin_user_notes").delete().eq("id", id);
+  const removeNote = async () => {
+    if (!deleteNote) return;
+    setDeleting(true);
+    const { error } = await (supabase.from as any)("admin_user_notes").delete().eq("id", deleteNote.id);
+    setDeleting(false);
     if (error) {
       toast.error(error.message || "Failed to delete note");
       return;
     }
+    setDeleteNote(null);
     toast.success("Note deleted");
     loadNotes();
   };

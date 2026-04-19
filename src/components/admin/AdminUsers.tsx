@@ -1159,6 +1159,44 @@ const AdminUsers = () => {
                           </>,
                           "bg-primary/10 text-primary"
                         )}
+
+                        {/* Follow-up reminder counter — shows how many nudge emails the system has sent */}
+                        {(() => {
+                          const status = p.approval_status;
+                          let count = 0;
+                          let lastAt: string | null = null;
+                          let label = "";
+                          if (status === "pending" && !isVerifiedEmail(p)) {
+                            count = (p as any).verification_email_count || 0;
+                            lastAt = (p as any).last_verification_email_at;
+                            label = "Verify";
+                          } else if (status === "approved") {
+                            count = (p as any).approval_email_count || 0;
+                            lastAt = (p as any).last_approval_email_at;
+                            label = "Welcome";
+                          } else if (status === "denied") {
+                            count = (p as any).denial_email_count || 0;
+                            lastAt = (p as any).last_denial_email_at;
+                            label = "Denial";
+                          } else {
+                            return null;
+                          }
+                          if (count === 0) return null;
+                          const tone = count >= 3
+                            ? "bg-destructive/15 text-destructive font-semibold"
+                            : count >= 2
+                            ? "bg-accent/20 text-accent-foreground"
+                            : "bg-secondary/40 text-muted-foreground";
+                          return chip(
+                            "reminders",
+                            <>
+                              <MailIcon className="w-3 h-3" />
+                              {label} {count}/3
+                              {lastAt && <span className="opacity-70">· {formatDistanceToNow(new Date(lastAt), { addSuffix: true })}</span>}
+                            </>,
+                            tone
+                          );
+                        })()}
                       </div>
                     );
                   })()}
@@ -1733,6 +1771,37 @@ const AdminUsers = () => {
                             <span className="flex items-center gap-1 text-xs text-primary">
                               <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
                               {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Verification email tracking — for unverified pending users */}
+                  {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
+                    <div className="rounded-lg bg-accent/5 border border-accent/20 p-3 space-y-2">
+                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <MailIcon className="w-3.5 h-3.5" /> Verification Email Status
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Emails sent: {(viewProfile as any).verification_email_count || 0} / 3</span>
+                        {(viewProfile as any).last_verification_email_at && (
+                          <span>Last sent: {formatDistanceToNow(new Date((viewProfile as any).last_verification_email_at), { addSuffix: true })}</span>
+                        )}
+                      </div>
+                      {(() => {
+                        const opens = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'open');
+                        const clicks = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'click');
+                        return (opens.length > 0 || clicks.length > 0) ? (
+                          <div className="flex gap-4 pt-1">
+                            <span className="flex items-center gap-1 text-xs text-accent-foreground">
+                              <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-accent-foreground">
+                              <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
                             </span>
                           </div>
                         ) : (

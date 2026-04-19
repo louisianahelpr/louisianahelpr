@@ -1139,6 +1139,26 @@ const AdminUsers = () => {
 
                 {/* ===== EMAILS TAB ===== */}
                 <TabsContent value="emails" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
+                  {/* Resend Verification Email */}
+                  {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => resendVerificationEmail(viewProfile)}
+                      disabled={resending === viewProfile.id}
+                    >
+                      <MailIcon className="w-4 h-4 mr-1" />
+                      {resending === viewProfile.id
+                        ? "Sending…"
+                        : `Resend Verification${((viewProfile as any).verification_email_count || 0) > 0 ? ` (${(viewProfile as any).verification_email_count}/3)` : ""}`}
+                    </Button>
+                  )}
+                  {/* Resend Denial Email */}
+                  {viewProfile.approval_status === "denied" && (
+                    <Button variant="outline" className="w-full" onClick={() => resendDenialEmail(viewProfile)} disabled={resending === viewProfile.id}>
+                      <MailIcon className="w-4 h-4 mr-1" /> {resending === viewProfile.id ? "Sending…" : "Resend Denial Email"}
+                    </Button>
+                  )}
                   {/* Approval email tracking */}
                   {viewProfile.approval_status === "approved" && (
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">

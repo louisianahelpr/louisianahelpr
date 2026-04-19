@@ -183,11 +183,7 @@ const AdminSocialPost = () => {
   };
 
   const useSampleVideo = () => {
-    // Build absolute URL so Make/Facebook can fetch it
-    const absolute = sampleVideoAsset.url.startsWith("http")
-      ? sampleVideoAsset.url
-      : `${window.location.origin}${sampleVideoAsset.url}`;
-    setPostVideo(absolute);
+    setPostVideo(SAMPLE_VIDEO_URL);
     setMediaType("video");
     toast.success("Sample video attached");
   };

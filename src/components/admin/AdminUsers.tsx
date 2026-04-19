@@ -1668,27 +1668,16 @@ const AdminUsers = () => {
                         : hasStripe
                         ? "Stripe payout connected"
                         : "Has opened approval email";
-                      return (
-                        <>
-                          {!isActive && (
-                            <Button
-                              variant="outline"
-                              className="flex-1 min-w-[160px]"
-                              onClick={() => resendApprovalEmail(viewProfile)}
-                              disabled={resending === viewProfile.id || maxReached}
-                              title={maxReached ? "Max 3 follow-up emails reached" : "Send a manual follow-up reminder (auto-reminders also run every 3 days)"}
-                            >
-                              <MailIcon className="w-4 h-4 mr-1" />
-                              {resending === viewProfile.id ? "Sending…" : `Send Follow-up (${sent}/3)`}
-                            </Button>
-                          )}
-                          {isActive && (
-                            <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              {activeLabel}
-                            </div>
-                          )}
-                        </>
+                      return isActive ? (
+                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {activeLabel}
+                        </div>
+                      ) : (
+                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground font-medium">
+                          <Clock className="w-3.5 h-3.5" />
+                          Awaiting first login
+                        </div>
                       );
                     })()}
                     </div>

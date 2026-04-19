@@ -818,7 +818,7 @@ const AdminUsers = () => {
 
       <div className="flex items-center justify-between px-1">
         <p className="text-xs text-muted-foreground">
-          {pendingCount} pending {pendingCount === 1 ? "user" : "users"}
+          {(activeTab?.count ?? 0)} {tabCountLabel[tab]} {(activeTab?.count ?? 0) === 1 ? "user" : "users"}
         </p>
         {searchQuery && (
           <button

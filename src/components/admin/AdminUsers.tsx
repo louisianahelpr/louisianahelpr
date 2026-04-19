@@ -89,7 +89,7 @@ const AdminUsers = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha">("desc");
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best">("desc");
 
   const loadProfiles = async () => {
     const { data } = await supabase

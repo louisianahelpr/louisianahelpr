@@ -651,6 +651,7 @@ const AdminUsers = () => {
       if (!aLogin) return 1;
       if (!bLogin) return -1;
       return new Date(bLogin).getTime() - new Date(aLogin).getTime();
+    }
     if (sortDir === "pay_high" || sortDir === "pay_low") {
       const aPay = paySummary[a.user_id] || 0;
       const bPay = paySummary[b.user_id] || 0;

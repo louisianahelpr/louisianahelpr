@@ -1620,10 +1620,6 @@ const AdminUsers = () => {
                               {activeLabel}
                             </div>
                           )}
-                          <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                            onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
-                            <ShieldAlert className="w-4 h-4 mr-1" /> Suspend / Ban
-                          </Button>
                         </>
                       );
                     })()}

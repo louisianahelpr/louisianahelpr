@@ -193,7 +193,7 @@ const AdminSocialPost = () => {
 
   const mediaBadge = (type: string) =>
     type === "video" ? (
-      <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700"><Video className="h-3 w-3" />Video</Badge>
+      <Badge variant="outline" className="gap-1"><Video className="h-3 w-3" />Video</Badge>
     ) : (
       <Badge variant="outline" className="gap-1"><ImageIcon className="h-3 w-3" />Image</Badge>
     );

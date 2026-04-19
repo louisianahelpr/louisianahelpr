@@ -145,10 +145,23 @@ Rules:
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content?.trim() ?? "";
 
-      // Generate matching image (best-effort)
-      const imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
+      // Generate matching media (image or video, depending on alternation)
+      let imageUrl: string | null = null;
+      let videoUrl: string | null = null;
 
-      return new Response(JSON.stringify({ post: text, image_url: imageUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (nextMediaType === "image") {
+        imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
+      } else {
+        // Video generation requires a third-party API (not yet wired).
+        // For now: still generate a poster image, and flag this draft as a video slot.
+        imageUrl = text ? await generateImageForPost(text, LOVABLE_API_KEY) : null;
+        videoUrl = null; // admin can attach a video URL manually until video API is wired
+      }
+
+      return new Response(
+        JSON.stringify({ post: text, image_url: imageUrl, video_url: videoUrl, media_type: nextMediaType }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Action: publish to Make webhook
@@ -159,10 +172,17 @@ Rules:
         return new Response(JSON.stringify({ error: "Post message is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      const { video_url } = (await req.clone().json().catch(() => ({}))) as { video_url?: string | null };
+
       const webhookResp = await fetch(MAKE_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message.trim(), image_url: image_url || null }),
+        body: JSON.stringify({
+          message: message.trim(),
+          image_url: image_url || null,
+          video_url: video_url || null,
+          media_type: video_url ? "video" : "image",
+        }),
       });
 
       if (!webhookResp.ok) {

@@ -812,6 +812,10 @@ const AdminUsers = () => {
                           </span>
                         );
                       }
+                      // No standing for users who haven't verified their email — they're not active
+                      if (!isVerifiedEmail(p)) {
+                        return null;
+                      }
                       const strikes = strikesSummary[p.user_id] || 0;
                       const standingClass = strikes === 0
                         ? "text-primary"

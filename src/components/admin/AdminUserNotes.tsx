@@ -276,7 +276,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={() => removeNote(n.id)}
+                        onClick={() => setDeleteNote(n)}
                         title="Delete"
                       >
                         <Trash2 className="w-3 h-3" />

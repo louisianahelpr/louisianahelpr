@@ -803,8 +803,10 @@ const AdminUsers = () => {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, profiles.length, loading]);
-  const pendingCount = profiles.filter((p) => isPendingReview(p) && isUnseen(p)).length;
-  const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p) && isUnseen(p)).length;
+  // Pending + Email badges always show the FULL queue so admins know what's outstanding
+  // (other tabs continue to use the "unseen" filter as a new-since-last-visit indicator)
+  const pendingCount = profiles.filter((p) => isPendingReview(p)).length;
+  const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p)).length;
   const bannedCount = profiles.filter(
     (p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") && isUnseen(p),
   ).length;

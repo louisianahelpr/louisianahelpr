@@ -262,6 +262,23 @@ const AdminSocialPost = () => {
             </div>
           )}
 
+          {/* Voiceover preview */}
+          {postVoiceover && (
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Volume2 className="h-3.5 w-3.5" />
+                AI voiceover narration (will be sent to Make for video merging)
+              </div>
+              <audio src={postVoiceover} controls className="w-full" />
+              <button
+                onClick={() => setPostVoiceover(null)}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Remove voiceover
+              </button>
+            </div>
+          )}
+
           {/* Manual video URL paste — for when user generates a video elsewhere */}
           {nextSlot === "video" && !postVideo && (
             <div className="space-y-2 rounded-md border border-dashed p-3 bg-muted/30">
@@ -349,6 +366,12 @@ const AdminSocialPost = () => {
                           className="rounded-md border max-h-64 object-cover w-full"
                         />
                       ) : null}
+                      {draft.voiceover_url && (
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <audio src={draft.voiceover_url} controls className="w-full h-8" />
+                        </div>
+                      )}
                     </>
                   )}
 

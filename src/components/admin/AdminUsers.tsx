@@ -1064,8 +1064,9 @@ const AdminUsers = () => {
 
                     return (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {/* Standing — shows the specific strike level they received */}
-                        {chip(
+                        {/* Standing — only show when there's something to flag, OR when no recent login signal exists.
+                            Avoids duplicating "Good" alongside the "active X ago" chip. */}
+                        {(strikes > 0 || !lastLogin) && chip(
                           "standing",
                           <>
                             <ShieldCheck className="w-3 h-3" />

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import helprIcon from "@/assets/helpr-icon.png";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -22,10 +23,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         }}
       >
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
-            <span className="text-primary-foreground font-bold text-sm">H</span>
-          </div>
-          <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <img
+            src={helprIcon}
+            alt="Helpr"
+            className="w-9 h-9 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">
             Helpr
           </span>
         </Link>

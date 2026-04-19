@@ -238,6 +238,33 @@ const AdminSettings = () => {
         </Button>
       </div>
 
+      {/* Social Webhook URL */}
+      <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-foreground">Social Webhook URL</h3>
+          <p className="text-xs text-muted-foreground">
+            Paste the Make.com webhook URL here. The "Send to Social" button on the Facebook Post Generator will send each post (text + image + timing) to this URL for scheduling.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="socialWebhook">Webhook URL</Label>
+          <Input
+            id="socialWebhook"
+            type="url"
+            placeholder="https://hook.us2.make.com/..."
+            value={socialWebhookUrl}
+            onChange={(e) => setSocialWebhookUrl(e.target.value)}
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            Payload sent: <code className="text-foreground">{`{ post_text, image_url, timing_priority }`}</code>
+          </p>
+        </div>
+        <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
+          {savingWebhook ? "Saving…" : "Save webhook URL"}
+        </Button>
+      </div>
+
       {/* Admin Management */}
       <div className="max-w-lg space-y-4">
         <div className="flex items-center justify-between">

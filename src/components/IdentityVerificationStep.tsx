@@ -30,11 +30,9 @@ export const IdentityVerificationStep = ({ onComplete, onFallbackToManual }: Pro
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("hybrid_idv_enabled")
-        .maybeSingle();
-      setHybridEnabled(!!data?.hybrid_idv_enabled);
+      const { data } = await supabase.rpc("get_public_platform_settings");
+      const row = Array.isArray(data) ? data[0] : null;
+      setHybridEnabled(!!row?.hybrid_idv_enabled);
     })();
   }, []);
 

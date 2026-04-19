@@ -38,8 +38,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Helpr";
   const options = {
     body: data.message || "You have a new notification",
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
+    icon: "/apple-touch-icon.png",
+    badge: "/apple-touch-icon.png",
     data: { link: data.link || "/dashboard" },
     tag: data.tag || "helpr-notification",
     renotify: true,

@@ -781,6 +781,11 @@ const Signup = () => {
                 </label>
               )}
             </div>
+
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+              <div className="text-center space-y-2">
+                <FileText className="w-10 h-10 text-primary mx-auto" />
+                <h3 className="font-semibold text-foreground">Portfolio & Documents</h3>
                 <p className="text-sm text-muted-foreground">
                   Want to help others with tasks? Upload work photos, certifications, or a resume to stand out. <span className="font-medium text-foreground">Only posting tasks? This step is optional.</span>
                 </p>

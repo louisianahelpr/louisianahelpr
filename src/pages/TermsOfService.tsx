@@ -79,26 +79,26 @@ const TermsOfService = () => {
               <Clock className="w-5 h-5 text-primary" /> Cancellation Policy
             </h2>
             <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
-              <p>Cancellations are subject to tiered fees based on proximity to the scheduled start time:</p>
+              <p>Once a helpr has been selected for your job, cancellation fees are tiered based on proximity to the scheduled start time. These fees compensate the helpr for committed time and are calculated as a percentage of the job budget:</p>
               <div className="rounded-lg bg-muted/40 border border-border/50 overflow-hidden">
                 <div className="grid grid-cols-2 text-xs font-semibold text-foreground bg-muted/60 px-4 py-2.5 border-b border-border/50">
                   <span>Timeframe</span>
                   <span>Fee</span>
                 </div>
                 <div className="grid grid-cols-2 text-xs px-4 py-2.5 border-b border-border/30">
-                  <span>Within <strong className="text-foreground">4 hours</strong> of start</span>
-                  <span className="text-destructive font-semibold">$15.00</span>
+                  <span>Less than <strong className="text-foreground">2 hours</strong> before start</span>
+                  <span className="text-destructive font-semibold">50% of job budget</span>
                 </div>
                 <div className="grid grid-cols-2 text-xs px-4 py-2.5 border-b border-border/30">
-                  <span>Within <strong className="text-foreground">24 hours</strong> of start</span>
-                  <span className="text-accent-foreground font-semibold">$5.00</span>
+                  <span>Less than <strong className="text-foreground">24 hours</strong> before start</span>
+                  <span className="text-accent-foreground font-semibold">25% of job budget</span>
                 </div>
                 <div className="grid grid-cols-2 text-xs px-4 py-2.5">
-                  <span>More than 24 hours before</span>
+                  <span>More than 24 hours before (or no helpr selected)</span>
                   <span className="text-primary font-semibold">Free</span>
                 </div>
               </div>
-              <p>Late cancellations are flagged on your account and may affect your standing on the platform.</p>
+              <p>Cancellation fees are paid to the assigned helpr (minus the standard 10% platform fee). Repeated cancellations after a helpr is selected are tracked: 1st and 2nd offenses result in warnings, and a 3rd offense results in a permanent ban.</p>
             </div>
           </section>
 

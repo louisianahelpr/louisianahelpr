@@ -28,6 +28,7 @@ import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -149,6 +150,7 @@ const Dashboard = () => {
     });
   }, []);
   const handleApplyRequest = useCallback((jobId: string) => {
+    hapticMedium(); // confirm tap on Apply
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
@@ -193,9 +195,11 @@ const Dashboard = () => {
       attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
     });
     if (error) {
+      hapticError();
       if (error.code === "23505") toast.error("You've already applied.");
       else toast.error(error.message);
     } else {
+      hapticSuccess();
       toast.success("Application sent! Track it in My Jobs.", {
         action: { label: "View", onClick: () => navigate("/my-jobs") },
       });

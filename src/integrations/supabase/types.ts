@@ -2729,6 +2729,10 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
+      can_review_job: {
+        Args: { _job_id: string; _reviewer_id: string }
+        Returns: boolean
+      }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       count_profiles: { Args: never; Returns: number }
       delete_email: {
@@ -2764,6 +2768,15 @@ export type Database = {
           parish_tax_collected: number
           platform_fee: number
           tax_status: string
+        }[]
+      }
+      get_helper_parish_badges: {
+        Args: { _user_id: string }
+        Returns: {
+          home_parish: string
+          is_top_helper_in_parish: boolean
+          is_verified_local: boolean
+          parish_completed_jobs: number
         }[]
       }
       get_helper_tiers: {

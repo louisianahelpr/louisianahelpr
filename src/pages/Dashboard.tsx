@@ -24,6 +24,7 @@ import JobCard from "@/components/dashboard/JobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import InviteBanner from "@/components/dashboard/InviteBanner";
 import BroadcastBanner from "@/components/BroadcastBanner";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -304,6 +305,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />
+          {user && <OnboardingChecklist userId={user.id} profile={profile} />}
           {/* Welcome section */}
           {showGreeting && (
           <motion.div

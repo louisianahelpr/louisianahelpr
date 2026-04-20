@@ -226,7 +226,7 @@ const MyJobs = () => {
                           <RotateCcw className="w-4 h-4 mr-1" /> Repost
                         </Button>
                       )}
-                      {job.status === "completed" && job.helper_id && (
+                      {job.status === "completed" && job.payment_status === "released" && job.helper_id && (
                         <Button size="sm" variant="outline" onClick={() => setReviewJob(job)}>
                           <Star className="w-4 h-4 mr-1" /> Review
                         </Button>

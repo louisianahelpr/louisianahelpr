@@ -3,18 +3,18 @@ import { ClipboardList, Users, CheckCircle } from "lucide-react";
 const steps = [
   {
     icon: ClipboardList,
-    title: "Post your task",
-    description: "Describe what you need help with, set your budget, and choose a date.",
+    title: "Post the job",
+    description: "Tell us what you need, set your budget, and pick a date. Takes about a minute.",
   },
   {
     icon: Users,
-    title: "Get matched",
-    description: "Trusted locals apply to your task. Review profiles, ratings, and pick the best fit.",
+    title: "Pick your helpr",
+    description: "Local applicants come to you. Compare profiles, ratings, and pricing — choose with confidence.",
   },
   {
     icon: CheckCircle,
-    title: "Get it done",
-    description: "Your chosen helpr completes the job, you pay securely, and leave a review.",
+    title: "Pay when it's done",
+    description: "Funds sit in escrow until you confirm the work. No upfront risk, no awkward cash handoffs.",
   },
 ];
 
@@ -26,7 +26,7 @@ const HowItWorksSection = () => {
           How Helpr works
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto mb-16">
-          Three simple steps to get help with any task.
+          Three steps. No back-and-forth. No surprises.
         </p>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">

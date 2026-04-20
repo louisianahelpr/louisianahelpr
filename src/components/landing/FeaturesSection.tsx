@@ -2,12 +2,12 @@ import { forwardRef } from "react";
 import { Shield, CreditCard, Star, CalendarDays, Bell, MapPin } from "lucide-react";
 
 const features = [
-  { icon: Shield, title: "Trusted community", desc: "Every user has a profile with reviews, ratings, and verified identity." },
-  { icon: CreditCard, title: "Secure payments", desc: "Pay through the platform. Funds are held until the job is done." },
-  { icon: Star, title: "Reviews & ratings", desc: "Leave honest feedback after every job to help the community." },
-  { icon: CalendarDays, title: "Easy scheduling", desc: "Pick the date and time that works. Helpers confirm availability." },
-  { icon: Bell, title: "Real-time updates", desc: "Get notified when someone applies, when work starts, and when it's done." },
-  { icon: MapPin, title: "Louisiana local", desc: "Find helprs in your parish and neighborhood. Support your local Louisiana community." },
+  { icon: Shield, title: "Vetted helprs", desc: "Every helpr verifies their identity through Stripe before they can apply. No anonymous accounts." },
+  { icon: CreditCard, title: "Escrow payments", desc: "Your payment is held safely until you confirm the job is done right. No upfront risk." },
+  { icon: Star, title: "Honest reviews", desc: "Reviews unlock only after payment releases — so ratings reflect real, finished work." },
+  { icon: CalendarDays, title: "Flexible scheduling", desc: "Lock in a date or stay flexible. Helprs confirm before they show up." },
+  { icon: Bell, title: "Live job updates", desc: "Know exactly when your helpr applies, accepts, is on the way, and finishes." },
+  { icon: MapPin, title: "Parish-local", desc: "We match you with helprs in your parish first. Support neighbors, not strangers." },
 ];
 
 const FeaturesSection = forwardRef<HTMLElement>((_props, ref) => {
@@ -15,10 +15,10 @@ const FeaturesSection = forwardRef<HTMLElement>((_props, ref) => {
     <section id="features" className="py-24 px-4" ref={ref}>
       <div className="container mx-auto text-center">
         <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-4">
-          Built for trust & simplicity
+          Why people trust Helpr
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto mb-16">
-          Everything you need for a great experience, nothing you don't.
+          Six reasons Louisiana neighbors choose us over Craigslist, Facebook, and the national apps.
         </p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">

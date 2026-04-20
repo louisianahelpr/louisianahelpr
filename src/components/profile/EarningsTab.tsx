@@ -8,10 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download } from "lucide-react";
+import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { EarningsExport } from "@/components/EarningsExport";
+import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -58,6 +59,7 @@ interface StripePayoutData {
   payouts_enabled: boolean;
   available: { amount: number; currency: string }[];
   pending: { amount: number; currency: string }[];
+  instant_available?: { amount: number; currency: string }[];
   payouts: StripePayout[];
 }
 
@@ -72,6 +74,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const [stripeData, setStripeData] = useState<StripePayoutData | null>(null);
   const [stripeLoading, setStripeLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
 
   const fetchPayouts = async () => {
     try {

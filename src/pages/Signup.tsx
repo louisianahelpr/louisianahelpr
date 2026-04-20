@@ -325,14 +325,17 @@ const Signup = () => {
       <div className="flex items-start sm:items-center justify-center px-4 pt-20 sm:pt-24 pb-8 sm:pb-12">
         <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-            <h1 className="text-3xl font-display font-bold text-foreground">Create your account</h1>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                aria-label="Go back"
+                className="text-muted-foreground hover:text-foreground transition-colors -ml-1 p-1 rounded-md"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <h1 className="text-3xl font-display font-bold text-foreground">Create your account</h1>
+            </div>
             <p className="text-sm text-muted-foreground">Step {step} of 4</p>
           </div>
 

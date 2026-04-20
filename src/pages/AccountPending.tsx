@@ -229,6 +229,18 @@ const AccountPending = () => {
                 </div>
               </div>
 
+              {!stripeFullyVerified && (
+                <div className="rounded-lg bg-background/60 border border-border/60 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wide">What to expect</p>
+                  <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
+                    <li>Stripe asks for your legal name, DOB, address, and SSN.</li>
+                    <li>They silently verify against government &amp; credit databases (takes seconds).</li>
+                    <li>Only if that fails, they'll ask you to snap a photo of your ID.</li>
+                    <li>Once approved, this page redirects you — you're cleared to accept jobs.</li>
+                  </ol>
+                </div>
+              )}
+
               {!stripeFullyVerified && !stripeLoading && (
                 <Button
                   onClick={handleConnectStripe}

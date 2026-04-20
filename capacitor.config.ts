@@ -30,10 +30,22 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
-      backgroundColor: '#ffffff',
-      iosSpinnerStyle: 'small',
-      showSpinner: false
+      // Stays up until React mounts and calls SplashScreen.hide() in nativeInit.ts.
+      // Long max-duration is a fallback for very slow devices.
+      launchShowDuration: 3000,
+      launchAutoHide: false,
+      backgroundColor: '#1FA678', // Helpr emerald — matches splash.png
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true
+    },
+    StatusBar: {
+      // iOS uses Info.plist; this sets Android defaults.
+      style: 'LIGHT', // dark icons (for light backgrounds)
+      backgroundColor: '#F4F8F5',
+      overlaysWebView: false
     }
   }
 };

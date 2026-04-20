@@ -75,17 +75,19 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payments & Fees</h2>
         <div className="space-y-2">
           <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Payment & Refund Policy">
-            <p><strong className="text-foreground">Secure Payments:</strong> Payments are charged upfront via Stripe. The helpr is paid only after both parties confirm the job is complete. Refunds are issued for cancelled jobs.</p>
-            <p><strong className="text-foreground">Platform Fee:</strong> Helpr charges a platform fee on each transaction. The fee percentage is visible before payment.</p>
-            <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released.</p>
-            <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions before approving completion.</p>
-            <p><strong className="text-foreground">Disputes:</strong> If you have a payment dispute, contact support.</p>
+            <p><strong className="text-foreground">Secure Payments:</strong> Payments are charged upfront via Stripe and held by the platform. The helpr is paid only after both parties confirm the job is complete. Refunds are issued for cancelled jobs (subject to the cancellation policy).</p>
+            <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released to the helpr.</p>
+            <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions within a 72-hour window before approving completion.</p>
+            <p><strong className="text-foreground">Disputes:</strong> If a revision doesn't resolve the issue, file a formal dispute. See the Dispute Resolution card below for the full 3-step process.</p>
           </LegalCard>
           <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Platform Fees">
-            <p><strong className="text-foreground">Service Fee:</strong> A platform fee is applied to each transaction and deducted from the helpr's payout.</p>
+            <p><strong className="text-foreground">Poster Service Fee:</strong> 10% added at checkout on top of the job budget.</p>
+            <p><strong className="text-foreground">Helper Platform Fee:</strong> 10% deducted from the helpr's payout.</p>
+            <p><strong className="text-foreground">Total Platform Take:</strong> 20% per transaction (10% from each side).</p>
             <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
             <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
             <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helpr — no platform fee on tips.</p>
+            <p><strong className="text-foreground">Sales Tax:</strong> Louisiana state and parish sales tax is collected on platform fees where applicable.</p>
           </LegalCard>
           <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Job Budget Limits">
             <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
@@ -167,9 +169,10 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
           </LegalCard>
           <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
-            <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
-            <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
-            <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
+            <p><strong className="text-foreground">Step 1 — Revision (72h):</strong> Request a revision first. The helpr has 72 hours to fix it; you then have 72 hours to accept or escalate.</p>
+            <p><strong className="text-foreground">Step 2 — Formal Dispute (72h):</strong> If the revision fails, file a dispute with evidence. You have a strict 72-hour window to mark resolved or escalate.</p>
+            <p><strong className="text-foreground">Step 3 — Admin Review:</strong> An admin makes the final binding decision (full release, partial refund, or full refund).</p>
+            <p><strong className="text-foreground">Escrow Hold:</strong> Funds are held securely until resolution. Ignoring a 72-hour deadline auto-releases payment to the helpr.</p>
           </LegalCard>
           <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
             <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>

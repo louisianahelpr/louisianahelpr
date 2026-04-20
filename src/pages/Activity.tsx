@@ -21,6 +21,7 @@ import {
   type Job, type Application, type Tab, type EnrichedApplication,
   categoryLabels, categories, categoryColors, statusBadge,
 } from "@/components/activity/activityConstants";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -128,6 +129,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const acceptApplication = async (app: EnrichedApplication) => {
+    hapticMedium();
     setDeadlineDialogApp(app);
   };
 
@@ -247,14 +249,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
+        hapticSuccess();
         toast.success("Job completed! Payment released.");
         await refresh();
         setStatusFilter("completed");
       } else {
+        hapticMedium();
         toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
         await refresh();
       }
     } catch (err: any) {
+      hapticError();
       toast.error(err.message || "Failed to complete job");
     } finally {
       setCompletingJobId(null);

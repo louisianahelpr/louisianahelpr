@@ -67,9 +67,17 @@ export default defineConfig(({ mode }) => ({
         // Bundle all lucide icons into a single chunk so we don't ship 40+
         // tiny per-icon files (HTTP overhead > byte savings).
         manualChunks(id) {
-          if (id.includes("node_modules/lucide-react")) return "lucide";
-          if (id.includes("node_modules/@radix-ui")) return "radix";
-          if (id.includes("node_modules/react-dom")) return "react-dom";
+          if (!id.includes("node_modules")) return;
+          if (id.includes("lucide-react")) return "lucide";
+          if (id.includes("@radix-ui")) return "radix";
+          if (id.includes("react-dom")) return "react-dom";
+          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          if (id.includes("framer-motion")) return "motion";
+          if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
+          if (id.includes("@supabase")) return "supabase";
+          if (id.includes("date-fns") || id.includes("react-day-picker")) return "dates";
+          if (id.includes("@tanstack")) return "tanstack";
+          if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
         },
       },
     },

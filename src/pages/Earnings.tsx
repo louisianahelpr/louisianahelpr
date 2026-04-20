@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Briefcase, Gift, TrendingUp } from "lucide-react";
+import { DollarSign, Briefcase, Gift, TrendingUp, Zap } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -13,6 +14,14 @@ const Earnings = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [tips, setTips] = useState<{ amount: number; job_id: string; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [instantAvailable, setInstantAvailable] = useState<number>(0);
+  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+
+  const loadBalance = async () => {
+    const { data } = await supabase.functions.invoke("stripe-payouts", { body: {} });
+    const usd = data?.instant_available?.find((b: any) => b.currency === "usd");
+    setInstantAvailable(usd?.amount ?? 0);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +43,7 @@ const Earnings = () => {
 
       if (jobsRes.data) setJobs(jobsRes.data);
       if (tipsRes.data) setTips(tipsRes.data);
+      await loadBalance();
       setLoading(false);
     };
     load();
@@ -58,6 +68,23 @@ const Earnings = () => {
             <p className="text-muted-foreground">Loading…</p>
           ) : (
             <>
+              {/* Instant payout card */}
+              {instantAvailable > 0 && (
+                <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-5 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Instant cash out available</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">${(instantAvailable / 100).toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">To your debit card in ~30 min · 3% + $1 fee</p>
+                  </div>
+                  <Button onClick={() => setPayoutDialogOpen(true)} className="gap-2 shrink-0">
+                    <Zap className="w-4 h-4" /> Cash out
+                  </Button>
+                </div>
+              )}
+
               {/* Summary cards */}
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-border bg-card p-5">
@@ -149,6 +176,12 @@ const Earnings = () => {
           )}
         </div>
       </main>
+
+      <InstantPayoutDialog
+        open={payoutDialogOpen}
+        onOpenChange={setPayoutDialogOpen}
+        onSuccess={loadBalance}
+      />
     </div>
   );
 };

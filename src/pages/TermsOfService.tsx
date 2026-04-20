@@ -257,7 +257,11 @@ const TermsOfService = () => {
               <p>Helpr operates as a marketplace facilitator. Each party has distinct tax obligations:</p>
               <div>
                 <p className="font-semibold text-foreground mb-1">Platform (Helpr, LLC)</p>
-                <p>Helpr reports worker earnings to the IRS via <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met. As a Louisiana marketplace facilitator, Helpr collects and remits applicable state and parish-level sales tax on taxable services.</p>
+                <p>Helpr reports worker earnings to the IRS via <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met. Under the OBBBA, the 2026 filing-season threshold (covering 2025 earnings) is <strong className="text-foreground">$20,000 AND 200+ transactions</strong>; Louisiana follows the federal threshold. Helpr may issue courtesy 1099-Ks at lower amounts when tax info is on file. The <strong className="text-foreground">1099-NEC</strong> threshold for directly contracted vendors increased to <strong className="text-foreground">$2,000</strong> for payments on or after January 1, 2026. Once Helpr exceeds <strong className="text-foreground">$100,000 in gross Louisiana revenue</strong>, we operate as a marketplace facilitator and collect/remit state and parish sales tax on the full transaction. As of January 1, 2026, all Louisiana withholding and sales tax returns are filed electronically through the LDR portal.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground mb-1">Worker Classification (Economic Reality Test)</p>
+                <p>Louisiana and the U.S. Department of Labor use the <strong className="text-foreground">Economic Reality Test</strong> — not California's ABC Test — to classify workers. Helprs qualify as independent contractors based on six factors: opportunity for profit or loss, investment in their own tools and equipment, sporadic gig-based work (no set schedule), control over which jobs to accept and when, segregable service work, and use of pre-existing skills.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Job Posters (Customers)</p>

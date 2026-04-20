@@ -454,11 +454,23 @@ const PlatformRules = () => {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <p><strong className="text-foreground">1099 Reporting:</strong> Helpr reports worker earnings to the IRS. If you meet the federal threshold ($20,000+ and 200+ transactions), you'll receive a 1099-K.</p>
+                  <p><strong className="text-foreground">1099-K Reporting (2026):</strong> Under the OBBBA, the federal 1099-K threshold reverted to <strong className="text-foreground">$20,000 AND 200+ transactions</strong> for the 2026 filing season (covering 2025 earnings). Louisiana follows the federal threshold. As a best practice, Helpr may issue courtesy 1099-Ks at lower amounts when tax info is on file.</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <p><strong className="text-foreground">Sales Tax Collection:</strong> As a marketplace facilitator in Louisiana, Helpr collects and remits applicable state and local sales tax on taxable services.</p>
+                  <p><strong className="text-foreground">1099-NEC Threshold (2026):</strong> For directly contracted vendors (not helpr payouts), the 1099-NEC threshold increased from $600 to <strong className="text-foreground">$2,000</strong> for payments made on or after January 1, 2026.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Marketplace Facilitator Status:</strong> Once Helpr, LLC exceeds <strong className="text-foreground">$100,000 in gross Louisiana revenue</strong>, we are legally a marketplace facilitator and collect/remit sales tax on the entire transaction (job cost + platform fees) on behalf of all parties.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">LDR Electronic Filing Mandate (2026):</strong> As of January 1, 2026, all Louisiana withholding and sales tax returns must be filed electronically through the Louisiana Department of Revenue portal. Helpr complies with this mandate.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p><strong className="text-foreground">Worker Classification:</strong> Louisiana and the U.S. Department of Labor apply the <strong className="text-foreground">Economic Reality Test</strong> (not the ABC Test). Helprs qualify as independent contractors based on opportunity for profit/loss, their own tools and investment, sporadic gig-based work, control over jobs and hours, segregable service work, and use of pre-existing skills.</p>
                 </div>
               </div>
             </div>

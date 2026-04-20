@@ -169,9 +169,10 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
           </LegalCard>
           <LegalCard icon={<Scale className="w-4 h-4 text-primary" />} title="Dispute Resolution">
-            <p><strong className="text-foreground">48-hour review:</strong> All disputes are reviewed by our team within 48 hours. Both parties can submit evidence.</p>
-            <p><strong className="text-foreground">24-hour appeal:</strong> After a decision, both parties have 24 hours to appeal with new evidence.</p>
-            <p><strong className="text-foreground">Escrow hold:</strong> Funds are held in escrow until resolution.</p>
+            <p><strong className="text-foreground">Step 1 — Revision (72h):</strong> Request a revision first. The helpr has 72 hours to fix it; you then have 72 hours to accept or escalate.</p>
+            <p><strong className="text-foreground">Step 2 — Formal Dispute (72h):</strong> If the revision fails, file a dispute with evidence. You have a strict 72-hour window to mark resolved or escalate.</p>
+            <p><strong className="text-foreground">Step 3 — Admin Review:</strong> An admin makes the final binding decision (full release, partial refund, or full refund).</p>
+            <p><strong className="text-foreground">Escrow Hold:</strong> Funds are held securely until resolution. Ignoring a 72-hour deadline auto-releases payment to the helpr.</p>
           </LegalCard>
           <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
             <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>

@@ -58,13 +58,6 @@ const Signup = () => {
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
 
-  // Step 4 fields
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [idFileName, setIdFileName] = useState("");
-  // IDV mode: 'idv' (Stripe Identity hybrid), 'manual' (legacy upload), null = still loading
-  const [idvMode, setIdvMode] = useState<"idv" | "manual" | null>(null);
-  const [idvOutcome, setIdvOutcome] = useState<"verified" | "processing" | "manual_review" | "failed" | null>(null);
-
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

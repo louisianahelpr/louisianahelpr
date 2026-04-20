@@ -106,11 +106,6 @@ const Login = () => {
           </Link>
           <p className="mt-2 text-muted-foreground">Welcome back</p>
         </div>
-              Helpr
-            </Link>
-          </div>
-          <p className="mt-2 text-muted-foreground">Welcome back</p>
-        </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">

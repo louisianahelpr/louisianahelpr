@@ -324,8 +324,6 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-    <div className="min-h-screen bg-background">
       <div className="flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
         <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
           <div className="text-center">

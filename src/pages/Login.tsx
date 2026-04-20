@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
+
+// True only inside the Capacitor-wrapped iOS/Android app, false in any browser (incl. mobile Safari).
+const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -101,9 +104,20 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <Link to="/" className="text-3xl font-display font-bold text-primary">
-            Helpr
-          </Link>
+          <div className="relative">
+            {!isNativeApp && (
+              <Link
+                to="/"
+                aria-label="Back to home"
+                className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            )}
+            <Link to="/" className="text-3xl font-display font-bold text-primary">
+              Helpr
+            </Link>
+          </div>
           <p className="mt-2 text-muted-foreground">Welcome back</p>
         </div>
 

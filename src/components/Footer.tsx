@@ -53,7 +53,7 @@ const Footer = () => (
 
       {/* Pricing disclosure strip — Stripe reviewer-friendly */}
       <div className="rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground text-center">
-        <strong className="text-foreground">Transparent pricing:</strong> Posters pay a 5% service fee at checkout.
+        <strong className="text-foreground">Transparent pricing:</strong> Posters pay a 10% service fee at checkout.
         Helpers receive 90% of the job budget (10% platform fee). Louisiana state and parish sales tax is collected
         on platform fees where applicable. <Link to="/rules" className="text-primary hover:underline">View full pricing →</Link>
       </div>

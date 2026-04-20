@@ -361,20 +361,46 @@ serve(async (req) => {
         // Find the helper with this Stripe account
         const { data: helperProfile } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, approval_status, email_verified")
           .eq("stripe_account_id", account.id)
           .maybeSingle();
 
         if (helperProfile) {
           if (account.charges_enabled && account.payouts_enabled) {
-            await supabase.from("notifications").insert({
-              user_id: helperProfile.user_id,
-              title: "✅ Payout account verified",
-              message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
-              type: "success",
-              link: "/profile",
-            });
-            logStep("Helper payout account verified", { userId: helperProfile.user_id });
+            // Auto-approve: Stripe verified identity (free database matching: SSN/IRS/credit bureau)
+            // Requirement: email verified + Stripe charges + payouts enabled
+            const shouldAutoApprove =
+              helperProfile.email_verified === true &&
+              helperProfile.approval_status === "pending";
+
+            if (shouldAutoApprove) {
+              const { error: approvalErr } = await supabase
+                .from("profiles")
+                .update({ approval_status: "approved" })
+                .eq("user_id", helperProfile.user_id);
+
+              if (approvalErr) {
+                logStep("ERROR auto-approving helper", { error: approvalErr.message });
+              } else {
+                logStep("✅ Auto-approved helper via Stripe verification", { userId: helperProfile.user_id });
+                await supabase.from("notifications").insert({
+                  user_id: helperProfile.user_id,
+                  title: "🎉 Welcome to Helpr!",
+                  message: "Your identity is verified and your payout account is ready. You're approved to start accepting jobs!",
+                  type: "success",
+                  link: "/dashboard",
+                });
+              }
+            } else {
+              await supabase.from("notifications").insert({
+                user_id: helperProfile.user_id,
+                title: "✅ Payout account verified",
+                message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+                type: "success",
+                link: "/profile",
+              });
+              logStep("Helper payout account verified (no auto-approve needed)", { userId: helperProfile.user_id, email_verified: helperProfile.email_verified, approval_status: helperProfile.approval_status });
+            }
           } else if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
             await supabase.from("notifications").insert({
               user_id: helperProfile.user_id,

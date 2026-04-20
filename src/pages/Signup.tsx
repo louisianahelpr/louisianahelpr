@@ -6,11 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import IdentityVerificationStep from "@/components/IdentityVerificationStep";
 import PageHeader from "@/components/PageHeader";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
@@ -59,13 +58,6 @@ const Signup = () => {
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
 
-  // Step 4 fields
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [idFileName, setIdFileName] = useState("");
-  // IDV mode: 'idv' (Stripe Identity hybrid), 'manual' (legacy upload), null = still loading
-  const [idvMode, setIdvMode] = useState<"idv" | "manual" | null>(null);
-  const [idvOutcome, setIdvOutcome] = useState<"verified" | "processing" | "manual_review" | "failed" | null>(null);
-
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -90,13 +82,7 @@ const Signup = () => {
     }
   };
 
-  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
-      setIdFile(file);
-      setIdFileName(file.name);
-    }
-  };
+  // ID upload removed — Stripe Express handles identity via free database matching (SSN/IRS/credit bureau)
 
   const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -194,9 +180,6 @@ const Signup = () => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
-    const idBase64 = idFile ? await fileToBase64(idFile) : null;
-    const idExt = idFile ? idFile.name.split(".").pop() : null;
-
     const portfolioData = [];
     for (const file of portfolioFiles) {
       portfolioData.push({
@@ -206,11 +189,11 @@ const Signup = () => {
       });
     }
 
-    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
+    return { avatarBase64, avatarExt, portfolioData };
   };
 
   const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
+    const { avatarBase64, avatarExt, portfolioData } = await prepareFileData();
 
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
@@ -218,9 +201,6 @@ const Signup = () => {
         avatarBase64,
         avatarExt,
         avatarContentType: avatarFile?.type,
-        idBase64,
-        idExt,
-        idContentType: idFile?.type,
         portfolioFiles: portfolioData,
         phone,
         bio,
@@ -250,11 +230,7 @@ const Signup = () => {
     return result;
   };
 
-  // Account is created when entering step 4 so IDV can use the authenticated session.
-  const [accountCreated, setAccountCreated] = useState(false);
-  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
-
-  const createAccountAndEnterStep4 = async () => {
+  const createAccountAndFinish = async () => {
     setLoading(true);
 
     // Rate limiting
@@ -287,7 +263,7 @@ const Signup = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // Complete profile with uploads
+      // Complete profile with uploads (no ID — Stripe handles identity)
       await completeProfile(userId);
 
       // Process referral code if provided
@@ -300,9 +276,8 @@ const Signup = () => {
         } catch { /* silent */ }
       }
 
-      setAccountCreated(true);
-      setCreatedUserId(userId);
-      setStep(4);
+      toast.success("Account created! Check your email to verify, then connect your payout account.");
+      navigate("/signup-pending");
     } catch (err: any) {
       toast.error(err.message || "Signup failed");
     } finally {
@@ -310,40 +285,12 @@ const Signup = () => {
     }
   };
 
-  const finishSignup = async () => {
-    // If user opted for legacy manual upload, persist that flag + (optional) ID file
-    if (idvMode === "manual" && createdUserId) {
-      // Mark as legacy manual review so the IDV gate doesn't block them
-      await supabase
-        .from("profiles")
-        .update({ legacy_manual_review: true } as any)
-        .eq("user_id", createdUserId);
-
-      // If they uploaded an ID file in manual mode, send it through complete-signup
-      if (idFile) {
-        const idBase64 = await fileToBase64(idFile);
-        await supabase.functions.invoke("complete-signup", {
-          body: {
-            userId: createdUserId,
-            idBase64,
-            idExt: idFile.name.split(".").pop(),
-            idContentType: idFile.type,
-          },
-        });
-      }
-    }
-
-    toast.success("Account created! Please check your email to verify.");
-    navigate("/signup-pending");
-  };
-
-
-  const totalSteps = 4;
+  const totalSteps = 3;
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 
   const handleBack = () => {
-    if (step > 1) setStep((step - 1) as 1 | 2 | 3 | 4);
+    if (step > 1) setStep((step - 1) as 1 | 2 | 3);
     else navigate("/");
   };
 
@@ -830,110 +777,13 @@ const Signup = () => {
               </Button>
               <Button
                 className="flex-1"
-                onClick={createAccountAndEnterStep4}
+                onClick={createAccountAndFinish}
                 disabled={loading}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
-                  : <>{portfolioFiles.length > 0 ? "Continue" : "Skip"} <ArrowRight className="w-4 h-4 ml-1" /></>}
+                  : <>Create account <ArrowRight className="w-4 h-4 ml-1" /></>}
               </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: ID verification */}
-        {step === 4 && (
-          <div className="space-y-4">
-            {/* Verified by Stripe badge */}
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Verified by Stripe</p>
-                <p className="text-xs text-muted-foreground">Bank-grade ID verification. Your data is encrypted end-to-end.</p>
-              </div>
-            </div>
-
-            {/* Decide which UI to show */}
-            {idvMode === null && accountCreated && (
-              <IdentityVerificationStep
-                onComplete={(outcome) => {
-                  setIdvOutcome(outcome);
-                  setIdvMode("idv");
-                }}
-                onFallbackToManual={() => setIdvMode("manual")}
-              />
-            )}
-
-            {idvMode === "idv" && idvOutcome && (
-              <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-center">
-                {idvOutcome === "verified" ? (
-                  <>
-                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                      <ShieldCheck className="w-7 h-7 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">You're verified!</h3>
-                    <p className="text-sm text-muted-foreground">Your identity was confirmed instantly. Verify your email next to log in.</p>
-                  </>
-                ) : idvOutcome === "processing" ? (
-                  <>
-                    <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto">
-                      <Loader2 className="w-7 h-7 text-muted-foreground animate-spin" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">Still processing…</h3>
-                    <p className="text-sm text-muted-foreground">Your verification is being reviewed. We'll email you once it's complete.</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-                      <Upload className="w-7 h-7 text-destructive" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">We need a closer look</h3>
-                    <p className="text-sm text-muted-foreground">Your submission was sent to our review team. We'll email you within 24–48 hours.</p>
-                  </>
-                )}
-              </div>
-            )}
-
-            {idvMode === "manual" && (
-              <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-                <div className="text-center space-y-2">
-                  <Upload className="w-10 h-10 text-primary mx-auto" />
-                  <h3 className="font-semibold text-foreground">Upload your ID <span className="text-muted-foreground text-xs">(optional)</span></h3>
-                  <p className="text-sm text-muted-foreground">
-                    Upload a government-issued ID (driver's license, passport, or state ID). Our team will review it within 24–48 hours.
-                  </p>
-                </div>
-
-                <label className="cursor-pointer block">
-                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors">
-                    {idFileName ? (
-                      <p className="text-sm text-foreground font-medium">{idFileName}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Click to select file (JPG, PNG, or PDF)</p>
-                    )}
-                  </div>
-                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdChange} />
-                </label>
-              </div>
-            )}
-
-            {/* Sticky Finish & continue button */}
-            <div
-              className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
-              style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
-            >
-              <div className="max-w-md mx-auto">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={finishSignup}
-                  disabled={loading || (idvMode === null && accountCreated)}
-                >
-                  Finish & continue <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
             </div>
           </div>
         )}

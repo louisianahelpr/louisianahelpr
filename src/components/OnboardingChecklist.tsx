@@ -84,8 +84,8 @@ const OnboardingChecklist = ({ userId, profile }: OnboardingChecklistProps) => {
         cta: "Resend",
       },
       {
-        key: "avatar",
-        label: "Add a profile photo",
+        key: "profile_picture",
+        label: "Upload a profile picture",
         done: !!profile?.avatar_url,
         href: "/profile",
         cta: "Upload",

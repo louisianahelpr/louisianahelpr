@@ -14,7 +14,6 @@ import { checkPasswordPwned } from "@/lib/hibpCheck";
 
 // True only inside the Capacitor-wrapped iOS/Android app, false in any browser.
 const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
-import { checkPasswordPwned } from "@/lib/hibpCheck";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";

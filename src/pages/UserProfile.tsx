@@ -15,6 +15,7 @@ import PageHeader from "@/components/PageHeader";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
+import { ParishBadges } from "@/components/ParishBadges";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -284,6 +285,9 @@ const UserProfile = () => {
                 </div>
               )}
               <HelperBadges badges={badges} />
+              <div className="pt-1">
+                <ParishBadges userId={userId!} />
+              </div>
             </div>
           </div>
 

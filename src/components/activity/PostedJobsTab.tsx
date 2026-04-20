@@ -519,14 +519,16 @@ export const PostedJobsTab = ({
                               <CheckCircle2 className="w-4 h-4 mr-1" /> Tipped ✓
                             </Button>
                           )}
-                          {!hasReviewed ? (
-                            <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
-                              <Star className="w-4 h-4 mr-1" /> Review
-                            </Button>
-                          ) : (
-                            <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed ✓
-                            </Button>
+                          {(job as any).payment_status === "released" && (
+                            !hasReviewed ? (
+                              <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
+                                <Star className="w-4 h-4 mr-1" /> Review
+                              </Button>
+                            ) : (
+                              <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed ✓
+                              </Button>
+                            )
                           )}
                           <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
                             <RotateCcw className="w-4 h-4 mr-1" /> Rebook

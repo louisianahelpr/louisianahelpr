@@ -666,12 +666,14 @@ export const AppliedJobsTab = ({
                   afterUrls={jobAny.proof_after_urls || []}
                   canUpload={false}
                 />
-                {helperReviewedJobIds.has(app.job_id) ? (
-                  <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
-                ) : (
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
-                    <Star className="w-4 h-4 mr-1" /> Review Poster
-                  </Button>
+                {jobAny.payment_status === "released" && (
+                  helperReviewedJobIds.has(app.job_id) ? (
+                    <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
+                      <Star className="w-4 h-4 mr-1" /> Review Poster
+                    </Button>
+                  )
                 )}
               </div>
             )}

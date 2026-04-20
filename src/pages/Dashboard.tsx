@@ -319,7 +319,7 @@ const Dashboard = () => {
               <span className="text-base font-display font-bold text-foreground whitespace-nowrap">
                 {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
               </span>
-              <span className="text-xs text-muted-foreground truncate hidden xs:inline">Browse tasks or post your own</span>
+              <span className="text-xs text-muted-foreground truncate hidden xs:inline">Browse jobs or post your own</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button

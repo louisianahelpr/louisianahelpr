@@ -118,7 +118,7 @@ const Login = () => {
               Helpr
             </Link>
           </div>
-          <p className="mt-2 text-muted-foreground">Welcome back</p>
+          <p className="mt-2 text-muted-foreground">Welcome back to your parish</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

@@ -38,13 +38,13 @@ const HeroSection = () => {
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center md:items-center lg:items-start text-center md:text-left">
           <div className="space-y-4 sm:space-y-6 animate-fade-in">
             <div className="inline-block px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase">
-              Serving Louisiana communities
+              Built in Louisiana, for Louisiana
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance">
-              Louisiana's helping hand for everyday tasks
+              Get real help from real neighbors.
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              Helpr connects you with trusted neighbors across Louisiana for everyday tasks — cleaning, errands, moving, yard work, and more.
+              Post a job, get matched with trusted helprs in your parish, and pay securely when the work's done. Cleaning, yard work, moving, errands — all in one app.
             </p>
 
             {/* Social proof — only show when numbers are meaningful */}
@@ -53,13 +53,13 @@ const HeroSection = () => {
                 {stats.users >= 50 && (
                   <span className="flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> community members
+                    <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> neighbors
                   </span>
                 )}
                 {stats.completed >= 20 && (
                   <span className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> tasks completed
+                    <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> jobs done
                   </span>
                 )}
               </div>
@@ -70,19 +70,22 @@ const HeroSection = () => {
                 variant="hero"
                 size="xl"
                 className="w-full"
-                onClick={() => navigate(loggedIn ? "/dashboard" : "/jobs")}
+                onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
-                Browse jobs
+                Post a job
               </Button>
               <Button
                 variant="hero-outline"
                 size="xl"
                 className="w-full"
-                onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                onClick={() => navigate(loggedIn ? "/dashboard" : "/jobs")}
               >
-                Post a task
+                Browse jobs
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground/80 pt-1">
+              Free to join · No subscription · Pay only when you post
+            </p>
           </div>
           <div className="animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center md:items-center lg:justify-end lg:items-start">
             <img

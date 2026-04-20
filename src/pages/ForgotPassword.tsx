@@ -57,12 +57,15 @@ const ForgotPassword = () => {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
               <Mail className="w-8 h-8 text-primary" />
             </div>
-            <p className="text-foreground font-medium">Check your email</p>
+            <p className="text-foreground font-medium">Check your inbox</p>
             <p className="text-sm text-muted-foreground">
-              We sent a password reset link to <span className="font-medium text-foreground">{email}</span>
+              We sent a reset link to <span className="font-medium text-foreground">{email}</span>. It expires in 1 hour.
+            </p>
+            <p className="text-xs text-muted-foreground/80">
+              Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
             </p>
             <Button variant="outline" className="w-full" onClick={() => setSent(false)}>
-              Try a different email
+              Use a different email
             </Button>
           </div>
         ) : (

@@ -113,10 +113,10 @@ const OnboardingChecklist = ({ userId, profile }: OnboardingChecklistProps) => {
       },
       {
         key: "first_action",
-        label: "Post a job or apply to one",
+        label: "Post or apply to your first job",
         done: counts.postedJobs > 0 || counts.applications > 0,
         href: counts.postedJobs > 0 || counts.applications > 0 ? "/activity" : "/post-job",
-        cta: counts.postedJobs > 0 || counts.applications > 0 ? "View" : "Start",
+        cta: counts.postedJobs > 0 || counts.applications > 0 ? "View" : "Go",
       },
     ],
     [profile, counts]
@@ -156,10 +156,10 @@ const OnboardingChecklist = ({ userId, profile }: OnboardingChecklistProps) => {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-display font-bold text-foreground">
-              Get set up on Helpr
+              Finish setting up your account
             </h3>
             <p className="text-xs text-muted-foreground">
-              {completedCount} of {steps.length} complete · {progress}%
+              {completedCount} of {steps.length} done · {progress}%
             </p>
           </div>
         </div>

@@ -348,7 +348,25 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               <p className="text-xs text-muted-foreground mt-1">in progress</p>
             </div>
           </div>
-
+            {(() => {
+              const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
+              if (instantAvailable <= 0) return null;
+              return (
+                <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Instant cash out available</span>
+                    </div>
+                    <p className="text-xl font-bold text-foreground">{formatCents(instantAvailable)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">To your debit card in ~30 min · 3% + $1 fee</p>
+                  </div>
+                  <Button onClick={() => setPayoutDialogOpen(true)} className="gap-2 shrink-0">
+                    <Zap className="w-4 h-4" /> Cash out
+                  </Button>
+                </div>
+              );
+            })()}
 
           <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
             <strong className="text-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed <strong>$20,000 in gross payments</strong> and <strong>200 transactions</strong> in a calendar year. Stripe issues these automatically — no action needed on your part.

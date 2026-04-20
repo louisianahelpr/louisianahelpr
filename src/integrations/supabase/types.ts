@@ -686,6 +686,45 @@ export type Database = {
         }
         Relationships: []
       }
+      instant_payouts: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          fee_amount: number
+          gross_amount: number
+          helper_id: string
+          id: string
+          net_amount: number
+          status: string
+          stripe_payout_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          fee_amount: number
+          gross_amount: number
+          helper_id: string
+          id?: string
+          net_amount: number
+          status?: string
+          stripe_payout_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          fee_amount?: number
+          gross_amount?: number
+          helper_id?: string
+          id?: string
+          net_amount?: number
+          status?: string
+          stripe_payout_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_checkins: {
         Row: {
           created_at: string | null

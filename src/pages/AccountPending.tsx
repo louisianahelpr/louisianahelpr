@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 
 const AccountPending = () => {
@@ -47,7 +48,7 @@ const AccountPending = () => {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: {
           action: "onboard",
-          return_url: `${window.location.origin}/account-pending`,
+          return_url: `${getPublicSiteUrl()}/account-pending`,
         },
       });
       if (error || !data?.url) throw new Error(data?.error || "Could not start payout setup");

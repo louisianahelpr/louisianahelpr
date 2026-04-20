@@ -25,9 +25,25 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
-  // Flat 5% cancellation fee when a helper has been selected, regardless of timing
-  const cancellationFeePercent = hasHelper ? 5 : 0;
-  const cancellationFee = Math.round((jobBudget * cancellationFeePercent)) / 100;
+  // Tiered cancellation fee (only applies once a helpr has been selected):
+  //   • 24+ hours before job  → 0%   (free cancellation)
+  //   • Less than 24 hours    → 25%  (helpr has committed time)
+  //   • Less than 2 hours     → 50%  (very late cancellation)
+  const jobDateTime = new Date(jobDate + "T00:00:00");
+  const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
+  const cancellationFeePercent = !hasHelper
+    ? 0
+    : hoursUntilJob < 2
+    ? 50
+    : hoursUntilJob < 24
+    ? 25
+    : 0;
+  const feeTier = cancellationFeePercent === 50
+    ? "Less than 2 hours before job"
+    : cancellationFeePercent === 25
+    ? "Less than 24 hours before job"
+    : "24+ hours before job";
+  const cancellationFee = Math.round(jobBudget * cancellationFeePercent) / 100;
   const platformCut = Math.round(cancellationFee * 10) / 100;
   const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
 
@@ -39,10 +55,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       if (fetchError || !jobData) throw new Error("Could not verify job details");
 
       const serverHasHelper = !!jobData.helper_id;
-      const serverFee = serverHasHelper ? Math.round(jobData.budget * 5) / 100 : 0;
-
-      const jobDateTime = new Date(jobData.date_needed + "T00:00:00");
-      const serverHoursUntil = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
+      const serverJobDateTime = new Date(jobData.date_needed + "T00:00:00");
+      const serverHoursUntil = (serverJobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
+      const serverFeePercent = !serverHasHelper
+        ? 0
+        : serverHoursUntil < 2
+        ? 50
+        : serverHoursUntil < 24
+        ? 25
+        : 0;
+      const serverFee = Math.round(jobData.budget * serverFeePercent) / 100;
       const serverIsLate = serverHoursUntil < 24 && serverHoursUntil > 0;
 
       const updateData: any = {
@@ -66,7 +88,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       }
 
       // Notify the helper about the cancellation and their compensation
-      if (serverHasHelper && jobData.helper_id) {
+      if (serverHasHelper && jobData.helper_id && serverFee > 0) {
         const commissionPercent = 10;
         const platformCut = Math.round(serverFee * (commissionPercent / 100) * 100) / 100;
         const helperPayout = Math.max(0, serverFee - platformCut);
@@ -74,7 +96,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         await createNotification({
           user_id: jobData.helper_id,
           title: "Job cancelled — you'll be compensated",
-          message: `"${jobTitle}" was cancelled by the poster. You'll receive $${helperPayout.toFixed(2)} as a cancellation fee (5% of the budget minus platform fee).`,
+          message: `"${jobTitle}" was cancelled by the poster. You'll receive $${helperPayout.toFixed(2)} as a cancellation fee (${serverFeePercent}% of the budget minus platform fee).`,
           type: "payment",
           link: "/my-jobs",
         });
@@ -189,30 +211,48 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                     {hasHelper && <span className="text-[10px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    A <strong className="text-foreground">5% cancellation fee</strong> is charged regardless of how much time is left before the job. The fee compensates the helpr for their lost time.
+                    Cancellation fees are <strong className="text-foreground">tiered by timing</strong> to compensate the helpr for their committed time:
                   </p>
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <DollarSign className="w-3 h-3 text-accent shrink-0" />
-                    <span className="text-[11px] text-accent font-medium">5% fee · Helpr compensated · Strike recorded</span>
-                  </div>
+                  <ul className="text-[11px] text-muted-foreground mt-1 space-y-0.5 list-disc list-inside">
+                    <li><strong className="text-foreground">24+ hours before:</strong> 0% (free)</li>
+                    <li><strong className="text-foreground">Less than 24 hours:</strong> 25% fee</li>
+                    <li><strong className="text-foreground">Less than 2 hours:</strong> 50% fee</li>
+                  </ul>
+                  {hasHelper && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <DollarSign className="w-3 h-3 text-accent shrink-0" />
+                      <span className="text-[11px] text-accent font-medium">
+                        {feeTier} → {cancellationFeePercent}% fee · Strike recorded
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {hasHelper && (
+              {hasHelper && cancellationFee > 0 && (
                 <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Cancellation fee (5% of ${jobBudget.toFixed(2)})</span>
+                    <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${jobBudget.toFixed(2)})</span>
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Platform commission (10%)</span>
+                    <span className="text-muted-foreground">Platform fee (10%)</span>
                     <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-xs">
                     <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
                     <span className="font-semibold text-primary">${helperPayout.toFixed(2)}</span>
                   </div>
+                </div>
+              )}
+
+              {hasHelper && cancellationFee === 0 && (
+                <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="text-[11px] text-primary font-medium">
+                    Free cancellation — more than 24 hours until the job starts.
+                  </span>
                 </div>
               )}
             </div>

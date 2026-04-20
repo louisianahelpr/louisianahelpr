@@ -1,0 +1,1 @@
+UPDATE public.platform_settings SET hybrid_idv_enabled = false;

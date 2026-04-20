@@ -168,6 +168,17 @@ const Login = () => {
             Sign up
           </Link>
         </p>
+
+        <p className="text-center text-xs text-muted-foreground/80 leading-relaxed px-2">
+          By logging in you agree to our{" "}
+          <Link to="/terms" className="underline hover:text-foreground transition-colors">
+            Terms
+          </Link>{" "}
+          ·{" "}
+          <Link to="/privacy" className="underline hover:text-foreground transition-colors">
+            Privacy Policy
+          </Link>
+        </p>
       </div>
     </div>
   );

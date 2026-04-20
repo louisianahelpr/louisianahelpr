@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, Loader2, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 
 const AccountPending = () => {
@@ -12,52 +11,6 @@ const AccountPending = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [resending, setResending] = useState(false);
-  const [stripeStatus, setStripeStatus] = useState<{
-    connected: boolean;
-    details_submitted: boolean;
-    charges_enabled: boolean;
-    payouts_enabled: boolean;
-  } | null>(null);
-  const [stripeLoading, setStripeLoading] = useState(false);
-  const [connectingStripe, setConnectingStripe] = useState(false);
-
-  const checkStripeStatus = async () => {
-    setStripeLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
-      if (!error && data) {
-        setStripeStatus({
-          connected: !!data.connected,
-          details_submitted: !!data.details_submitted,
-          charges_enabled: !!data.charges_enabled,
-          payouts_enabled: !!data.payouts_enabled,
-        });
-      }
-    } catch (e) {
-      console.error("Stripe status check failed:", e);
-    } finally {
-      setStripeLoading(false);
-    }
-  };
-
-  const handleConnectStripe = async () => {
-    setConnectingStripe(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: {
-          action: "onboard",
-          return_url: `${getPublicSiteUrl()}/account-pending`,
-        },
-      });
-      if (error || !data?.url) throw new Error(data?.error || "Could not start payout setup");
-      window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start payout setup");
-      setConnectingStripe(false);
-    }
-  };
 
   useEffect(() => {
     const check = async () => {
@@ -77,11 +30,6 @@ const AccountPending = () => {
       setFullName(profile.full_name || "");
       if (profile.approval_status === "approved") { navigate("/dashboard"); return; }
       if (profile.approval_status === "denied") { navigate("/account-denied"); return; }
-
-      // Check Stripe status only after email is verified
-      if (isVerified) {
-        await checkStripeStatus();
-      }
     };
 
     check();
@@ -111,8 +59,8 @@ const AccountPending = () => {
     };
     subscribeRealtime();
 
-    // Polling fallback
-    const interval = setInterval(check, 15000);
+    // Polling fallback (also re-checks email verification)
+    const interval = setInterval(check, 10000);
     return () => {
       clearInterval(interval);
       if (channel) supabase.removeChannel(channel);
@@ -120,6 +68,7 @@ const AccountPending = () => {
   }, [navigate]);
 
   const handleResendVerification = async () => {
+    if (resending) return;
     setResending(true);
     try {
       const { error } = await supabase.auth.resend({
@@ -138,144 +87,103 @@ const AccountPending = () => {
     }
   };
 
-  const stripeFullyVerified =
-    stripeStatus?.connected &&
-    stripeStatus?.charges_enabled &&
-    stripeStatus?.payouts_enabled;
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
-      <div className="w-full max-w-md text-center space-y-8">
+      <div className="w-full max-w-md text-center space-y-6">
         <Link to="/" className="text-3xl font-display font-bold text-primary inline-block">
           Helpr
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-8 space-y-6">
-          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
-            <Clock className="w-8 h-8 text-amber-500" />
+          {/* Hero icon — changes based on verification state */}
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${emailVerified ? "bg-primary/10" : "bg-amber-500/10"}`}>
+            {emailVerified
+              ? <CheckCircle2 className="w-8 h-8 text-primary" />
+              : <MailCheck className="w-8 h-8 text-amber-500" />}
           </div>
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">
-              {fullName ? `Hey ${fullName.split(" ")[0]}!` : "Almost there!"}
-            </h1>
-            <p className="text-muted-foreground">
               {!emailVerified
-                ? "First, verify your email — check your inbox for the link we just sent."
-                : !stripeFullyVerified
-                ? "Last step: connect a payout account so you can get paid for completed jobs. We use Stripe — bank-grade security."
-                : "Your account is being finalized — this usually takes just a few seconds."}
+                ? "Verify your email to continue"
+                : fullName
+                ? `You're in, ${fullName.split(" ")[0]}!`
+                : "You're all set!"}
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {!emailVerified ? (
+                <>
+                  We sent a verification link to{" "}
+                  <span className="font-medium text-foreground">{userEmail}</span>.
+                  Click the link in your inbox to unlock your account.
+                </>
+              ) : (
+                "Your email is verified. You can now browse the app, post jobs, and message helpers."
+              )}
             </p>
           </div>
 
-          {/* Step 1: Email verification */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4 text-left space-y-3">
-            <div className="flex items-start gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${emailVerified ? "bg-primary/15" : "bg-amber-500/15"}`}>
-                {emailVerified
-                  ? <CheckCircle2 className="w-4 h-4 text-primary" />
-                  : <MailCheck className="w-4 h-4 text-amber-500" />}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  {emailVerified ? "Email verified ✓" : "Verify your email"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {emailVerified
-                    ? "Thanks for confirming your email address."
-                    : "Click the link we sent to your inbox to verify."}
-                </p>
-              </div>
-            </div>
-
-            {!emailVerified && userEmail && (
+          {/* Email verification action — only when NOT verified */}
+          {!emailVerified && (
+            <div className="space-y-3">
               <Button
                 onClick={handleResendVerification}
                 disabled={resending}
-                variant="outline"
-                size="sm"
+                size="lg"
                 className="w-full gap-2"
               >
                 {resending ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>
                 ) : (
-                  <MailCheck className="w-4 h-4" />
+                  <><MailCheck className="w-4 h-4" /> Resend verification email</>
                 )}
-                Resend verification email
               </Button>
-            )}
-          </div>
-
-          {/* Step 2: Connect payout account */}
-          {emailVerified && (
-            <div className="rounded-xl border border-border bg-muted/30 p-4 text-left space-y-3">
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${stripeFullyVerified ? "bg-primary/15" : "bg-amber-500/15"}`}>
-                  {stripeFullyVerified
-                    ? <CheckCircle2 className="w-4 h-4 text-primary" />
-                    : <CreditCard className="w-4 h-4 text-amber-500" />}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    {stripeFullyVerified ? "Payout account verified ✓" : "Connect payout account"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {stripeFullyVerified
-                      ? "Stripe verified your identity. You're ready to go!"
-                      : stripeStatus?.connected && !stripeStatus.details_submitted
-                      ? "You started Stripe setup — finish the remaining steps to get approved."
-                      : "Stripe will verify your identity instantly via secure database matching (SSN, name, address)."}
-                  </p>
-                </div>
-              </div>
-
-              {!stripeFullyVerified && (
-                <div className="rounded-lg bg-background/60 border border-border/60 p-3 space-y-2">
-                  <p className="text-xs font-semibold text-foreground uppercase tracking-wide">What to expect</p>
-                  <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
-                    <li>Stripe asks for your legal name, DOB, address, and SSN.</li>
-                    <li>They silently verify against government &amp; credit databases (takes seconds).</li>
-                    <li>Only if that fails, they'll ask you to snap a photo of your ID.</li>
-                    <li>Once approved, this page redirects you — you're cleared to accept jobs.</li>
-                  </ol>
-                </div>
-              )}
-
-              {!stripeFullyVerified && !stripeLoading && (
-                <Button
-                  onClick={handleConnectStripe}
-                  disabled={connectingStripe}
-                  size="sm"
-                  className="w-full gap-2"
-                >
-                  {connectingStripe ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Opening Stripe…</>
-                  ) : (
-                    <><CreditCard className="w-4 h-4" />
-                      {stripeStatus?.connected ? "Continue Stripe setup" : "Connect with Stripe"}
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {stripeFullyVerified && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Finalizing your approval…
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Didn't get it? Check your spam folder, then tap above to resend.
+              </p>
             </div>
           )}
 
+          {/* Verified — let them continue immediately */}
+          {emailVerified && (
+            <Button
+              onClick={() => navigate("/dashboard")}
+              size="lg"
+              className="w-full gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" /> Continue to dashboard
+            </Button>
+          )}
+
+          {/* Heads-up about Stripe — only relevant when applying to jobs */}
+          {emailVerified && (
+            <div className="rounded-xl border border-border bg-muted/30 p-4 text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Want to earn as a helper?
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    When you apply to your first job, we'll walk you through connecting a Stripe payout account so you can get paid. No setup needed until then.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Trust copy */}
           <div className="border-t border-border pt-5 space-y-3 text-left">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <ShieldCheck className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Why Stripe?</p>
+                <p className="text-sm font-medium text-foreground">Why verify your email?</p>
                 <p className="text-xs text-muted-foreground">
-                  Stripe is the same payment platform used by Amazon, Lyft, and Shopify. They verify your identity instantly and securely — no manual ID review needed.
+                  It keeps your account secure and lets us send job updates, payment receipts, and password resets.
                 </p>
               </div>
             </div>
@@ -285,18 +193,12 @@ const AccountPending = () => {
                 <Bell className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Auto-approval</p>
+                <p className="text-sm font-medium text-foreground">Auto-unlock</p>
                 <p className="text-xs text-muted-foreground">
-                  Once Stripe verifies you, this page redirects you to your dashboard automatically.
+                  Once you click the verification link, this page redirects you to your dashboard automatically.
                 </p>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-lg bg-muted/50 border border-border p-3">
-            <p className="text-xs text-muted-foreground">
-              💡 A one-time $2 platform fee is deducted from your first payout — never charged upfront.
-            </p>
           </div>
         </div>
 

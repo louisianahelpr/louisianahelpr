@@ -10,7 +10,10 @@ import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, E
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import Navbar from "@/components/Navbar";
+import { checkPasswordPwned } from "@/lib/hibpCheck";
+
+// True only inside the Capacitor-wrapped iOS/Android app, false in any browser.
+const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
@@ -322,21 +325,41 @@ const Signup = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="flex items-start sm:items-center justify-center px-4 pt-20 sm:pt-24 pb-8 sm:pb-12">
+    <div className="min-h-screen bg-background">
+      <div className="flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
         <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
-          <div className="space-y-2">
+          <div className="text-center">
+            <Link to="/" className="text-3xl font-display font-bold text-primary">
+              Helpr
+            </Link>
+          </div>
+
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleBack}
-                aria-label="Go back"
-                className="text-muted-foreground hover:text-foreground transition-colors -ml-1 p-1 rounded-md"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <h1 className="text-3xl font-display font-bold text-foreground">Create your account</h1>
+              {!isNativeApp && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  aria-label="Go back"
+                  className="text-muted-foreground hover:text-foreground transition-colors -ml-1 p-1 rounded-md"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+              )}
+              <h1 className="text-2xl font-display font-bold text-foreground">Create your account</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Step {step} of 4</p>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Step {step} of 4</span>
+                <span>{Math.round((step / 4) * 100)}%</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${(step / 4) * 100}%` }}
+                />
+              </div>
+            </div>
           </div>
 
         {/* Step 1: Account basics */}

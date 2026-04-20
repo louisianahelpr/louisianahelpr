@@ -82,13 +82,7 @@ const Signup = () => {
     }
   };
 
-  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
-      setIdFile(file);
-      setIdFileName(file.name);
-    }
-  };
+  // ID upload removed — Stripe Express handles identity via free database matching (SSN/IRS/credit bureau)
 
   const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -186,9 +180,6 @@ const Signup = () => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
-    const idBase64 = idFile ? await fileToBase64(idFile) : null;
-    const idExt = idFile ? idFile.name.split(".").pop() : null;
-
     const portfolioData = [];
     for (const file of portfolioFiles) {
       portfolioData.push({
@@ -198,11 +189,11 @@ const Signup = () => {
       });
     }
 
-    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
+    return { avatarBase64, avatarExt, portfolioData };
   };
 
   const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
+    const { avatarBase64, avatarExt, portfolioData } = await prepareFileData();
 
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
@@ -210,9 +201,6 @@ const Signup = () => {
         avatarBase64,
         avatarExt,
         avatarContentType: avatarFile?.type,
-        idBase64,
-        idExt,
-        idContentType: idFile?.type,
         portfolioFiles: portfolioData,
         phone,
         bio,
@@ -242,11 +230,7 @@ const Signup = () => {
     return result;
   };
 
-  // Account is created when entering step 4 so IDV can use the authenticated session.
-  const [accountCreated, setAccountCreated] = useState(false);
-  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
-
-  const createAccountAndEnterStep4 = async () => {
+  const createAccountAndFinish = async () => {
     setLoading(true);
 
     // Rate limiting
@@ -279,7 +263,7 @@ const Signup = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // Complete profile with uploads
+      // Complete profile with uploads (no ID — Stripe handles identity)
       await completeProfile(userId);
 
       // Process referral code if provided
@@ -292,9 +276,8 @@ const Signup = () => {
         } catch { /* silent */ }
       }
 
-      setAccountCreated(true);
-      setCreatedUserId(userId);
-      setStep(4);
+      toast.success("Account created! Check your email to verify, then connect your payout account.");
+      navigate("/signup-pending");
     } catch (err: any) {
       toast.error(err.message || "Signup failed");
     } finally {
@@ -302,40 +285,12 @@ const Signup = () => {
     }
   };
 
-  const finishSignup = async () => {
-    // If user opted for legacy manual upload, persist that flag + (optional) ID file
-    if (idvMode === "manual" && createdUserId) {
-      // Mark as legacy manual review so the IDV gate doesn't block them
-      await supabase
-        .from("profiles")
-        .update({ legacy_manual_review: true } as any)
-        .eq("user_id", createdUserId);
-
-      // If they uploaded an ID file in manual mode, send it through complete-signup
-      if (idFile) {
-        const idBase64 = await fileToBase64(idFile);
-        await supabase.functions.invoke("complete-signup", {
-          body: {
-            userId: createdUserId,
-            idBase64,
-            idExt: idFile.name.split(".").pop(),
-            idContentType: idFile.type,
-          },
-        });
-      }
-    }
-
-    toast.success("Account created! Please check your email to verify.");
-    navigate("/signup-pending");
-  };
-
-
-  const totalSteps = 4;
+  const totalSteps = 3;
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 
   const handleBack = () => {
-    if (step > 1) setStep((step - 1) as 1 | 2 | 3 | 4);
+    if (step > 1) setStep((step - 1) as 1 | 2 | 3);
     else navigate("/");
   };
 

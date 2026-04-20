@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, Loader2, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 
 const AccountPending = () => {
@@ -12,52 +11,6 @@ const AccountPending = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [resending, setResending] = useState(false);
-  const [stripeStatus, setStripeStatus] = useState<{
-    connected: boolean;
-    details_submitted: boolean;
-    charges_enabled: boolean;
-    payouts_enabled: boolean;
-  } | null>(null);
-  const [stripeLoading, setStripeLoading] = useState(false);
-  const [connectingStripe, setConnectingStripe] = useState(false);
-
-  const checkStripeStatus = async () => {
-    setStripeLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
-      if (!error && data) {
-        setStripeStatus({
-          connected: !!data.connected,
-          details_submitted: !!data.details_submitted,
-          charges_enabled: !!data.charges_enabled,
-          payouts_enabled: !!data.payouts_enabled,
-        });
-      }
-    } catch (e) {
-      console.error("Stripe status check failed:", e);
-    } finally {
-      setStripeLoading(false);
-    }
-  };
-
-  const handleConnectStripe = async () => {
-    setConnectingStripe(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: {
-          action: "onboard",
-          return_url: `${getPublicSiteUrl()}/account-pending`,
-        },
-      });
-      if (error || !data?.url) throw new Error(data?.error || "Could not start payout setup");
-      window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start payout setup");
-      setConnectingStripe(false);
-    }
-  };
 
   useEffect(() => {
     const check = async () => {
@@ -77,11 +30,6 @@ const AccountPending = () => {
       setFullName(profile.full_name || "");
       if (profile.approval_status === "approved") { navigate("/dashboard"); return; }
       if (profile.approval_status === "denied") { navigate("/account-denied"); return; }
-
-      // Check Stripe status only after email is verified
-      if (isVerified) {
-        await checkStripeStatus();
-      }
     };
 
     check();
@@ -111,8 +59,8 @@ const AccountPending = () => {
     };
     subscribeRealtime();
 
-    // Polling fallback
-    const interval = setInterval(check, 15000);
+    // Polling fallback (also re-checks email verification)
+    const interval = setInterval(check, 10000);
     return () => {
       clearInterval(interval);
       if (channel) supabase.removeChannel(channel);
@@ -120,6 +68,7 @@ const AccountPending = () => {
   }, [navigate]);
 
   const handleResendVerification = async () => {
+    if (resending) return;
     setResending(true);
     try {
       const { error } = await supabase.auth.resend({
@@ -137,11 +86,6 @@ const AccountPending = () => {
       setResending(false);
     }
   };
-
-  const stripeFullyVerified =
-    stripeStatus?.connected &&
-    stripeStatus?.charges_enabled &&
-    stripeStatus?.payouts_enabled;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
@@ -179,7 +123,7 @@ const AccountPending = () => {
             </p>
           </div>
 
-          {/* Email verification action — only shown when NOT verified */}
+          {/* Email verification action — only when NOT verified */}
           {!emailVerified && (
             <div className="space-y-3">
               <Button
@@ -200,7 +144,7 @@ const AccountPending = () => {
             </div>
           )}
 
-          {/* Verified — let them continue to dashboard immediately */}
+          {/* Verified — let them continue immediately */}
           {emailVerified && (
             <Button
               onClick={() => navigate("/dashboard")}
@@ -211,7 +155,7 @@ const AccountPending = () => {
             </Button>
           )}
 
-          {/* Heads-up about Stripe — only relevant when they apply to jobs */}
+          {/* Heads-up about Stripe — only relevant when applying to jobs */}
           {emailVerified && (
             <div className="rounded-xl border border-border bg-muted/30 p-4 text-left">
               <div className="flex items-start gap-3">

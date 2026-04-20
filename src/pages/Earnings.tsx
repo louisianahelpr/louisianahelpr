@@ -14,13 +14,16 @@ const Earnings = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [tips, setTips] = useState<{ amount: number; job_id: string; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [instantAvailable, setInstantAvailable] = useState<number>(0);
+  const [instantAvailable, setInstantAvailable] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
 
   const loadBalance = async () => {
+    setBalanceLoading(true);
     const { data } = await supabase.functions.invoke("stripe-payouts", { body: {} });
     const usd = data?.instant_available?.find((b: any) => b.currency === "usd");
     setInstantAvailable(usd?.amount ?? 0);
+    setBalanceLoading(false);
   };
 
   useEffect(() => {
@@ -43,8 +46,9 @@ const Earnings = () => {
 
       if (jobsRes.data) setJobs(jobsRes.data);
       if (tipsRes.data) setTips(tipsRes.data);
-      await loadBalance();
       setLoading(false);
+      // Defer Stripe balance check — non-blocking, runs after page renders
+      setTimeout(() => { loadBalance(); }, 0);
     };
     load();
   }, []);

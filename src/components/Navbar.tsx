@@ -12,7 +12,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   return (
     <nav
       ref={ref}
-      className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30"
+      className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30 bg-background/80"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div

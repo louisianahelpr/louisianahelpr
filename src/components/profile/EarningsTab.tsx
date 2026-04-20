@@ -8,10 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download } from "lucide-react";
+import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { EarningsExport } from "@/components/EarningsExport";
+import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -58,6 +59,7 @@ interface StripePayoutData {
   payouts_enabled: boolean;
   available: { amount: number; currency: string }[];
   pending: { amount: number; currency: string }[];
+  instant_available?: { amount: number; currency: string }[];
   payouts: StripePayout[];
 }
 
@@ -72,6 +74,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const [stripeData, setStripeData] = useState<StripePayoutData | null>(null);
   const [stripeLoading, setStripeLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
 
   const fetchPayouts = async () => {
     try {
@@ -251,6 +254,26 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               </div>
             </div>
 
+            {(() => {
+              const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
+              if (instantAvailable <= 0) return null;
+              return (
+                <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Instant cash out available</span>
+                    </div>
+                    <p className="text-xl font-bold text-foreground">{formatCents(instantAvailable)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">To your debit card in ~30 min · 3% + $1 fee</p>
+                  </div>
+                  <Button onClick={() => setPayoutDialogOpen(true)} className="gap-2 shrink-0">
+                    <Zap className="w-4 h-4" /> Cash out
+                  </Button>
+                </div>
+              );
+            })()}
+
             {!stripeData.payouts_enabled && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                 <p className="text-xs text-destructive">
@@ -345,8 +368,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               <p className="text-xs text-muted-foreground mt-1">in progress</p>
             </div>
           </div>
-
-
           <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
             <strong className="text-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed <strong>$20,000 in gross payments</strong> and <strong>200 transactions</strong> in a calendar year. Stripe issues these automatically — no action needed on your part.
           </div>
@@ -392,6 +413,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </div>
         </>
       )}
+
+      <InstantPayoutDialog
+        open={payoutDialogOpen}
+        onOpenChange={setPayoutDialogOpen}
+        onSuccess={fetchPayouts}
+      />
     </div>
   );
 }

@@ -839,8 +839,11 @@ const Signup = () => {
               </Button>
               <Button
                 className="flex-1"
-                onClick={createAccountAndFinish}
-                disabled={loading}
+                onClick={() => {
+                  if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return; }
+                  createAccountAndFinish();
+                }}
+                disabled={loading || !idFile}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>

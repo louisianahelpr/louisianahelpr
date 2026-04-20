@@ -57,6 +57,8 @@ const Signup = () => {
   // Step 3 fields - Portfolio / Documents
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
+  const [idFile, setIdFile] = useState<File | null>(null);
+  const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -82,7 +84,13 @@ const Signup = () => {
     }
   };
 
-  // ID upload removed — Stripe Express handles identity via free database matching (SSN/IRS/credit bureau)
+  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
+      setIdFile(file);
+      setIdPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  };
 
   const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -180,6 +188,9 @@ const Signup = () => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
+    const idBase64 = idFile ? await fileToBase64(idFile) : null;
+    const idExt = idFile ? idFile.name.split(".").pop() : null;
+
     const portfolioData = [];
     for (const file of portfolioFiles) {
       portfolioData.push({
@@ -189,11 +200,11 @@ const Signup = () => {
       });
     }
 
-    return { avatarBase64, avatarExt, portfolioData };
+    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
   };
 
   const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, portfolioData } = await prepareFileData();
+    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
 
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
@@ -201,6 +212,9 @@ const Signup = () => {
         avatarBase64,
         avatarExt,
         avatarContentType: avatarFile?.type,
+        idBase64,
+        idExt,
+        idContentType: idFile?.type,
         portfolioFiles: portfolioData,
         phone,
         bio,
@@ -720,6 +734,54 @@ const Signup = () => {
                 </p>
               </div>
             </div>
+
+            {/* ID Document — required, stored securely, not manually reviewed */}
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+              <div className="text-center space-y-2">
+                <FileText className="w-10 h-10 text-primary mx-auto" />
+                <h3 className="font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload a photo of your driver's license, state ID, or passport. Stored securely on file for safety and compliance — Stripe handles your live identity check separately.
+                </p>
+              </div>
+              {idFile ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {idPreview ? (
+                      <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded object-cover border border-border shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded border border-border flex items-center justify-center bg-card shrink-0">
+                        <FileText className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{idFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setIdFile(null); setIdPreview(null); }}
+                    className="text-xs text-destructive hover:underline shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border hover:border-primary/50 px-4 py-6 cursor-pointer transition-colors">
+                  <Camera className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Upload ID</span>
+                  <span className="text-xs text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={handleIdChange}
+                  />
+                </label>
+              )}
+            </div>
+
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
@@ -777,8 +839,11 @@ const Signup = () => {
               </Button>
               <Button
                 className="flex-1"
-                onClick={createAccountAndFinish}
-                disabled={loading}
+                onClick={() => {
+                  if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return; }
+                  createAccountAndFinish();
+                }}
+                disabled={loading || !idFile}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>

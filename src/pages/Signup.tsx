@@ -10,7 +10,7 @@ import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, E
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import PageHeader from "@/components/PageHeader";
+import Navbar from "@/components/Navbar";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
@@ -321,9 +321,20 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader title="Create your account" onBack={handleBack} />
-      <div className="flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
+      <Navbar />
+      <div className="flex items-start sm:items-center justify-center px-4 pt-20 sm:pt-24 pb-8 sm:pb-12">
         <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <h1 className="text-3xl font-display font-bold text-foreground">Create your account</h1>
+            <p className="text-sm text-muted-foreground">Step {step} of 4</p>
+          </div>
 
         {/* Step 1: Account basics */}
         {step === 1 && (

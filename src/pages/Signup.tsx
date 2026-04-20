@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import { checkPasswordPwned } from "@/lib/hibpCheck";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -259,6 +260,16 @@ const Signup = () => {
     localStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
     try {
+      // HIBP breached-password check (k-anonymity, fail-open on network error)
+      const pwnedCount = await checkPasswordPwned(password);
+      if (pwnedCount !== null && pwnedCount > 0) {
+        toast.error(
+          `This password has appeared in ${pwnedCount.toLocaleString()} known data breaches. Please choose a different password.`
+        );
+        setLoading(false);
+        return;
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,

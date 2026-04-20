@@ -57,6 +57,8 @@ const Signup = () => {
   // Step 3 fields - Portfolio / Documents
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
+  const [idFile, setIdFile] = useState<File | null>(null);
+  const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -82,7 +84,13 @@ const Signup = () => {
     }
   };
 
-  // ID upload removed — Stripe Express handles identity via free database matching (SSN/IRS/credit bureau)
+  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
+      setIdFile(file);
+      setIdPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  };
 
   const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

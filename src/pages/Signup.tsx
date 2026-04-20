@@ -734,10 +734,53 @@ const Signup = () => {
                 </p>
               </div>
             </div>
+
+            {/* ID Document — required, stored securely, not manually reviewed */}
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Portfolio & Documents</h3>
+                <h3 className="font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload a photo of your driver's license, state ID, or passport. Stored securely on file for safety and compliance — Stripe handles your live identity check separately.
+                </p>
+              </div>
+              {idFile ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {idPreview ? (
+                      <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded object-cover border border-border shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded border border-border flex items-center justify-center bg-card shrink-0">
+                        <FileText className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{idFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setIdFile(null); setIdPreview(null); }}
+                    className="text-xs text-destructive hover:underline shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border hover:border-primary/50 px-4 py-6 cursor-pointer transition-colors">
+                  <Camera className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Upload ID</span>
+                  <span className="text-xs text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={handleIdChange}
+                  />
+                </label>
+              )}
+            </div>
                 <p className="text-sm text-muted-foreground">
                   Want to help others with tasks? Upload work photos, certifications, or a resume to stand out. <span className="font-medium text-foreground">Only posting tasks? This step is optional.</span>
                 </p>

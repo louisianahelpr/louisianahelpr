@@ -188,6 +188,9 @@ const Signup = () => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
+    const idBase64 = idFile ? await fileToBase64(idFile) : null;
+    const idExt = idFile ? idFile.name.split(".").pop() : null;
+
     const portfolioData = [];
     for (const file of portfolioFiles) {
       portfolioData.push({
@@ -197,11 +200,11 @@ const Signup = () => {
       });
     }
 
-    return { avatarBase64, avatarExt, portfolioData };
+    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
   };
 
   const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, portfolioData } = await prepareFileData();
+    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
 
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
@@ -209,6 +212,9 @@ const Signup = () => {
         avatarBase64,
         avatarExt,
         avatarContentType: avatarFile?.type,
+        idBase64,
+        idExt,
+        idContentType: idFile?.type,
         portfolioFiles: portfolioData,
         phone,
         bio,

@@ -176,6 +176,12 @@ const Earnings = () => {
           )}
         </div>
       </main>
+
+      <InstantPayoutDialog
+        open={payoutDialogOpen}
+        onOpenChange={setPayoutDialogOpen}
+        onSuccess={loadBalance}
+      />
     </div>
   );
 };

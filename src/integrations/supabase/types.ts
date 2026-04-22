@@ -2221,6 +2221,24 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          processed_at: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          processed_at?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -2873,6 +2891,7 @@ export type Database = {
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       cleanup_observability_tables: { Args: never; Returns: undefined }
+      cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       count_profiles: { Args: never; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }

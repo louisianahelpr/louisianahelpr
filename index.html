@@ -10,12 +10,17 @@
     <meta name="geo.placename" content="Louisiana">
     <link rel="canonical" href="https://louisianahelpr.com">
     <meta name="author" content="Helpr" />
-    <meta name="theme-color" content="#16a34a" />
+    <meta name="theme-color" content="#1FA678" />
     <meta name="application-name" content="Helpr" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Helpr" />
+
+    <!-- Baseline CSP for the web build. The `_headers` file overrides this with the stricter
+         production policy. Capacitor relies on this meta tag since `_headers` doesn't ship native. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com; frame-src https://js.stripe.com https://*.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />

@@ -11,6 +11,8 @@ import MobileNav from "./components/MobileNav";
 import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialog";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
+import { useNativePushSetup } from "@/lib/nativePush";
+import { useDynamicTypeSync } from "@/lib/accessibility";
 
 // Lazy load all pages including landing
 const Index = lazy(() => import("./pages/Index"));
@@ -36,6 +38,7 @@ const Support = lazy(() => import("./pages/Support"));
 
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const DataRights = lazy(() => import("./pages/DataRights"));
 const Community = lazy(() => import("./pages/Community"));
 const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -99,6 +102,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       
       <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
       <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+      <Route path="/data-rights" element={<PageTransition><DataRights /></PageTransition>} />
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
       <Route path="/jobs" element={<PageTransition><Jobs /></PageTransition>} />
       <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
@@ -114,6 +118,8 @@ AnimatedRoutes.displayName = "AnimatedRoutes";
 const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
+  useNativePushSetup();
+  useDynamicTypeSync();
   return null;
 };
 

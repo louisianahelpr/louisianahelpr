@@ -102,6 +102,29 @@ serve(async (req) => {
 
   logStep("Event received", { type: event.type, id: event.id });
 
+  // ---- Idempotency guard ----
+  // Stripe retries webhooks on any non-2xx or timeout. Without this guard a
+  // single checkout could grant a subscription twice or send duplicate emails.
+  try {
+    const { error: idemErr } = await supabase
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id, event_type: event.type });
+    if (idemErr) {
+      // 23505 = unique_violation → we've seen this event before. Ack and exit.
+      if ((idemErr as any).code === "23505") {
+        logStep("Duplicate event — already processed, skipping", { id: event.id });
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      // Any other DB error: log but continue. Better to risk a duplicate than drop the event.
+      console.error("[STRIPE-WEBHOOK] Idempotency insert failed (non-fatal):", idemErr);
+    }
+  } catch (e) {
+    console.error("[STRIPE-WEBHOOK] Idempotency check threw (non-fatal):", e);
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {

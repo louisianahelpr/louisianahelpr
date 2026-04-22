@@ -8,24 +8,38 @@
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { SplashScreen } from "@capacitor/splash-screen";
 
-const isNative =
+export const isNativePlatform =
   typeof window !== "undefined" &&
   (window as any).Capacitor?.isNativePlatform?.() === true;
 
 export async function initNative() {
-  if (!isNative) return;
+  if (!isNativePlatform) return;
 
-  // Status bar: dark icons (Style.Light = dark icons on light bg) so the
-  // iOS clock/battery stay visible against our cream-white background.
+  // Default status bar: dark icons on light cream background.
+  // Pages can override per-route via useStatusBar(Style.Dark).
   try {
     await StatusBar.setStyle({ style: Style.Light });
-    // Background color only applies on Android; iOS uses the launch screen color.
     await StatusBar.setBackgroundColor({ color: "#F4F8F5" });
     await StatusBar.setOverlaysWebView({ overlay: false });
-  } catch { /* ignore */ }
+  } catch { /* plugin missing on web */ }
 
-  // Hide the splash screen after the React tree mounts.
+  // Hide splash after React mounts.
   try {
     await SplashScreen.hide({ fadeOutDuration: 300 });
+  } catch { /* ignore */ }
+}
+
+/**
+ * Set status bar style for the current screen. Call from a useEffect in
+ * any page that needs a different style (e.g. dark hero sections).
+ */
+export async function setStatusBarStyle(style: "light" | "dark") {
+  if (!isNativePlatform) return;
+  try {
+    // Style.Light = dark text/icons (for light backgrounds)
+    // Style.Dark  = light text/icons (for dark backgrounds)
+    await StatusBar.setStyle({
+      style: style === "dark" ? Style.Dark : Style.Light,
+    });
   } catch { /* ignore */ }
 }

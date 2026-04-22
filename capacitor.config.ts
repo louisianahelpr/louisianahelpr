@@ -1,14 +1,22 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// Local dev hot-reload: set CAP_DEV_URL=https://<sandbox>.lovableproject.com
+// before `npx cap sync` to load the live preview into the app shell.
+// PRODUCTION builds MUST ship the bundled dist/ assets — never load a remote URL.
+const devServerUrl = process.env.CAP_DEV_URL;
+
 const config: CapacitorConfig = {
+  // App Store Connect record — locked to this exact value.
   appId: 'com.Helpr',
   appName: 'Helpr',
   webDir: 'dist',
-  server: {
-    url: 'https://louisianahelpr.com',
-    cleartext: true
-  },
+  // Only attach a remote server in dev. Production has no `server` block,
+  // so the app loads bundled assets and Apple won't reject under Guideline 4.2.
+  ...(devServerUrl
+    ? { server: { url: devServerUrl, cleartext: true } }
+    : {}),
   ios: {
+    // App Store Connect identifiers
     appleId: '6754470134',
     sku: 'Helpr',
     version: '1.0.4',
@@ -17,24 +25,54 @@ const config: CapacitorConfig = {
     supportUrl: 'https://louisianahelpr.com/support',
     privacyPolicyUrl: 'https://louisianahelpr.com/privacy',
     marketingUrl: 'https://louisianahelpr.com',
+    // Allow iPad multitasking (Split View / Slide Over). Set to true to lock full screen.
+    contentInset: 'always',
+    // Inject Info.plist keys that aren't covered by the default Capacitor template.
+    // These are appended on `npx cap sync` — manage permissions in one place here.
     content: `
       <key>NSCameraUsageDescription</key>
-      <string>Helpr needs camera access so you can take photos of tasks or completed jobs.</string>
+      <string>Helpr needs camera access so you can take before/after photos of jobs and upload your ID for verification.</string>
       <key>NSLocationWhenInUseUsageDescription</key>
-      <string>Helpr uses your location to show you available help and jobs in your local community.</string>
+      <string>Helpr uses your location to show jobs near you and confirm helper arrival.</string>
       <key>NSPhotoLibraryUsageDescription</key>
-      <string>Allows you to upload photos from your library to show details of a task.</string>
+      <string>Allows you to upload photos from your library to show job details and progress.</string>
+      <key>NSPhotoLibraryAddUsageDescription</key>
+      <string>Allows Helpr to save downloaded receipts and shared images to your photo library.</string>
+      <key>NSContactsUsageDescription</key>
+      <string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
       <key>ITSAppUsesNonExemptEncryption</key>
       <false/>
+      <key>UIRequiresFullScreen</key>
+      <false/>
+      <key>UIStatusBarStyle</key>
+      <string>UIStatusBarStyleDarkContent</string>
+      <key>UIViewControllerBasedStatusBarAppearance</key>
+      <true/>
+      <key>UISupportedInterfaceOrientations</key>
+      <array>
+        <string>UIInterfaceOrientationPortrait</string>
+      </array>
+      <key>UISupportedInterfaceOrientations~ipad</key>
+      <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+      </array>
+      <key>LSApplicationQueriesSchemes</key>
+      <array>
+        <string>tel</string>
+        <string>mailto</string>
+        <string>sms</string>
+      </array>
     `
   },
   plugins: {
     SplashScreen: {
       // Stays up until React mounts and calls SplashScreen.hide() in nativeInit.ts.
-      // Long max-duration is a fallback for very slow devices.
       launchShowDuration: 3000,
       launchAutoHide: false,
-      backgroundColor: '#1FA678', // Helpr emerald — matches splash.png
+      backgroundColor: '#1FA678', // Helpr emerald — matches app-icon-1024.png
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
@@ -42,10 +80,15 @@ const config: CapacitorConfig = {
       splashImmersive: true
     },
     StatusBar: {
-      // iOS uses Info.plist; this sets Android defaults.
-      style: 'LIGHT', // dark icons (for light backgrounds)
+      style: 'LIGHT', // dark icons on light backgrounds
       backgroundColor: '#F4F8F5',
       overlaysWebView: false
+    },
+    Keyboard: {
+      // KeyboardResize.Body — body shrinks so focused inputs stay visible above the keyboard.
+      resize: 'body',
+      style: 'LIGHT',
+      resizeOnFullScreen: true
     }
   }
 };

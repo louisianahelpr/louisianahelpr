@@ -38,15 +38,15 @@ export default defineConfig(({ mode }) => ({
       },
       manifest: {
         id: "/?source=helpr-pwa",
-        name: "Helpr",
+        name: "Helpr — Louisiana Help Marketplace",
         short_name: "Helpr",
-        description: "Connect with trusted neighbors for everyday tasks",
-        theme_color: "#16a34a",
-        background_color: "#ffffff",
-        display: "browser",
+        description: "Connect with trusted Louisiana neighbors for cleaning, errands, moving, yard work, and more.",
+        theme_color: "#1FA678",
+        background_color: "#1FA678",
+        display: "standalone",
         orientation: "portrait",
         scope: "/",
-        start_url: "/",
+        start_url: "/?source=pwa",
         icons: [
           { src: "/pwa-192x192-v2.png", sizes: "192x192", type: "image/png" },
           { src: "/pwa-512x512-v2.png", sizes: "512x512", type: "image/png" },
@@ -61,7 +61,15 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
+  // Strip console + debugger from production bundles. Keeps bundle slim
+  // and avoids leaking debug info in App Store builds.
+  esbuild: {
+    drop: mode === "production" ? ["console", "debugger"] : [],
+  },
   build: {
+    target: "es2020",
+    cssCodeSplit: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         // Bundle all lucide icons into a single chunk so we don't ship 40+

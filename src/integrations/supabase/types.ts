@@ -136,6 +136,39 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          platform: string
+          properties: Json
+          referrer: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          platform?: string
+          properties?: Json
+          referrer?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          platform?: string
+          properties?: Json
+          referrer?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           attachment_urls: string[] | null
@@ -380,6 +413,45 @@ export type Database = {
           id?: string
           token?: string
           used_at?: string | null
+        }
+        Relationships: []
+      }
+      error_logs: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          message: string
+          severity: string
+          stack: string | null
+          tags: Json
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          message: string
+          severity?: string
+          stack?: string | null
+          tags?: Json
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          message?: string
+          severity?: string
+          stack?: string | null
+          tags?: Json
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1245,6 +1317,39 @@ export type Database = {
           },
         ]
       }
+      legal_acceptances: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          marketing_opted_in: boolean
+          privacy_version: string
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          marketing_opted_in?: boolean
+          privacy_version: string
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          marketing_opted_in?: boolean
+          privacy_version?: string
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       login_history: {
         Row: {
           created_at: string
@@ -1748,6 +1853,39 @@ export type Database = {
           user_id?: string
           verification_email_count?: number
           zip_code?: string | null
+        }
+        Relationships: []
+      }
+      push_tokens: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          device_id: string | null
+          id: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2734,6 +2872,7 @@ export type Database = {
         Returns: boolean
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
+      cleanup_observability_tables: { Args: never; Returns: undefined }
       count_profiles: { Args: never; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }

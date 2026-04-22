@@ -7,7 +7,7 @@ import { Star, Flag } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
-import { trackEvent } from "@/lib/analytics";
+import { track, AhaEvent } from "@/lib/analytics";
 
 interface ReviewFormProps {
   open: boolean;
@@ -118,9 +118,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       toast.success("Review submitted!");
       // Aha-moment analytics + native review prompt. A 5-star review is the
       // strongest signal that this user would also rate us 5 stars on the App Store.
-      trackEvent("review_submitted", { jobId, rating: scores.rating });
+      track(AhaEvent.ReviewLeft, { jobId, rating: scores.rating });
       if (scores.rating === 5) {
-        trackEvent("aha_moment_five_star_review", { jobId });
+        track(AhaEvent.FirstReviewLeft, { jobId, rating: 5 });
         // Fire-and-forget — internally rate-limited to once per 90 days.
         void maybeRequestInAppReview();
       }

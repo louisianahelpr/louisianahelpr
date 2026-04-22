@@ -6,14 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff } from "lucide-react";
+import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff, ShieldCheck, UserRound, BadgeCheck, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
-
-// True only inside the Capacitor-wrapped iOS/Android app, false in any browser.
-const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -312,52 +309,64 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 3;
+  const totalSteps = 4;
+  const stepLabels = ["Basics", "Profile", "Documents", "Payouts"];
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 
-  const handleBack = () => {
-    if (step > 1) setStep((step - 1) as 1 | 2 | 3);
-    else navigate("/");
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
-        <div className={`w-full max-w-md space-y-6 ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
-          <div className="text-center">
-            <Link to="/" className="text-3xl font-display font-bold text-primary">
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      <div className="flex items-start sm:items-center justify-center px-5 py-8 sm:py-12">
+        <div className={`w-full max-w-md ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
+          <div className="text-center mb-6">
+            <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
               Helpr
             </Link>
+            <p className="mt-1.5 text-sm text-muted-foreground">Join your Louisiana parish</p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              {!isNativeApp && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  aria-label="Go back"
-                  className="text-muted-foreground hover:text-foreground transition-colors -ml-1 p-1 rounded-md"
-                >
-                  <ArrowLeft className="w-6 h-6" />
-                </button>
-              )}
-              <h1 className="text-2xl font-display font-bold text-foreground">Create your account</h1>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Step {step} of 4</span>
-                <span>{Math.round((step / 4) * 100)}%</span>
+          <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-6">
+            {/* Step progress */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                {stepLabels.map((label, i) => {
+                  const stepNum = i + 1;
+                  const isDone = stepNum < step;
+                  const isActive = stepNum === step;
+                  return (
+                    <div key={label} className="flex-1 flex flex-col items-center gap-1.5">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${
+                        isDone ? "bg-primary text-primary-foreground" :
+                        isActive ? "bg-primary/15 text-primary border-2 border-primary" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {isDone ? <BadgeCheck className="w-3.5 h-3.5" /> : stepNum}
+                      </div>
+                      <span className={`text-[10px] font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${(step / 4) * 100}%` }}
+                  style={{ width: `${(step / totalSteps) * 100}%` }}
                 />
               </div>
             </div>
-          </div>
+
+            <div>
+              <h1 className="text-xl font-display font-bold text-foreground">
+                {step === 1 ? "Create your account" : step === 2 ? "Tell us about you" : "Verify & finish"}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {step === 1 ? "Step 1 of 4 — basic information" :
+                 step === 2 ? "Step 2 of 4 — profile details" :
+                 "Step 3 of 4 — secure documents"}
+              </p>
+            </div>
 
         {/* Step 1: Account basics */}
         {step === 1 && (
@@ -474,18 +483,24 @@ const Signup = () => {
               <p className="text-sm font-medium text-primary">💡 The more you share, the better your chances!</p>
               <p className="text-xs text-muted-foreground mt-1">Completed profiles get up to 3x more job offers. Fill in as much as you can.</p>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <Label>Profile picture <span className="text-destructive text-xs">*</span></Label>
+            <div className="flex flex-col items-center gap-2">
+              <Label className="text-sm font-medium">Profile picture <span className="text-destructive text-xs">*</span></Label>
               <label className="cursor-pointer group">
-                <div className="w-24 h-24 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary">
+                <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <Camera className="w-8 h-8 text-muted-foreground" />
+                    <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
                   )}
+                  <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md border-2 border-card">
+                    <Camera className="w-3.5 h-3.5" />
+                  </div>
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </label>
+              <p className="text-[11px] text-muted-foreground text-center max-w-[260px]">
+                A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -781,41 +796,46 @@ const Signup = () => {
             </div>
 
             {/* ID Document — required, stored securely, not manually reviewed */}
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
               <div className="text-center space-y-2">
-                <FileText className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
-                <p className="text-sm text-muted-foreground">
-                  Upload a photo of your driver's license, state ID, or passport. Stored securely on file for safety and compliance — Stripe handles your live identity check separately.
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <ShieldCheck className="w-7 h-7 text-primary" strokeWidth={1.75} />
+                </div>
+                <h3 className="text-base font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Driver's license, state ID, or passport. Stored encrypted and used only for safety, fraud prevention, and compliance.
                 </p>
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
+                  <Lock className="w-3 h-3" /> Encrypted at rest · Never shared publicly
+                </div>
               </div>
               {idFile ? (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
                   <div className="flex items-center gap-3 min-w-0">
                     {idPreview ? (
-                      <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded object-cover border border-border shrink-0" />
+                      <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
                     ) : (
-                      <div className="w-14 h-14 rounded border border-border flex items-center justify-center bg-card shrink-0">
+                      <div className="w-14 h-14 rounded-lg border border-border flex items-center justify-center bg-muted/40 shrink-0">
                         <FileText className="w-6 h-6 text-muted-foreground" />
                       </div>
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{idFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB</p>
+                      <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB · uploaded</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setIdFile(null); setIdPreview(null); }}
-                    className="text-xs text-destructive hover:underline shrink-0"
+                    className="text-xs text-destructive hover:underline shrink-0 font-medium"
                   >
                     Remove
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border hover:border-primary/50 px-4 py-6 cursor-pointer transition-colors">
-                  <Camera className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">Upload ID</span>
+                <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all">
+                  <Camera className="w-7 h-7 text-primary/70" strokeWidth={1.75} />
+                  <span className="text-sm font-semibold text-foreground">Upload your ID</span>
                   <span className="text-xs text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
                   <input
                     type="file"
@@ -897,12 +917,13 @@ const Signup = () => {
             </div>
           </div>
         )}
+          </div>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">Log in</Link>
-        </p>
-      </div>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary font-semibold hover:underline">Log in</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

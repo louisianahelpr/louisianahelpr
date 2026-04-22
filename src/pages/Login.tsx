@@ -5,10 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
-
-// True only inside the Capacitor-wrapped iOS/Android app, false in any browser (incl. mobile Safari).
-const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -101,26 +98,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="relative">
-            {!isNativeApp && (
-              <Link
-                to="/"
-                aria-label="Back to home"
-                className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            )}
-            <Link to="/" className="text-3xl font-display font-bold text-primary">
-              Helpr
-            </Link>
-          </div>
-          <p className="mt-2 text-muted-foreground">Welcome back to your parish</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 py-10">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
+            Helpr
+          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">Welcome back to your parish</p>
         </div>
 
+        <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -162,14 +149,15 @@ const Login = () => {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground pt-1">
           Don't have an account?{" "}
-          <Link to="/signup" className="text-primary font-medium hover:underline">
+          <Link to="/signup" className="text-primary font-semibold hover:underline">
             Sign up
           </Link>
         </p>
+        </div>
 
-        <p className="text-center text-xs text-muted-foreground/80 leading-relaxed px-2">
+        <p className="text-center text-xs text-muted-foreground/80 leading-relaxed px-2 mt-6">
           By logging in you agree to our{" "}
           <Link to="/terms" className="underline hover:text-foreground transition-colors">
             Terms

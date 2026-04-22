@@ -542,17 +542,27 @@ const Dashboard = () => {
 
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
-              <div className="text-center py-16 px-4 space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto">
-                  <Briefcase className="w-7 h-7 text-primary/40" />
+              <div className="text-center py-16 px-6 space-y-4">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
+                  <Briefcase className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
                 </div>
-                <div>
-                  <p className="font-display font-semibold text-foreground">{filters.hasFilters ? "No matching tasks" : "No open tasks right now"}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{filters.hasFilters ? "Try adjusting your filters" : "Check back soon — new tasks are posted daily!"}</p>
+                <div className="space-y-1.5">
+                  <p className="text-base font-display font-semibold text-foreground">
+                    {filters.hasFilters ? "No jobs match your filters" : "All quiet in your parish"}
+                  </p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                    {filters.hasFilters
+                      ? "Try widening your search or clearing a filter to see more jobs."
+                      : "New jobs are posted every day. Pull down to refresh, or post your own."}
+                  </p>
                 </div>
-                {filters.hasFilters && (
+                {filters.hasFilters ? (
                   <Button variant="outline" onClick={filters.clearFilters} className="rounded-xl btn-press">
                     Clear filters
+                  </Button>
+                ) : (
+                  <Button onClick={() => navigate("/post-job")} className="rounded-xl btn-press">
+                    <Briefcase className="w-4 h-4 mr-1.5" /> Post a job
                   </Button>
                 )}
               </div>

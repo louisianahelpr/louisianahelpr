@@ -8,9 +8,6 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 
-// True only inside the Capacitor-wrapped iOS/Android app, false in any browser.
-const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
-
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -34,24 +31,16 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="relative">
-            <Link
-              to="/login"
-              aria-label="Back to login"
-              className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <Link to="/" className="text-3xl font-display font-bold text-primary">
-              Helpr
-            </Link>
-          </div>
-          <p className="mt-2 text-muted-foreground">Reset your password</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 py-10">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
+            Helpr
+          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">Reset your password</p>
         </div>
 
+        <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
         {sent ? (
           <div className="text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
@@ -88,11 +77,12 @@ const ForgotPassword = () => {
           </form>
         )}
 
-        <p className="text-center text-sm text-muted-foreground">
-          <Link to="/login" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+        <p className="text-center text-sm text-muted-foreground pt-1">
+          <Link to="/login" className="text-primary font-semibold hover:underline inline-flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Back to login
           </Link>
         </p>
+        </div>
       </div>
     </div>
   );

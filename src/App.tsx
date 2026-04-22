@@ -11,6 +11,8 @@ import MobileNav from "./components/MobileNav";
 import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialog";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
+import { useNativePushSetup } from "@/lib/nativePush";
+import { useDynamicTypeSync } from "@/lib/accessibility";
 
 // Lazy load all pages including landing
 const Index = lazy(() => import("./pages/Index"));
@@ -116,6 +118,8 @@ AnimatedRoutes.displayName = "AnimatedRoutes";
 const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
+  useNativePushSetup();
+  useDynamicTypeSync();
   return null;
 };
 

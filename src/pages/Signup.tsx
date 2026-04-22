@@ -906,12 +906,13 @@ const Signup = () => {
             </div>
           </div>
         )}
+          </div>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">Log in</Link>
-        </p>
-      </div>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary font-semibold hover:underline">Log in</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -28,7 +28,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className="pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-6"
+      className="pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-6 min-h-[100dvh] flex items-center"
       style={{
         paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
         paddingRight: "max(1.5rem, env(safe-area-inset-right))",

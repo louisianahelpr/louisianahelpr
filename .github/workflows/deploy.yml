@@ -1,36 +1,42 @@
-# Deploy Helpr iOS to TestFlight or the App Store
+# =============================================================================
+# Helpr — iOS Deploy Pipeline (TestFlight + App Store)
+# =============================================================================
 #
 # ─── How to trigger ──────────────────────────────────────────────────────────
-# 1. Go to GitHub → Actions → "Deploy iOS (TestFlight / App Store)"
-# 2. Click "Run workflow"
-# 3. Pick the lane:
-#       beta    → uploads a build to TestFlight (internal testing)
-#       release → uploads + submits the build for App Store review
-# 4. Click "Run workflow" again to start the job.
+# 1. GitHub → Actions → "Deploy iOS (TestFlight / App Store)"
+# 2. Click "Run workflow" and choose:
+#       lane = beta     → TestFlight build (auto-bumps build number)
+#       lane = release  → App Store submission (also bumps version if you set one)
+#       version         → optional, e.g. "1.0.5". Required when lane = release
+#                         AND you want to ship a new marketing version.
+# 3. Click "Run workflow" again to start.
 #
-# ─── Required GitHub Secrets (Settings → Secrets and variables → Actions) ────
-#   ASC_KEY_ID            App Store Connect API key ID (10 chars)        e.g. B38QR4VAKC
-#   ASC_ISSUER_ID         App Store Connect issuer UUID                  e.g. 55c4b380-...
-#   ASC_KEY_BASE64        Base64-encoded contents of the .p8 file
-#                         Generate with:  base64 -i AuthKey_XXXX.p8 | pbcopy
-#   DEVELOPER_TEAM_ID     Apple Developer team ID (10 chars)             e.g. P85MCK558V
-#   FASTLANE_APPLE_ID     Apple ID email used for the developer account
-#   FASTLANE_PASSWORD     App-specific password from appleid.apple.com   (optional but recommended)
-#   ASC_TEAM_ID           App Store Connect team ID                      (only if your Apple ID is on multiple teams)
-#   KEYCHAIN_PASSWORD     Any random string — used to unlock the temp keychain on the runner
+# Auto-trigger: pushing a git tag like `v1.0.5` runs the `release` lane
+# automatically with that version number.
 #
-# ─── App identifiers (for reference) ─────────────────────────────────────────
+# ─── Required GitHub Secrets ────────────────────────────────────────────────
+#   ASC_KEY_ID            App Store Connect API Key ID            e.g. B38QR4VAKC
+#   ASC_ISSUER_ID         App Store Connect Issuer UUID           e.g. 55c4b380-...
+#   ASC_KEY_BASE64        base64 of the .p8 file
+#                         macOS:   base64 -i AuthKey_XXXX.p8 | pbcopy
+#                         Linux:   base64 -w0 AuthKey_XXXX.p8
+#   DEVELOPER_TEAM_ID     Apple Developer team ID                 e.g. P85MCK558V
+#   FASTLANE_APPLE_ID     Apple ID email                          e.g. lexilombas05@gmail.com
+#   FASTLANE_PASSWORD     App-specific password from appleid.apple.com
+#   ASC_TEAM_ID           App Store Connect team ID (only if Apple ID is on multiple teams)
+#   KEYCHAIN_PASSWORD     Any random string (used for the temp keychain on the runner)
+#
+# ─── Optional ────────────────────────────────────────────────────────────────
+#   SLACK_WEBHOOK         Incoming webhook URL for build notifications
+#
+# ─── App identifiers ─────────────────────────────────────────────────────────
 #   Bundle ID:   com.Helpr
+#   App Name:    Helpr
 #   SKU:         Helpr
 #   Team ID:     P85MCK558V
-#
-# ─── What this workflow does ─────────────────────────────────────────────────
-#   1. Checks out the repo
-#   2. Installs Node + Ruby (with Gemfile cache)
-#   3. Builds the web bundle (npm run build)
-#   4. Syncs Capacitor → iOS (npx cap sync ios)
-#   5. Writes the .p8 key from ASC_KEY_BASE64 to a temp file
-#   6. Runs `bundle exec fastlane ios <lane>` which handles signing + upload
+#   Apple ID:    6754470134
+#   Entity:      Helpr, LLC
+# =============================================================================
 
 name: Deploy iOS (TestFlight / App Store)
 
@@ -44,13 +50,62 @@ on:
         type: choice
         options:
           - beta      # → TestFlight
-          - release   # → App Store review submission
+          - release   # → App Store review
+      version:
+        description: "Marketing version (e.g. 1.0.5). Leave empty to keep current."
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*.*.*"   # e.g. v1.0.5 → triggers `release` lane
+
+concurrency:
+  group: ios-deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Stage 1: Code quality gates (fail fast before burning macOS minutes)
+  # ───────────────────────────────────────────────────────────────────────────
+  quality:
+    name: Lint, Type-check, Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript type check
+        run: npx tsc -b --noEmit
+
+      - name: Production build (verifies no build errors)
+        run: npm run build
+
+      - name: Guard against console.log in built bundle
+        run: |
+          if grep -rE "console\.log" dist/assets/*.js >/dev/null 2>&1; then
+            echo "::warning::console.log statements found in production bundle"
+          else
+            echo "✓ No console.log in production bundle"
+          fi
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Stage 2: Build, sign, and upload via Fastlane
+  # ───────────────────────────────────────────────────────────────────────────
   deploy:
     name: Build & upload via Fastlane
+    needs: quality
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     env:
       ASC_KEY_ID:        ${{ secrets.ASC_KEY_ID }}
@@ -59,17 +114,33 @@ jobs:
       FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
       FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
       ASC_TEAM_ID:       ${{ secrets.ASC_TEAM_ID }}
-      # Speed + reliability tweaks for fastlane on CI
-      FASTLANE_HIDE_CHANGELOG:                "1"
-      FASTLANE_SKIP_UPDATE_CHECK:             "1"
-      FASTLANE_DISABLE_COLORS:                "1"
-      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT:   "120"
+      FASTLANE_HIDE_CHANGELOG:              "1"
+      FASTLANE_SKIP_UPDATE_CHECK:           "1"
+      FASTLANE_DISABLE_COLORS:              "1"
+      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
       LC_ALL: en_US.UTF-8
       LANG:   en_US.UTF-8
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # ─── Resolve which lane + version we're running ────────────────────────
+      - name: Resolve lane and version
+        id: resolve
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            LANE="release"
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            LANE="${{ github.event.inputs.lane }}"
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "lane=$LANE"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "▶ Lane: $LANE"
+          echo "▶ Version override: ${VERSION:-<none, keeping current>}"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for changelog generation
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -86,8 +157,13 @@ jobs:
       - name: Select Xcode 15
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
+      # ─── Web + Capacitor build ─────────────────────────────────────────────
       - name: Install npm deps
         run: npm ci
+
+      - name: Check outdated Capacitor plugins (advisory)
+        continue-on-error: true
+        run: npm outdated "@capacitor/*" || true
 
       - name: Build web bundle
         run: npm run build
@@ -95,10 +171,38 @@ jobs:
       - name: Capacitor sync (iOS)
         run: npx cap sync ios
 
+      - name: Update CocoaPods
+        working-directory: ios/App
+        run: |
+          pod repo update
+          pod install --repo-update
+
+      # ─── Pre-submission validation ─────────────────────────────────────────
+      - name: Validate iOS assets and config
+        run: |
+          set -e
+          echo "▶ Checking required iOS files..."
+          test -f ios/PrivacyInfo.xcprivacy        || (echo "❌ Missing PrivacyInfo.xcprivacy" && exit 1)
+          test -d ios/App/App/Assets.xcassets/AppIcon.appiconset || (echo "❌ Missing AppIcon.appiconset" && exit 1)
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png \
+            || test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png \
+            || echo "::warning::1024×1024 marketing icon not found at expected path — verify in Xcode"
+
+          echo "▶ Verifying bundle ID = com.Helpr"
+          BUNDLE_ID=$(grep -E "PRODUCT_BUNDLE_IDENTIFIER" ios/App/App.xcodeproj/project.pbxproj | head -1 | sed 's/.*= //' | tr -d ' ;')
+          echo "   Found: $BUNDLE_ID"
+          if [[ "$BUNDLE_ID" != "com.Helpr" ]]; then
+            echo "❌ Bundle ID mismatch — expected com.Helpr, got $BUNDLE_ID"
+            exit 1
+          fi
+          echo "✓ All pre-submission checks passed"
+
+      # ─── App Store Connect API key ─────────────────────────────────────────
       - name: Decode App Store Connect API key
         run: |
           mkdir -p "$RUNNER_TEMP/asc"
           echo "${{ secrets.ASC_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/asc/AuthKey.p8"
+          chmod 600 "$RUNNER_TEMP/asc/AuthKey.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/asc/AuthKey.p8" >> "$GITHUB_ENV"
 
       - name: Create temporary keychain
@@ -111,19 +215,93 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
-      - name: Run Fastlane (${{ github.event.inputs.lane }})
-        run: bundle exec fastlane ios ${{ github.event.inputs.lane }}
+      # ─── Version + build number bumping ────────────────────────────────────
+      - name: Bump marketing version (release only, if requested)
+        if: steps.resolve.outputs.lane == 'release' && steps.resolve.outputs.version != ''
+        run: |
+          VERSION="${{ steps.resolve.outputs.version }}"
+          echo "▶ Setting MARKETING_VERSION to $VERSION"
+          cd ios/App
+          xcrun agvtool new-marketing-version "$VERSION"
+
+      # Build number is always auto-incremented inside the Fastfile.
+
+      # ─── Generate changelog from recent commits ────────────────────────────
+      - name: Generate changelog
+        id: changelog
+        run: |
+          mkdir -p fastlane/metadata/en-US
+          {
+            echo "Build ${{ github.run_number }} — $(date -u +%Y-%m-%d)"
+            echo ""
+            git log -n 20 --pretty=format:"• %s" --no-merges
+          } > fastlane/changelog.txt
+          # TestFlight "What to Test" notes
+          cp fastlane/changelog.txt fastlane/metadata/review_information/notes.txt 2>/dev/null || true
+          echo "path=fastlane/changelog.txt" >> "$GITHUB_OUTPUT"
+          echo "▶ Changelog:"
+          cat fastlane/changelog.txt
+
+      # ─── Run the lane ──────────────────────────────────────────────────────
+      - name: Run Fastlane (${{ steps.resolve.outputs.lane }})
+        env:
+          CHANGELOG_PATH: ${{ steps.changelog.outputs.path }}
+        run: bundle exec fastlane ios ${{ steps.resolve.outputs.lane }}
+
+      # ─── Artifacts + logs ──────────────────────────────────────────────────
+      - name: Read final version + build number
+        if: always()
+        id: meta
+        run: |
+          cd ios/App
+          VER=$(xcrun agvtool what-marketing-version -terse1 2>/dev/null || echo "unknown")
+          BLD=$(xcrun agvtool what-version -terse 2>/dev/null || echo "unknown")
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "build=$BLD"   >> "$GITHUB_OUTPUT"
+          echo "▶ Shipped Helpr $VER ($BLD)"
 
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: helpr-ipa-${{ github.event.inputs.lane }}-${{ github.run_number }}
-          path: build/*.ipa
-          if-no-files-found: ignore
-          retention-days: 14
+          name: helpr-${{ steps.resolve.outputs.lane }}-v${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.build }}
+          path: |
+            build/*.ipa
+            build/*.dSYM.zip
+            fastlane/changelog.txt
+          if-no-files-found: warn
+          retention-days: 30
 
-      - name: Cleanup keychain
+      - name: Upload Fastlane logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-logs-${{ github.run_number }}
+          path: ~/Library/Logs/gym
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # ─── Notifications ─────────────────────────────────────────────────────
+      - name: Notify Slack — success
+        if: success() && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"✅ Helpr ${{ steps.resolve.outputs.lane }} succeeded — v${{ steps.meta.outputs.version }} (${{ steps.meta.outputs.build }})\nTestFlight: https://appstoreconnect.apple.com/apps/6754470134/testflight\"}" \
+            "$SLACK_WEBHOOK" || true
+
+      - name: Notify Slack — failure
+        if: failure() && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"❌ Helpr ${{ steps.resolve.outputs.lane }} failed — run ${{ github.run_number }}\nLogs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$SLACK_WEBHOOK" || true
+
+      # ─── Cleanup ───────────────────────────────────────────────────────────
+      - name: Cleanup
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true

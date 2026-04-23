@@ -1,0 +1,1 @@
+Helpr is a Louisiana-only marketplace connecting residents with local service providers (lawn care, cleaning, errands, handyman, etc.). Sign in with the demo reviewer credentials above to browse jobs, post a job, and message a helper. Payments use Stripe in test mode for the demo account.

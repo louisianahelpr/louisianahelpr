@@ -9,6 +9,7 @@
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
 import { supabase } from "@/integrations/supabase/client";
+import { captureEvent } from "@/lib/posthog";
 
 /**
  * Curated list of "aha moment" + funnel events. Adding the type up here
@@ -109,6 +110,8 @@ export function track(event: EventName, props: Record<string, any> = {}) {
     platform: (window as any).Capacitor?.getPlatform?.() ?? "web",
   });
   schedule();
+  // Fan out to PostHog. No-op until initPostHog() runs in main.tsx.
+  captureEvent(event, props);
 }
 
 /** Flush immediately. Call before navigating away or closing the app. */

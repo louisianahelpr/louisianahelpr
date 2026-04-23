@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PageTransition from "@/components/PageTransition";
 import MobileNav from "./components/MobileNav";
+import TabletSidebar from "./components/TabletSidebar";
 import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialog";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";

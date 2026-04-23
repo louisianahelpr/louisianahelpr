@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Activity, RefreshCw, Mail, ShieldAlert, Database, Download } from "lucide-react";
+import { Activity, RefreshCw, Mail, ShieldAlert, Database, Download, Bug } from "lucide-react";
+import { report } from "@/lib/errorLogger";
+import { toast } from "@/hooks/use-toast";
 
 const AdminHealth = () => {
   const [loading, setLoading] = useState(true);
@@ -108,6 +110,49 @@ const AdminHealth = () => {
           <p className={`text-lg font-bold ${fraudCount > 0 ? "text-destructive" : "text-foreground"}`}>
             {fraudCount} unresolved
           </p>
+        </div>
+      </div>
+
+      {/* Sentry test — admin-only sanity check */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+              <Bug className="w-4 h-4" /> Sentry Smoke Test
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md">
+              Fires a test exception to confirm Sentry, PostHog, and error_logs are receiving events.
+              Should appear in Sentry within ~30 seconds.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                report(new Error(`Sentry smoke test (manual) — ${new Date().toISOString()}`), {
+                  severity: "info",
+                  tags: { source: "admin_smoke_test", kind: "manual" },
+                });
+                toast({ title: "Test event sent", description: "Check Sentry in ~30 seconds." });
+              }}
+            >
+              Send test event
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                // Uncaught — exercises window.onerror path.
+                setTimeout(() => {
+                  throw new Error(`Sentry uncaught test — ${new Date().toISOString()}`);
+                }, 0);
+                toast({ title: "Throwing uncaught error", description: "Check Sentry in ~30 seconds." });
+              }}
+            >
+              Throw uncaught
+            </Button>
+          </div>
         </div>
       </div>
 

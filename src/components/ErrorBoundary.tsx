@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { report } from "@/lib/errorLogger";
 
 interface Props {
   children: React.ReactNode;
@@ -41,6 +42,15 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught:", error, errorInfo);
+
+    // Ship to Sentry + error_logs + PostHog. Skip stale-chunk noise.
+    if (!isChunkLoadError(error)) {
+      report(error, {
+        severity: "error",
+        tags: { source: "ErrorBoundary" },
+        context: { componentStack: errorInfo.componentStack },
+      });
+    }
 
     // Auto-recover from stale chunk errors with a single hard reload.
     if (isChunkLoadError(error)) {

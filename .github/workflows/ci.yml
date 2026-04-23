@@ -36,4 +36,6 @@ jobs:
         run: npm test
 
       - name: Build
+        # Public Vite vars are committed in .env (publishable keys only).
+        # Backend secrets live on Supabase Edge Functions and are not required here.
         run: npm run build

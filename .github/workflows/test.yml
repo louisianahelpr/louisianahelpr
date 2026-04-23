@@ -42,6 +42,9 @@ jobs:
         run: npx tsc -b --noEmit
 
       - name: Production build
+        # Public Vite vars are committed in .env (publishable keys only — safe to expose).
+        # Runtime secrets (Stripe, Resend, Slack, HubSpot, etc.) live on Supabase Edge
+        # Functions and are NOT needed at build time.
         run: npm run build
 
       - name: Vitest

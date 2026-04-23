@@ -445,12 +445,13 @@ const ProfilePage = () => {
     return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
   }, 0);
 
-  const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] }[] = [
+  const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string; href?: string }[] }[] = [
     {
       title: "Account",
       items: [
         { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
+        { key: "landing" as Tab, label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
       ],
     },

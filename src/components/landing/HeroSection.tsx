@@ -44,7 +44,7 @@ const HeroSection = () => {
               Get real help from real neighbors.
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              Post a job, get matched with trusted helprs in your parish, and pay securely when the work's done. Cleaning, yard work, moving, errands — all in one app.
+              Post a job, get matched with trusted local helprs, and pay securely when the work's done. Cleaning, yard work, moving, errands — all in one app.
             </p>
 
             {/* Social proof — only show when we have 50+ users AND 50+ completed jobs */}

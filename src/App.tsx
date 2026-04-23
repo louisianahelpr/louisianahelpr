@@ -14,6 +14,7 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync } from "@/lib/accessibility";
+import { useCppVariantRouter } from "@/lib/cppRouting";
 
 // Lazy load all pages including landing
 const Index = lazy(() => import("./pages/Index"));
@@ -123,6 +124,7 @@ const SessionManager = () => {
   useLoginTracking();
   useNativePushSetup();
   useDynamicTypeSync();
+  useCppVariantRouter();
   return null;
 };
 

@@ -136,7 +136,7 @@ export function useDashboardData() {
       }
 
       // Check pro subscription in background (non-blocking, separate query)
-      let helprTier: string | null = null;
+      const helprTier: string | null = null;
 
       return { allJobs: enriched, platformFee, helperAvailability, recommendedJobs, helprTier };
     },

@@ -41,6 +41,7 @@
 name: Deploy iOS (TestFlight / App Store)
 
 env:
+  # Force JavaScript-based GitHub Actions onto Node 24 ahead of the platform default.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:

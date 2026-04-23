@@ -140,6 +140,19 @@ const PostJob = () => {
     }
   }, [searchParams, hasDraft, draftLoaded]);
 
+  // Direct Offer: ?offerTo=<helperId> pre-targets the post to a saved helpr
+  useEffect(() => {
+    const offerTo = searchParams.get("offerTo");
+    if (!offerTo) return;
+    setOfferToHelperId(offerTo);
+    supabase
+      .rpc("get_safe_profiles", { user_ids: [offerTo] })
+      .then(({ data }) => {
+        const prof: any = Array.isArray(data) ? data[0] : null;
+        if (prof) setOfferToHelperName(prof.full_name || "this helpr");
+      });
+  }, [searchParams]);
+
   // Auto-lookup parish from zip (for Louisiana sales tax)
   useEffect(() => {
     const cleaned = zipCode.replace(/\D/g, "");

@@ -359,9 +359,11 @@ const Admin = () => {
             <div className="container mx-auto flex items-center justify-between h-14 px-4">
               <div className="flex items-center gap-2 min-w-0">
                 <Link to="/dashboard" className="flex items-center gap-2 group" aria-label="Go to Helpr">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
-                    <span className="text-primary-foreground font-bold text-sm">H</span>
-                  </div>
+                  <img
+                    src={helprIcon}
+                    alt="Helpr"
+                    className="w-8 h-8 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
+                  />
                   <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                     Helpr
                   </span>

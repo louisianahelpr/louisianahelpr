@@ -53,6 +53,14 @@ export function captureEvent(event: string, props: Record<string, any> = {}) {
   } catch { /* ignore */ }
 }
 
+export function captureException(err: unknown, props: Record<string, any> = {}) {
+  if (!initialized) return;
+  try {
+    const error = err instanceof Error ? err : new Error(String(err));
+    posthog.captureException(error, props);
+  } catch { /* ignore */ }
+}
+
 export function identifyUser(userId: string, props: Record<string, any> = {}) {
   if (!initialized) return;
   try {

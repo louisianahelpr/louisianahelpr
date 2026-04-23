@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -651,6 +652,20 @@ Deno.serve(async (req) => {
                 flag_type: 'suspicious_speed',
                 details: `Completed "${job.title}" in ${Math.round(actualMinutes)} min (estimated ${Math.round(estimatedMinutes)} min — ${Math.round(actualMinutes / estimatedMinutes * 100)}% of estimate)`,
               })
+
+              postSlackOpsAlert({
+                kind: 'fraud_flag',
+                severity: 'warning',
+                title: 'Fraud flag: suspicious speed',
+                message: `Helpr completed *${job.title}* in ${Math.round(actualMinutes)} min (est. ${Math.round(estimatedMinutes)} min).`,
+                fields: {
+                  'Job ID': job.id,
+                  'Helpr ID': job.helper_id,
+                  'Actual / Est': `${Math.round(actualMinutes)} / ${Math.round(estimatedMinutes)} min`,
+                  '% of estimate': `${Math.round(actualMinutes / estimatedMinutes * 100)}%`,
+                },
+                link: 'https://www.louisianahelpr.com/admin?tab=fraud',
+              })
               
               // Notify admins
               const { data: adminRoles } = await supabase
@@ -706,6 +721,15 @@ Deno.serve(async (req) => {
               user_id: helperId,
               flag_type: 'high_dispute_rate',
               details: `${count} disputed jobs in the past 30 days`,
+            })
+
+            postSlackOpsAlert({
+              kind: 'fraud_flag',
+              severity: 'critical',
+              title: 'Fraud flag: high dispute rate',
+              message: `Helpr has *${count}* disputed jobs in the past 30 days.`,
+              fields: { 'Helpr ID': helperId, 'Disputes (30d)': count },
+              link: 'https://www.louisianahelpr.com/admin?tab=fraud',
             })
             
             const { data: adminRoles } = await supabase

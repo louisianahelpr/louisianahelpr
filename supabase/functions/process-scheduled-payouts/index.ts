@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -203,6 +204,21 @@ serve(async (req) => {
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "transfer_failed", error: e.message });
+
+        postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "critical",
+          title: "Scheduled payout failed",
+          message: `Failed to transfer *$${helperPayout.toFixed(2)}* to helpr for job ${job.id}.`,
+          fields: {
+            "Job ID": job.id,
+            "Helpr ID": job.helper_id,
+            Amount: `$${helperPayout.toFixed(2)}`,
+            Error: (e as Error).message?.slice(0, 200),
+          },
+          link: "https://www.louisianahelpr.com/admin?tab=payouts",
+        });
+
         const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
         if (adminRoles) {
           for (const admin of adminRoles) {

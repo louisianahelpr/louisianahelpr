@@ -539,7 +539,7 @@ const Dashboard = () => {
                 </div>
                 <div className="space-y-1.5">
                   <p className="text-base font-display font-semibold text-foreground">
-                    {filters.hasFilters ? "No jobs match your filters" : "All quiet right now"}
+                    {filters.hasFilters ? "No jobs match your filters" : "No open jobs yet — check back soon"}
                   </p>
                   <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
                     {filters.hasFilters

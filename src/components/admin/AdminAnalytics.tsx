@@ -102,7 +102,7 @@ const AdminAnalytics = () => {
   // Platform Profit = only fees from jobs where payment is still held (escrow/payout_pending/released)
   // Does NOT include refunded or cancelled-payment jobs since those fees were returned
   const totalFees = capturedJobs.reduce((s, j) => s + Number(j.customer_fee_amount || 0) + Number(j.platform_fee_amount || 0), 0);
-  console.log("[AdminAnalytics] capturedJobs:", capturedJobs.length, "statuses:", capturedJobs.map(j => j.payment_status), "totalFees:", totalFees, "allJobs:", allJobs.length);
+  // Removed debug log for production submission
   // Late cancellation revenue the platform retains (cancellation fee commission)
   const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
     const cancFee = Number(j.cancellation_fee || 0);

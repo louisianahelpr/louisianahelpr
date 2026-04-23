@@ -110,20 +110,6 @@ const Login = () => {
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
-        <div className="space-y-2">
-          <GoogleSignInButton label="Log in with Google" />
-          <AppleSignInButton label="Log in with Apple" />
-        </div>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border/60" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
-          </div>
-        </div>
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -164,6 +150,20 @@ const Login = () => {
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging in…</> : "Log in"}
           </Button>
         </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border/60" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <GoogleSignInButton label="Log in with Google" />
+          <AppleSignInButton label="Log in with Apple" />
+        </div>
 
         <p className="text-center text-sm text-muted-foreground pt-1">
           Don't have an account?{" "}

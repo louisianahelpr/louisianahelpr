@@ -19,6 +19,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { track, AhaEvent } from "@/lib/analytics";
+import { recordPpoAttribution } from "@/lib/ppoAttribution";
 
 export type CppVariant = "poster" | "helper";
 
@@ -64,6 +65,10 @@ export function useCppVariantRouter() {
   const location = useLocation();
 
   useEffect(() => {
+    // Always check for PPO attribution first — a user can land on a PPO
+    // treatment of either funnel, and we want both signals.
+    recordPpoAttribution(location.search);
+
     const variant = readVariantFromQuery(location.search);
     if (!variant) return;
 

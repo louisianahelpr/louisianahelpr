@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2, Send, UserCheck,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -82,6 +82,10 @@ const PostJob = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
+  const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
+  const [offerToHelperName, setOfferToHelperName] = useState<string>("");
+
   useEffect(() => {
     // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC
     supabase.rpc("get_public_platform_settings").then(({ data }) => {
@@ -135,6 +139,19 @@ const PostJob = () => {
       setDraftLoaded(true);
     }
   }, [searchParams, hasDraft, draftLoaded]);
+
+  // Direct Offer: ?offerTo=<helperId> pre-targets the post to a saved helpr
+  useEffect(() => {
+    const offerTo = searchParams.get("offerTo");
+    if (!offerTo) return;
+    setOfferToHelperId(offerTo);
+    supabase
+      .rpc("get_safe_profiles", { user_ids: [offerTo] })
+      .then(({ data }) => {
+        const prof: any = Array.isArray(data) ? data[0] : null;
+        if (prof) setOfferToHelperName(prof.full_name || "this helpr");
+      });
+  }, [searchParams]);
 
   // Auto-lookup parish from zip (for Louisiana sales tax)
   useEffect(() => {
@@ -329,6 +346,13 @@ const PostJob = () => {
       platform_fee_amount: lockedFeeAmount,
       sales_tax_rate: lockedSalesTaxRate,
       sales_tax_amount: lockedSalesTaxAmount,
+      ...(offerToHelperId
+        ? {
+            offered_to_helper_id: offerToHelperId,
+            direct_offer_status: "pending",
+            direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          }
+        : {}),
     } as any).select("id").single();
 
     if (error || !jobData) {
@@ -434,6 +458,35 @@ const PostJob = () => {
           {step === "form" && (
             <>
               <p className="text-muted-foreground text-sm">Describe what you need help with</p>
+
+              {offerToHelperId && (
+                <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <UserCheck className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Direct offer to {offerToHelperName || "your saved helpr"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      They'll have 24 hours to accept before this task opens to all helprs.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setOfferToHelperId(null);
+                      setOfferToHelperName("");
+                    }}
+                    className="rounded-xl h-8 w-8 shrink-0"
+                    aria-label="Cancel direct offer"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
 
               {/* Draft Prompt */}
               {showDraftPrompt && (

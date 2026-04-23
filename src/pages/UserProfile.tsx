@@ -19,6 +19,7 @@ import { ParishBadges } from "@/components/ParishBadges";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
+import SaveHelperButton from "@/components/SaveHelperButton";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -205,21 +206,31 @@ const UserProfile = () => {
         title="Profile Review"
         rightSlot={
           !isOwnProfile && currentUserId ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowReport(true)}>
-                  <Flag className="w-4 h-4 mr-2" /> Report user
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowBlock(true)}>
-                  <Ban className="w-4 h-4 mr-2" /> Block user
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1">
+              {profile.role === "helper" && (
+                <SaveHelperButton helperId={userId!} customerId={currentUserId} />
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {profile.role === "helper" && (
+                    <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
+                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setShowReport(true)}>
+                    <Flag className="w-4 h-4 mr-2" /> Report user
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowBlock(true)}>
+                    <Ban className="w-4 h-4 mr-2" /> Block user
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : null
         }
       />

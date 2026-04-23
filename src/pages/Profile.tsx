@@ -445,12 +445,13 @@ const ProfilePage = () => {
     return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
   }, 0);
 
-  const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string }[] }[] = [
+  const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string; href?: string }[] }[] = [
     {
       title: "Account",
       items: [
         { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
+        { key: "landing" as Tab, label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
       ],
     },
@@ -557,8 +558,11 @@ const ProfilePage = () => {
                     <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
                       {group.items.map((item) => (
                         <button
-                          key={item.key}
-                          onClick={() => setTab(item.key)}
+                          key={item.label}
+                          onClick={() => {
+                            if (item.href) navigate(item.href);
+                            else setTab(item.key);
+                          }}
                           className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
                         >
                           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">

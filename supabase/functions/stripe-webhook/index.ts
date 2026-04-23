@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const PRODUCT_TO_TIER: Record<string, string> = {
   // Monthly recurring
@@ -94,6 +95,13 @@ serve(async (req) => {
     console.error(`[STRIPE-WEBHOOK] Webhook secret prefix: ${webhookSecret.slice(0, 8)}... (length: ${webhookSecret.length})`);
     console.error(`[STRIPE-WEBHOOK] Body length: ${body.length} bytes`);
     console.error("[STRIPE-WEBHOOK] → Returning 200 OK to stop Stripe retries. Fix the STRIPE_WEBHOOK_SECRET to match the endpoint that sent this event.");
+    postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook signature failed",
+      message: "Stripe webhook signature verification failed — events are being acknowledged but not processed. Check `STRIPE_WEBHOOK_SECRET`.",
+      fields: { Error: String(err).slice(0, 200), "Body bytes": body.length },
+    });
     return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -521,6 +529,13 @@ serve(async (req) => {
     }
   } catch (err) {
     logStep("ERROR processing event", { error: String(err) });
+    postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "warning",
+      title: "Stripe webhook processing error",
+      message: `Failed to process Stripe event \`${event?.type || "unknown"}\`.`,
+      fields: { "Event ID": event?.id || "—", Error: String(err).slice(0, 200) },
+    });
     // Still return 200 so Stripe doesn't keep retrying — the error is logged for debugging
     return new Response(JSON.stringify({ received: true, error: "processing_error" }), {
       headers: { "Content-Type": "application/json" },

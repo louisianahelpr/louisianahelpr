@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -264,6 +265,20 @@ Deno.serve(async (req) => {
         // Cancel all pending applications (active bids)
         await admin.from('applications').update({ status: 'rejected' } as any)
           .eq('helper_id', targetUserId).eq('status', 'pending')
+
+        postSlackOpsAlert({
+          kind: 'auto_suspended',
+          severity: 'critical',
+          title: 'User auto-suspended (3 strikes)',
+          message: `User has been auto-suspended for 7 days after a 3rd violation.`,
+          fields: {
+            'User ID': targetUserId,
+            'User name': fullName,
+            'Suspended until': suspendUntil.toISOString().slice(0, 10),
+            Reason: note?.slice(0, 200) || '—',
+          },
+          link: `https://www.louisianahelpr.com/admin?tab=users&user=${targetUserId}`,
+        })
       }
 
       const violationDescription = reasonCategory

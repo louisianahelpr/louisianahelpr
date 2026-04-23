@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createNotification } from "@/lib/notifications";
+import { fireSlackAlert } from "@/lib/slackAlerts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,6 +96,22 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           });
         }
       }
+
+      // Fire Slack ops alert (non-blocking)
+      const reasonLabel = DISPUTE_REASONS.find((r) => r.value === reason)?.label || "Unknown";
+      fireSlackAlert({
+        kind: "dispute_filed",
+        severity: "critical",
+        title: "Job disputed",
+        message: `*${jobTitle}* — ${reasonLabel}. Payment is on hold pending admin review.`,
+        fields: {
+          "Job ID": jobId,
+          Reason: reasonLabel,
+          "Disputed by": userId,
+          "Evidence files": evidenceUrls.length,
+        },
+        link: `https://www.louisianahelpr.com/admin?tab=disputes`,
+      });
 
       toast.success("Dispute submitted. Payment is on hold pending admin review.");
       onDisputed();

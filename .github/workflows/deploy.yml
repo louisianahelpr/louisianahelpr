@@ -72,14 +72,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: ESLint (advisory — does not block deploy)
         run: npm run lint
@@ -139,14 +139,14 @@ jobs:
           echo "▶ Lane: $LANE"
           echo "▶ Version override: ${VERSION:-<none, keeping current>}"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # full history for changelog generation
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Setup Ruby (with Bundler cache)
@@ -160,7 +160,7 @@ jobs:
 
       # ─── Web + Capacitor build ─────────────────────────────────────────────
       - name: Install npm deps
-        run: npm ci
+        run: npm install
 
       - name: Check outdated Capacitor plugins (advisory)
         continue-on-error: true

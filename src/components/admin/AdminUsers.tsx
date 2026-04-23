@@ -867,7 +867,7 @@ const AdminUsers = () => {
     if (profile.role === "admin") return <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Admin</Badge>;
     if (profile.role === "customer") return <Badge variant="outline" className="text-[10px] gap-0.5"><UserIcon className="w-2.5 h-2.5" />Poster</Badge>;
     // helpers / dual-role default
-    return <Badge variant="outline" className="text-[10px] gap-0.5"><Briefcase className="w-2.5 h-2.5" />Helper</Badge>;
+    return <Badge variant="outline" className="text-[10px] gap-0.5"><Briefcase className="w-2.5 h-2.5" />Helpr</Badge>;
   };
 
   // Notes icon w/ count badge + hover preview of recent 2 notes

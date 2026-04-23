@@ -70,7 +70,7 @@ const AdminHelperTiers = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
-          <Crown className="w-5 h-5 text-primary" /> Helper Tiers
+          <Crown className="w-5 h-5 text-primary" /> Helpr Tiers
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
           Performance-tiered view of approved helpers. "Rising Stars" = recent review momentum (last 30 days). Reach out to feature them.

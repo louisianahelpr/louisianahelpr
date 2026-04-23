@@ -839,7 +839,7 @@ const ProfilePage = () => {
               loading={earningsLoading}
               onBack={() => setTab("landing")}
               helperId={user.id}
-              helperName={profile?.full_name || user.email || "Helper"}
+              helperName={profile?.full_name || user.email || "Helpr"}
             />
           )}
 

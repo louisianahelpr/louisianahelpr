@@ -22,6 +22,7 @@ import {
   categoryLabels, categories, categoryColors, statusBadge,
 } from "@/components/activity/activityConstants";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -78,6 +79,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
 
   const { checkHelperStripeConnect, checking: checkingStripe } = useStripeConnectCheck();
+  const [idvDialogOpen, setIdvDialogOpen] = useState(false);
+  const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
 
   // --- Action handlers ---
 
@@ -153,6 +156,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (accept) {
       const stripeCheck = await checkHelperStripeConnect();
       if (!stripeCheck.ok) { toast.error(stripeCheck.reason); return; }
+
+      // Identity verification gate — required before first accept
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("idv_status")
+        .eq("user_id", user.id)
+        .single();
+      const idvStatus = (prof as any)?.idv_status;
+      if (idvStatus !== "verified") {
+        setPendingAcceptApp(app);
+        setIdvDialogOpen(true);
+        return;
+      }
+
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
@@ -652,6 +669,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         setHelperReviewJob={setHelperReviewJob}
         helperNames={helperNames}
         onRefresh={refresh}
+      />
+      <IDVPromptDialog
+        open={idvDialogOpen}
+        onOpenChange={(o) => { setIdvDialogOpen(o); if (!o) setPendingAcceptApp(null); }}
+        reason={pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
       />
     </div>
   );

@@ -81,18 +81,22 @@ serve(async (req) => {
           updateData.idv_status = "verified";
           updateData.approval_status = "approved";
           updateData.idv_failure_reason = null;
+          updateData.legacy_manual_review = false;
         } else {
           updateData.idv_status = "manual_review";
           updateData.idv_failure_reason = `Auto-approve threshold not met (${confidence} < ${threshold})`;
+          updateData.legacy_manual_review = true;
         }
       } else if (event.type === "identity.verification_session.requires_input") {
         updateData.idv_status = "failed";
         updateData.idv_failure_reason = session.last_error?.reason || "Verification could not be completed";
+        updateData.legacy_manual_review = true;
       } else if (event.type === "identity.verification_session.processing") {
         updateData.idv_status = "processing";
       } else if (event.type === "identity.verification_session.canceled") {
         updateData.idv_status = "failed";
         updateData.idv_failure_reason = "User canceled verification";
+        updateData.legacy_manual_review = true;
       }
 
       const { error: updErr } = await supabase

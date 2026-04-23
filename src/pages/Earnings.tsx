@@ -73,14 +73,14 @@ const Earnings = () => {
           ) : (
             <>
               {/* Instant payout card */}
-              {instantAvailable > 0 && (
+              {(instantAvailable ?? 0) > 0 && (
                 <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-5 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Zap className="w-4 h-4 text-primary" />
                       <span className="text-sm font-semibold text-foreground">Instant cash out available</span>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">${(instantAvailable / 100).toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-foreground">${((instantAvailable ?? 0) / 100).toFixed(2)}</p>
                     <p className="text-xs text-muted-foreground mt-1">To your debit card in ~30 min · 3% + $1 fee</p>
                   </div>
                   <Button onClick={() => setPayoutDialogOpen(true)} className="gap-2 shrink-0">

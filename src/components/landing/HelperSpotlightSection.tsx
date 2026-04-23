@@ -29,7 +29,7 @@ const HelperSpotlightSection = forwardRef<HTMLDivElement>((_props, ref) => {
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.rpc("get_top_helpers_by_parish", {
-        p_parish: null,
+        p_parish: null as unknown as string,
         p_limit: 50,
       });
 

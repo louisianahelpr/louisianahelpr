@@ -149,7 +149,16 @@ serve(async (req) => {
           amount: Math.round(helperPayout * 100),
           currency: "usd",
           destination: helperProfile.stripe_account_id,
-          metadata: { job_id: job.id, helper_id: job.helper_id, scheduled_payout: "true" },
+          metadata: {
+            job_id: job.id,
+            helper_id: job.helper_id,
+            scheduled_payout: "true",
+            // Audit trail: $2 (or configured) one-time account setup fee deducted from this transfer.
+            // The platform retains the fee on its Stripe balance — no separate charge needed because
+            // the gross was already captured at job funding and we're transferring the net.
+            onboarding_fee_cents: owesOnboardingFee ? String(onboardingFeeCents) : "0",
+            onboarding_fee_first_payout: owesOnboardingFee ? "true" : "false",
+          },
         };
 
         // Link to source charge for clean reporting — use PI from Step 3

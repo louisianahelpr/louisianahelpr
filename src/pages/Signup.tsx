@@ -359,12 +359,16 @@ const Signup = () => {
 
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">
-                {step === 1 ? "Create your account" : step === 2 ? "Tell us about you" : "Verify & finish"}
+                {step === 1 ? "Create your account" :
+                 step === 2 ? "Tell us about you" :
+                 step === 3 ? "Verify & finish" :
+                 "Set up payouts"}
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {step === 1 ? "Step 1 of 4 — basic information" :
-                 step === 2 ? "Step 2 of 4 — profile details" :
-                 "Step 3 of 4 — secure documents"}
+                {step === 1 ? `Step 1 of ${totalSteps} — basic information` :
+                 step === 2 ? `Step 2 of ${totalSteps} — profile details` :
+                 step === 3 ? `Step 3 of ${totalSteps} — secure documents` :
+                 `Step 4 of ${totalSteps} — connect Stripe`}
               </p>
             </div>
 

@@ -670,6 +670,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         helperNames={helperNames}
         onRefresh={refresh}
       />
+      <IDVPromptDialog
+        open={idvDialogOpen}
+        onOpenChange={(o) => { setIdvDialogOpen(o); if (!o) setPendingAcceptApp(null); }}
+        reason={pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
+      />
     </div>
   );
 };

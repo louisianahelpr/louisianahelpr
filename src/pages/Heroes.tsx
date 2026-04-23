@@ -44,11 +44,11 @@ const Heroes = () => {
   usePageMeta({
     title: "Community Heroes — Top-Rated Helprs in Louisiana | Helpr",
     description:
-      "Meet Louisiana's top-rated Helprs by parish. Trusted, vetted neighbors with proven 5-star track records in cleaning, yard work, handyman, moving and more.",
-    keywords: "Louisiana top helpers, best handymen Louisiana, top rated cleaners, parish leaderboard, community heroes",
+      "Meet Louisiana's top-rated Helprs near you. Trusted, vetted neighbors with proven 5-star track records in cleaning, yard work, handyman, moving and more.",
+    keywords: "Louisiana top helpers, best handymen Louisiana, top rated cleaners, community heroes, local helpers",
     canonical: `${SITE_URL}/heroes`,
-    ogTitle: "Louisiana's Community Heroes — Top Helprs by Parish",
-    ogDescription: "Discover the highest-rated, most-trusted helprs in your parish.",
+    ogTitle: "Louisiana's Community Heroes — Top Helprs Near You",
+    ogDescription: "Discover the highest-rated, most-trusted helprs in your area.",
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });
@@ -89,7 +89,7 @@ const Heroes = () => {
             <span className="text-sm font-semibold">Louisiana Community Heroes</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-display font-bold text-foreground mb-3">
-            Top-Rated Helprs in Your Parish
+            Top-Rated Helprs Near You
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Our highest-rated, most-trusted neighbors. Ranked by a balanced score of star
@@ -98,13 +98,13 @@ const Heroes = () => {
         </header>
 
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-center mb-8">
-          <label className="text-sm font-medium text-foreground">Filter by Parish:</label>
+          <label className="text-sm font-medium text-foreground">Filter by area:</label>
           <Select value={selectedParish} onValueChange={setSelectedParish}>
             <SelectTrigger className="w-[260px] bg-card">
-              <SelectValue placeholder="All Parishes" />
+              <SelectValue placeholder="All areas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Parishes ({heroes.length} heroes)</SelectItem>
+              <SelectItem value="all">All areas ({heroes.length} heroes)</SelectItem>
               {parishes.map((p) => (
                 <SelectItem key={p.parish} value={p.parish}>
                   {p.parish} ({p.hero_count})
@@ -123,7 +123,7 @@ const Heroes = () => {
         ) : heroes.length === 0 ? (
           <div className="text-center py-16 rounded-2xl border border-dashed border-border bg-card/50">
             <Award className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-display font-semibold text-foreground">No heroes yet in this parish</h3>
+            <h3 className="font-display font-semibold text-foreground">No heroes yet in this area</h3>
             <p className="text-sm text-muted-foreground mt-1">
               Helprs need at least 3 reviews and a 4.5★ average to qualify. Be the first!
             </p>

@@ -322,7 +322,7 @@ const Signup = () => {
             <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
               Helpr
             </Link>
-            <p className="mt-1.5 text-sm text-muted-foreground">Join your Louisiana parish</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">Join your Louisiana neighbors</p>
           </div>
 
           <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-6">

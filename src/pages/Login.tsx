@@ -9,6 +9,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQueryClient } from "@tanstack/react-query";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -109,7 +110,10 @@ const Login = () => {
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
-        <GoogleSignInButton label="Log in with Google" />
+        <div className="space-y-2">
+          <GoogleSignInButton label="Log in with Google" />
+          <AppleSignInButton label="Log in with Apple" />
+        </div>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

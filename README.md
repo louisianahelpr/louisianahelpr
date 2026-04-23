@@ -1,73 +1,80 @@
-# Welcome to your Lovable project
+# Helpr — Louisiana Help Marketplace
 
-## Project info
+A dual-sided gig marketplace exclusively for Louisiana. Connects **Posters** (homeowners and small businesses) with **Helprs** (1099 independent contractors) for everyday tasks like cleaning, errands, yard work, moving, and senior help.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+- **Live site:** https://www.louisianahelpr.com
+- **Lovable project:** https://lovable.dev/projects/215189c5-272d-4716-babd-430ab4187c14
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Job marketplace** — post jobs, browse open work, apply, accept offers
+- **Escrow payments** — Stripe Connect holds funds until job completion
+- **Louisiana tax handling** — automatic state + parish sales tax via Stripe
+- **Identity verification** — Stripe Identity for helpr onboarding
+- **Real-time messaging** — in-app chat with attachments per job
+- **Job lifecycle tracking** — Offered → Accepted → On the way → Arrived → Working → Complete
+- **Reviews & ratings** — gated to completed jobs only
+- **Push notifications** — web push (PWA) and native (iOS/Android) via Capacitor
+- **Subscriptions** — Basic / Pro / Elite tiers for helprs
+- **Admin dashboard** — moderation, disputes, analytics, broadcasts, ID review queue
+- **Native mobile** — iOS + Android builds via Capacitor with Fastlane CI/CD
 
-**Use Lovable**
+## Tech stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Frontend:** Vite, React 18, TypeScript, Tailwind CSS, shadcn/ui, framer-motion
+- **Backend:** Lovable Cloud (Supabase) — Postgres + RLS, Auth, Storage, Edge Functions
+- **Payments:** Stripe Connect (Express), Stripe Identity, Stripe Checkout with automatic tax
+- **Mobile:** Capacitor 8 (iOS + Android), Fastlane for App Store / Play Store releases
+- **PWA:** vite-plugin-pwa with workbox
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Local development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# 1. Clone
 git clone <YOUR_GIT_URL>
+cd louisianahelpr
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Install
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 3. Start dev server (http://localhost:8080)
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Useful scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Production build |
+| `npm run build:dev` | Development-mode build (keeps console logs) |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run Vitest once |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run preview` | Preview the production build locally |
 
-**Use GitHub Codespaces**
+### Environment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The Supabase client and `.env` are managed automatically by Lovable Cloud. Do **not** edit `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, or `.env` manually — they are regenerated.
 
-## What technologies are used for this project?
+## Native mobile (Capacitor)
 
-This project is built with:
+```sh
+# After git pull, sync web build into native projects
+npm run build
+npx cap sync
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Open native IDEs
+npx cap open ios       # requires macOS + Xcode
+npx cap open android   # requires Android Studio
+```
 
-## How can I deploy this project?
+App ID: `com.louisianahelpr.app`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release automation.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Deployment
 
-## Can I connect a custom domain to my Lovable project?
+Push to `main` is automatically deployed by Lovable. To publish a new version, open the project in Lovable and click **Share → Publish**, or use a custom domain via **Project → Settings → Domains**.
 
-Yes, you can!
+## Contributing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This repo is bidirectionally synced with Lovable. Changes pushed to GitHub appear in the Lovable editor and vice versa.

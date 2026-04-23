@@ -63,7 +63,7 @@ const Heroes = () => {
     setLoading(true);
     const parishParam = selectedParish === "all" ? null : selectedParish;
     supabase
-      .rpc("get_top_helpers_by_parish", { p_parish: parishParam, p_limit: 25 })
+      .rpc("get_top_helpers_by_parish", { p_parish: parishParam as unknown as string, p_limit: 25 })
       .then(({ data }) => {
         setHeroes((data || []) as Hero[]);
         setLoading(false);

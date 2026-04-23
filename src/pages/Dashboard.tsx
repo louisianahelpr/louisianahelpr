@@ -107,7 +107,7 @@ const Dashboard = () => {
   useRealtimePush(user?.id ?? null);
 
   const filters = useDashboardFilters({
-    allJobs, userId: user?.id, profile, helprTier, helperAvailability,
+    allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as any,
   });
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);

@@ -12,7 +12,7 @@ const features = [
 
 const FeaturesSection = forwardRef<HTMLElement>((_props, ref) => {
   return (
-    <section id="features" className="py-24 px-4" ref={ref}>
+    <section id="features" className="py-24 px-4 scroll-mt-24" ref={ref}>
       <div className="container mx-auto text-center">
         <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-4">
           Why people trust Helpr

@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PageTransition from "@/components/PageTransition";
 import MobileNav from "./components/MobileNav";
+import TabletSidebar from "./components/TabletSidebar";
 import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialog";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
@@ -139,7 +140,8 @@ const App = () => (
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
-          <div id="main-content">
+          <TabletSidebar />
+          <div id="main-content" className="md:pl-60 lg:pl-64">
             <Suspense fallback={<PageFallback />}>
               <AnimatedRoutes />
             </Suspense>

@@ -82,7 +82,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           </LegalCard>
           <LegalCard icon={<DollarSign className="w-4 h-4 text-primary" />} title="Platform Fees">
             <p><strong className="text-foreground">Poster Service Fee:</strong> 10% added at checkout on top of the job budget.</p>
-            <p><strong className="text-foreground">Helper Platform Fee:</strong> 10% deducted from the helpr's payout.</p>
+            <p><strong className="text-foreground">Helpr Platform Fee:</strong> 10% deducted from the helpr's payout.</p>
             <p><strong className="text-foreground">Total Platform Take:</strong> 20% per transaction (10% from each side).</p>
             <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
             <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>

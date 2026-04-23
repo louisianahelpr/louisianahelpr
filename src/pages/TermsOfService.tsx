@@ -48,7 +48,7 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Split Fee Model</p>
-                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helpers pay a <strong className="text-foreground">10% commission</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
+                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helprs pay a <strong className="text-foreground">10% commission</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Payout Schedule</p>

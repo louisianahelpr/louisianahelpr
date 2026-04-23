@@ -1546,7 +1546,7 @@ const AdminUsers = () => {
                             <SelectTrigger className="h-9 text-xs w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Jobs</SelectItem>
-                              <SelectItem value="worked">Worked (Helper)</SelectItem>
+                              <SelectItem value="worked">Worked (Helpr)</SelectItem>
                               <SelectItem value="posted">Posted (Customer)</SelectItem>
                             </SelectContent>
                           </Select>

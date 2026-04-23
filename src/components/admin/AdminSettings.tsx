@@ -314,7 +314,7 @@ const AdminSettings = () => {
         <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
           <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
           <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> commission + urgent tip</li>
-          <li>Platform keeps: service fee from customer + commission from helper</li>
+          <li>Platform keeps: service fee from customer + commission from helpr</li>
           <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
         </ul>
       </div>

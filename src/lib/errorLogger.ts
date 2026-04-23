@@ -8,6 +8,7 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { captureException as sentryCapture } from "@/lib/sentry";
 
 type Severity = "info" | "warning" | "error" | "fatal";
 
@@ -60,6 +61,9 @@ export function report(err: unknown, opts: ReportOptions = {}) {
     tags: opts.tags ?? {},
     context: opts.context ?? {},
   });
+
+  // Fan out to Sentry. No-op until initSentry() runs in main.tsx.
+  sentryCapture(err, { ...opts.context, ...opts.tags });
 
   // Debounced flush — never block the caller.
   setTimeout(flush, 250);

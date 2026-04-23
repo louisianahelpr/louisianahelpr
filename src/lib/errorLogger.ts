@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { captureException as sentryCapture } from "@/lib/sentry";
+import { captureException as posthogCapture } from "@/lib/posthog";
 
 type Severity = "info" | "warning" | "error" | "fatal";
 
@@ -64,6 +65,9 @@ export function report(err: unknown, opts: ReportOptions = {}) {
 
   // Fan out to Sentry. No-op until initSentry() runs in main.tsx.
   sentryCapture(err, { ...opts.context, ...opts.tags });
+
+  // Fan out to PostHog Error Tracking. No-op until initPostHog() runs.
+  posthogCapture(err, { ...opts.context, ...opts.tags });
 
   // Debounced flush — never block the caller.
   setTimeout(flush, 250);

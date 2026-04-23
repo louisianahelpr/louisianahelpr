@@ -30,6 +30,9 @@ export function initPostHog() {
       person_profiles: "identified_only",
       capture_pageview: true,
       capture_pageleave: true,
+      // Auto-capture window.onerror + unhandledrejection into PostHog
+      // Error Tracking. Complements Sentry + error_logs (triple redundancy).
+      capture_exceptions: true,
       // Capacitor wraps the app in a WebView; disable session recording
       // by default to avoid surprising bandwidth on cellular.
       disable_session_recording: true,
@@ -47,6 +50,14 @@ export function captureEvent(event: string, props: Record<string, any> = {}) {
   if (!initialized) return;
   try {
     posthog.capture(event, props);
+  } catch { /* ignore */ }
+}
+
+export function captureException(err: unknown, props: Record<string, any> = {}) {
+  if (!initialized) return;
+  try {
+    const error = err instanceof Error ? err : new Error(String(err));
+    posthog.captureException(error, props);
   } catch { /* ignore */ }
 }
 

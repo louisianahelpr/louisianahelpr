@@ -165,7 +165,7 @@ const HeroSection = () => {
             </p>
           </div>
 
-          {/* RIGHT: image + floating job cards */}
+          {/* RIGHT: image */}
           <div className="relative animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center lg:justify-end">
             <div className="relative w-full max-w-md mx-auto">
               <img
@@ -178,85 +178,48 @@ const HeroSection = () => {
                 width={1000}
                 height={1000}
               />
-
-              {/* Floating job card — top left */}
-              <div
-                className={`hidden sm:flex absolute -top-4 -left-6 lg:-left-10 w-56 p-3 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-xl items-center gap-3 animate-float-slow`}
-              >
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${mockJobs[0].accent} flex items-center justify-center shrink-0`}>
-                  {(() => {
-                    const Icon = mockJobs[0].icon;
-                    return <Icon className="w-5 h-5 text-primary" />;
-                  })()}
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-semibold text-foreground truncate">{mockJobs[0].title}</p>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    {mockJobs[0].location}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-primary flex items-center"><DollarSign className="w-3 h-3" />{mockJobs[0].price.replace("$", "")}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                    <Star className="w-2.5 h-2.5 fill-primary text-primary" />
-                    {mockJobs[0].rating}
-                  </p>
-                </div>
-              </div>
-
-              {/* Floating job card — middle right */}
-              <div
-                className={`hidden sm:flex absolute top-1/2 -right-6 lg:-right-10 -translate-y-1/2 w-56 p-3 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-xl items-center gap-3 animate-float-slower`}
-              >
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${mockJobs[1].accent} flex items-center justify-center shrink-0`}>
-                  {(() => {
-                    const Icon = mockJobs[1].icon;
-                    return <Icon className="w-5 h-5 text-primary" />;
-                  })()}
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-semibold text-foreground truncate">{mockJobs[1].title}</p>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    {mockJobs[1].location}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-primary flex items-center"><DollarSign className="w-3 h-3" />{mockJobs[1].price.replace("$", "")}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                    <Star className="w-2.5 h-2.5 fill-primary text-primary" />
-                    {mockJobs[1].rating}
-                  </p>
-                </div>
-              </div>
-
-              {/* Floating job card — bottom left */}
-              <div
-                className={`hidden sm:flex absolute -bottom-4 -left-4 lg:-left-8 w-56 p-3 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-xl items-center gap-3 animate-float-slow [animation-delay:1.5s]`}
-              >
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${mockJobs[2].accent} flex items-center justify-center shrink-0`}>
-                  {(() => {
-                    const Icon = mockJobs[2].icon;
-                    return <Icon className="w-5 h-5 text-primary" />;
-                  })()}
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-semibold text-foreground truncate">{mockJobs[2].title}</p>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    {mockJobs[2].location}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-primary flex items-center"><DollarSign className="w-3 h-3" />{mockJobs[2].price.replace("$", "")}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                    <Star className="w-2.5 h-2.5 fill-primary text-primary" />
-                    {mockJobs[2].rating}
-                  </p>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Live job cards row — under buttons + image */}
+        <div className="mt-10 sm:mt-14">
+          <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4">
+            Recently posted in Louisiana
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {mockJobs.map((job, i) => {
+              const Icon = job.icon;
+              const floatClass = i === 1 ? "animate-float-slower" : "animate-float-slow";
+              const delay = i === 1 ? "" : i === 2 ? "[animation-delay:1.5s]" : "";
+              return (
+                <div
+                  key={job.title}
+                  className={`flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all ${floatClass} ${delay}`}
+                >
+                  <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${job.accent} flex items-center justify-center shrink-0`}>
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-sm font-semibold text-foreground truncate">{job.title}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      {job.location}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-primary flex items-center justify-end">
+                      <DollarSign className="w-3 h-3" />
+                      {job.price.replace("$", "")}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
+                      <Star className="w-2.5 h-2.5 fill-primary text-primary" />
+                      {job.rating}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

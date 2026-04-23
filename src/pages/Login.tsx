@@ -104,7 +104,7 @@ const Login = () => {
           <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
             Helpr
           </Link>
-          <p className="mt-2 text-sm text-muted-foreground">Welcome back to your parish</p>
+          <p className="mt-2 text-sm text-muted-foreground">Your Local Task Partner</p>
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">

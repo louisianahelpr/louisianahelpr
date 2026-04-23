@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { categoryPricing } from "@/lib/pricingGuide";
+import { track, AhaEvent } from "@/lib/analytics";
 import { compressImage } from "@/lib/imageCompression";
 import { lookupParishByZip } from "@/lib/parishLookup";
 
@@ -364,6 +365,22 @@ const PostJob = () => {
 
     // Set cooldown timestamp immediately after successful insert
     localStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+
+    // Funnel: track job posted (and first ever for activation)
+    track(AhaEvent.JobPosted, {
+      job_id: jobData.id,
+      category,
+      budget_cents: Math.round(parseFloat(budget) * 100),
+      parish,
+      is_urgent: isUrgent,
+    });
+    const { count: postedCount } = await supabase
+      .from("jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("customer_id", user.id);
+    if ((postedCount ?? 0) <= 1) {
+      track(AhaEvent.FirstJobPosted, { job_id: jobData.id, category, parish });
+    }
 
     if (imageFiles.length > 0) {
       setUploading(true);

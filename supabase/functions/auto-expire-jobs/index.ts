@@ -129,11 +129,25 @@ Deno.serve(async (req) => {
       cancelledCount++;
     }
 
+    // 3. Expire pending direct offers (24h window)
+    let directOfferExpired = 0;
+    try {
+      const { data: expRpc, error: expRpcErr } = await supabase.rpc("expire_pending_direct_offers");
+      if (expRpcErr) {
+        console.error("expire_pending_direct_offers error:", expRpcErr);
+      } else {
+        directOfferExpired = (expRpc as number) || 0;
+      }
+    } catch (e) {
+      console.error("Direct offer expiry call failed:", e);
+    }
+
     return new Response(
       JSON.stringify({
-        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs`,
+        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs, expired ${directOfferExpired} direct offers`,
         expiredCount,
         cancelledCount,
+        directOfferExpired,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

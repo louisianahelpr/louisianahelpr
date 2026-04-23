@@ -417,6 +417,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // --- Filters ---
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
     { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
@@ -425,6 +426,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
     { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
@@ -438,9 +440,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     postedJobs.filter((j) => {
       // Status filter
       let statusMatch = false;
-      if (statusFilter === "offered") statusMatch = j.status === "accepted" && !(j as any).helper_confirmed_at;
-      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!(j as any).helper_confirmed_at;
-      else statusMatch = j.status === statusFilter;
+      const ja = j as any;
+      if (statusFilter === "direct_offer") statusMatch = !!ja.offered_to_helper_id && ja.direct_offer_status === "pending";
+      else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !ja.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!ja.helper_confirmed_at;
+      else statusMatch = j.status === statusFilter && !(statusFilter === "open" && ja.direct_offer_status === "pending");
       if (!statusMatch) return false;
       // Search filter
       if (searchLower) {
@@ -453,7 +457,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     const query = searchLower;
     return appliedApps.filter((a) => {
       let statusMatch = false;
-      if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
+      const ja = a.job as any;
+      if (statusFilter === "direct_offer") statusMatch = !!ja?.offered_to_helper_id && ja?.offered_to_helper_id === user?.id && ja?.direct_offer_status === "pending";
+      else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
       else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
       else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
@@ -470,8 +476,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
+      const ja = a.job as any;
+      if (ja?.offered_to_helper_id === user?.id && ja?.direct_offer_status === "pending") counts.direct_offer++;
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at) counts.offered++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) counts.accepted++;
@@ -485,10 +493,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   }, [appliedApps]);
 
   const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = { open: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
+    const counts: Record<string, number> = { open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
     postedJobs.forEach((j) => {
-      if (j.status === "accepted" && !(j as any).helper_confirmed_at) counts.offered++;
-      else if (j.status === "accepted" && !!(j as any).helper_confirmed_at) counts.accepted++;
+      const ja = j as any;
+      if (ja.offered_to_helper_id && ja.direct_offer_status === "pending") counts.direct_offer++;
+      if (j.status === "accepted" && !ja.helper_confirmed_at) counts.offered++;
+      else if (j.status === "accepted" && !!ja.helper_confirmed_at) counts.accepted++;
       else counts[j.status] = (counts[j.status] || 0) + 1;
     });
     return counts;

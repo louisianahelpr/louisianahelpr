@@ -4,7 +4,7 @@ import { Heart, Users, Sparkles, HandHeart } from "lucide-react";
 const appreciations = [
   {
     icon: <HandHeart className="w-6 h-6" />,
-    title: "To Our Helpers",
+    title: "To Our Helprs",
     message: "You show up, get it done, and make someone's day easier. Your hard work doesn't go unnoticed — thank you for being the backbone of this community.",
   },
   {

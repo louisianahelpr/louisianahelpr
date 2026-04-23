@@ -75,7 +75,7 @@ const AdminPayoutBatches = () => {
             <DollarSign className="w-5 h-5 text-primary" /> Payout Batches
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Helpers with completed jobs awaiting payout. Trigger Stripe transfers in bulk per helper.
+            Helprs with completed jobs awaiting payout. Trigger Stripe transfers in bulk per helpr.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -86,7 +86,7 @@ const AdminPayoutBatches = () => {
       {!loading && batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Helpers awaiting</p>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
             <p className="text-2xl font-bold text-foreground mt-1">{batches.length}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">

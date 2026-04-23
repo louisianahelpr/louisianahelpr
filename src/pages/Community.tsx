@@ -33,7 +33,7 @@ const values = [
 
 const thankYouMessages = [
   {
-    to: "Helpers",
+    to: "Helprs",
     emoji: "🛠️",
     message: "You are the heart of Helpr. Every lawn mowed, every box moved, every errand run — you make life easier for your neighbors. Your dedication, reliability, and skill don't go unnoticed. We are grateful for every single one of you.",
   },

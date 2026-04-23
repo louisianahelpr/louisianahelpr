@@ -133,7 +133,7 @@ const SupportPage = () => {
                 <Shield className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-sm text-foreground">Safety</p>
-                  <p className="text-sm text-muted-foreground">All helpers are reviewed before approval</p>
+                  <p className="text-sm text-muted-foreground">All helprs are reviewed before approval</p>
                 </div>
               </div>
             </div>

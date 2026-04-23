@@ -177,12 +177,12 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="New Helper Restrictions">
             <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>
             <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
-            <p><strong className="text-foreground">Response Deadlines:</strong> Helpers must respond to job offers within 1–48 hours (set by the poster).</p>
+            <p><strong className="text-foreground">Response Deadlines:</strong> Helprs must respond to job offers within 1–48 hours (set by the poster).</p>
           </LegalCard>
           <LegalCard icon={<Shield className="w-4 h-4 text-primary" />} title="Safety & Verification">
             <p><strong className="text-foreground">Age Verification:</strong> All users must be 18+ to use Helpr.</p>
-            <p><strong className="text-foreground">ID Verification:</strong> Helpers must upload a valid government-issued ID.</p>
-            <p><strong className="text-foreground">GPS Check-in:</strong> Helpers must check in within 500ft of the job location.</p>
+            <p><strong className="text-foreground">ID Verification:</strong> Helprs must upload a valid government-issued ID.</p>
+            <p><strong className="text-foreground">GPS Check-in:</strong> Helprs must check in within 500ft of the job location.</p>
           </LegalCard>
         </div>
       </div>

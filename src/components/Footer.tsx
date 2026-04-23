@@ -11,7 +11,7 @@ const Footer = () => (
             Helpr
           </Link>
           <p className="text-sm text-muted-foreground max-w-md">
-            Louisiana's trusted marketplace connecting neighbors with verified local helpers
+            Louisiana's trusted marketplace connecting neighbors with verified local helprs
             for cleaning, yard work, moving, handyman tasks, errands, and more.
           </p>
           <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
@@ -54,7 +54,7 @@ const Footer = () => (
       {/* Pricing disclosure strip — Stripe reviewer-friendly */}
       <div className="rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground text-center">
         <strong className="text-foreground">Transparent pricing:</strong> Posters pay a 10% service fee at checkout.
-        Helprs receive 90% of the job budget (10% platform fee). Louisiana state and parish sales tax is collected
+        Helprs receive 90% of the job budget (10% platform fee). Louisiana state and local sales tax is collected
         on platform fees where applicable. <Link to="/rules" className="text-primary hover:underline">View full pricing →</Link>
       </div>
 

@@ -558,8 +558,11 @@ const ProfilePage = () => {
                     <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
                       {group.items.map((item) => (
                         <button
-                          key={item.key}
-                          onClick={() => setTab(item.key)}
+                          key={item.label}
+                          onClick={() => {
+                            if (item.href) navigate(item.href);
+                            else setTab(item.key);
+                          }}
                           className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
                         >
                           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">

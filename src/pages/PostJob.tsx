@@ -459,6 +459,35 @@ const PostJob = () => {
             <>
               <p className="text-muted-foreground text-sm">Describe what you need help with</p>
 
+              {offerToHelperId && (
+                <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <UserCheck className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Direct offer to {offerToHelperName || "your saved helpr"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      They'll have 24 hours to accept before this task opens to all helprs.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setOfferToHelperId(null);
+                      setOfferToHelperName("");
+                    }}
+                    className="rounded-xl h-8 w-8 shrink-0"
+                    aria-label="Cancel direct offer"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+
               {/* Draft Prompt */}
               {showDraftPrompt && (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3">

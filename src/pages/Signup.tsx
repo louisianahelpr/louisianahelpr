@@ -308,6 +308,7 @@ const Signup = () => {
         } catch { /* silent */ }
       }
 
+      track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
       toast.success("Account created! Check your email to verify, then connect your payout account.");
       navigate("/signup-pending");
     } catch (err: any) {

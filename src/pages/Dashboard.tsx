@@ -193,6 +193,13 @@ const Dashboard = () => {
       else toast.error(error.message);
     } else {
       hapticSuccess();
+      // Funnel: track first application separately for activation analysis
+      track(AhaEvent.JobApplied, { job_id: confirmApplyJobId });
+      const { count } = await supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("helper_id", user.id);
+      if ((count ?? 0) <= 1) track(AhaEvent.FirstJobApplication, { job_id: confirmApplyJobId });
       toast.success("Application sent! Track it in My Jobs.", {
         action: { label: "View", onClick: () => navigate("/my-jobs") },
       });

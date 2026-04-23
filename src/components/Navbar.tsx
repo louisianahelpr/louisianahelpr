@@ -56,6 +56,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Jobs
           </Link>
+          <Link to="/for-business" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            For Business
+          </Link>
           <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Support
           </Link>
@@ -105,6 +108,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           </a>
           <Link to="/jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Jobs
+          </Link>
+          <Link to="/for-business" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            For Business
           </Link>
           <Link to="/support" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Support

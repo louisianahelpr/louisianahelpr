@@ -1,0 +1,2 @@
+# Fastlane plugins for Helpr — none required for the default beta/release lanes.
+# Add plugins here if you later need things like firebase distribution, slack notifications, etc.

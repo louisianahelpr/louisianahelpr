@@ -199,7 +199,7 @@ const HeroSection = () => {
                 <div className="text-right shrink-0">
                   <p className="text-sm font-bold text-primary flex items-center"><DollarSign className="w-3 h-3" />{mockJobs[0].price.replace("$", "")}</p>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                    <Star className="w-2.5 h-2.5 fill-yellow-500 text-yellow-500" />
+                    <Star className="w-2.5 h-2.5 fill-primary text-primary" />
                     {mockJobs[0].rating}
                   </p>
                 </div>
@@ -225,7 +225,7 @@ const HeroSection = () => {
                 <div className="text-right shrink-0">
                   <p className="text-sm font-bold text-primary flex items-center"><DollarSign className="w-3 h-3" />{mockJobs[1].price.replace("$", "")}</p>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                    <Star className="w-2.5 h-2.5 fill-yellow-500 text-yellow-500" />
+                    <Star className="w-2.5 h-2.5 fill-primary text-primary" />
                     {mockJobs[1].rating}
                   </p>
                 </div>
@@ -251,7 +251,7 @@ const HeroSection = () => {
                 <div className="text-right shrink-0">
                   <p className="text-sm font-bold text-primary flex items-center"><DollarSign className="w-3 h-3" />{mockJobs[2].price.replace("$", "")}</p>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                    <Star className="w-2.5 h-2.5 fill-yellow-500 text-yellow-500" />
+                    <Star className="w-2.5 h-2.5 fill-primary text-primary" />
                     {mockJobs[2].rating}
                   </p>
                 </div>

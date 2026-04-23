@@ -1,86 +1,103 @@
 # Helpr — iOS App Store automation
-# Run from project root on your Mac:
-#   bundle exec fastlane ios beta      → upload to TestFlight
-#   bundle exec fastlane ios release   → upload + submit for App Store review
-#
-# First-time setup: see fastlane/README.md
+# Local: bundle exec fastlane ios beta | release
+# CI:    invoked by .github/workflows/deploy.yml
 
 default_platform(:ios)
 
 WORKSPACE = "ios/App/App.xcworkspace"
+PROJECT   = "ios/App/App.xcodeproj"
 SCHEME    = "App"
 APP_ID    = "com.Helpr"
 
+CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || "fastlane/changelog.txt"
+
+def changelog_text
+  File.exist?(CHANGELOG_PATH) ? File.read(CHANGELOG_PATH) : "Bug fixes and improvements."
+end
+
+def asc_api_key
+  app_store_connect_api_key(
+    key_id:        ENV["ASC_KEY_ID"]        || ENV["ASC_KEY_ID"],
+    issuer_id:     ENV["ASC_ISSUER_ID"],
+    key_filepath:  ENV["ASC_KEY_PATH"],
+    duration:      1200,
+    in_house:      false
+  )
+end
+
 platform :ios do
   before_all do
-    # Build the web bundle and sync Capacitor so Xcode archives the latest dist/.
-    sh("cd .. && npm run build")
-    sh("cd .. && npx cap sync ios")
+    # CI runs build/sync in workflow steps. Skip duplicate work there.
+    unless ENV["CI"]
+      sh("cd .. && npm run build")
+      sh("cd .. && npx cap sync ios")
+    end
   end
 
+  # ──────────────────────────────────────────────────────────────────────
+  # TestFlight
+  # ──────────────────────────────────────────────────────────────────────
   desc "Bump build number, archive, upload to TestFlight"
   lane :beta do
-    api_key = app_store_connect_api_key(
-      key_id:      ENV["ASC_KEY_ID"],
-      issuer_id:   ENV["ASC_ISSUER_ID"],
-      key_filepath: ENV["ASC_KEY_PATH"],
-      duration:    1200,
-      in_house:    false
-    )
+    api_key = asc_api_key
 
-    increment_build_number(xcodeproj: "ios/App/App.xcodeproj")
+    increment_build_number(xcodeproj: PROJECT)
 
     build_app(
-      workspace:    WORKSPACE,
-      scheme:       SCHEME,
-      export_method: "app-store",
-      clean:        true,
+      workspace:        WORKSPACE,
+      scheme:           SCHEME,
+      export_method:    "app-store",
+      clean:            true,
       output_directory: "build",
-      output_name:  "Helpr.ipa"
+      output_name:      "Helpr.ipa",
+      include_symbols:  true
     )
 
     upload_to_testflight(
-      api_key:                  api_key,
-      skip_waiting_for_build_processing: true,
-      ipa:                      "build/Helpr.ipa"
+      api_key:                           api_key,
+      ipa:                               "build/Helpr.ipa",
+      skip_waiting_for_build_processing: false,
+      changelog:                         changelog_text,
+      distribute_external:               false,
+      notify_external_testers:           false
     )
   end
 
+  # ──────────────────────────────────────────────────────────────────────
+  # App Store submission
+  # ──────────────────────────────────────────────────────────────────────
   desc "Bump build, archive, upload, and submit for App Store review"
   lane :release do
-    api_key = app_store_connect_api_key(
-      key_id:       ENV["ASC_KEY_ID"],
-      issuer_id:    ENV["ASC_ISSUER_ID"],
-      key_filepath: ENV["ASC_KEY_PATH"],
-      duration:     1200,
-      in_house:     false
-    )
+    api_key = asc_api_key
 
-    increment_build_number(xcodeproj: "ios/App/App.xcodeproj")
+    increment_build_number(xcodeproj: PROJECT)
 
     build_app(
-      workspace:    WORKSPACE,
-      scheme:       SCHEME,
-      export_method: "app-store",
-      clean:        true,
+      workspace:        WORKSPACE,
+      scheme:           SCHEME,
+      export_method:    "app-store",
+      clean:            true,
       output_directory: "build",
-      output_name:  "Helpr.ipa"
+      output_name:      "Helpr.ipa",
+      include_symbols:  true
     )
 
     upload_to_app_store(
-      api_key:               api_key,
-      ipa:                   "build/Helpr.ipa",
-      app_identifier:        APP_ID,
-      submit_for_review:     true,
-      automatic_release:     true,
-      force:                 true,           # skip HTML preview
+      api_key:                           api_key,
+      ipa:                               "build/Helpr.ipa",
+      app_identifier:                    APP_ID,
+      submit_for_review:                 true,
+      automatic_release:                 true,
+      force:                             true,
       precheck_include_in_app_purchases: false,
       submission_information: {
-        add_id_info_uses_idfa: false,
-        export_compliance_uses_encryption: false
+        add_id_info_uses_idfa:               false,
+        export_compliance_uses_encryption:   false
       },
-      skip_screenshots:      true,           # manage screenshots in App Store Connect
-      skip_metadata:         false
+      release_notes: { "en-US" => changelog_text },
+      skip_screenshots: true,
+      skip_metadata:    false,
+      metadata_path:    "fastlane/metadata"
     )
   end
 end

@@ -1059,6 +1059,8 @@ export type Database = {
           customer_id: string
           date_needed: string
           description: string
+          direct_offer_expires_at: string | null
+          direct_offer_status: string | null
           dispute_deadline: string | null
           dispute_evidence_urls: string[] | null
           dispute_helper_response: string | null
@@ -1086,6 +1088,7 @@ export type Database = {
           latitude: number | null
           location: string
           longitude: number | null
+          offered_to_helper_id: string | null
           parent_job_id: string | null
           parish: string | null
           payment_status: string | null
@@ -1140,6 +1143,8 @@ export type Database = {
           customer_id: string
           date_needed: string
           description: string
+          direct_offer_expires_at?: string | null
+          direct_offer_status?: string | null
           dispute_deadline?: string | null
           dispute_evidence_urls?: string[] | null
           dispute_helper_response?: string | null
@@ -1167,6 +1172,7 @@ export type Database = {
           latitude?: number | null
           location: string
           longitude?: number | null
+          offered_to_helper_id?: string | null
           parent_job_id?: string | null
           parish?: string | null
           payment_status?: string | null
@@ -1221,6 +1227,8 @@ export type Database = {
           customer_id?: string
           date_needed?: string
           description?: string
+          direct_offer_expires_at?: string | null
+          direct_offer_status?: string | null
           dispute_deadline?: string | null
           dispute_evidence_urls?: string[] | null
           dispute_helper_response?: string | null
@@ -1248,6 +1256,7 @@ export type Database = {
           latitude?: number | null
           location?: string
           longitude?: number | null
+          offered_to_helper_id?: string | null
           parent_job_id?: string | null
           parish?: string | null
           payment_status?: string | null
@@ -2692,6 +2701,8 @@ export type Database = {
           customer_id: string | null
           date_needed: string | null
           description: string | null
+          direct_offer_expires_at: string | null
+          direct_offer_status: string | null
           estimated_hours: number | null
           expires_at: string | null
           helpers_needed: number | null
@@ -2701,6 +2712,7 @@ export type Database = {
           is_recurring: boolean | null
           is_urgent: boolean | null
           location: string | null
+          offered_to_helper_id: string | null
           parent_job_id: string | null
           payment_status: string | null
           photos: string[] | null
@@ -2722,6 +2734,8 @@ export type Database = {
           customer_id?: string | null
           date_needed?: string | null
           description?: string | null
+          direct_offer_expires_at?: string | null
+          direct_offer_status?: string | null
           estimated_hours?: number | null
           expires_at?: string | null
           helpers_needed?: number | null
@@ -2731,6 +2745,7 @@ export type Database = {
           is_recurring?: boolean | null
           is_urgent?: boolean | null
           location?: string | null
+          offered_to_helper_id?: string | null
           parent_job_id?: string | null
           payment_status?: string | null
           photos?: string[] | null
@@ -2752,6 +2767,8 @@ export type Database = {
           customer_id?: string | null
           date_needed?: string | null
           description?: string | null
+          direct_offer_expires_at?: string | null
+          direct_offer_status?: string | null
           estimated_hours?: number | null
           expires_at?: string | null
           helpers_needed?: number | null
@@ -2761,6 +2778,7 @@ export type Database = {
           is_recurring?: boolean | null
           is_urgent?: boolean | null
           location?: string | null
+          offered_to_helper_id?: string | null
           parent_job_id?: string | null
           payment_status?: string | null
           photos?: string[] | null
@@ -2901,6 +2919,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_pending_direct_offers: { Args: never; Returns: number }
       get_approved_helpers: {
         Args: { max_count?: number }
         Returns: {
@@ -2958,6 +2977,21 @@ export type Database = {
         Returns: {
           hero_count: number
           parish: string
+        }[]
+      }
+      get_my_saved_helpers: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          bio: string
+          completed_jobs_together: number
+          full_name: string
+          helper_id: string
+          hourly_rate: number
+          last_job_at: string
+          parish: string
+          saved_at: string
+          skills: string
         }[]
       }
       get_parish_activity: {

@@ -31,7 +31,7 @@ export function fireSlackAlert(input: SlackAlertInput) {
   supabase.functions
     .invoke("slack-ops-alert", { body: input })
     .catch((err) => {
-      // eslint-disable-next-line no-console
+       
       console.warn("[slackAlerts] dispatch failed:", err?.message || err);
     });
 }

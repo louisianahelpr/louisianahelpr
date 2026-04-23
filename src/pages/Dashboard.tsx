@@ -167,7 +167,7 @@ const Dashboard = () => {
     // at job-acceptance time (see Activity.tsx → handleHelperResponse).
 
     // Upload attachments (store storage paths; resolve signed URLs at view time)
-    let attachmentUrls: string[] = [];
+    const attachmentUrls: string[] = [];
     if (applyFiles.length > 0) {
       for (const file of applyFiles) {
         const ext = file.name.split('.').pop();

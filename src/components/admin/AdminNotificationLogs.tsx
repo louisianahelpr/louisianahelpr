@@ -79,7 +79,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, status, channel, page]);
+  useEffect(() => { load();   }, [category, status, channel, page]);
 
   useEffect(() => {
     const channel = supabase

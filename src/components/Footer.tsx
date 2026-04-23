@@ -16,11 +16,11 @@ const Footer = () => (
           </p>
           <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
             <a
-              href="mailto:support@louisianahelpr.com"
+              href="mailto:admin@louisianahelpr.com"
               className="flex items-center gap-2 hover:text-primary transition-colors"
             >
               <Mail className="w-3.5 h-3.5" />
-              support@louisianahelpr.com
+              admin@louisianahelpr.com
             </a>
             <span className="flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5" />

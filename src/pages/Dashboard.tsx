@@ -158,20 +158,12 @@ const Dashboard = () => {
     setConfirmApplyJobId(jobId);
   }, [user, allJobs, navigate]);
 
-  const { checkHelperStripeConnect } = useStripeConnectCheck();
-
   const handleApplyConfirm = useCallback(async () => {
     if (!user || !confirmApplyJobId || applyLoading) return;
     setApplyLoading(true);
 
-    // Block users without a connected payout account from applying
-    const stripeCheck = await checkHelperStripeConnect();
-    if (!stripeCheck.ok) {
-      toast.error(stripeCheck.reason);
-      setConfirmApplyJobId(null);
-      setApplyLoading(false);
-      return;
-    }
+    // Note: payout-account setup is NOT required to apply. It is only enforced
+    // at job-acceptance time (see Activity.tsx → handleHelperResponse).
 
     // Upload attachments (store storage paths; resolve signed URLs at view time)
     let attachmentUrls: string[] = [];

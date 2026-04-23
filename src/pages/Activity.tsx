@@ -22,6 +22,7 @@ import {
   categoryLabels, categories, categoryColors, statusBadge,
 } from "@/components/activity/activityConstants";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -78,6 +79,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
 
   const { checkHelperStripeConnect, checking: checkingStripe } = useStripeConnectCheck();
+  const [idvDialogOpen, setIdvDialogOpen] = useState(false);
+  const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
 
   // --- Action handlers ---
 

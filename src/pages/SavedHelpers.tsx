@@ -55,19 +55,42 @@ const SavedHelpers = () => {
 
   const handleRemove = async (helperId: string) => {
     if (!user) return;
-    setRemovingId(helperId);
-    const { error } = await supabase
-      .from("favorite_helpers")
-      .delete()
-      .eq("customer_id", user.id)
-      .eq("helper_id", helperId);
-    if (error) {
-      toast.error("Couldn't remove");
-    } else {
-      setHelpers((prev) => prev.filter((h) => h.helper_id !== helperId));
-      toast.success("Removed from saved");
-    }
-    setRemovingId(null);
+    // Optimistic remove with undo: snapshot the row, drop it from UI, then
+    // commit the delete after a 5s window unless the user taps Undo.
+    const snapshot = helpers.find((h) => h.helper_id === helperId);
+    if (!snapshot) return;
+    setHelpers((prev) => prev.filter((h) => h.helper_id !== helperId));
+
+    let undone = false;
+    const timer = setTimeout(async () => {
+      if (undone) return;
+      const { error } = await supabase
+        .from("favorite_helpers")
+        .delete()
+        .eq("customer_id", user.id)
+        .eq("helper_id", helperId);
+      if (error) {
+        toast.error("Couldn't remove — restored");
+        setHelpers((prev) =>
+          prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
+        );
+      }
+    }, 5000);
+
+    toast("Removed from saved", {
+      description: `${formatName(snapshot.full_name)} won't appear here anymore.`,
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          undone = true;
+          clearTimeout(timer);
+          setHelpers((prev) =>
+            prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
+          );
+        },
+      },
+    });
   };
 
   const filtered = helpers.filter((h) => {

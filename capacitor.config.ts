@@ -27,45 +27,44 @@ const config: CapacitorConfig = {
     marketingUrl: 'https://louisianahelpr.com',
     // Allow iPad multitasking (Split View / Slide Over). Set to true to lock full screen.
     contentInset: 'always',
-    // Inject Info.plist keys that aren't covered by the default Capacitor template.
-    // These are appended on `npx cap sync` — manage permissions in one place here.
-    content: `
-      <key>NSCameraUsageDescription</key>
-      <string>Helpr needs camera access so you can take before/after photos of jobs and upload your ID for verification.</string>
-      <key>NSLocationWhenInUseUsageDescription</key>
-      <string>Helpr uses your location to show jobs near you and confirm helper arrival.</string>
-      <key>NSPhotoLibraryUsageDescription</key>
-      <string>Allows you to upload photos from your library to show job details and progress.</string>
-      <key>NSPhotoLibraryAddUsageDescription</key>
-      <string>Allows Helpr to save downloaded receipts and shared images to your photo library.</string>
-      <key>NSContactsUsageDescription</key>
-      <string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
-      <key>ITSAppUsesNonExemptEncryption</key>
-      <false/>
-      <key>UIRequiresFullScreen</key>
-      <false/>
-      <key>UIStatusBarStyle</key>
-      <string>UIStatusBarStyleDarkContent</string>
-      <key>UIViewControllerBasedStatusBarAppearance</key>
-      <true/>
-      <key>UISupportedInterfaceOrientations</key>
-      <array>
-        <string>UIInterfaceOrientationPortrait</string>
-      </array>
-      <key>UISupportedInterfaceOrientations~ipad</key>
-      <array>
-        <string>UIInterfaceOrientationPortrait</string>
-        <string>UIInterfaceOrientationPortraitUpsideDown</string>
-        <string>UIInterfaceOrientationLandscapeLeft</string>
-        <string>UIInterfaceOrientationLandscapeRight</string>
-      </array>
-      <key>LSApplicationQueriesSchemes</key>
-      <array>
-        <string>tel</string>
-        <string>mailto</string>
-        <string>sms</string>
-      </array>
-    `
+    // -------------------------------------------------------------------------
+    // Info.plist keys — MUST be added manually in Xcode.
+    // Capacitor has no API to inject Info.plist entries from this config; the
+    // previous `content:` field here was a no-op. After running `npx cap add ios`
+    // on your Mac, open ios/App/App/Info.plist (or the Info tab in Xcode) and
+    // paste the keys below. Apple will reject the build if camera / location /
+    // photo / contacts permissions are requested without matching usage strings.
+    //
+    //   <key>NSCameraUsageDescription</key>
+    //   <string>Helpr needs camera access so you can take before/after photos of jobs and upload your ID for verification.</string>
+    //   <key>NSLocationWhenInUseUsageDescription</key>
+    //   <string>Helpr uses your location to show jobs near you and confirm helper arrival.</string>
+    //   <key>NSPhotoLibraryUsageDescription</key>
+    //   <string>Allows you to upload photos from your library to show job details and progress.</string>
+    //   <key>NSPhotoLibraryAddUsageDescription</key>
+    //   <string>Allows Helpr to save downloaded receipts and shared images to your photo library.</string>
+    //   <key>NSContactsUsageDescription</key>
+    //   <string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
+    //   <key>ITSAppUsesNonExemptEncryption</key>
+    //   <false/>
+    //   <key>UIRequiresFullScreen</key>
+    //   <false/>
+    //   <key>UIStatusBarStyle</key>
+    //   <string>UIStatusBarStyleDarkContent</string>
+    //   <key>UIViewControllerBasedStatusBarAppearance</key>
+    //   <true/>
+    //   <key>UISupportedInterfaceOrientations</key>
+    //   <array><string>UIInterfaceOrientationPortrait</string></array>
+    //   <key>UISupportedInterfaceOrientations~ipad</key>
+    //   <array>
+    //     <string>UIInterfaceOrientationPortrait</string>
+    //     <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    //     <string>UIInterfaceOrientationLandscapeLeft</string>
+    //     <string>UIInterfaceOrientationLandscapeRight</string>
+    //   </array>
+    //   <key>LSApplicationQueriesSchemes</key>
+    //   <array><string>tel</string><string>mailto</string><string>sms</string></array>
+    // -------------------------------------------------------------------------
   },
   plugins: {
     SplashScreen: {

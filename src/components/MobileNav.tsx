@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Send, MessageSquare, User, Plus, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { prefetchRoute } from "@/lib/routePrefetch";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -104,6 +105,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <button
         key={path}
         onClick={handleClick}
+        onMouseEnter={() => prefetchRoute(path)}
+        onFocus={() => prefetchRoute(path)}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-all duration-200 btn-press ${
           active || inStack ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
@@ -138,6 +141,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         {/* Post button bubble */}
         <button
           onClick={() => navigate("/post-job")}
+          onMouseEnter={() => prefetchRoute("/post-job")}
+          onFocus={() => prefetchRoute("/post-job")}
           aria-label="Post a new job"
           className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15 active:scale-95 transition-transform duration-150"
         >

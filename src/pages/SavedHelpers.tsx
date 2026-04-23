@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, MapPin, Briefcase, Send, Star, Loader2, Search } from "lucide-react";
+import { Heart, MapPin, Briefcase, Send, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
@@ -31,7 +31,7 @@ const SavedHelpers = () => {
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (!user) return;
@@ -55,19 +55,42 @@ const SavedHelpers = () => {
 
   const handleRemove = async (helperId: string) => {
     if (!user) return;
-    setRemovingId(helperId);
-    const { error } = await supabase
-      .from("favorite_helpers")
-      .delete()
-      .eq("customer_id", user.id)
-      .eq("helper_id", helperId);
-    if (error) {
-      toast.error("Couldn't remove");
-    } else {
-      setHelpers((prev) => prev.filter((h) => h.helper_id !== helperId));
-      toast.success("Removed from saved");
-    }
-    setRemovingId(null);
+    // Optimistic remove with undo: snapshot the row, drop it from UI, then
+    // commit the delete after a 5s window unless the user taps Undo.
+    const snapshot = helpers.find((h) => h.helper_id === helperId);
+    if (!snapshot) return;
+    setHelpers((prev) => prev.filter((h) => h.helper_id !== helperId));
+
+    let undone = false;
+    const timer = setTimeout(async () => {
+      if (undone) return;
+      const { error } = await supabase
+        .from("favorite_helpers")
+        .delete()
+        .eq("customer_id", user.id)
+        .eq("helper_id", helperId);
+      if (error) {
+        toast.error("Couldn't remove — restored");
+        setHelpers((prev) =>
+          prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
+        );
+      }
+    }, 5000);
+
+    toast("Removed from saved", {
+      description: `${formatName(snapshot.full_name)} won't appear here anymore.`,
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          undone = true;
+          clearTimeout(timer);
+          setHelpers((prev) =>
+            prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
+          );
+        },
+      },
+    });
   };
 
   const filtered = helpers.filter((h) => {
@@ -238,15 +261,10 @@ const SavedHelpers = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleRemove(h.helper_id)}
-                        disabled={removingId === h.helper_id}
                         className="rounded-xl"
                         aria-label="Remove from saved"
                       >
-                        {removingId === h.helper_id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Heart className="w-3.5 h-3.5 fill-destructive text-destructive" />
-                        )}
+                        <Heart className="w-3.5 h-3.5 fill-destructive text-destructive" />
                       </Button>
                     </div>
                   </div>

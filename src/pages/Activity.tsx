@@ -156,6 +156,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (accept) {
       const stripeCheck = await checkHelperStripeConnect();
       if (!stripeCheck.ok) { toast.error(stripeCheck.reason); return; }
+
+      // Identity verification gate — required before first accept
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("idv_status")
+        .eq("user_id", user.id)
+        .single();
+      const idvStatus = (prof as any)?.idv_status;
+      if (idvStatus !== "verified") {
+        setPendingAcceptApp(app);
+        setIdvDialogOpen(true);
+        return;
+      }
+
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");

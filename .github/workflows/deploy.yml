@@ -1,0 +1,130 @@
+# Deploy Helpr iOS to TestFlight or the App Store
+#
+# ─── How to trigger ──────────────────────────────────────────────────────────
+# 1. Go to GitHub → Actions → "Deploy iOS (TestFlight / App Store)"
+# 2. Click "Run workflow"
+# 3. Pick the lane:
+#       beta    → uploads a build to TestFlight (internal testing)
+#       release → uploads + submits the build for App Store review
+# 4. Click "Run workflow" again to start the job.
+#
+# ─── Required GitHub Secrets (Settings → Secrets and variables → Actions) ────
+#   ASC_KEY_ID            App Store Connect API key ID (10 chars)        e.g. B38QR4VAKC
+#   ASC_ISSUER_ID         App Store Connect issuer UUID                  e.g. 55c4b380-...
+#   ASC_KEY_BASE64        Base64-encoded contents of the .p8 file
+#                         Generate with:  base64 -i AuthKey_XXXX.p8 | pbcopy
+#   DEVELOPER_TEAM_ID     Apple Developer team ID (10 chars)             e.g. P85MCK558V
+#   FASTLANE_APPLE_ID     Apple ID email used for the developer account
+#   FASTLANE_PASSWORD     App-specific password from appleid.apple.com   (optional but recommended)
+#   ASC_TEAM_ID           App Store Connect team ID                      (only if your Apple ID is on multiple teams)
+#   KEYCHAIN_PASSWORD     Any random string — used to unlock the temp keychain on the runner
+#
+# ─── App identifiers (for reference) ─────────────────────────────────────────
+#   Bundle ID:   com.Helpr
+#   SKU:         Helpr
+#   Team ID:     P85MCK558V
+#
+# ─── What this workflow does ─────────────────────────────────────────────────
+#   1. Checks out the repo
+#   2. Installs Node + Ruby (with Gemfile cache)
+#   3. Builds the web bundle (npm run build)
+#   4. Syncs Capacitor → iOS (npx cap sync ios)
+#   5. Writes the .p8 key from ASC_KEY_BASE64 to a temp file
+#   6. Runs `bundle exec fastlane ios <lane>` which handles signing + upload
+
+name: Deploy iOS (TestFlight / App Store)
+
+on:
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: "Fastlane lane to run"
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - beta      # → TestFlight
+          - release   # → App Store review submission
+
+jobs:
+  deploy:
+    name: Build & upload via Fastlane
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    env:
+      ASC_KEY_ID:        ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID:     ${{ secrets.ASC_ISSUER_ID }}
+      DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+      FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+      FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+      ASC_TEAM_ID:       ${{ secrets.ASC_TEAM_ID }}
+      # Speed + reliability tweaks for fastlane on CI
+      FASTLANE_HIDE_CHANGELOG:                "1"
+      FASTLANE_SKIP_UPDATE_CHECK:             "1"
+      FASTLANE_DISABLE_COLORS:                "1"
+      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT:   "120"
+      LC_ALL: en_US.UTF-8
+      LANG:   en_US.UTF-8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Ruby (with Bundler cache)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Capacitor sync (iOS)
+        run: npx cap sync ios
+
+      - name: Decode App Store Connect API key
+        run: |
+          mkdir -p "$RUNNER_TEMP/asc"
+          echo "${{ secrets.ASC_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/asc/AuthKey.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Create temporary keychain
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+
+      - name: Run Fastlane (${{ github.event.inputs.lane }})
+        run: bundle exec fastlane ios ${{ github.event.inputs.lane }}
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: helpr-ipa-${{ github.event.inputs.lane }}-${{ github.run_number }}
+          path: build/*.ipa
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/asc/AuthKey.p8" || true

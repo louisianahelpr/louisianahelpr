@@ -140,7 +140,8 @@ const App = () => (
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
-          <div id="main-content">
+          <TabletSidebar />
+          <div id="main-content" className="md:pl-60 lg:pl-64">
             <Suspense fallback={<PageFallback />}>
               <AnimatedRoutes />
             </Suspense>

@@ -44,6 +44,11 @@ const SocialProofSection = () => {
     return <>{display.toLocaleString()}{suffix}</>;
   };
 
+  // Hide entire section until we have meaningful numbers (50+ jobs AND 50+ users)
+  if (loaded && (stats.completedJobs < 50 || stats.totalUsers < 50)) {
+    return null;
+  }
+
   const items = [
     { icon: CheckCircle, value: stats.completedJobs, label: "Jobs completed", suffix: "+" },
     { icon: Users, value: stats.totalUsers, label: "Users", suffix: "+" },

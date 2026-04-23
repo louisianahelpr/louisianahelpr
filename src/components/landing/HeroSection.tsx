@@ -47,21 +47,17 @@ const HeroSection = () => {
               Post a job, get matched with trusted helprs in your parish, and pay securely when the work's done. Cleaning, yard work, moving, errands — all in one app.
             </p>
 
-            {/* Social proof — only show when numbers are meaningful */}
-            {stats && (stats.users >= 50 || stats.completed >= 20) && (
+            {/* Social proof — only show when we have 50+ users AND 50+ completed jobs */}
+            {stats && stats.users >= 50 && stats.completed >= 50 && (
               <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted-foreground">
-                {stats.users >= 50 && (
-                  <span className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> neighbors
-                  </span>
-                )}
-                {stats.completed >= 20 && (
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> jobs done
-                  </span>
-                )}
+                <span className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> neighbors
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> jobs done
+                </span>
               </div>
             )}
 

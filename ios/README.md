@@ -19,19 +19,46 @@ After `npx cap add ios`, copy these files into the Xcode project:
 # Privacy manifest (REQUIRED since iOS 17 — Apple will reject without it)
 cp ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
 
+# Push notifications + Universal Links entitlements
+cp ios/App.entitlements ios/App/App/App.entitlements
+
 # App icon — generate all 18 sizes from the 1024 source
 node scripts/generate-ios-icons.mjs
 ```
 
-Then in Xcode:
+Then in Xcode (one-time, ~2 minutes):
 1. Open `ios/App/App.xcworkspace`
 2. Drag `PrivacyInfo.xcprivacy` into the App target → "Copy items if needed"
 3. Verify it appears under **App target → Build Phases → Copy Bundle Resources**
 4. Drag the generated `AppIcon.appiconset` folder into `Assets.xcassets`,
    replacing the placeholder
-5. Bundle ID: confirm `com.Helpr` matches App Store Connect record
-6. Signing & Capabilities: select your team
-7. Build and run on iPhone 15 simulator to verify
+5. **App target → Build Settings** → search "Code Signing Entitlements"
+   → set to `App/App.entitlements`
+6. **App target → Signing & Capabilities** → `+ Capability` → **Background Modes**
+   → check ☑️ *Remote notifications*
+   (Push Notifications capability is auto-enabled by the entitlements file.)
+7. Bundle ID: confirm `com.Helpr` matches App Store Connect record
+8. Signing & Capabilities: select your team (P85MCK558V — Helpr, LLC)
+9. Build and run on iPhone 15 simulator to verify
+
+> **Push tokens only register on real devices.** The simulator will
+> never call back into `useNativePushSetup()` — test on a real iPhone
+> after a TestFlight build.
+
+## Push notifications
+
+The `@capacitor/push-notifications` plugin is already installed and
+auto-linked by CocoaPods on `npx cap sync ios` — no Podfile edits needed.
+
+The entitlements file (`ios/App.entitlements`) declares:
+- `aps-environment = production` — works for both TestFlight and App Store
+- `applinks:*.louisianahelpr.com` — Universal Links (matches
+  `public/.well-known/apple-app-site-association`)
+
+Runtime registration, token storage in `push_tokens`, foreground
+handling, and tap-to-deep-link are all wired in `src/lib/nativePush.ts`
+and mounted from `src/App.tsx` via `useNativePushSetup()`.
+
 
 ## Splash screen
 

@@ -72,8 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -139,12 +139,12 @@ jobs:
           echo "▶ Lane: $LANE"
           echo "▶ Version override: ${VERSION:-<none, keeping current>}"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # full history for changelog generation
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -263,7 +263,7 @@ jobs:
 
       - name: Upload IPA artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: helpr-${{ steps.resolve.outputs.lane }}-v${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.build }}
           path: |
@@ -275,7 +275,7 @@ jobs:
 
       - name: Upload Fastlane logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: fastlane-logs-${{ github.run_number }}
           path: ~/Library/Logs/gym

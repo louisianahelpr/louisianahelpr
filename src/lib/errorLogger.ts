@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { captureException as sentryCapture } from "@/lib/sentry";
+import { captureException as posthogCapture } from "@/lib/posthog";
 
 type Severity = "info" | "warning" | "error" | "fatal";
 

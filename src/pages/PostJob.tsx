@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2, Send, UserCheck,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -81,6 +81,10 @@ const PostJob = () => {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
+  const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
+  const [offerToHelperName, setOfferToHelperName] = useState<string>("");
 
   useEffect(() => {
     // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC

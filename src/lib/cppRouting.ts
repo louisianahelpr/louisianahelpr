@@ -73,7 +73,7 @@ export function useCppVariantRouter() {
       // private mode / disabled storage — best-effort only
     }
 
-    track(AhaEvent.AppOpenedFromDeepLink ?? "app_opened_from_deep_link", {
+    track(AhaEvent.AppOpenedFromDeepLink, {
       source: "cpp",
       variant,
     });

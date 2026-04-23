@@ -12,6 +12,7 @@ import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -376,7 +377,10 @@ const Signup = () => {
         {/* Step 1: Account basics */}
         {step === 1 && (
           <div className="space-y-4">
-            <GoogleSignInButton label="Sign up with Google" />
+            <div className="space-y-2">
+              <GoogleSignInButton label="Sign up with Google" />
+              <AppleSignInButton label="Sign up with Apple" />
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

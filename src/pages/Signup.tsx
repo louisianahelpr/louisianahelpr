@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -375,6 +376,17 @@ const Signup = () => {
         {/* Step 1: Account basics */}
         {step === 1 && (
           <div className="space-y-4">
+            <GoogleSignInButton label="Sign up with Google" />
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/60" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or sign up with email</span>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>

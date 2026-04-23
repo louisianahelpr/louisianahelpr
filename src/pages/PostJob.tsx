@@ -346,6 +346,13 @@ const PostJob = () => {
       platform_fee_amount: lockedFeeAmount,
       sales_tax_rate: lockedSalesTaxRate,
       sales_tax_amount: lockedSalesTaxAmount,
+      ...(offerToHelperId
+        ? {
+            offered_to_helper_id: offerToHelperId,
+            direct_offer_status: "pending",
+            direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          }
+        : {}),
     } as any).select("id").single();
 
     if (error || !jobData) {

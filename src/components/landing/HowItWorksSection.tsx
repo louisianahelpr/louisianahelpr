@@ -20,7 +20,7 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section id="how-it-works" className="pt-12 pb-20 sm:pt-16 sm:pb-24 px-4 bg-secondary/50 scroll-mt-24">
+    <section id="how-it-works" className="py-24 sm:py-28 px-4 bg-secondary/50 scroll-mt-24">
       <div className="container mx-auto text-center">
         <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-4">
           How Helpr works

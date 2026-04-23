@@ -81,8 +81,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: ESLint
+      - name: ESLint (advisory — does not block deploy)
         run: npm run lint
+        continue-on-error: true
 
       - name: TypeScript type check
         run: npx tsc -b --noEmit

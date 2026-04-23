@@ -16,9 +16,10 @@ export function useActivityData(user: SupaUser | null) {
   const [helperReviewedJobIds, setHelperReviewedJobIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async (userId: string) => {
-    const [postedRes, appsRes] = await Promise.all([
+    const [postedRes, appsRes, directOffersRes] = await Promise.all([
       supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }),
       supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*").eq("offered_to_helper_id", userId).eq("direct_offer_status", "pending").order("created_at", { ascending: false }),
     ]);
 
     const newStartRequestedJobIds = new Set<string>();
@@ -85,6 +86,31 @@ export function useActivityData(user: SupaUser | null) {
       }));
     } else {
       setAppliedApps([]);
+    }
+
+    // Append direct-offer jobs as synthetic "applications" so they show in the Applied tab
+    if (directOffersRes.data && directOffersRes.data.length > 0) {
+      const directPosterIds = [...new Set(directOffersRes.data.map((j: any) => j.customer_id))];
+      const { data: directPosterProfiles } = await supabase.rpc("get_safe_profiles", { user_ids: directPosterIds });
+      const directPosterNames = new Map(directPosterProfiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
+      const synthetic: AppliedApp[] = directOffersRes.data.map((job: any) => ({
+        id: `direct-${job.id}`,
+        job_id: job.id,
+        helper_id: userId,
+        status: "pending" as any,
+        message: null,
+        offer_message: null,
+        attachment_urls: null,
+        proposed_rate: null,
+        created_at: job.created_at,
+        updated_at: job.updated_at,
+        job,
+        posterName: directPosterNames.get(job.customer_id) || "User",
+      }));
+      setAppliedApps((prev) => {
+        const existingIds = new Set(prev.map((a) => a.job_id));
+        return [...synthetic.filter((s) => !existingIds.has(s.job_id)), ...prev];
+      });
     }
 
     setStartRequestedJobIds(newStartRequestedJobIds);

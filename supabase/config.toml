@@ -33,3 +33,5 @@ project_id = "steigdwrpkosbiycshwz"
     verify_jwt = false
   [functions.get-stripe-public-key]
     verify_jwt = false
+  [functions.hubspot-lead-capture]
+    verify_jwt = false

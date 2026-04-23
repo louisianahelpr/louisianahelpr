@@ -9,7 +9,7 @@ import {
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, Menu, ShieldCheck,
-  Shield, MessageSquare, LogOut, ArrowLeft,
+  Shield, MessageSquare, LogOut, ArrowLeft, Mail,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -42,8 +42,9 @@ const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTax
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
+const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -84,6 +85,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "notifications", label: "Notifications", icon: BellRing },
       { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
       { id: "social", label: "Social Post", icon: TrendingUp },
+      { id: "marketing", label: "Marketing", icon: Mail },
     ],
   },
   {
@@ -307,7 +309,7 @@ const Admin = () => {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
-    idv: "Identity Verify", geography: "Geography",
+    idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
   };
 
   const renderContent = () => {
@@ -334,6 +336,7 @@ const Admin = () => {
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
       case "geography": return <AdminParishActivity />;
+      case "marketing": return <AdminMarketing />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
     }
   };

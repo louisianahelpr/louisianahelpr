@@ -13,6 +13,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
+import { track, AhaEvent } from "@/lib/analytics";
+import { useEffect } from "react";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -20,6 +22,10 @@ const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
 const Signup = () => {
   const navigate = useNavigate();
   usePageTitle("Sign Up — Helpr");
+  // Funnel event: user landed on signup page (top of activation funnel)
+  useEffect(() => {
+    track(AhaEvent.SignupStarted, { source: "web" });
+  }, []);
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -302,6 +308,7 @@ const Signup = () => {
         } catch { /* silent */ }
       }
 
+      track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
       toast.success("Account created! Check your email to verify, then connect your payout account.");
       navigate("/signup-pending");
     } catch (err: any) {

@@ -22,7 +22,16 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           paddingRight: "max(1rem, env(safe-area-inset-right))",
         }}
       >
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link
+          to="/"
+          className="flex items-center gap-2 group"
+          onClick={(e) => {
+            if (window.location.pathname === "/") {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+        >
           <img
             src={helprIcon}
             alt="Helpr"

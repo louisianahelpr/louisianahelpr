@@ -8,6 +8,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import helprIcon from "@/assets/helpr-icon.png";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -49,9 +50,11 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
               <span className="text-lg font-display font-bold text-foreground">{title}</span>
             ) : (
               <Link to="/dashboard" className="flex items-center gap-2 group">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
-                  <span className="text-primary-foreground font-bold text-sm">H</span>
-                </div>
+                <img
+                  src={helprIcon}
+                  alt="Helpr"
+                  className="w-8 h-8 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
+                />
                 <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                   Helpr
                 </span>

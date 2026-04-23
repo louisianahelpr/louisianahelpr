@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, MapPin, Briefcase, Send, Star, Loader2, Search } from "lucide-react";
+import { Heart, MapPin, Briefcase, Send, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
@@ -31,7 +31,7 @@ const SavedHelpers = () => {
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (!user) return;
@@ -261,15 +261,10 @@ const SavedHelpers = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleRemove(h.helper_id)}
-                        disabled={removingId === h.helper_id}
                         className="rounded-xl"
                         aria-label="Remove from saved"
                       >
-                        {removingId === h.helper_id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Heart className="w-3.5 h-3.5 fill-destructive text-destructive" />
-                        )}
+                        <Heart className="w-3.5 h-3.5 fill-destructive text-destructive" />
                       </Button>
                     </div>
                   </div>

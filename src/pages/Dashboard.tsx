@@ -28,6 +28,7 @@ import BroadcastBanner from "@/components/BroadcastBanner";
 import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 

@@ -287,7 +287,7 @@ const AdminAnalytics = () => {
           onClick={() => openDrillDown("fees")}
         />
         <MetricCard
-          label="Helper Payouts"
+          label="Helpr Payouts"
           value={`$${totalHelperPayouts.toFixed(2)}`}
           sub={`Avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0"}/completed job`}
           icon={CreditCard}

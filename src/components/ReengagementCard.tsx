@@ -51,7 +51,7 @@ export function ReengagementCard() {
         <div className="flex-1">
           <h3 className="font-display font-semibold text-base">Welcome back!</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            It's been {days} days. Your parish has new helpers and fresh jobs since you were last here.
+            It's been {days} days. There are new helprs and fresh jobs nearby since you were last here.
           </p>
           <div className="flex gap-2 mt-3">
             <Button asChild size="sm">

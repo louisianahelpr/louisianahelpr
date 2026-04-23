@@ -164,7 +164,7 @@ const AccountPending = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    Want to earn as a helper?
+                    Want to earn as a helpr?
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     When you apply to your first job, we'll walk you through connecting a Stripe payout account so you can get paid. No setup needed until then.

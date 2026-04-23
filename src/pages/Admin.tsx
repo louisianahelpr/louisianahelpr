@@ -74,7 +74,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "referrals", label: "Referrals", icon: Gift },
       { id: "payouts", label: "Payout Batches", icon: Banknote },
       { id: "parishtax", label: "Parish Tax", icon: MapPin },
-      { id: "tiers", label: "Helper Tiers", icon: Award },
+      { id: "tiers", label: "Helpr Tiers", icon: Award },
     ],
   },
   {
@@ -306,7 +306,7 @@ const Admin = () => {
     reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
-    payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helper Tiers",
+    payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
     idv: "Identity Verify", geography: "Geography",
   };
 
@@ -572,7 +572,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
-              <PriorityAlert label="Pending helper approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
+              <PriorityAlert label="Pending helpr approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
             )}
             {stats.disputedJobs > 0 && (
               <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />

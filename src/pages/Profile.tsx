@@ -675,7 +675,7 @@ const ProfilePage = () => {
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">
                       <p className="text-[11px] font-semibold text-primary uppercase tracking-wide mb-0.5">💡 Pro Tip</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Mention the <span className="font-medium text-foreground">tools and equipment</span> you bring (mower, pressure washer, truck, cleaning supplies). Posters trust helpers who come prepared.
+                        Mention the <span className="font-medium text-foreground">tools and equipment</span> you bring (mower, pressure washer, truck, cleaning supplies). Posters trust helprs who come prepared.
                       </p>
                     </div>
                   </div>
@@ -839,7 +839,7 @@ const ProfilePage = () => {
               loading={earningsLoading}
               onBack={() => setTab("landing")}
               helperId={user.id}
-              helperName={profile?.full_name || user.email || "Helper"}
+              helperName={profile?.full_name || user.email || "Helpr"}
             />
           )}
 

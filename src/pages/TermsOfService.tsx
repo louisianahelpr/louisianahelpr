@@ -48,7 +48,7 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Split Fee Model</p>
-                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helpers pay a <strong className="text-foreground">10% commission</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
+                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helprs pay a <strong className="text-foreground">10% commission</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Payout Schedule</p>
@@ -60,7 +60,7 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Stripe Connect Requirement</p>
-                <p>Helpers must link a <strong className="text-foreground">Stripe Connect Express account</strong> before they can accept job offers and receive payouts.</p>
+                <p>Helprs must link a <strong className="text-foreground">Stripe Connect Express account</strong> before they can accept job offers and receive payouts.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Urgent Job Fee</p>
@@ -131,14 +131,14 @@ const TermsOfService = () => {
                   <span>~$150/yr</span>
                 </div>
               </div>
-              <p>Billing intervals include One-Time, Monthly, and Annual (discounted at ~10× monthly rate). All tiers include early access to new jobs and maintain the same 10% customer service fee + 10% helper commission. Stripe handles billing dates automatically based on your subscription start date.</p>
+              <p>Billing intervals include One-Time, Monthly, and Annual (discounted at ~10× monthly rate). All tiers include early access to new jobs and maintain the same 10% customer service fee + 10% helpr commission. Stripe handles billing dates automatically based on your subscription start date.</p>
             </div>
           </section>
 
-          {/* Helper Accountability */}
+          {/* Helpr Accountability */}
           <section className="space-y-4">
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
-              <Scale className="w-5 h-5 text-primary" /> Helper Accountability
+              <Scale className="w-5 h-5 text-primary" /> Helpr Accountability
             </h2>
             <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
               <div>
@@ -156,7 +156,7 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Completion Requirements</p>
-                <p>Helpers must upload before/after photos for job completion. A minimum <strong className="text-foreground">30-minute job duration</strong> is required before marking a job as complete.</p>
+                <p>Helprs must upload before/after photos for job completion. A minimum <strong className="text-foreground">30-minute job duration</strong> is required before marking a job as complete.</p>
               </div>
             </div>
           </section>
@@ -169,7 +169,7 @@ const TermsOfService = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
               <div>
                 <p className="font-semibold text-foreground mb-1">Identity Verification</p>
-                <p>All users must be <strong className="text-foreground">18 years or older</strong>. Helpers undergo ID document verification before account approval.</p>
+                <p>All users must be <strong className="text-foreground">18 years or older</strong>. Helprs undergo ID document verification before account approval.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">GPS Proximity Validation</p>

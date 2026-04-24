@@ -112,7 +112,7 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
         return;
       }
       if (formatType === "csv") downloadCSV(rows, range.label);
-      else downloadPDF(rows, range.label);
+      else await downloadPDF(rows, range.label);
       toast.success(`${formatType.toUpperCase()} ready — ${rows.length} job${rows.length === 1 ? "" : "s"}.`);
       setOpen(false);
     } catch (err: unknown) {

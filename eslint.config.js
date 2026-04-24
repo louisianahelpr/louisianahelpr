@@ -31,6 +31,10 @@ export default tseslint.config(
       // tailwind.config.ts uses CommonJS require() for the plugin —
       // standard Tailwind pattern, not worth rewriting.
       "@typescript-eslint/no-require-imports": "off",
+      // Empty catch{} blocks and marker interfaces are intentional patterns
+      // in this codebase (silent fallbacks, type aliases). Downgrade to warn.
+      "no-empty": ["warn", { allowEmptyCatch: true }],
+      "@typescript-eslint/no-empty-object-type": "warn",
     },
   },
 );

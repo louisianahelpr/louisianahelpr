@@ -94,7 +94,7 @@ const ProfilePage = () => {
   }, []);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [, setStripeConnectLoading] = useState(false);
-  const [, setStripeOnboarding] = useState(false);
+  
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);

@@ -72,7 +72,8 @@ export function BlockUserDialog({
       }
 
       // Notify the blocked user about any cancelled jobs (no notification about the block itself)
-      for (const jobId of result.cancelledJobIds) {
+      for (const _jobId of result.cancelledJobIds) {
+        void _jobId;
         await createNotification({
           user_id: blockedUserId,
           title: "Job cancelled",

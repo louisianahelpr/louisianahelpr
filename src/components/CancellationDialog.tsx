@@ -22,7 +22,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperName, open, onClose, onCancelled }: Omit<CancellationDialogProps, "helperId">) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 

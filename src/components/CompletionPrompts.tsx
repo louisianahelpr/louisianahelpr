@@ -23,7 +23,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
-  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [, setAlreadyReviewed] = useState(false);
   const [customTip, setCustomTip] = useState("");
   const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
 

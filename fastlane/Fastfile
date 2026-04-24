@@ -176,14 +176,13 @@ platform :ios do
     # -allowProvisioningUpdates lets xcodebuild ask App Store Connect to
     # create/download provisioning assets on CI. The authenticationKey flags
     # make that work without a signed-in Xcode account on the runner.
-    # We pass -configuration Release here (instead of via build_app's
-    # `configuration:` parameter) because gym was splicing the parameter into
-    # the command line in addition to its own internal -configuration flag,
-    # producing the duplicate "-configuration may only be provided once" error.
+    # NOTE: do NOT pass -configuration here — gym always injects its own
+    # -configuration flag from the scheme's archive action, and a second one
+    # in xcargs causes "option '-configuration' may only be provided once".
     # CODE_SIGN_IDENTITY="Apple Distribution" forces distribution signing so
     # Xcode requests an App Store provisioning profile (not a Development one,
     # which would need a per-machine dev cert).
-    %(-configuration Release -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
+    %(-allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
   end
 
   def export_options_for_signing

@@ -216,15 +216,6 @@ const AdminJobs = () => {
       ? jobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
       : jobs;
 
-  const markAllFlaggedResolved = () => {
-    if (flaggedIds.length === 0) return;
-    const next = new Set(resolvedFlags);
-    flaggedIds.forEach((id) => next.add(id));
-    setResolvedFlags(next);
-    saveResolvedFlags(next);
-    toast.success(`Marked ${flaggedIds.length} job${flaggedIds.length === 1 ? "" : "s"} as resolved`);
-  };
-
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
 
   return (

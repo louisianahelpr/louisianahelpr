@@ -79,7 +79,6 @@ const NOTIFICATION_GROUPS = [
 const AdminNotifications = () => {
   const [prefs, setPrefs] = useState<NotifPrefs | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadPrefs();

@@ -278,19 +278,55 @@ jobs:
           echo "✓ All pre-submission checks passed"
 
       # ─── App Store Connect API key ─────────────────────────────────────────
-      # Pass the base64-encoded .p8 content DIRECTLY to Fastlane (not as a file).
-      # This sidesteps the "invalid curve name" OpenSSL bug that hits when Ruby
-      # parses .p8 files on GitHub-hosted macOS runners.
-      - name: Export App Store Connect API key (base64)
+      # Materialize the base64-encoded .p8 into a real file before Fastlane runs.
+      # This keeps null-byte / malformed-secret failures out of `app_store_connect_api_key`
+      # and lets Fastlane consume a standard AuthKey_<KEY_ID>.p8 path.
+      - name: Prepare App Store Connect API key file
+        env:
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
         run: |
-          if [ -z "${{ secrets.ASC_KEY_BASE64 }}" ]; then
+          set -euo pipefail
+          if [ -z "$ASC_KEY_BASE64" ]; then
             echo "❌ ASC_KEY_BASE64 secret is empty or missing"
             exit 1
           fi
-          echo "ASC_KEY_CONTENT<<EOF" >> "$GITHUB_ENV"
-          echo "${{ secrets.ASC_KEY_BASE64 }}" >> "$GITHUB_ENV"
-          echo "EOF" >> "$GITHUB_ENV"
-          echo "✓ ASC_KEY_CONTENT exported (base64, length: $(echo -n '${{ secrets.ASC_KEY_BASE64 }}' | wc -c))"
+          if [ -z "$ASC_KEY_ID" ]; then
+            echo "❌ ASC_KEY_ID secret is empty or missing"
+            exit 1
+          fi
+
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          export KEY_PATH
+
+          python3 - <<'PY'
+import base64
+import os
+from pathlib import Path
+
+raw = os.environ["ASC_KEY_BASE64"].strip()
+key_path = Path(os.environ["KEY_PATH"])
+
+try:
+    decoded = base64.b64decode("".join(raw.split()), validate=True)
+except Exception as exc:
+    raise SystemExit(f"ASC_KEY_BASE64 is not valid base64: {exc}")
+
+if b"\x00" in decoded:
+    raise SystemExit("ASC_KEY_BASE64 decoded to binary data with null bytes; re-copy the .p8 file as plain base64 text.")
+
+text = decoded.decode("utf-8").replace("\r\n", "\n").strip() + "\n"
+if "BEGIN PRIVATE KEY" not in text or "END PRIVATE KEY" not in text:
+    raise SystemExit("ASC_KEY_BASE64 did not decode to a valid .p8 private key.")
+
+key_path.write_text(text, encoding="utf-8")
+PY
+
+          openssl pkey -in "$KEY_PATH" -noout >/dev/null
+          echo "ASC_KEY_CONTENT=" >> "$GITHUB_ENV"
+          echo "ASC_KEY=" >> "$GITHUB_ENV"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "✓ ASC_KEY_PATH prepared at $KEY_PATH"
 
       - name: Create temporary keychain
         env:

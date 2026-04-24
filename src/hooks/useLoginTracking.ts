@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { identifyUser } from "@/lib/posthog";
+import { safeStorage } from "@/lib/safeStorage";
 
 const EMAIL_VERIFIED_KEY = "helpr_email_verified_tracked";
 
@@ -20,13 +21,13 @@ export const useLoginTracking = () => {
         });
 
         // Funnel: fire EmailVerified once per user (the moment they first sign in
-        // with a confirmed email). Persisted in localStorage so we don't re-fire
-        // on every session.
+        // with a confirmed email). Persisted in safeStorage so we don't re-fire
+        // on every session, and so iOS WebKit eviction doesn't double-fire.
         if (session.user.email_confirmed_at) {
           const key = `${EMAIL_VERIFIED_KEY}_${session.user.id}`;
-          if (!localStorage.getItem(key)) {
+          if (!safeStorage.getItem(key)) {
             track(AhaEvent.EmailVerified, { user_id: session.user.id });
-            localStorage.setItem(key, "1");
+            safeStorage.setItem(key, "1");
           }
         }
 

@@ -7,5 +7,6 @@ export type EnrichedJob = Partial<Job> & Pick<Job, "id" | "title" | "description
   posterReviewCount?: number;
   posterAvgRating?: number;
   posterCompletedJobs?: number;
+  posterSubscriptionTier?: string | null;
   isBoosted?: boolean;
 };

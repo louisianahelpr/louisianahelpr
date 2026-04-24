@@ -117,10 +117,10 @@ jobs:
   deploy:
     name: Build & upload via Fastlane
     needs: quality
-    # macos-15 ships Xcode 16 (Swift 6.x), required by Capacitor 8 plugins.
-    # Capacitor 8 was compiled with Swift 6.2 features that don't exist in
-    # Xcode 15.4 / Swift 5.10, causing "no member 'webView'" errors on SPM builds.
-    # See: https://github.com/ionic-team/capacitor/issues/8333
+    # Capacitor 8 requires Xcode 26+ for iOS builds.
+    # Selecting an older toolchain can surface misleading Swift compile errors
+    # like "value of type 'any CAPBridgeProtocol' has no member 'webView'"
+    # from official plugins even when the JS package versions are correct.
     runs-on: macos-15
     timeout-minutes: 90
 
@@ -188,22 +188,23 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: true
 
-      - name: Select Xcode 16
-        # macos-15 runners include Xcode 16.x. Pick the highest available so
-        # Capacitor 8 SPM builds get Swift 6.x features they require.
+      - name: Select Xcode 26
+        # macos-15 runners can include multiple Xcode installs. Pick the
+        # highest Xcode 26.x available so Capacitor 8 uses its supported
+        # toolchain instead of falling back to an older version.
         # We export DEVELOPER_DIR to $GITHUB_ENV so it persists across every
         # subsequent step (including Fastlane). `xcode-select -s` alone is not
         # enough — Fastlane/gym resolves Xcode via DEVELOPER_DIR first, and
-        # without it the runner's default (often Xcode 15.4) gets used and
-        # Capacitor 8 plugins fail with "no member 'webView'" Swift errors.
+        # without it the runner's default may be used and official Capacitor
+        # plugins can fail with misleading bridge/webView Swift errors.
         run: |
-          XCODE_PATH=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
+          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
           if [ -z "$XCODE_PATH" ]; then
-            echo "❌ No Xcode 16.x found on runner. Available:"
+            echo "❌ No Xcode 26.x found on runner. Available:"
             ls -d /Applications/Xcode*.app 2>/dev/null
             echo ""
-            echo "This workflow requires macos-15 (which ships Xcode 16)."
-            echo "If you see only Xcode 15.x, the runner image is wrong — check `runs-on:`."
+            echo "Capacitor 8 requires Xcode 26+."
+            echo "If Xcode 26 is missing from this image, update the runner label to one that includes it."
             exit 1
           fi
           echo "▶ Selecting $XCODE_PATH"
@@ -393,15 +394,15 @@ jobs:
       # silently fell back to Xcode 15.x, fail loudly here with a clear
       # message instead of letting Fastlane surface confusing Swift errors
       # like "value of type 'any CAPBridgeProtocol' has no member 'webView'".
-      - name: Verify Xcode 16 is active
+      - name: Verify Xcode 26 is active
         run: |
           echo "DEVELOPER_DIR=$DEVELOPER_DIR"
           XCODE_VER=$(xcodebuild -version | head -1 | awk '{print $2}')
           echo "▶ Active Xcode: $XCODE_VER"
           MAJOR=$(echo "$XCODE_VER" | cut -d. -f1)
-          if [ "$MAJOR" -lt 16 ]; then
-            echo "❌ Xcode $XCODE_VER is too old. Capacitor 8 requires Xcode 16+."
-            echo "   The 'Select Xcode 16' step did not take effect."
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "❌ Xcode $XCODE_VER is too old. Capacitor 8 requires Xcode 26+."
+            echo "   The 'Select Xcode 26' step did not take effect."
             exit 1
           fi
           echo "✓ Xcode $XCODE_VER is compatible with Capacitor 8"

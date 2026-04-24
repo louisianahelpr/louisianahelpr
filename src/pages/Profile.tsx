@@ -871,7 +871,9 @@ const ProfilePage = () => {
           )}
 
           {tab === "subscription" && (
-            <SubscriptionTab profile={profile} user={user} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <SubscriptionTab profile={profile} user={user} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "posted_jobs" && (
@@ -949,7 +951,9 @@ const ProfilePage = () => {
           )}
 
           {tab === "support" && (
-            <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "notifications" && (
@@ -1047,7 +1051,9 @@ const ProfilePage = () => {
           )}
 
           {tab === "reviews" && (
-            <ReviewsTab reviews={reviews} loading={reviewsLoading} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <ReviewsTab reviews={reviews} loading={reviewsLoading} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "referral" && user && (
@@ -1063,11 +1069,15 @@ const ProfilePage = () => {
           )}
 
           {tab === "legal" && (
-            <LegalTab onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <LegalTab onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "warnings" && (
-            <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
         </div>
       </main>

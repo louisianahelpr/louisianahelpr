@@ -117,7 +117,8 @@ const AdminAnalytics = () => {
   const subPro = helpers.filter(h => h.subscription_tier === "pro").length;
   const subElite = helpers.filter(h => h.subscription_tier === "elite").length;
   const subFree = helpers.filter(h => !h.subscription_tier).length;
-  const totalSubRevenue = (subBasic * 9.99) + (subPro * 14.99) + (subElite * 24.99);
+  // Monthly subscription revenue estimate (matches live Stripe pricing: $5/$10/$15 per month)
+  const totalSubRevenue = (subBasic * 5) + (subPro * 10) + (subElite * 15);
 
   // Category breakdown
   const categoryMap: Record<string, number> = {};

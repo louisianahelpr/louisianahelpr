@@ -215,23 +215,22 @@ jobs:
       - name: Generate iOS app icons
         run: node scripts/generate-ios-icons.mjs
 
-      - name: Update CocoaPods
+      - name: Prepare iOS dependencies
         working-directory: ios/App
         run: |
           set -e
-          if [ ! -f "Podfile" ]; then
-            echo "▶ Podfile missing in ios/App — re-running 'npx cap sync ios' from repo root"
-            cd "$GITHUB_WORKSPACE"
-            npx cap sync ios
-            cd ios/App
-          fi
-          if [ ! -f "Podfile" ]; then
-            echo "❌ Podfile still missing after cap sync. Listing ios/App contents:"
+          if [ -f "Podfile" ]; then
+            echo "▶ Podfile found — installing CocoaPods dependencies"
+            pod repo update
+            pod install --repo-update
+          elif [ -f "App.xcodeproj/project.pbxproj" ]; then
+            echo "▶ No Podfile found — using Swift Package Manager dependencies"
+            xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+          else
+            echo "❌ Neither Podfile nor App.xcodeproj found in ios/App. Listing contents:"
             ls -la
             exit 1
           fi
-          pod repo update
-          pod install --repo-update
 
       # ─── Pre-submission validation ─────────────────────────────────────────
       - name: Validate iOS assets and config

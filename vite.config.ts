@@ -30,6 +30,15 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
+        // Don't precache heavy admin-only chunks. They're lazy-loaded behind
+        // an auth gate and would otherwise bloat the SW cache for every
+        // public visitor (Lighthouse flags them as unused JS on landing).
+        globIgnores: [
+          "**/assets/charts-*.js",
+          "**/assets/Admin*-*.js",
+        ],
+        // Bump the per-file precache limit so the main bundle still fits.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,

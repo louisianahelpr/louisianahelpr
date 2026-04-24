@@ -390,8 +390,8 @@ jobs:
           cat fastlane/changelog.txt
 
       # ─── Final Xcode sanity check ──────────────────────────────────────────
-      # Capacitor 8 plugins need Xcode 16 / Swift 6.x. If something earlier
-      # silently fell back to Xcode 15.x, fail loudly here with a clear
+      # Capacitor 8 plugins need Xcode 26+. If something earlier
+      # silently fell back to an older Xcode, fail loudly here with a clear
       # message instead of letting Fastlane surface confusing Swift errors
       # like "value of type 'any CAPBridgeProtocol' has no member 'webView'".
       - name: Verify Xcode 26 is active

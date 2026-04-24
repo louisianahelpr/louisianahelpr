@@ -173,8 +173,35 @@ jobs:
       - name: Build web bundle
         run: npm run build
 
+      # The ios/App/ Xcode project is gitignored (it's regenerated per machine
+      # and Info.plist is rewritten by `cap sync` on every run). On a clean CI
+      # runner we must scaffold it before sync. This is a no-op if the folder
+      # already exists from a previous cached run.
+      - name: Generate iOS Xcode project (if missing)
+        run: |
+          if [ ! -d "ios/App" ]; then
+            echo "▶ ios/App not found — running 'npx cap add ios'"
+            npx cap add ios
+          else
+            echo "✓ ios/App already exists — skipping 'cap add'"
+          fi
+
       - name: Capacitor sync (iOS)
         run: npx cap sync ios
+
+      # Copy our checked-in privacy manifest + entitlements into the generated
+      # Xcode project. These files live at the repo root (ios/PrivacyInfo.xcprivacy,
+      # ios/App.entitlements) and must land inside ios/App/App/ for Xcode to use them.
+      - name: Install PrivacyInfo + entitlements into Xcode project
+        run: |
+          set -e
+          cp ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
+          cp ios/App.entitlements      ios/App/App/App.entitlements
+          echo "✓ PrivacyInfo.xcprivacy and App.entitlements copied"
+
+      # Generate all 18 AppIcon sizes from the 1024 source. Idempotent.
+      - name: Generate iOS app icons
+        run: node scripts/generate-ios-icons.mjs
 
       - name: Update CocoaPods
         working-directory: ios/App

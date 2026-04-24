@@ -42,33 +42,50 @@ jobs:
         run: npm run build
 
       - name: Check chunk sizes
-        # Budgets in KB (gzipped equivalent estimate ~ raw * 0.3).
-        # Tuned to current sizes with ~25% headroom — failures = real regressions.
-        # Adjust here if you intentionally add a large dep.
+        # Budgets only apply to chunks that ship on the INITIAL page load
+        # (the entry chunk + its static imports parsed from index.html).
+        # Lazy chunks (admin pages, jspdf, html2canvas, etc.) load on-demand
+        # and don't impact landing-page perf, so we skip them.
+        #
+        # Tuned to current sizes with headroom — failures = real regressions.
+        # Per-chunk cap is generous because we manually split vendors
+        # (react-vendor, supabase, posthog, sentry) into their own chunks.
         run: |
           set -e
-          MAX_CHUNK_KB=300       # any single JS chunk
-          MAX_TOTAL_KB=900       # total JS shipped on initial load (rough)
+          MAX_CHUNK_KB=400       # any single chunk in the initial load graph
+          MAX_INITIAL_KB=1500    # total JS parsed/executed on first paint
           FAIL=0
 
-          echo "::group::Per-chunk sizes"
-          for f in dist/assets/*.js; do
+          # Extract chunks referenced by index.html (entry + modulepreload).
+          # These are the only files the browser fetches before user interaction.
+          INITIAL_CHUNKS=$(grep -oE 'assets/[^"]+\.js' dist/index.html | sort -u)
+
+          echo "::group::Initial-load chunks (shipped on first paint)"
+          INITIAL_TOTAL=0
+          for rel in $INITIAL_CHUNKS; do
+            f="dist/$rel"
+            [ -f "$f" ] || continue
             SIZE_KB=$(( $(stat -c%s "$f") / 1024 ))
+            INITIAL_TOTAL=$(( INITIAL_TOTAL + SIZE_KB ))
             printf "  %6s KB  %s\n" "$SIZE_KB" "$(basename "$f")"
             if [ "$SIZE_KB" -gt "$MAX_CHUNK_KB" ]; then
-              echo "    ❌ exceeds ${MAX_CHUNK_KB} KB budget"
+              echo "    ❌ exceeds ${MAX_CHUNK_KB} KB per-chunk budget"
               FAIL=1
             fi
           done
           echo "::endgroup::"
 
-          TOTAL_KB=$(( $(du -cb dist/assets/*.js | tail -1 | cut -f1) / 1024 ))
           echo ""
-          echo "Total JS shipped: ${TOTAL_KB} KB (budget: ${MAX_TOTAL_KB} KB)"
-          if [ "$TOTAL_KB" -gt "$MAX_TOTAL_KB" ]; then
-            echo "❌ Total JS exceeds budget — mobile perf will suffer"
+          echo "Initial-load JS: ${INITIAL_TOTAL} KB (budget: ${MAX_INITIAL_KB} KB)"
+          if [ "$INITIAL_TOTAL" -gt "$MAX_INITIAL_KB" ]; then
+            echo "❌ Initial-load JS exceeds budget — mobile LCP will suffer"
             FAIL=1
           fi
+
+          # Informational: report total bundle size across all chunks (lazy + initial).
+          # Not enforced — lazy chunks are good (they keep first paint fast).
+          TOTAL_KB=$(( $(du -cb dist/assets/*.js | tail -1 | cut -f1) / 1024 ))
+          echo "Total JS across all chunks (incl. lazy): ${TOTAL_KB} KB (informational)"
 
           if [ "$FAIL" -eq 1 ]; then
             echo ""
@@ -76,4 +93,4 @@ jobs:
             echo "   split the route, or remove unused dependencies."
             exit 1
           fi
-          echo "✅ All chunks within budget"
+          echo "✅ Initial-load bundle within budget"

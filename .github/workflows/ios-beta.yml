@@ -95,7 +95,6 @@ jobs:
         run: npx cap sync ios
 
       - name: Run Fastlane beta lane
-        working-directory: ios/App
         run: bundle exec fastlane ios beta
 
       - name: Cleanup signing material

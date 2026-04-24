@@ -245,11 +245,14 @@ platform :ios do
     configure_signing!
     increment_build_number(xcodeproj: PROJECT)
 
-    # See note in :beta lane about omitting `configuration:` to avoid the
-    # duplicate `-configuration` xcodebuild error.
+    # See note in :beta lane: pass `configuration:` explicitly so gym does
+    # NOT auto-prepend `-configuration Release` to xcargs (which would then
+    # collide with gym's own `-configuration Release` CLI arg under Xcode 16,
+    # producing: "option '-configuration' may only be provided once").
     build_app(
       **xcode_build_target,
       scheme:                  SCHEME,
+      configuration:           "Release",
       codesigning_identity:    "Apple Distribution",
       export_method:           "app-store",
       clean:                   true,

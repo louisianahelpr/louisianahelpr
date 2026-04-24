@@ -117,7 +117,11 @@ jobs:
   deploy:
     name: Build & upload via Fastlane
     needs: quality
-    runs-on: macos-14
+    # macos-15 ships Xcode 16 (Swift 6.x), required by Capacitor 8 plugins.
+    # Capacitor 8 was compiled with Swift 6.2 features that don't exist in
+    # Xcode 15.4 / Swift 5.10, causing "no member 'webView'" errors on SPM builds.
+    # See: https://github.com/ionic-team/capacitor/issues/8333
+    runs-on: macos-15
     timeout-minutes: 90
 
     env:

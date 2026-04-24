@@ -201,8 +201,8 @@ const HeroSection = () => {
                   (max-w-md = 28rem). Tells the browser to pick the 500w variant on mobile
                   and 600w on tablet, instead of jumping to the full 900w (Lighthouse fix). */}
               <img
-                src={heroImg500}
-                srcSet={`${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`}
+                src={heroImg400}
+                srcSet={`${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`}
                 sizes="(max-width: 767px) 320px, (max-width: 1023px) 400px, 500px"
                 alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
                 className="w-full h-auto rounded-2xl shadow-xl object-contain"

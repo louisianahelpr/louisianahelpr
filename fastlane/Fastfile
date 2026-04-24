@@ -221,8 +221,7 @@ platform :ios do
       output_name:             "Helpr.ipa",
       include_symbols:         true,
       xcargs:                  signing_xcargs,
-      export_options:          export_options_for_signing,
-      skip_profile_detection:  true
+      export_options:          export_options_for_signing
     )
 
     upload_to_testflight(

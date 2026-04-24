@@ -16,6 +16,7 @@ import {
 import heroImg from "@/assets/hero-illustration-v6-900.webp";
 import heroImg600 from "@/assets/hero-illustration-v6-600.webp";
 import heroImg500 from "@/assets/hero-illustration-v6-500.webp";
+import heroImg400 from "@/assets/hero-illustration-v6-400.webp";
 
 // Inject a <link rel="preload"> for the LCP hero image as soon as this module
 // loads, so the browser can discover the request before React renders the <img>.

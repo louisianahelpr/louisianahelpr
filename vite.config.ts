@@ -100,7 +100,6 @@ export default defineConfig(({ mode }) => ({
       "react-dom/client",
       "react/jsx-runtime",
       "react/jsx-dev-runtime",
-      "@sentry/react",
       "@radix-ui/react-tooltip",
     ],
   },
@@ -157,6 +156,13 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("date-fns") || id.includes("react-day-picker")) return "dates";
           if (id.includes("@tanstack")) return "tanstack";
           if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
+          // Split Sentry and PostHog out of the main bundle. They're only
+          // imported from src/lib/sentry.ts and src/lib/posthog.ts, which are
+          // dynamically imported AFTER first paint via requestIdleCallback in
+          // main.tsx. Splitting them shaves ~70KB off the LCP-blocking main
+          // chunk on the landing page.
+          if (id.includes("@sentry") || id.includes("sentry-internal")) return "sentry";
+          if (id.includes("posthog-js")) return "posthog";
         },
       },
     },

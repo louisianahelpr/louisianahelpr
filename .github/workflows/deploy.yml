@@ -253,12 +253,19 @@ jobs:
           echo "✓ All pre-submission checks passed"
 
       # ─── App Store Connect API key ─────────────────────────────────────────
-      - name: Decode App Store Connect API key
+      # Pass the base64-encoded .p8 content DIRECTLY to Fastlane (not as a file).
+      # This sidesteps the "invalid curve name" OpenSSL bug that hits when Ruby
+      # parses .p8 files on GitHub-hosted macOS runners.
+      - name: Export App Store Connect API key (base64)
         run: |
-          mkdir -p "$RUNNER_TEMP/asc"
-          echo "${{ secrets.ASC_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/asc/AuthKey.p8"
-          chmod 600 "$RUNNER_TEMP/asc/AuthKey.p8"
-          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc/AuthKey.p8" >> "$GITHUB_ENV"
+          if [ -z "${{ secrets.ASC_KEY_BASE64 }}" ]; then
+            echo "❌ ASC_KEY_BASE64 secret is empty or missing"
+            exit 1
+          fi
+          echo "ASC_KEY_CONTENT<<EOF" >> "$GITHUB_ENV"
+          echo "${{ secrets.ASC_KEY_BASE64 }}" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+          echo "✓ ASC_KEY_CONTENT exported (base64, length: $(echo -n '${{ secrets.ASC_KEY_BASE64 }}' | wc -c))"
 
       - name: Create temporary keychain
         env:
@@ -369,4 +376,3 @@ jobs:
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
-          rm -f "$RUNNER_TEMP/asc/AuthKey.p8" || true

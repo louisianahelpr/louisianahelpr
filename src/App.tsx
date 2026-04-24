@@ -162,11 +162,11 @@ const App = () => (
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
-          <div id="main-content">
+          <main id="main-content">
             <Suspense fallback={<PageFallback />}>
               <AnimatedRoutes />
             </Suspense>
-          </div>
+          </main>
           <MobileNav />
           <PermissionRationaleDialog />
         </BrowserRouter>

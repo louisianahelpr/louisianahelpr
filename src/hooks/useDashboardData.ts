@@ -104,20 +104,32 @@ export function useDashboardData() {
         return { jobs: [], nextOffset: null };
       }
 
-      // Phase 2: enrich page with poster names + review stats.
+      // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewsRes] = await Promise.all([
+      const [profilesRes, reviewsRes, posterTiersRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         supabase
           .from("reviews")
           .select("reviewee_id, rating, jobs!inner(status)")
           .in("reviewee_id", posterIds)
           .neq("jobs.status", "cancelled"),
+        supabase
+          .from("profiles")
+          .select("user_id, subscription_tier, subscription_expires_at")
+          .in("user_id", posterIds),
       ]);
 
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
       );
+
+      // Build poster tier map — only count tier if subscription hasn't expired
+      const nowDate = new Date();
+      const posterTierMap = new Map<string, string | null>();
+      for (const p of posterTiersRes.data ?? []) {
+        const expired = p.subscription_expires_at ? new Date(p.subscription_expires_at) < nowDate : false;
+        posterTierMap.set(p.user_id, expired ? null : (p.subscription_tier ?? null));
+      }
 
       const reviewStatsMap = new Map<string, { count: number; avg: number }>();
       for (const r of reviewsRes.data ?? []) {
@@ -143,6 +155,7 @@ export function useDashboardData() {
             posterReviewCount: stats?.count ?? 0,
             posterAvgRating: stats?.avg ?? 0,
             posterCompletedJobs: 0,
+            posterSubscriptionTier: posterTierMap.get(j.customer_id) ?? null,
             isBoosted,
           };
         });

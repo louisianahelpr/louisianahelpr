@@ -7,6 +7,7 @@ import { installGlobalErrorHandlers } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { initPostHog, identifyUser, resetUser } from "./lib/posthog";
 import { supabase } from "./integrations/supabase/client";
+import { hydrate as hydrateStorage } from "./lib/safeStorage";
 
 // Sentry first so subsequent error handlers can fan out to it.
 initSentry();
@@ -34,15 +35,20 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Restore durable Preferences → localStorage BEFORE first render so any
+// component that reads sync (e.g. dismissed jobs, drafts, cooldowns) sees
+// values that survived a WebKit eviction or app restart.
+hydrateStorage().finally(() => {
+  createRoot(document.getElementById("root")!).render(<App />);
 
-// Fire-and-forget native setup (status bar, splash hide). Web = no-op.
-initNative();
+  // Fire-and-forget native setup (status bar, splash hide). Web = no-op.
+  initNative();
 
-// Shake-to-report: navigate to support pre-tagged as a bug report.
-// Works on iOS/Android via DeviceMotion; silent no-op when unsupported.
-initShakeToReport(() => {
-  if (typeof window !== "undefined") {
-    window.location.href = "/support?from=shake";
-  }
+  // Shake-to-report: navigate to support pre-tagged as a bug report.
+  // Works on iOS/Android via DeviceMotion; silent no-op when unsupported.
+  initShakeToReport(() => {
+    if (typeof window !== "undefined") {
+      window.location.href = "/support?from=shake";
+    }
+  });
 });

@@ -133,16 +133,22 @@ export default defineConfig(({ mode }) => ({
     modulePreload: {
       resolveDependencies: () => [],
     },
-    // Emit production source maps so Lighthouse / Sentry / DevTools can
-    // map minified frames back to original source. Hidden = .map files
-    // are uploaded but no `//# sourceMappingURL=` comment is appended,
-    // keeping the maps available without exposing them via the bundle.
-    sourcemap: true,
+    // "hidden" = .map files are still emitted (so Sentry / DevTools can
+    // symbolicate uploaded stacks) but no `//# sourceMappingURL=` comment
+    // is appended to the JS. Browsers therefore never fetch / parse the
+    // maps on the landing page — Lighthouse was attributing extra
+    // main-thread work to the source-map fetch + parse step.
+    sourcemap: "hidden",
     // Terser produces tighter output than esbuild's default minifier for ESM
     // packages like lucide-react that ship with comments + whitespace.
+    // 3 passes + pure_funcs lets terser drop noop logger calls that vendor
+    // libs leave behind, shrinking parse/compile time on slower devices.
     minify: "terser",
     terserOptions: {
-      compress: { passes: 2 },
+      compress: {
+        passes: 3,
+        pure_funcs: ["console.log", "console.debug", "console.info"],
+      },
       format: { comments: false },
     },
     rollupOptions: {

@@ -24,6 +24,7 @@ import JobCard from "@/components/dashboard/JobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import InviteBanner from "@/components/dashboard/InviteBanner";
 import BroadcastBanner from "@/components/BroadcastBanner";
+import { VirtualList } from "@/components/VirtualList";
 
 import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -565,9 +566,10 @@ const Dashboard = () => {
                   </Button>
                 )}
               </div>
-            ) : (
-              <div className="divide-y divide-border/30">
-                {filters.filteredJobs.filter(j => !dismissedJobIds.has(j.id)).filter(j => {
+            ) : (() => {
+              const visibleJobs = filters.filteredJobs
+                .filter(j => !dismissedJobIds.has(j.id))
+                .filter(j => {
                   // Hide jobs already shown in Recommended or Nearby sections
                   if (!filters.hasFilters) {
                     const inRecommended = recommendedJobs.some(rj => rj.id === j.id);
@@ -575,13 +577,22 @@ const Dashboard = () => {
                     if (inRecommended || inNearby) return false;
                   }
                   return true;
-                }).map((job, i) => (
-                  <div key={job.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
-                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                  </div>
-                ))}
-              </div>
-            )}
+                });
+              return (
+                <VirtualList
+                  items={visibleJobs}
+                  getKey={(job) => job.id}
+                  estimateSize={220}
+                  overscan={4}
+                  className="divide-y divide-border/30"
+                  renderItem={(job, i) => (
+                    <div className="px-3 py-2.5">
+                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                    </div>
+                  )}
+                />
+              );
+            })()}
           </motion.section>
         </div>
       </main>

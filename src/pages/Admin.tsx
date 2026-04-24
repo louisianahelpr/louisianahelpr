@@ -127,7 +127,7 @@ const Admin = () => {
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [, setUnreadMessages] = useState(0);
   const { user } = useCurrentUser();
 
   useEffect(() => {

@@ -93,8 +93,8 @@ const ProfilePage = () => {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
-  const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
-  const [stripeOnboarding, setStripeOnboarding] = useState(false);
+  const [, setStripeConnectLoading] = useState(false);
+  const [, setStripeOnboarding] = useState(false);
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
@@ -131,8 +131,8 @@ const ProfilePage = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Inline job lists on landing
-  const [showPostedJobs, setShowPostedJobs] = useState(false);
-  const [showCompletedJobs, setShowCompletedJobs] = useState(false);
+  const [, setShowPostedJobs] = useState(false);
+  const [, setShowCompletedJobs] = useState(false);
   const [inlinePostedJobs, setInlinePostedJobs] = useState<Job[]>([]);
   const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
   const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);

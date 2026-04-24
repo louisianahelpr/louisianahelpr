@@ -147,6 +147,23 @@ jobs:
         with:
           fetch-depth: 0   # full history for changelog generation
 
+      - name: Verify signing inputs before build
+        env:
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+        run: |
+          if [ -z "$DEVELOPER_TEAM_ID" ]; then
+            echo "❌ Missing GitHub secret: DEVELOPER_TEAM_ID"
+            exit 1
+          fi
+
+          if ! grep -q "def configure_signing!" fastlane/Fastfile; then
+            echo "❌ This checkout does not include the updated Fastlane signing helper"
+            exit 1
+          fi
+
+          echo "✓ DEVELOPER_TEAM_ID secret is present"
+          grep -nE "def configure_signing!|DEVELOPER_TEAM_ID env var is required for signing|configure_signing!" fastlane/Fastfile
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -308,6 +325,12 @@ jobs:
       - name: Run Fastlane (${{ steps.resolve.outputs.lane }})
         env:
           CHANGELOG_PATH: ${{ steps.changelog.outputs.path }}
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+          ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
         run: bundle exec fastlane ios ${{ steps.resolve.outputs.lane }}
 
       # ─── Artifacts + logs ──────────────────────────────────────────────────

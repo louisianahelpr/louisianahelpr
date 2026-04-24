@@ -89,7 +89,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [page]);
 
   const filtered = useMemo(() => {

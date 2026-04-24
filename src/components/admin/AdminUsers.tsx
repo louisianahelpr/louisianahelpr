@@ -823,7 +823,7 @@ const AdminUsers = () => {
     const ids = filtered.map((p) => p.user_id);
     const t = setTimeout(() => markUsersSeen(ids), 800);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [tab, profiles.length, loading]);
   // Pending + Email badges always show the FULL queue so admins know what's outstanding
   // (other tabs continue to use the "unseen" filter as a new-since-last-visit indicator)

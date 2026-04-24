@@ -88,7 +88,7 @@ export function useCppVariantRouter() {
     if (location.pathname === "/" || location.pathname === "") {
       navigate(VARIANT_ROUTES[variant], { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 }
 

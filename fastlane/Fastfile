@@ -83,7 +83,10 @@ platform :ios do
 
   def signing_xcargs
     team_id = ENV["DEVELOPER_TEAM_ID"].to_s.strip
-    %(DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic)
+    # -allowProvisioningUpdates lets xcodebuild ask App Store Connect (via the
+    # ASC API key) to create/download the iOS App Development + Distribution
+    # provisioning profiles for com.Helpr on first run in CI.
+    %(-allowProvisioningUpdates DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic)
   end
 
   def export_options_for_signing

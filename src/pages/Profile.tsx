@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, DollarSign, LogOut, MapPin, Clock,
-  CreditCard, Shield, FileText, ExternalLink, Mail, Lock, Upload, X,
+  ArrowLeft, DollarSign, LogOut, MapPin,
+  CreditCard, Shield, FileText, Mail, Lock, Upload, X,
   Star, Edit, CalendarDays, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
@@ -20,7 +20,6 @@ import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { MyRetainers } from "@/components/MyRetainers";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";

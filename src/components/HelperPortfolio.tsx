@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, ExternalLink } from "lucide-react";
+import { Camera } from "lucide-react";
 
 type PortfolioItem = {
   jobTitle: string;

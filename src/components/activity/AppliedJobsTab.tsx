@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   MapPin, DollarSign, CheckCircle2,
-  Star, MessageSquare, Users, AlertTriangle, RefreshCw,
-  Rocket, Clock, Calendar, Timer, ThumbsUp, ThumbsDown,
-  Navigation as NavigationIcon, Send, XCircle, Paperclip, FileText, Trash2, ExternalLink, Pencil, Check, X,
+  Star, MessageSquare, Users, AlertTriangle, RefreshCw, Clock, Calendar, Timer, ThumbsUp, ThumbsDown, Send, XCircle, Paperclip, FileText, Trash2, Pencil, Check, X,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { VirtualList } from "@/components/VirtualList";
@@ -19,7 +17,7 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 
-import { type Job, type Application, type AppliedApp, categoryColors } from "./activityConstants";
+import { type Application, type AppliedApp, categoryColors } from "./activityConstants";
 import { parseLocalDate } from "@/lib/dateUtils";
 
 

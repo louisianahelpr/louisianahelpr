@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
-  X, MapPin, DollarSign, Timer, Clock,
+  X, MapPin, DollarSign, Clock,
 } from "lucide-react";
 
 const categoryLabels: Record<string, string> = {

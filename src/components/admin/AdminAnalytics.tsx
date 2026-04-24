@@ -4,8 +4,7 @@ import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Users, Briefcase, DollarSign, TrendingUp, ArrowLeft, MapPin, Star, Calendar,
-  Crown, Zap, CreditCard, ArrowUpRight, ArrowDownRight, Activity, PieChart,
+  Users, Briefcase, DollarSign, TrendingUp, MapPin, Star, CreditCard, Activity, PieChart,
   BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";

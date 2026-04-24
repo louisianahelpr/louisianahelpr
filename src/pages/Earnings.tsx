@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Briefcase, Gift, TrendingUp, Zap } from "lucide-react";
+import { Briefcase, Gift, TrendingUp, Zap } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import type { Database } from "@/integrations/supabase/types";

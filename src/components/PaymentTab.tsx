@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, DollarSign, Loader2, BanknoteIcon } from "lucide-react";
+import { CreditCard, DollarSign, BanknoteIcon } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";

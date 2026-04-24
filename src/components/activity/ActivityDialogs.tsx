@@ -14,7 +14,7 @@ import { ReviewForm } from "@/components/ReviewPanel";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import { DisputeDialog } from "@/components/DisputeDialog";
 import { EditJobDialog } from "./EditJobDialog";
-import type { Job, Application, EnrichedApplication } from "./activityConstants";
+import type { Job, Application } from "./activityConstants";
 
 interface ActivityDialogsProps {
   user: { id: string } | null;

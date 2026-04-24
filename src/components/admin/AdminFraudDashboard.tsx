@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ShieldAlert, CheckCircle2, AlertTriangle, Eye } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { logAdminAction } from "@/lib/adminAudit";
 

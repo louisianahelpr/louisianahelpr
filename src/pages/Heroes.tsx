@@ -6,9 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import { formatName } from "@/lib/utils";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 

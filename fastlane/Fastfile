@@ -141,6 +141,11 @@ platform :ios do
     team_id = ENV["DEVELOPER_TEAM_ID"]
     UI.user_error!("DEVELOPER_TEAM_ID env var is required for signing") if team_id.nil? || team_id.strip.empty?
 
+    # Apply automatic signing to BOTH Debug and Release first so the project
+    # is consistent. Then force Release to use the Apple Distribution identity
+    # so `xcodebuild archive` requests an App Store provisioning profile
+    # instead of an iOS App Development one (which would need a dev cert
+    # private key in the runner's keychain — not available on fresh CI).
     update_code_signing_settings(
       path:            PROJECT,
       use_automatic_signing: true,
@@ -148,7 +153,18 @@ platform :ios do
       bundle_identifier: APP_ID,
       targets:         [SCHEME]
     )
-    UI.success("Set DEVELOPMENT_TEAM=#{team_id} on target #{SCHEME}")
+
+    update_code_signing_settings(
+      path:            PROJECT,
+      use_automatic_signing: true,
+      team_id:         team_id,
+      bundle_identifier: APP_ID,
+      targets:         [SCHEME],
+      build_configurations: ["Release"],
+      code_sign_identity: "Apple Distribution"
+    )
+
+    UI.success("Set DEVELOPMENT_TEAM=#{team_id} on target #{SCHEME} (Release => Apple Distribution)")
   end
 
   def signing_xcargs

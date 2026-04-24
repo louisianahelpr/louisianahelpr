@@ -11,15 +11,22 @@ name: CodeQL Security Scan
 # - Manually via workflow_dispatch
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "supabase/functions/**"
-      - "package.json"
-      - "package-lock.json"
-  schedule:
-    - cron: "0 7 * * 3" # Wednesday 07:00 UTC
+  # DISABLED automatic triggers — CodeQL security scanning is valuable but
+  # rarely surfaces issues in a small project, and was burning Actions
+  # minutes. Dependabot already covers most dependency CVEs. Run manually
+  # from the Actions tab before major releases.
+  #
+  # To re-enable automatic runs, uncomment the pull_request / schedule blocks.
+  #
+  # pull_request:
+  #   branches: [main]
+  #   paths:
+  #     - "src/**"
+  #     - "supabase/functions/**"
+  #     - "package.json"
+  #     - "package-lock.json"
+  # schedule:
+  #   - cron: "0 7 * * 3" # Wednesday 07:00 UTC
   workflow_dispatch:
 
 concurrency:

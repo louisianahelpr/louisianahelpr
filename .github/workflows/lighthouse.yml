@@ -9,15 +9,21 @@ name: Lighthouse CI
 # - Manually via workflow_dispatch
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "index.html"
-      - "vite.config.ts"
-      - "package.json"
-  schedule:
-    - cron: "0 6 * * 0" # Sunday 06:00 UTC
+  # DISABLED automatic triggers — performance audits are nice-to-have, not
+  # critical, and were burning Actions minutes on every PR. Run manually
+  # from the Actions tab when you want to spot-check mobile performance.
+  #
+  # To re-enable automatic runs, uncomment the pull_request / schedule blocks.
+  #
+  # pull_request:
+  #   branches: [main]
+  #   paths:
+  #     - "src/**"
+  #     - "index.html"
+  #     - "vite.config.ts"
+  #     - "package.json"
+  # schedule:
+  #   - cron: "0 6 * * 0" # Sunday 06:00 UTC
   workflow_dispatch:
 
 concurrency:

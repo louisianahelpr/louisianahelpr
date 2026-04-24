@@ -14,6 +14,14 @@ import {
   DollarSign,
 } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v5-1000.webp";
+import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
+import heroImg500 from "@/assets/hero-illustration-v5-500.webp";
+import heroImg600 from "@/assets/hero-illustration-v5-600.webp";
+
+// Responsive srcset — display width is ~497px max (max-w-md = 28rem),
+// so mobile devices should use the 400/500w variant (~41–58 KB) instead
+// of the 1000w variant (~150 KB). Saves ~110 KB on mobile LCP.
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 1000w`;
 
 // Inject a <link rel="preload"> for the LCP hero image as soon as this module
 // loads, so the browser can discover the request before React renders the <img>.
@@ -28,7 +36,8 @@ if (typeof document !== "undefined") {
     link.as = "image";
     link.type = "image/webp";
     link.fetchPriority = "high";
-    link.href = heroImg;
+    link.href = heroImg400;
+    link.setAttribute("imagesrcset", heroSrcSet);
     link.setAttribute("imagesizes", "(max-width: 1023px) 400px, 500px");
     document.head.appendChild(link);
   }
@@ -191,7 +200,8 @@ const HeroSection = () => {
                   (max-w-md = 28rem). Tells the browser to pick the 500w variant on mobile
                   and 600w on tablet, instead of jumping to the full 900w (Lighthouse fix). */}
               <img
-                src={heroImg}
+                src={heroImg400}
+                srcSet={heroSrcSet}
                 sizes="(max-width: 1023px) 400px, 500px"
                 alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
                 className="w-full h-auto rounded-2xl shadow-xl object-contain"

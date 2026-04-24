@@ -99,6 +99,7 @@ const GREETING_MESSAGES = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
 
@@ -232,18 +233,16 @@ const Dashboard = () => {
       // Predicate match catches keys like ["dashboardJobs", userId],
       // ["applications", ...], ["jobs", jobId], etc. without needing each
       // caller to know the exact shape.
-      await Promise.all([
-        queryClient.invalidateQueries({
-          predicate: (q) => {
-            const k = q.queryKey?.[0];
-            return k === "dashboardJobs"
-              || k === "dashboardContext"
-              || k === "applications"
-              || k === "jobs"
-              || k === "activity";
-          },
-        }),
-      ]);
+      await queryClient.invalidateQueries({
+        predicate: (q: Query) => {
+          const k = q.queryKey?.[0];
+          return k === "dashboardJobs"
+            || k === "dashboardContext"
+            || k === "applications"
+            || k === "jobs"
+            || k === "activity";
+        },
+      });
     }
     setConfirmApplyJobId(null);
     setApplyLoading(false);

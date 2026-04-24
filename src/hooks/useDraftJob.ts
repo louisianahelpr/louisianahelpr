@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 
 const DRAFT_KEY = "helpr_draft_job";
+// Debounce window for persisting drafts. Long enough that fast typists
+// don't hammer localStorage on every keystroke, short enough that the user
+// won't lose meaningful work if the tab dies.
+const SAVE_DEBOUNCE_MS = 1000;
 
 export interface JobDraft {
   title: string;
@@ -35,6 +39,11 @@ const emptyDraft: JobDraft = {
 export function useDraftJob() {
   const [draft, setDraft] = useState<JobDraft>(emptyDraft);
   const [hasDraft, setHasDraft] = useState(false);
+  // Latest pending draft + debounce timer. Refs avoid recreating the
+  // saveDraft callback on every state change (which would also reset the
+  // debounce timer).
+  const pendingDraft = useRef<JobDraft>(emptyDraft);
+  const saveTimer = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -44,6 +53,7 @@ export function useDraftJob() {
         // Only restore if less than 7 days old
         if (Date.now() - parsed.savedAt < 7 * 24 * 60 * 60 * 1000) {
           setDraft(parsed);
+          pendingDraft.current = parsed;
           setHasDraft(true);
         } else {
           safeStorage.removeItem(DRAFT_KEY);
@@ -52,14 +62,45 @@ export function useDraftJob() {
     } catch { /* ignore */ }
   }, []);
 
+  // Flush any pending write before unmount so users don't lose the last
+  // ~1s of typing if they navigate away quickly.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current !== null) {
+        window.clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        try {
+          safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
+        } catch { /* ignore */ }
+      }
+    };
+  }, []);
+
   const saveDraft = useCallback((data: Partial<JobDraft>) => {
-    const updated = { ...draft, ...data, savedAt: Date.now() };
+    // Merge against the latest pending value (not the rendered state) so
+    // rapid successive calls within the debounce window don't drop fields.
+    const updated = { ...pendingDraft.current, ...data, savedAt: Date.now() };
+    pendingDraft.current = updated;
     setDraft(updated);
     setHasDraft(true);
-    try { safeStorage.setItem(DRAFT_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
-  }, [draft]);
+
+    if (saveTimer.current !== null) {
+      window.clearTimeout(saveTimer.current);
+    }
+    saveTimer.current = window.setTimeout(() => {
+      saveTimer.current = null;
+      try {
+        safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
+      } catch { /* ignore */ }
+    }, SAVE_DEBOUNCE_MS);
+  }, []);
 
   const clearDraft = useCallback(() => {
+    if (saveTimer.current !== null) {
+      window.clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    pendingDraft.current = emptyDraft;
     setDraft(emptyDraft);
     setHasDraft(false);
     try { safeStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }

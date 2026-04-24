@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Heart, Users, Sparkles, HandHeart } from "lucide-react";
 
 const appreciations = [
@@ -22,13 +21,7 @@ const appreciations = [
 const CommunityLoveSection = () => (
   <section id="community" className="py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background scroll-mt-24">
     <div className="container mx-auto max-w-4xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-12"
-      >
+      <div className="text-center mb-12 animate-fade-in">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
           <Heart className="w-4 h-4 fill-primary" /> Community Love
         </div>
@@ -38,24 +31,21 @@ const CommunityLoveSection = () => (
         <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
           This platform exists because of people like you. Every task, every connection, every helping hand — it all starts with you.
         </p>
-      </motion.div>
+      </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         {appreciations.map((item, i) => (
-          <motion.div
+          <div
             key={item.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: i * 0.15 }}
-            className="rounded-2xl border border-primary/10 bg-card p-6 text-center space-y-3 hover:border-primary/30 transition-colors"
+            className="rounded-2xl border border-primary/10 bg-card p-6 text-center space-y-3 hover:border-primary/30 transition-colors animate-fade-in opacity-0"
+            style={{ animationDelay: `${i * 120}ms` }}
           >
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
               {item.icon}
             </div>
             <h3 className="font-display font-bold text-foreground">{item.title}</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">{item.message}</p>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

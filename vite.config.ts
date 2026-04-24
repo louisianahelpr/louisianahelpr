@@ -98,6 +98,13 @@ export default defineConfig(({ mode }) => ({
     target: "es2020",
     cssCodeSplit: true,
     sourcemap: false,
+    // Terser produces tighter output than esbuild's default minifier for ESM
+    // packages like lucide-react that ship with comments + whitespace.
+    minify: "terser",
+    terserOptions: {
+      compress: { passes: 2 },
+      format: { comments: false },
+    },
     rollupOptions: {
       // Native-only Capacitor plugins that aren't installed in the web build.
       // They're loaded via dynamic import() and silently no-op on web.

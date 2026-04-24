@@ -1,0 +1,91 @@
+# Dependabot configuration for Helpr
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Keeps npm packages, GitHub Actions, and iOS pods up to date with weekly PRs.
+# Security patches are picked up automatically (no separate config needed).
+
+version: 2
+updates:
+  # ---------- JavaScript / TypeScript ----------
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # Bundle low-risk dev/build tooling into one PR per week.
+      dev-tooling:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group all Radix UI primitives — they release together.
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      # Group Capacitor core + plugins so native bumps land together.
+      capacitor:
+        patterns:
+          - "@capacitor/*"
+      # Group Supabase client + helpers.
+      supabase:
+        patterns:
+          - "@supabase/*"
+      # Group Sentry packages.
+      sentry:
+        patterns:
+          - "@sentry/*"
+    ignore:
+      # Pin major React/Vite/Tailwind upgrades — handle these manually.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+  # ---------- GitHub Actions workflows ----------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------- iOS CocoaPods (only after `npx cap add ios` runs) ----------
+  - package-ecosystem: "bundler"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "ruby"
+    commit-message:
+      prefix: "chore(fastlane)"

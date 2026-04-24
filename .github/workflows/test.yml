@@ -36,7 +36,10 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        # `npm ci` is deterministic and ~2× faster than `npm install` in CI.
+        # Falls back to `npm install` if the lockfile happens to be missing
+        # (shouldn't be — package-lock.json is committed — but defensive).
+        run: npm ci || npm install
 
       - name: ESLint
         run: npm run lint || true

@@ -2,9 +2,6 @@ import { lazy, Suspense, forwardRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PageTransition from "@/components/PageTransition";
 import MobileNav from "./components/MobileNav";
@@ -15,6 +12,21 @@ import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
+
+// Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
+// @radix-ui/react-tooltip + @floating-ui + next-themes (~14 KB gzipped of
+// otherwise-unused JS on the landing page where no toast fires and no tooltip
+// is visible). Lazy-loading them keeps the libs out of the critical entry
+// bundle — they hydrate after first paint when the wrappers actually mount.
+const Toaster = lazy(() =>
+  import("@/components/ui/toaster").then((m) => ({ default: m.Toaster }))
+);
+const Sonner = lazy(() =>
+  import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
+);
+const TooltipProvider = lazy(() =>
+  import("@/components/ui/tooltip").then((m) => ({ default: m.TooltipProvider }))
+);
 
 // Lazy load all pages including landing
 const Index = lazy(() => import("./pages/Index"));
@@ -150,27 +162,31 @@ const SessionManager = () => {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
-          Skip to content
-        </a>
-        <BrowserRouter>
-          <SessionManager />
-          <OfflineBanner />
+      <Suspense fallback={null}>
+        <TooltipProvider>
           <Suspense fallback={null}>
-            <StrikeBanner />
+            <Toaster />
+            <Sonner />
           </Suspense>
-          <main id="main-content">
-            <Suspense fallback={<PageFallback />}>
-              <AnimatedRoutes />
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
+            Skip to content
+          </a>
+          <BrowserRouter>
+            <SessionManager />
+            <OfflineBanner />
+            <Suspense fallback={null}>
+              <StrikeBanner />
             </Suspense>
-          </main>
-          <MobileNav />
-          <PermissionRationaleDialog />
-        </BrowserRouter>
-      </TooltipProvider>
+            <main id="main-content">
+              <Suspense fallback={<PageFallback />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </main>
+            <MobileNav />
+            <PermissionRationaleDialog />
+          </BrowserRouter>
+        </TooltipProvider>
+      </Suspense>
     </QueryClientProvider>
   </ErrorBoundary>
 );

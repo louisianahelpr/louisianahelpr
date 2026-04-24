@@ -229,19 +229,6 @@ export function JobTracking({
 
       {/* Progress timeline */}
       {(() => {
-        const now = new Date();
-        let jobStart: Date | null = null;
-        if (jobDateNeeded) {
-          const base = parseLocalDate(jobDateNeeded);
-          if (jobStartTime) {
-            const [h, m] = jobStartTime.split(":").map(Number);
-            base.setHours(h, m, 0, 0);
-          } else {
-            base.setHours(23, 59, 59, 0);
-          }
-          jobStart = base;
-        }
-
         const getSubtext = (_key: string): string | null => {
           return null;
         };
@@ -311,7 +298,6 @@ export function JobTracking({
 
       {/* Helper controls — skip the job_confirmed step since that's handled by JobConfirmation */}
       {isHelper && (() => {
-        const now = new Date();
         let jobDay: Date | null = null;
         if (jobDateNeeded) {
           jobDay = parseLocalDate(jobDateNeeded);

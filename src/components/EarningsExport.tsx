@@ -34,6 +34,11 @@ interface ExportRow {
 
 type RangeMode = "month" | "ytd" | "custom";
 
+type CSVValue = string | number | null | undefined;
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Export failed";
+
 export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) => {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<RangeMode>("ytd");
@@ -109,15 +114,15 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
       else downloadPDF(rows, range.label);
       toast.success(`${formatType.toUpperCase()} ready — ${rows.length} job${rows.length === 1 ? "" : "s"}.`);
       setOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || "Export failed");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setBusy(false);
     }
   };
 
   const downloadCSV = (rows: ExportRow[], label: string) => {
-    const escape = (v: any) => {
+    const escape = (v: CSVValue) => {
       const s = v == null ? "" : String(v);
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
@@ -208,7 +213,7 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
       },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY || 200;
+    const finalY = doc.lastAutoTable?.finalY || 200;
     doc.setFontSize(8);
     doc.setTextColor(100);
     doc.text(

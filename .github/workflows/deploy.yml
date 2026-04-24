@@ -218,6 +218,18 @@ jobs:
       - name: Update CocoaPods
         working-directory: ios/App
         run: |
+          set -e
+          if [ ! -f "Podfile" ]; then
+            echo "▶ Podfile missing in ios/App — re-running 'npx cap sync ios' from repo root"
+            cd "$GITHUB_WORKSPACE"
+            npx cap sync ios
+            cd ios/App
+          fi
+          if [ ! -f "Podfile" ]; then
+            echo "❌ Podfile still missing after cap sync. Listing ios/App contents:"
+            ls -la
+            exit 1
+          fi
           pod repo update
           pod install --repo-update
 

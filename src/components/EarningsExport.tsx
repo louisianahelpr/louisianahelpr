@@ -162,7 +162,11 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
     triggerDownload(blob, `helpr-earnings-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`);
   };
 
-  const downloadPDF = (rows: ExportRow[], label: string) => {
+  const downloadPDF = async (rows: ExportRow[], label: string) => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
     const totals = rows.reduce(
       (acc, r) => ({

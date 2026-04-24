@@ -67,15 +67,12 @@ const Login = () => {
         .eq("user_id", userId)
         .single();
 
-      // Block banned users
+      // Block banned users — keep the session so the dedicated /account-banned
+      // page can read profile context (e.g. suspension expiry). Sign-out is
+      // available from that page.
       if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
-        await supabase.auth.signOut();
         setLoading(false);
-        toast.error(
-          profile.ban_status === "permanently_banned"
-            ? "Your account has been permanently banned. Contact support if you believe this is an error."
-            : "Your account has been temporarily suspended. Please try again later."
-        );
+        navigate("/account-banned", { replace: true });
         return;
       }
 

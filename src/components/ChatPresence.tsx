@@ -1,5 +1,3 @@
-export { useChatPresence } from "@/hooks/useChatPresence";
-
 export const OnlineIndicator = ({ isOnline }: { isOnline: boolean }) => (
   <span
     className={`inline-block w-2 h-2 rounded-full ${

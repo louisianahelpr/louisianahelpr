@@ -36,6 +36,51 @@ def changelog_text
   File.exist?(CHANGELOG_PATH) ? File.read(CHANGELOG_PATH) : "Bug fixes and improvements."
 end
 
+def ci_fallback_build_number
+  run_id = ENV["GITHUB_RUN_ID"].to_s.strip
+  return "" if run_id.empty?
+
+  run_attempt = ENV.fetch("GITHUB_RUN_ATTEMPT", "1").to_s.strip
+  "#{run_id}#{run_attempt.rjust(2, "0")}"
+end
+
+def next_build_number(api_key)
+  version = get_version_number(
+    xcodeproj: PROJECT,
+    target: SCHEME
+  )
+
+  if ENV["CI"]
+    begin
+      latest_remote = latest_testflight_build_number(
+        api_key: api_key,
+        app_identifier: APP_ID,
+        version: version,
+        initial_build_number: 0
+      ).to_i
+      return latest_remote + 1
+    rescue => e
+      UI.important("Falling back to a synthetic CI build number because the latest remote build number could not be read for version #{version}: #{e.message}")
+
+      fallback = ci_fallback_build_number
+      return fallback.to_i unless fallback.empty?
+
+      return Time.now.utc.strftime("%Y%m%d%H%M%S").to_i
+    end
+  end
+
+  get_build_number(xcodeproj: PROJECT).to_i + 1
+end
+
+def set_next_build_number!(api_key)
+  build_number = next_build_number(api_key)
+  increment_build_number(
+    build_number: build_number,
+    xcodeproj: PROJECT
+  )
+  UI.success("Using build number #{build_number}")
+end
+
 def extract_key_payload(raw_value)
   normalized = raw_value.to_s.strip.sub(/\A["']/, "").sub(/["']\z/, "")
   return normalized unless normalized.start_with?("{")
@@ -282,7 +327,7 @@ platform :ios do
     api_key = asc_api_key
 
     configure_signing!
-    increment_build_number(xcodeproj: PROJECT)
+    set_next_build_number!(api_key)
 
     build_ipa_with_xcodebuild(output_name: "Helpr.ipa")
 
@@ -305,7 +350,7 @@ platform :ios do
     api_key = asc_api_key
 
     configure_signing!
-    increment_build_number(xcodeproj: PROJECT)
+    set_next_build_number!(api_key)
 
     build_ipa_with_xcodebuild(output_name: "Helpr.ipa")
 

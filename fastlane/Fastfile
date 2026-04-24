@@ -176,10 +176,13 @@ platform :ios do
     # -allowProvisioningUpdates lets xcodebuild ask App Store Connect to
     # create/download provisioning assets on CI. The authenticationKey flags
     # make that work without a signed-in Xcode account on the runner.
-    # -configuration Release + CODE_SIGN_IDENTITY="Apple Distribution" forces
-    # distribution signing so Xcode requests an App Store provisioning profile
-    # (not a Development one, which would need a per-machine dev cert).
-    %(-configuration Release -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
+    # NOTE: do NOT pass -configuration here — fastlane's build_app already
+    # passes it via the `configuration:` parameter, and xcodebuild rejects
+    # duplicate -configuration flags ("may only be provided once").
+    # CODE_SIGN_IDENTITY="Apple Distribution" forces distribution signing so
+    # Xcode requests an App Store provisioning profile (not a Development one,
+    # which would need a per-machine dev cert).
+    %(-allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
   end
 
   def export_options_for_signing

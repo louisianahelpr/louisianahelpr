@@ -29,6 +29,8 @@ jobs:
         # Lovable manages package-lock.json out-of-band, so it can drift from
         # package.json between syncs. Use `npm install` (not `npm ci`) so CI
         # heals a stale lockfile instead of failing the run.
+        # Note: GitHub re-runs keep the original commit SHA, so workflow fixes
+        # only take effect on fresh runs from newer commits.
         run: npm install --no-audit --no-fund
 
       - name: Lint

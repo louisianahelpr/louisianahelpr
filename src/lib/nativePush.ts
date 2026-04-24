@@ -140,9 +140,6 @@ export async function requestPushPermission(): Promise<boolean> {
  * Use this from any component that wants to prompt for push.
  */
 export function useRequestPushPermission() {
-  // Lazy import to avoid circular deps and keep web bundle slim.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { usePermissionRationale } = require("@/hooks/usePermissionRationale") as typeof import("@/hooks/usePermissionRationale");
   const { request } = usePermissionRationale();
   return async (): Promise<boolean> => {
     if (!isNativePlatform) return false;

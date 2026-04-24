@@ -265,7 +265,7 @@ const Signup = () => {
       setLoading(false);
       return;
     }
-    localStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
+    safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
     try {
       // HIBP breached-password check (k-anonymity, fail-open on network error)

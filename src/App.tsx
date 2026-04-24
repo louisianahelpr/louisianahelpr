@@ -66,7 +66,17 @@ const queryClient = new QueryClient({
       // enough to avoid hammering Supabase on rapid remounts.
       staleTime: 60 * 1000,
       gcTime: 10 * 60 * 1000,
-      retry: 1,
+      // Only retry transient/server errors. Client errors (401/403/404/etc.)
+      // won't be fixed by retrying — the token's invalid, the row doesn't
+      // exist, or RLS blocked it. Retrying just wastes a round-trip.
+      retry: (failureCount, error: unknown) => {
+        const status =
+          (error as { status?: number; statusCode?: number; code?: number | string })?.status ??
+          (error as { statusCode?: number })?.statusCode ??
+          Number((error as { code?: number | string })?.code);
+        if (typeof status === "number" && status >= 400 && status < 500) return false;
+        return failureCount < 2;
+      },
       // Re-enable: in a live marketplace, returning to the app should
       // surface jobs that may have been claimed/cancelled while away.
       refetchOnWindowFocus: true,

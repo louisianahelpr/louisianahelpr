@@ -68,8 +68,11 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // Stays up until React mounts and calls SplashScreen.hide() in nativeInit.ts.
-      launchShowDuration: 3000,
+      // Show the splash immediately and hide it as soon as React mounts
+      // (see src/lib/nativeInit.ts → initNative). Apple HIG: hide ASAP.
+      // A 4s safety-net timeout in nativeInit.ts guarantees the splash
+      // never hangs even if init fails.
+      launchShowDuration: 0,
       launchAutoHide: false,
       backgroundColor: '#1FA678', // Helpr emerald — matches app-icon-1024.png
       androidSplashResourceName: 'splash',

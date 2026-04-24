@@ -24,9 +24,28 @@ export async function initNative() {
   } catch { /* plugin missing on web */ }
 
   // Hide splash after React mounts.
+  await hideSplash();
+}
+
+/**
+ * Hide the native splash screen with a short fade. Safe to call from web
+ * (no-op). Use this from the top-level App useEffect to guarantee the
+ * splash comes down as soon as the first paint is ready.
+ */
+export async function hideSplash() {
+  if (!isNativePlatform) return;
   try {
-    await SplashScreen.hide({ fadeOutDuration: 300 });
+    await SplashScreen.hide({ fadeOutDuration: 200 });
   } catch { /* ignore */ }
+}
+
+// Safety net: if something hangs in initNative(), force-hide the splash
+// after 4s so the app can never be stuck on a green screen. Fires once
+// at module import on native only.
+if (isNativePlatform) {
+  setTimeout(() => {
+    SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
+  }, 4000);
 }
 
 /**

@@ -1,4 +1,5 @@
 require "base64"
+require "tmpdir"
 
 # Helpr — iOS App Store automation
 # Local: bundle exec fastlane ios beta | release
@@ -35,11 +36,24 @@ def xcodebuild_auth_key_path
   key_path = ENV["ASC_KEY_PATH"].to_s.strip
   return key_path if !key_path.empty? && File.exist?(key_path)
 
-  key_content_b64 = (ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"]).to_s.strip
-  UI.user_error!("No App Store Connect API key found. Set ASC_KEY_CONTENT (base64) or ASC_KEY_PATH.") if key_content_b64.empty?
+  key_id = ENV["ASC_KEY_ID"].to_s.strip
+  key_content = (ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"]).to_s.strip
+  UI.user_error!("ASC_KEY_ID is required for xcodebuild authentication") if key_id.empty?
+  UI.user_error!("No App Store Connect API key found. Set ASC_KEY_CONTENT (base64 or raw .p8 text) or ASC_KEY_PATH.") if key_content.empty?
 
-  generated_path = File.join(REPO_ROOT, "fastlane", "tmp_auth_key.p8")
-  File.write(generated_path, Base64.decode64(key_content_b64))
+  decoded_key = if key_content.include?("BEGIN PRIVATE KEY")
+    key_content
+  else
+    Base64.decode64(key_content)
+  end
+
+  unless decoded_key.include?("BEGIN PRIVATE KEY")
+    UI.user_error!("The App Store Connect key content is invalid. ASC_KEY_CONTENT/ASC_KEY must be raw .p8 text or base64-encoded .p8 content.")
+  end
+
+  # xcodebuild expects the standard Apple filename pattern: AuthKey_<KEY_ID>.p8
+  generated_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
+  File.write(generated_path, decoded_key)
   generated_path
 end
 

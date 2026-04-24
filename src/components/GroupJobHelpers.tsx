@@ -28,18 +28,19 @@ export function GroupJobHelpers({
 
   const loadHelpers = async () => {
     const { data } = await supabase
-      .from("group_job_helpers" as any)
+      .from("group_job_helpers")
       .select("*")
       .eq("job_id", jobId);
-    if (data && (data as any[]).length > 0) {
-      const helperIds = (data as any[]).map((h: any) => h.helper_id);
+    const rows = (data ?? []) as unknown as GroupHelper[];
+    if (rows.length > 0) {
+      const helperIds = rows.map((h) => h.helper_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", helperIds);
       const nameMap = new Map(profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) || []);
       setHelpers(
-        (data as any[]).map((h: any) => ({
+        rows.map((h) => ({
           ...h,
           helperName: nameMap.get(h.helper_id) || "Helpr",
         }))
@@ -50,7 +51,7 @@ export function GroupJobHelpers({
   };
 
   const removeHelper = async (id: string) => {
-    await (supabase.from("group_job_helpers" as any) as any).delete().eq("id", id);
+    await supabase.from("group_job_helpers").delete().eq("id", id);
     toast.success("Helpr removed from group");
     loadHelpers();
   };

@@ -22,9 +22,16 @@ on:
       - "ios/**"
   workflow_dispatch:
 
+# macOS runners cost 10x ubuntu minutes — cancel superseded runs aggressively.
+concurrency:
+  group: cap-sync-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cap-sync:
     name: Validate Capacitor + iOS sync
+    # Skip Dependabot PRs — Capacitor sync on dep bumps is verified manually before native release.
+    if: github.actor != 'dependabot[bot]'
     runs-on: macos-latest
     timeout-minutes: 15
 

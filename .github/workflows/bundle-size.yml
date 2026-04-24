@@ -19,9 +19,15 @@ on:
       - ".github/workflows/bundle-size.yml"
   workflow_dispatch:
 
+concurrency:
+  group: bundle-size-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bundle-size:
     name: Check production bundle sizes
+    # Skip noisy Dependabot PRs — bundle changes from dep bumps are reviewed manually.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

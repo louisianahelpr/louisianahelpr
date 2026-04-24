@@ -17,6 +17,10 @@ on:
       - ".github/workflows/migration-lint.yml"
   workflow_dispatch:
 
+concurrency:
+  group: migration-lint-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-migrations:
     name: Lint new migration SQL

@@ -13,13 +13,24 @@ name: CodeQL Security Scan
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "supabase/functions/**"
+      - "package.json"
+      - "package-lock.json"
   schedule:
     - cron: "0 7 * * 3" # Wednesday 07:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze JavaScript/TypeScript
+    # Skip Dependabot PRs — CodeQL on dep bumps rarely surfaces real issues.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

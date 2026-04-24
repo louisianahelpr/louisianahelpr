@@ -285,9 +285,19 @@ jobs:
         if: always()
         id: meta
         run: |
-          cd ios/App
-          VER=$(xcrun agvtool what-marketing-version -terse1 2>/dev/null || echo "unknown")
-          BLD=$(xcrun agvtool what-version -terse 2>/dev/null || echo "unknown")
+          # Best-effort version read. If Fastlane failed earlier, the Xcode
+          # project may not exist or agvtool may print nothing — we fall back
+          # to a safe single-line value so GitHub Actions output parser
+          # doesn't choke. Never emit empty or multi-line strings here.
+          VER="0.0.0"
+          BLD="0"
+          if [ -d ios/App ]; then
+            cd ios/App
+            VER=$(xcrun agvtool what-marketing-version -terse1 2>/dev/null | tr -d '[:space:]' || true)
+            BLD=$(xcrun agvtool what-version -terse 2>/dev/null | tr -d '[:space:]' || true)
+            [ -z "$VER" ] && VER="0.0.0"
+            [ -z "$BLD" ] && BLD="0"
+          fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "build=$BLD"   >> "$GITHUB_OUTPUT"
           echo "▶ Shipped Helpr $VER ($BLD)"

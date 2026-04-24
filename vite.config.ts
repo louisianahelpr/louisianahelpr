@@ -1,8 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { createRequire } from "module";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+const require = createRequire(import.meta.url);
+const reactEntry = require.resolve("react");
+const reactDomEntry = require.resolve("react-dom");
+const reactDomClientEntry = require.resolve("react-dom/client");
+const reactJsxRuntimeEntry = require.resolve("react/jsx-runtime");
+const reactJsxDevRuntimeEntry = require.resolve("react/jsx-dev-runtime");
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -56,9 +64,14 @@ export default defineConfig(({ mode }) => ({
     }),
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: /^react$/, replacement: reactEntry },
+      { find: /^react-dom$/, replacement: reactDomEntry },
+      { find: /^react-dom\/client$/, replacement: reactDomClientEntry },
+      { find: /^react\/jsx-runtime$/, replacement: reactJsxRuntimeEntry },
+      { find: /^react\/jsx-dev-runtime$/, replacement: reactJsxDevRuntimeEntry },
+    ],
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   // Force Vite to pre-bundle React and any libs that consume React hooks
@@ -69,7 +82,9 @@ export default defineConfig(({ mode }) => ({
     include: [
       "react",
       "react-dom",
+      "react-dom/client",
       "react/jsx-runtime",
+      "react/jsx-dev-runtime",
       "@sentry/react",
       "@radix-ui/react-tooltip",
     ],

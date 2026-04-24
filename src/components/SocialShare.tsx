@@ -11,7 +11,7 @@ interface SocialShareProps {
 
 const SocialShare = ({ 
   url = "https://www.louisianahelpr.com", 
-  text = "Check out Helpr — Louisiana's helping hand for everyday tasks!",
+  text: _text = "Check out Helpr — Louisiana's helping hand for everyday tasks!",
   compact = false,
 }: SocialShareProps) => {
   const [copied, setCopied] = useState(false);

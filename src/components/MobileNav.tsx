@@ -21,7 +21,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;

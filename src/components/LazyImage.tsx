@@ -8,7 +8,7 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 const LazyImage = ({ src, alt, fallback = "/placeholder.svg", className, ...props }: LazyImageProps) => {
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [, setError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {

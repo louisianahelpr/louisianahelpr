@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,6 +99,7 @@ const GREETING_MESSAGES = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
 
@@ -226,13 +228,27 @@ const Dashboard = () => {
       toast.success("Application sent! Track it in My Jobs.", {
         action: { label: "View", onClick: () => navigate("/my-jobs") },
       });
-      refresh();
+      // Invalidate every cache that may show this job/application so any open
+      // screen (Dashboard, My Jobs, future Activity-as-Query) updates in sync.
+      // Predicate match catches keys like ["dashboardJobs", userId],
+      // ["applications", ...], ["jobs", jobId], etc. without needing each
+      // caller to know the exact shape.
+      await queryClient.invalidateQueries({
+        predicate: (q: Query) => {
+          const k = q.queryKey?.[0];
+          return k === "dashboardJobs"
+            || k === "dashboardContext"
+            || k === "applications"
+            || k === "jobs"
+            || k === "activity";
+        },
+      });
     }
     setConfirmApplyJobId(null);
     setApplyLoading(false);
     setApplyMessage("");
     setApplyFiles([]);
-  }, [user, confirmApplyJobId, navigate, refresh, profile, applyLoading, applyFiles, applyMessage]);
+  }, [user, confirmApplyJobId, navigate, queryClient, profile, applyLoading, applyFiles, applyMessage]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

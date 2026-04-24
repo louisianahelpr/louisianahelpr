@@ -23,7 +23,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
-  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [, setAlreadyReviewed] = useState(false);
   const [customTip, setCustomTip] = useState("");
   const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
 
@@ -64,8 +64,14 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       if (allReviews) {
         const lowRatings = allReviews.filter(r => r.rating <= 2).length;
         if (lowRatings >= 3) {
-          // Auto-flag for admin review
-          await (supabase.from("user_violations" as any) as any).insert({
+          // Auto-flag for admin review. `user_violations` isn't in the
+          // generated Supabase types yet, so we narrow-cast via `unknown`.
+          const supabaseUntyped = supabase as unknown as {
+            from: (table: string) => {
+              insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
+            };
+          };
+          await supabaseUntyped.from("user_violations").insert({
             user_id: revieweeId, violation_type: "low_ratings",
             description: `User has ${lowRatings} ratings of 2 stars or below. Auto-flagged for admin review.`,
             reported_by: null, action_taken: "warning",
@@ -92,8 +98,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "tip", jobId, amount } });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create tip");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create tip";
+      toast.error(message);
     } finally {
       setSaving(false);
     }

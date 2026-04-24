@@ -310,8 +310,7 @@ jobs:
           path: |
             build/*.ipa
             build/*.dSYM.zip
-            fastlane/changelog.txt
-          if-no-files-found: warn
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload Fastlane logs

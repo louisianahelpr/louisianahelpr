@@ -60,12 +60,17 @@ jobs:
           bundler-cache: true
 
       - name: Configure SSH for fastlane match (if using SSH repo)
-        # Only runs when a MATCH_DEPLOY_KEY secret is provided. For HTTPS match
-        # repos this is skipped and MATCH_GIT_BASIC_AUTHORIZATION is used instead.
-        if: ${{ secrets.MATCH_DEPLOY_KEY != '' }}
+        # Only runs when MATCH_DEPLOY_KEY is set. For HTTPS match repos this
+        # is a no-op and MATCH_GIT_BASIC_AUTHORIZATION is used instead.
+        env:
+          MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
         run: |
+          if [ -z "$MATCH_DEPLOY_KEY" ]; then
+            echo "No MATCH_DEPLOY_KEY set — skipping SSH setup (using HTTPS match)."
+            exit 0
+          fi
           mkdir -p ~/.ssh
-          echo "${{ secrets.MATCH_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          echo "$MATCH_DEPLOY_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
 

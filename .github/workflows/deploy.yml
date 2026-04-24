@@ -179,15 +179,23 @@ jobs:
       # already exists from a previous cached run.
       - name: Generate iOS Xcode project (if missing)
         run: |
-          if [ ! -d "ios/App" ] && [ ! -d "ios" ]; then
-            echo "▶ ios/ not found — running 'npx cap add ios'"
-            npx cap add ios
-          elif [ ! -d "ios/App" ] && [ -d "ios" ]; then
-            echo "▶ ios/ exists but ios/App is missing — removing stale ios/ and re-adding"
+          if [ -d "ios/App" ]; then
+            echo "✓ ios/App already exists — skipping 'cap add'"
+          elif [ -d "ios" ]; then
+            # ios/ at repo root holds checked-in assets (PrivacyInfo.xcprivacy,
+            # App.entitlements, README) but the Xcode project (ios/App) is
+            # gitignored. Stash those assets, let cap add scaffold the project,
+            # then restore them so the next step can copy them into ios/App/App.
+            echo "▶ ios/ exists but ios/App missing — preserving checked-in assets and scaffolding"
+            STASH="$RUNNER_TEMP/ios-assets"
+            mkdir -p "$STASH"
+            cp -R ios/. "$STASH/"
             rm -rf ios
             npx cap add ios
+            cp -R "$STASH/." ios/
           else
-            echo "✓ ios/App already exists — skipping 'cap add'"
+            echo "▶ ios/ not found — running 'npx cap add ios'"
+            npx cap add ios
           fi
 
       - name: Capacitor sync (iOS)

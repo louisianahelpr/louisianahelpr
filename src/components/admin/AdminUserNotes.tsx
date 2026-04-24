@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +76,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Failed to load admin notes:", error);
+      report(error, { tags: { source: "AdminUserNotes.load" } });
       setNotes([]);
       setLoading(false);
       return;

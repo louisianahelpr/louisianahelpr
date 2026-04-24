@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Fire-and-forget helper to post operational alerts to Slack via the
@@ -31,7 +32,6 @@ export function fireSlackAlert(input: SlackAlertInput) {
   supabase.functions
     .invoke("slack-ops-alert", { body: input })
     .catch((err) => {
-       
-      console.warn("[slackAlerts] dispatch failed:", err?.message || err);
+      report(err, { severity: "warning", tags: { source: "slackAlerts.dispatch", kind: input.kind } });
     });
 }

@@ -11,6 +11,7 @@ import {
 import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Download, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import type { Database } from "@/integrations/supabase/types";
@@ -82,7 +83,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       if (error) throw error;
       setStripeData(data ?? null);
     } catch (err) {
-      console.warn("[EarningsTab] payouts fetch failed:", err);
+      report(err, { severity: "warning", tags: { source: "EarningsTab.fetchPayouts" } });
       setStripeData({ connected: false, payouts_enabled: false, available: [], pending: [], payouts: [] });
     } finally {
       setStripeLoading(false);

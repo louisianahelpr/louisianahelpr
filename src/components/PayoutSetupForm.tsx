@@ -5,6 +5,7 @@ import {
   CheckCircle, AlertCircle, Loader2, Trash2, Building2, CreditCard, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
 
 type PayoutMethod = {
   id: string;
@@ -45,7 +46,7 @@ export function PayoutSetupForm() {
       if (!methodsRes.error) setMethods(methodsRes.data?.methods || []);
       if (!statusRes.error) setStatus(statusRes.data || null);
     } catch (err: any) {
-      console.error("Failed to load payout data:", err);
+      report(err, { tags: { source: "PayoutSetupForm.loadPayoutData" } });
     } finally {
       setLoading(false);
     }

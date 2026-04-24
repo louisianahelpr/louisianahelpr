@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,7 +85,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       try {
         await supabase.functions.invoke("void-cancelled-payments", { body: {} });
       } catch (voidErr) {
-        console.warn("Auto-void failed, will be cleaned up by scheduled job:", voidErr);
+        report(voidErr, { severity: "warning", tags: { source: "CancellationDialog.autoVoid" } });
       }
 
       // Notify the helper about the cancellation and their compensation

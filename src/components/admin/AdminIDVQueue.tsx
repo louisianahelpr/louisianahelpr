@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
+import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface IDVProfile {
@@ -135,7 +136,7 @@ const AdminIDVQueue = () => {
         body: { userId: p.user_id, status: "verified" },
       });
     } catch (e) {
-      console.error("Verification email dispatch failed:", e);
+      report(e, { tags: { source: "AdminIDVQueue.sendVerifiedEmail" } });
     }
 
     setActioning(null);

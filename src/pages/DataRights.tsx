@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { report } from "@/lib/errorLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, Trash2, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
@@ -76,7 +77,7 @@ const DataRights = () => {
       URL.revokeObjectURL(url);
       toast.success("Your data has been downloaded");
     } catch (err) {
-      console.error(err);
+      report(err, { tags: { source: "DataRights.exportData" } });
       toast.error("Failed to export your data. Try again or contact support.");
     } finally {
       setExporting(false);

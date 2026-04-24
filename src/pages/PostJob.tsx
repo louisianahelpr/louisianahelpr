@@ -22,6 +22,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { compressImage } from "@/lib/imageCompression";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
+import { report } from "@/lib/errorLogger";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -236,7 +237,7 @@ const PostJob = () => {
       const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("job-photos").upload(path, file);
       if (error) {
-        console.error("Upload error:", error);
+        report(error, { tags: { source: "PostJob.uploadImage" } });
         continue;
       }
       const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
@@ -424,7 +425,7 @@ const PostJob = () => {
       clearDraft();
       window.location.href = paymentUrl;
     } catch (err: any) {
-      console.error("Payment invoke error:", err);
+      report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
       // Delete the job since payment setup failed
       await supabase.from("jobs").delete().eq("id", jobData.id);
       safeStorage.removeItem(COOLDOWN_KEY);

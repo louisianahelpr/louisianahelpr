@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { identifyUser } from "@/lib/posthog";
 import { safeStorage } from "@/lib/safeStorage";
+import { report } from "@/lib/errorLogger";
 
 const EMAIL_VERIFIED_KEY = "helpr_email_verified_tracked";
 
@@ -38,7 +39,7 @@ export const useLoginTracking = () => {
               user_agent: navigator.userAgent,
             });
           } catch (e) {
-            console.error("Login tracking failed:", e);
+            report(e, { severity: "warning", tags: { source: "useLoginTracking" } });
           }
         }, 0);
       }

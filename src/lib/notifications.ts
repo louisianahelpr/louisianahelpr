@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 interface NotificationPayload {
   user_id: string;
@@ -23,7 +24,7 @@ export async function createNotification(payload: NotificationPayload) {
   });
 
   if (fnError) {
-    console.error("Failed to create notification:", fnError);
+    report(fnError, { tags: { source: "createNotification.insert" } });
     return { error: fnError };
   }
 
@@ -34,12 +35,12 @@ export async function createNotification(payload: NotificationPayload) {
     })
     .then(({ error: emailErr }) => {
       if (emailErr) {
-        console.error("Notification email invoke failed:", emailErr);
+        report(emailErr, { tags: { source: "createNotification.email" } });
         notifyAdminsOfEmailFailure(user_id, title, emailErr.message);
       }
     })
     .catch((err) => {
-      console.error("Notification email invoke error:", err);
+      report(err, { tags: { source: "createNotification.emailCatch" } });
       notifyAdminsOfEmailFailure(user_id, title, err?.message || "Unknown error");
     });
 
@@ -85,7 +86,7 @@ function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, er
             link: "/admin",
           },
         }).catch((err) => {
-          console.error("Failed to notify admin of email failure:", err);
+          report(err, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure" } });
         });
       }
     });

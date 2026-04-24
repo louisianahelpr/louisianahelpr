@@ -1,4 +1,5 @@
 // Browser push notification utilities
+import { report } from "@/lib/errorLogger";
 
 export const isPushSupported = () => {
   return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
@@ -15,7 +16,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     const registration = await navigator.serviceWorker.register("/sw-push.js");
     return registration;
   } catch (err) {
-    console.error("SW registration failed:", err);
+    report(err, { tags: { source: "pushNotifications.registerSW" } });
     return null;
   }
 };

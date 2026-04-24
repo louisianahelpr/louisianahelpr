@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Resolves a Louisiana ZIP code to its parish via the
@@ -13,12 +14,12 @@ export async function lookupParishByZip(zip: string | null | undefined): Promise
   try {
     const { data, error } = await supabase.rpc("get_parish_for_zip", { p_zip: cleaned });
     if (error) {
-      console.warn("[parishLookup] RPC error:", error.message);
+      report(error, { severity: "warning", tags: { source: "parishLookup.rpc" } });
       return null;
     }
     return (data as string | null) || null;
   } catch (err) {
-    console.warn("[parishLookup] failed:", err);
+    report(err, { severity: "warning", tags: { source: "parishLookup" } });
     return null;
   }
 }

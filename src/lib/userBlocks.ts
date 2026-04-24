@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Returns the set of user IDs that the current user has blocked,
@@ -81,7 +82,7 @@ export async function blockUser(
     try {
       await supabase.functions.invoke("void-cancelled-payments", { body: {} });
     } catch (e) {
-      console.warn("Auto-void after block failed:", e);
+      report(e, { severity: "warning", tags: { source: "userBlocks.autoVoidAfterBlock" } });
     }
   }
 

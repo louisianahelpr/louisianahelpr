@@ -176,13 +176,17 @@ platform :ios do
     # -allowProvisioningUpdates lets xcodebuild ask App Store Connect to
     # create/download provisioning assets on CI. The authenticationKey flags
     # make that work without a signed-in Xcode account on the runner.
-    # NOTE: do NOT pass -configuration here — gym always injects its own
-    # -configuration flag from the scheme's archive action, and a second one
-    # in xcargs causes "option '-configuration' may only be provided once".
-    # CODE_SIGN_IDENTITY="Apple Distribution" forces distribution signing so
-    # Xcode requests an App Store provisioning profile (not a Development one,
-    # which would need a per-machine dev cert).
-    %(-allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
+    #
+    # IMPORTANT: do NOT pass `-configuration`, `CODE_SIGN_IDENTITY=`, or
+    # `CODE_SIGN_STYLE=` in xcargs. Gym auto-detects `CODE_SIGN_IDENTITY=` in
+    # xcargs and treats it as `codesigning_identity`, which then makes gym
+    # PREPEND its own `-configuration Release` flag to xcargs while xcodebuild
+    # already gets `-configuration Release` from the scheme — Xcode 16 rejects
+    # the duplicate with "option '-configuration' may only be provided once".
+    # The signing identity, style, and team are already set on the Release
+    # build configuration by `configure_signing!` via update_code_signing_settings,
+    # so we only need to pass the App Store Connect auth flags here.
+    %(-allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id})
   end
 
   def export_options_for_signing

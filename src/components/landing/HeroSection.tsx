@@ -36,7 +36,8 @@ if (typeof document !== "undefined") {
     link.as = "image";
     link.type = "image/webp";
     link.fetchPriority = "high";
-    link.href = heroImg;
+    link.href = heroImg400;
+    link.setAttribute("imagesrcset", heroSrcSet);
     link.setAttribute("imagesizes", "(max-width: 1023px) 400px, 500px");
     document.head.appendChild(link);
   }

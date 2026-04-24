@@ -31,10 +31,10 @@ if (typeof document !== "undefined") {
     link.as = "image";
     link.type = "image/webp";
     link.fetchPriority = "high";
-    link.href = heroImg500;
+    link.href = heroImg400;
     link.setAttribute(
       "imagesrcset",
-      `${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`,
+      `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`,
     );
     link.setAttribute(
       "imagesizes",

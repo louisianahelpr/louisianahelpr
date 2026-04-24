@@ -19,6 +19,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { report } from "@/lib/errorLogger";
+import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 
 let listenersAttached = false;
 
@@ -112,8 +113,9 @@ export function useNativePushSetup() {
 }
 
 /**
- * Trigger the OS-level permission prompt. Wrap with usePermissionRationale
- * for a friendly pre-prompt first.
+ * Trigger the OS-level permission prompt directly. Prefer
+ * `requestPushPermissionWithRationale` from a React component so the user
+ * sees a friendly pre-prompt first (Apple App Review requires this).
  */
 export async function requestPushPermission(): Promise<boolean> {
   if (!isNativePlatform) return false;
@@ -130,6 +132,23 @@ export async function requestPushPermission(): Promise<boolean> {
     report(err, { tags: { source: "requestPushPermission" } });
     return false;
   }
+}
+
+/**
+ * Hook-friendly variant: shows the in-app rationale dialog FIRST, then
+ * (on confirm) triggers the native iOS/Android permission prompt.
+ * Use this from any component that wants to prompt for push.
+ */
+export function useRequestPushPermission() {
+  const { request } = usePermissionRationale();
+  return async (): Promise<boolean> => {
+    if (!isNativePlatform) return false;
+    let granted = false;
+    await request("notifications", async () => {
+      granted = await requestPushPermission();
+    });
+    return granted;
+  };
 }
 
 /** Remove all device tokens for the current user. Call on sign-out. */

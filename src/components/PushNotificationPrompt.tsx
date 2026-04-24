@@ -3,22 +3,34 @@ import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isPushSupported, requestPushPermission, registerServiceWorker } from "@/lib/pushNotifications";
 import { safeStorage } from "@/lib/safeStorage";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { useRequestPushPermission } from "@/lib/nativePush";
 
 export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);
   const [, setPermission] = useState<string>("default");
+  const requestNativePush = useRequestPushPermission();
 
   useEffect(() => {
-    if (!isPushSupported()) return;
+    // On native iOS/Android, always show our pre-prompt (the OS prompt only
+    // fires if the user taps Enable). On web, only show if Notification API
+    // is available and permission is undecided.
+    if (isNativePlatform) {
+      const dismissed = safeStorage.getItem("push-prompt-dismissed");
+      if (!dismissed) {
+        const timer = setTimeout(() => setShow(true), 3000);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
 
+    if (!isPushSupported()) return;
     const currentPermission = Notification.permission;
     setPermission(currentPermission);
 
-    // Show prompt if permission hasn't been decided and user hasn't dismissed it
     if (currentPermission === "default") {
       const dismissed = safeStorage.getItem("push-prompt-dismissed");
       if (!dismissed) {
-        // Delay showing to not overwhelm on first load
         const timer = setTimeout(() => setShow(true), 3000);
         return () => clearTimeout(timer);
       }
@@ -26,9 +38,15 @@ export const PushNotificationPrompt = () => {
   }, []);
 
   const handleEnable = async () => {
-    await registerServiceWorker();
-    const granted = await requestPushPermission();
-    setPermission(granted ? "granted" : "denied");
+    if (isNativePlatform) {
+      // Native flow: rationale dialog → OS prompt → register device token.
+      const granted = await requestNativePush();
+      setPermission(granted ? "granted" : "denied");
+    } else {
+      await registerServiceWorker();
+      const granted = await requestPushPermission();
+      setPermission(granted ? "granted" : "denied");
+    }
     setShow(false);
   };
 

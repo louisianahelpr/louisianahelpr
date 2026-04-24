@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const SignupPending = () => {
-  const navigate = useNavigate();
   const [resending, setResending] = useState(false);
   const [email, setEmail] = useState("");
   const [showResend, setShowResend] = useState(false);

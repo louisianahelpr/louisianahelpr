@@ -63,7 +63,7 @@ const UserProfile = () => {
 
     const loadAll = async () => {
       setLoading(true);
-      const t0 = performance.now();
+      
 
       // Step 1: Get profile first
       const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId] });
@@ -78,7 +78,7 @@ const UserProfile = () => {
 
       // Step 2: Remaining queries in parallel
       const isHelper = prof.role === "helper";
-      const t1 = performance.now();
+      
       const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
         supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
@@ -126,7 +126,7 @@ const UserProfile = () => {
 
       // Enrich reviews with names
       if (reviewsRes.data && reviewsRes.data.length > 0) {
-        const t2 = performance.now();
+        
         const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([

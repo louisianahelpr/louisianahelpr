@@ -56,7 +56,7 @@ const thankYouMessages = [
 const Community = () => {
   usePageTitle("Community — Helpr");
 
-  const { user } = useCurrentUser();
+  useCurrentUser();
 
   return (
     <div className="min-h-screen bg-background">

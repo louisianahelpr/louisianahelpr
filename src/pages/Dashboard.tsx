@@ -329,7 +329,7 @@ const Dashboard = () => {
     );
   }
 
-  const dayIndex = Math.floor(Date.now() / 86400000) % GREETING_MESSAGES.length;
+  
 
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>

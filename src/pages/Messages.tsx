@@ -279,7 +279,6 @@ const Messages = () => {
 
   const logViolation = async (violationDescription: string, blockedContent: string) => {
     if (!userId) return;
-    const userName = activeConvo?.otherUserName || "Unknown";
     const senderName = cachedUser?.user_metadata?.full_name || "A user";
 
     const { data: existing } = await supabase

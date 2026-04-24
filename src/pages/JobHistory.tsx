@@ -6,7 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
-type Application = Database["public"]["Tables"]["applications"]["Row"];
+
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",

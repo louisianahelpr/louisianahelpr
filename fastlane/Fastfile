@@ -202,14 +202,18 @@ platform :ios do
     configure_signing!
     increment_build_number(xcodeproj: PROJECT)
 
-    # NOTE: do NOT pass `configuration:` here. Gym already injects
-    # `-configuration Release` from the scheme's archive action; passing
-    # it explicitly causes gym to also prepend `-configuration Release` to
-    # xcargs, producing a duplicate flag and the xcodebuild error
-    # "option '-configuration' may only be provided once".
+    # NOTE on `-configuration`: in fastlane 2.233.x, gym ALWAYS injects
+    # `-configuration <name>` into xcargs (using the scheme's archive action
+    # default — Release) AND also passes `-configuration <name>` as its own
+    # top-level CLI arg derived from the `configuration:` option. Xcode 16
+    # rejects the duplicate ("option '-configuration' may only be provided
+    # once"). The only reliable workaround is to strip any `-configuration`
+    # tokens from our xcargs and let gym manage the single canonical flag
+    # via the `configuration:` parameter.
     build_app(
       **xcode_build_target,
       scheme:                  SCHEME,
+      configuration:           "Release",
       codesigning_identity:    "Apple Distribution",
       export_method:           "app-store",
       clean:                   true,
@@ -217,7 +221,8 @@ platform :ios do
       output_name:             "Helpr.ipa",
       include_symbols:         true,
       xcargs:                  signing_xcargs,
-      export_options:          export_options_for_signing
+      export_options:          export_options_for_signing,
+      skip_profile_detection:  true
     )
 
     upload_to_testflight(

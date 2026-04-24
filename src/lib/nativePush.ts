@@ -19,6 +19,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { report } from "@/lib/errorLogger";
+import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 
 let listenersAttached = false;
 

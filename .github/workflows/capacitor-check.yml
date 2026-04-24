@@ -6,20 +6,27 @@ name: Capacitor Sync Check
 # wastes 30 minutes spinning up an Xcode build.
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "capacitor.config.ts"
-      - "ios/**"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.config.ts"
-      - ".github/workflows/capacitor-check.yml"
-  push:
-    branches: [main]
-    paths:
-      - "capacitor.config.ts"
-      - "ios/**"
+  # DISABLED automatic triggers — macOS runners cost 10x Linux and burned
+  # $8 in one day. This check is only useful immediately before an App Store
+  # submission, which happens rarely. Run it manually from the Actions tab
+  # when you're about to ship a native build.
+  #
+  # To re-enable automatic runs, uncomment the pull_request / push blocks below.
+  #
+  # pull_request:
+  #   branches: [main]
+  #   paths:
+  #     - "capacitor.config.ts"
+  #     - "ios/**"
+  #     - "package.json"
+  #     - "package-lock.json"
+  #     - "vite.config.ts"
+  #     - ".github/workflows/capacitor-check.yml"
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "capacitor.config.ts"
+  #     - "ios/**"
   workflow_dispatch:
 
 # macOS runners cost 10x ubuntu minutes — cancel superseded runs aggressively.

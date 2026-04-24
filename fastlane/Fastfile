@@ -179,7 +179,7 @@ platform :ios do
     # -configuration Release + CODE_SIGN_IDENTITY="Apple Distribution" forces
     # distribution signing so Xcode requests an App Store provisioning profile
     # (not a Development one, which would need a per-machine dev cert).
-    %(-configuration Release -allowProvisioningUpdates -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
+    %(-configuration Release -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath "#{auth_key_path}" -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer_id} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution")
   end
 
   def export_options_for_signing

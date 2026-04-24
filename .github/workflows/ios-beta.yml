@@ -95,7 +95,85 @@ jobs:
         run: npx cap sync ios
 
       - name: Run Fastlane beta lane
-        run: bundle exec fastlane ios beta
+        id: fastlane_beta
+        env:
+          FASTLANE_VERBOSE: "1"
+          # Surface full backtraces from Fastlane / Ruby on failure.
+          FASTLANE_DISABLE_COLORS: "1"
+        run: bundle exec fastlane ios beta --verbose
+
+      - name: Dump Fastlane diagnostics on failure
+        if: failure() && steps.fastlane_beta.conclusion == 'failure'
+        run: |
+          echo "::group::Fastlane lane context"
+          echo "Repo:           ${GITHUB_REPOSITORY}"
+          echo "Ref:            ${GITHUB_REF}"
+          echo "SHA:            ${GITHUB_SHA}"
+          echo "Run ID:         ${GITHUB_RUN_ID} (attempt ${GITHUB_RUN_ATTEMPT})"
+          echo "Runner:         ${RUNNER_OS} ${RUNNER_ARCH}"
+          echo "Working dir:    $(pwd)"
+          echo "Xcode:          $(xcodebuild -version 2>&1 | tr '\n' ' ' || true)"
+          echo "Ruby:           $(ruby -v || true)"
+          echo "Bundler:        $(bundle -v || true)"
+          echo "Fastlane:       $(bundle exec fastlane --version 2>&1 | tail -n 5 || true)"
+          echo "CocoaPods:      $(pod --version || true)"
+          echo "Node:           $(node -v || true)"
+          echo "::endgroup::"
+
+          echo "::group::fastlane/ tree"
+          ls -la fastlane/ 2>/dev/null || echo "(no fastlane/ dir)"
+          echo "::endgroup::"
+
+          echo "::group::Fastlane lanes"
+          bundle exec fastlane lanes 2>&1 || true
+          echo "::endgroup::"
+
+          echo "::group::Fastlane env (sanitized)"
+          bundle exec fastlane env 2>&1 \
+            | sed -E 's/(KEY|TOKEN|PASSWORD|SECRET|AUTHORIZATION)[^ ]*/\1=***REDACTED***/gi' \
+            || true
+          echo "::endgroup::"
+
+          echo "::group::gym build log (tail)"
+          GYM_LOG="$HOME/Library/Logs/gym"
+          if [ -d "$GYM_LOG" ]; then
+            LATEST=$(ls -t "$GYM_LOG"/*.log 2>/dev/null | head -n 1)
+            if [ -n "$LATEST" ]; then
+              echo "Showing last 400 lines of $LATEST"
+              tail -n 400 "$LATEST"
+            else
+              echo "(no gym logs found in $GYM_LOG)"
+            fi
+          else
+            echo "(no $GYM_LOG directory)"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::xcodebuild raw logs (tail)"
+          XCODE_LOG_DIR="$HOME/Library/Developer/Xcode/DerivedData"
+          if [ -d "$XCODE_LOG_DIR" ]; then
+            find "$XCODE_LOG_DIR" -name '*.xcactivitylog' -type f 2>/dev/null \
+              | head -n 3 \
+              | while read -r f; do
+                  echo "Activity log: $f"
+                done
+          else
+            echo "(no DerivedData directory)"
+          fi
+          echo "::endgroup::"
+
+      - name: Upload Fastlane & gym logs
+        if: failure() && steps.fastlane_beta.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            ~/Library/Logs/gym/**
+            ~/Library/Logs/fastlane/**
+            fastlane/report.xml
+            build/**/*.log
 
       - name: Cleanup signing material
         if: always()

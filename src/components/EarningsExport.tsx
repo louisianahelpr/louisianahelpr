@@ -11,8 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF + jspdf-autotable are ~450KB combined; load only when user clicks PDF export.
+import type jsPDFType from "jspdf";
 
 interface EarningsExportProps {
   helperId: string;
@@ -35,7 +35,7 @@ interface ExportRow {
 type RangeMode = "month" | "ytd" | "custom";
 
 type CSVValue = string | number | null | undefined;
-type JsPDFWithAutoTable = jsPDF & { lastAutoTable?: { finalY?: number } };
+type JsPDFWithAutoTable = jsPDFType & { lastAutoTable?: { finalY?: number } };
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Export failed";

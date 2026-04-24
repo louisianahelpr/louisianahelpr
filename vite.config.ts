@@ -64,14 +64,14 @@ export default defineConfig(({ mode }) => ({
     }),
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      react: reactEntry,
-      "react-dom": reactDomEntry,
-      "react-dom/client": reactDomClientEntry,
-      "react/jsx-runtime": reactJsxRuntimeEntry,
-      "react/jsx-dev-runtime": reactJsxDevRuntimeEntry,
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: /^react$/, replacement: reactEntry },
+      { find: /^react-dom$/, replacement: reactDomEntry },
+      { find: /^react-dom\/client$/, replacement: reactDomClientEntry },
+      { find: /^react\/jsx-runtime$/, replacement: reactJsxRuntimeEntry },
+      { find: /^react\/jsx-dev-runtime$/, replacement: reactJsxDevRuntimeEntry },
+    ],
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   // Force Vite to pre-bundle React and any libs that consume React hooks

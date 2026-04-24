@@ -52,13 +52,20 @@
       />
     </noscript>
 
-    <!-- Preload LCP hero image so the browser fetches it before React mounts -->
+    <!-- Preload LCP hero image so the browser fetches it before React mounts.
+         imagesrcset/imagesizes mirror the <img> in HeroSection so mobile fetches
+         the 500w variant (~54KB) instead of the 900w (~128KB). -->
     <link
       rel="preload"
       as="image"
-      href="/src/assets/hero-illustration-v6-900.webp"
+      href="/src/assets/hero-illustration-v6-500.webp"
+      imagesrcset="/src/assets/hero-illustration-v6-500.webp 500w, /src/assets/hero-illustration-v6-600.webp 600w, /src/assets/hero-illustration-v6-900.webp 900w"
+      imagesizes="(max-width: 767px) 90vw, (max-width: 1023px) 45vw, 500px"
       fetchpriority="high"
     />
+
+    <!-- Preconnect to Sentry (saves ~300ms LCP per Lighthouse) -->
+    <link rel="preconnect" href="https://o4511265714601984.ingest.us.sentry.io" crossorigin />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://louisianahelpr.com" />

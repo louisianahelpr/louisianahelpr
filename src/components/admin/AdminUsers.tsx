@@ -17,6 +17,7 @@ import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert,
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
+import { report } from "@/lib/errorLogger";
 import AdminUserNotes from "./AdminUserNotes";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -432,7 +433,7 @@ const AdminUsers = () => {
       // Send approval email
       supabase.functions.invoke("send-account-status-email", {
         body: { userId: profile.user_id, status: "approved" },
-      }).catch((err) => console.error("Failed to send approval email:", err));
+      }).catch((err) => report(err, { tags: { source: "AdminUsers.sendApprovalEmail" } }));
       loadProfiles();
       setViewProfile(null);
     }
@@ -455,7 +456,7 @@ const AdminUsers = () => {
       loadProfiles();
     } catch (err: any) {
       toast.error("Failed to resend email");
-      console.error(err);
+      report(err, { tags: { source: "AdminUsers.resendApprovalEmail" } });
     } finally {
       setResending(null);
     }
@@ -485,7 +486,7 @@ const AdminUsers = () => {
       // Send denial email
       supabase.functions.invoke("send-account-status-email", {
         body: { userId: denyProfile.user_id, status: "denied", reason: denyReason.trim() },
-      }).catch((err) => console.error("Failed to send denial email:", err));
+      }).catch((err) => report(err, { tags: { source: "AdminUsers.sendDenialEmail" } }));
       loadProfiles();
       setDenyProfile(null);
       setDenyReason("");
@@ -534,7 +535,7 @@ const AdminUsers = () => {
       loadProfiles();
     } catch (err: any) {
       toast.error("Failed to resend email");
-      console.error(err);
+      report(err, { tags: { source: "AdminUsers.resendDenialEmail" } });
     } finally {
       setResending(null);
     }
@@ -552,7 +553,7 @@ const AdminUsers = () => {
       loadProfiles();
     } catch (err: any) {
       toast.error(err.message || "Failed to resend verification email");
-      console.error(err);
+      report(err, { tags: { source: "AdminUsers.resendVerificationEmail" } });
     } finally {
       setResending(null);
     }

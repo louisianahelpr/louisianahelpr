@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 export const logAdminAction = async (
   action: string,
@@ -18,6 +19,6 @@ export const logAdminAction = async (
       details,
     });
   } catch (e) {
-    console.error("Audit log failed:", e);
+    report(e, { tags: { source: "logAdminAction" } });
   }
 };

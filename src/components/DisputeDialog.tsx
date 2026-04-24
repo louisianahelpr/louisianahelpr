@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
 
 const DISPUTE_REASONS = [
   { value: "work_not_done", label: "Work was not done" },
@@ -65,7 +66,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         const path = `disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
         if (uploadError) {
-          console.error("Upload error:", uploadError);
+          report(uploadError, { tags: { source: "DisputeDialog.uploadEvidence" } });
           continue;
         }
         const { data: urlData } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);

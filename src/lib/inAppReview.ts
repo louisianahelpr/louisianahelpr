@@ -10,6 +10,7 @@
 
 import { isNativePlatform } from "./nativeInit";
 import { safeStorage } from "./safeStorage";
+import { report } from "./errorLogger";
 
 const STORAGE_KEY = "helpr_in_app_review_last";
 const COOLDOWN_DAYS = 90;
@@ -37,6 +38,6 @@ export async function maybeRequestInAppReview(opts?: { force?: boolean }) {
     safeStorage.setItem(STORAGE_KEY, String(Date.now()));
   } catch (e) {
     // Never let a review prompt failure break the app.
-    console.warn("[inAppReview] requestReview failed", e);
+    report(e, { severity: "warning", tags: { source: "inAppReview.requestReview" } });
   }
 }

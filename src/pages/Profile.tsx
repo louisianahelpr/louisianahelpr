@@ -838,20 +838,24 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* EXTRACTED TAB COMPONENTS */}
+          {/* EXTRACTED TAB COMPONENTS — lazy loaded */}
           {tab === "earnings" && user && (
-            <EarningsTab
-              earningsJobs={earningsJobs}
-              tips={tips}
-              loading={earningsLoading}
-              onBack={() => setTab("landing")}
-              helperId={user.id}
-              helperName={profile?.full_name || user.email || "Helpr"}
-            />
+            <Suspense fallback={<TabFallback />}>
+              <EarningsTab
+                earningsJobs={earningsJobs}
+                tips={tips}
+                loading={earningsLoading}
+                onBack={() => setTab("landing")}
+                helperId={user.id}
+                helperName={profile?.full_name || user.email || "Helpr"}
+              />
+            </Suspense>
           )}
 
           {tab === "schedule" && user && (
-            <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "payment" && (

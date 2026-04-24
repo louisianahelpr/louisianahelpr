@@ -94,8 +94,30 @@ jobs:
         # to wire up native plugins.
         run: npx cap sync ios
 
+      - name: Verify Fastlane workspace and required secrets
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -e
+          echo "Workspace: $(pwd)"
+          test -d fastlane || (echo "::error::Missing fastlane/ directory at repo root" && exit 1)
+          test -f fastlane/Fastfile || (echo "::error::Missing fastlane/Fastfile at repo root" && exit 1)
+          echo "fastlane/ contents:"
+          ls -la fastlane
+
+          missing=()
+          test -n "$ASC_KEY_ID" || missing+=("ASC_KEY_ID")
+          test -n "$ASC_ISSUER_ID" || missing+=("ASC_ISSUER_ID")
+          test -n "$ASC_KEY_CONTENT" || missing+=("ASC_KEY_CONTENT")
+          test -n "$DEVELOPER_TEAM_ID" || missing+=("DEVELOPER_TEAM_ID")
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required GitHub secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - name: Run Fastlane beta lane
         id: fastlane_beta
+        working-directory: ${{ github.workspace }}
         env:
           FASTLANE_VERBOSE: "1"
           # Surface full backtraces from Fastlane / Ruby on failure.
@@ -104,6 +126,7 @@ jobs:
 
       - name: Dump Fastlane diagnostics on failure
         if: failure() && steps.fastlane_beta.conclusion == 'failure'
+        working-directory: ${{ github.workspace }}
         run: |
           echo "::group::Fastlane lane context"
           echo "Repo:           ${GITHUB_REPOSITORY}"

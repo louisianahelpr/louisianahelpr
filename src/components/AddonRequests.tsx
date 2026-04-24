@@ -32,6 +32,14 @@ export function AddonRequests({
   const [cost, setCost] = useState("");
 
   useEffect(() => {
+    const loadAddons = async () => {
+      const { data } = await supabase
+        .from("addon_requests")
+        .select("*")
+        .eq("job_id", jobId)
+        .order("created_at");
+      if (data) setAddons(data as unknown as Addon[]);
+    };
     loadAddons();
   }, [jobId]);
 

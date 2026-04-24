@@ -226,7 +226,23 @@ const Dashboard = () => {
       toast.success("Application sent! Track it in My Jobs.", {
         action: { label: "View", onClick: () => navigate("/my-jobs") },
       });
-      refresh();
+      // Invalidate every cache that may show this job/application so any open
+      // screen (Dashboard, My Jobs, future Activity-as-Query) updates in sync.
+      // Predicate match catches keys like ["dashboardJobs", userId],
+      // ["applications", ...], ["jobs", jobId], etc. without needing each
+      // caller to know the exact shape.
+      await Promise.all([
+        queryClient.invalidateQueries({
+          predicate: (q) => {
+            const k = q.queryKey?.[0];
+            return k === "dashboardJobs"
+              || k === "dashboardContext"
+              || k === "applications"
+              || k === "jobs"
+              || k === "activity";
+          },
+        }),
+      ]);
     }
     setConfirmApplyJobId(null);
     setApplyLoading(false);

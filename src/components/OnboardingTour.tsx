@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { X, ArrowRight, ArrowLeft, CheckCircle2, Briefcase, User, MessageCircle, Search, Sparkles } from "lucide-react";
+import { safeStorage } from "@/lib/safeStorage";
 
 type TourStep = {
   id: string;
@@ -64,14 +65,14 @@ type OnboardingState = {
 
 const getState = (): OnboardingState => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return { completed: false, currentStep: 0, completedSteps: [] };
 };
 
 const saveState = (state: OnboardingState) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
 interface OnboardingTourProps {
@@ -226,7 +227,7 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
 // Small hook to restart tour from settings/profile
 export const useOnboardingTour = () => {
   const restart = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    safeStorage.removeItem(STORAGE_KEY);
     window.location.reload();
   };
   const isCompleted = () => getState().completed;

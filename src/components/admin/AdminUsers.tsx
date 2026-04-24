@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { safeStorage } from "@/lib/safeStorage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Star, FileText, Ban, AlertTriangle, ShieldAlert, Clock, MailIcon, RefreshCw, Eye, MousePointerClick, Pencil, Trash2, ShieldCheck, Camera, KeyRound, MessageSquareWarning, History, MessageCircle, User as UserIcon, Briefcase, MapPin, CreditCard, Flag, DollarSign } from "lucide-react";
@@ -100,11 +101,11 @@ const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDir, setSortDir] = useState<"desc" | "asc" | "alpha" | "standing_worst" | "standing_best" | "pay_high" | "pay_low" | "joined_new" | "joined_old" | "never_logged_in">("alpha");
 
-  // Track which user IDs the admin has already seen (per tab category) — persisted in localStorage
+  // Track which user IDs the admin has already seen (per tab category) — persisted in storage
   const SEEN_KEY = "admin_seen_user_ids_v1";
   const [seenUserIds, setSeenUserIds] = useState<Set<string>>(() => {
     try {
-      const raw = localStorage.getItem(SEEN_KEY);
+      const raw = safeStorage.getItem(SEEN_KEY);
       return new Set<string>(raw ? JSON.parse(raw) : []);
     } catch {
       return new Set<string>();
@@ -124,7 +125,7 @@ const AdminUsers = () => {
       }
       if (changed) {
         try {
-          localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(next)));
+          safeStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(next)));
         } catch {}
       }
       return next;

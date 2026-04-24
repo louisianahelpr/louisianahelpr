@@ -6,24 +6,28 @@
  *   helpr_last_seen_at              → ISO timestamp, refreshed on every app open
  *
  * The 30-day re-engagement banner shows when last_seen_at > 30 days ago.
+ *
+ * Routed through safeStorage so iOS WebKit eviction doesn't reset state.
  */
+import { safeStorage } from "@/lib/safeStorage";
+
 const COMPLETED_KEY = "helpr_onboarding_completed_at";
 const LAST_SEEN_KEY = "helpr_last_seen_at";
 
 export function isOnboardingComplete(): boolean {
-  return Boolean(localStorage.getItem(COMPLETED_KEY));
+  return Boolean(safeStorage.getItem(COMPLETED_KEY));
 }
 
 export function markOnboardingComplete() {
-  localStorage.setItem(COMPLETED_KEY, new Date().toISOString());
+  safeStorage.setItem(COMPLETED_KEY, new Date().toISOString());
 }
 
 export function recordAppOpen() {
-  localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
+  safeStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
 }
 
 export function daysSinceLastSeen(): number {
-  const raw = localStorage.getItem(LAST_SEEN_KEY);
+  const raw = safeStorage.getItem(LAST_SEEN_KEY);
   if (!raw) return 0;
   const last = new Date(raw).getTime();
   if (isNaN(last)) return 0;

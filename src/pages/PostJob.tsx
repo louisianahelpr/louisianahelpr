@@ -21,6 +21,7 @@ import { categoryPricing } from "@/lib/pricingGuide";
 import { track, AhaEvent } from "@/lib/analytics";
 import { compressImage } from "@/lib/imageCompression";
 import { lookupParishByZip } from "@/lib/parishLookup";
+import { safeStorage } from "@/lib/safeStorage";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -278,7 +279,7 @@ const PostJob = () => {
     if (submittingRef.current || saving) return;
 
     // Cooldown check
-    const lastSubmit = localStorage.getItem(COOLDOWN_KEY);
+    const lastSubmit = safeStorage.getItem(COOLDOWN_KEY);
     if (lastSubmit && Date.now() - parseInt(lastSubmit) < COOLDOWN_MS) {
       toast.error("Please wait before posting another job. You recently submitted one.");
       return;
@@ -364,7 +365,7 @@ const PostJob = () => {
     }
 
     // Set cooldown timestamp immediately after successful insert
-    localStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+    safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
 
     // Funnel: track job posted (and first ever for activation)
     track(AhaEvent.JobPosted, {
@@ -412,7 +413,7 @@ const PostJob = () => {
       if (hasError) {
         // Delete the job since payment setup failed — don't leave orphan jobs
         await supabase.from("jobs").delete().eq("id", jobData.id);
-        localStorage.removeItem(COOLDOWN_KEY);
+        safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
         setStep("checkout");
@@ -426,7 +427,7 @@ const PostJob = () => {
       console.error("Payment invoke error:", err);
       // Delete the job since payment setup failed
       await supabase.from("jobs").delete().eq("id", jobData.id);
-      localStorage.removeItem(COOLDOWN_KEY);
+      safeStorage.removeItem(COOLDOWN_KEY);
       toast.error("Payment setup failed. Please try again.");
       setSaving(false);
       setStep("checkout");

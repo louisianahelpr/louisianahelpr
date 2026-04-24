@@ -18,6 +18,7 @@
  * App Store Connect, add the test ID + treatment IDs Apple issues you here.
  */
 import { track, AhaEvent } from "@/lib/analytics";
+import { safeStorage } from "@/lib/safeStorage";
 
 export type PpoTestId = "trust" | "visual" | "local";
 export type PpoArm = "control" | "treatment";
@@ -119,8 +120,8 @@ export function recordPpoAttribution(search: string): PpoAttribution | null {
   if (!attribution) return null;
 
   try {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(attribution));
+    if (!safeStorage.getItem(STORAGE_KEY)) {
+      safeStorage.setItem(STORAGE_KEY, JSON.stringify(attribution));
       track(AhaEvent.AppOpenedFromDeepLink, {
         source: "ppo",
         ppo_test_id: attribution.testId,
@@ -142,7 +143,7 @@ export function recordPpoAttribution(search: string): PpoAttribution | null {
  */
 export function getPpoAttribution(): PpoAttribution | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as PpoAttribution;
   } catch {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, BellOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isPushSupported, requestPushPermission, registerServiceWorker } from "@/lib/pushNotifications";
+import { safeStorage } from "@/lib/safeStorage";
 
 export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);
@@ -15,7 +16,7 @@ export const PushNotificationPrompt = () => {
 
     // Show prompt if permission hasn't been decided and user hasn't dismissed it
     if (currentPermission === "default") {
-      const dismissed = localStorage.getItem("push-prompt-dismissed");
+      const dismissed = safeStorage.getItem("push-prompt-dismissed");
       if (!dismissed) {
         // Delay showing to not overwhelm on first load
         const timer = setTimeout(() => setShow(true), 3000);
@@ -32,7 +33,7 @@ export const PushNotificationPrompt = () => {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem("push-prompt-dismissed", "true");
+    safeStorage.setItem("push-prompt-dismissed", "true");
     setShow(false);
   };
 

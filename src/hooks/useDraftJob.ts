@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { safeStorage } from "@/lib/safeStorage";
 
 const DRAFT_KEY = "helpr_draft_job";
 
@@ -37,7 +38,7 @@ export function useDraftJob() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_KEY);
+      const saved = safeStorage.getItem(DRAFT_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as JobDraft;
         // Only restore if less than 7 days old
@@ -45,7 +46,7 @@ export function useDraftJob() {
           setDraft(parsed);
           setHasDraft(true);
         } else {
-          localStorage.removeItem(DRAFT_KEY);
+          safeStorage.removeItem(DRAFT_KEY);
         }
       }
     } catch { /* ignore */ }
@@ -55,13 +56,13 @@ export function useDraftJob() {
     const updated = { ...draft, ...data, savedAt: Date.now() };
     setDraft(updated);
     setHasDraft(true);
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    try { safeStorage.setItem(DRAFT_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
   }, [draft]);
 
   const clearDraft = useCallback(() => {
     setDraft(emptyDraft);
     setHasDraft(false);
-    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    try { safeStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
   }, []);
 
   return { draft, hasDraft, saveDraft, clearDraft };

@@ -15,6 +15,7 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useEffect } from "react";
+import { safeStorage } from "@/lib/safeStorage";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -256,7 +257,7 @@ const Signup = () => {
     setLoading(true);
 
     // Rate limiting
-    const lastAttempt = parseInt(localStorage.getItem(SIGNUP_COOLDOWN_KEY) || "0", 10);
+    const lastAttempt = parseInt(safeStorage.getItem(SIGNUP_COOLDOWN_KEY) || "0", 10);
     const elapsed = Date.now() - lastAttempt;
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
@@ -264,7 +265,7 @@ const Signup = () => {
       setLoading(false);
       return;
     }
-    localStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
+    safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
     try {
       // HIBP breached-password check (k-anonymity, fail-open on network error)

@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { shouldShowReengagement, recordAppOpen, daysSinceLastSeen } from "@/lib/onboardingState";
+import { safeStorage } from "@/lib/safeStorage";
 
 const DISMISSED_KEY = "helpr_reengagement_dismissed_at";
 
@@ -16,7 +17,7 @@ export function ReengagementCard() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const dismissedAt = localStorage.getItem(DISMISSED_KEY);
+    const dismissedAt = safeStorage.getItem(DISMISSED_KEY);
     const recentlyDismissed =
       dismissedAt && Date.now() - new Date(dismissedAt).getTime() < 30 * 24 * 60 * 60 * 1000;
     if (shouldShowReengagement() && !recentlyDismissed) {
@@ -31,7 +32,7 @@ export function ReengagementCard() {
   const days = daysSinceLastSeen();
 
   const dismiss = () => {
-    localStorage.setItem(DISMISSED_KEY, new Date().toISOString());
+    safeStorage.setItem(DISMISSED_KEY, new Date().toISOString());
     setShow(false);
   };
 

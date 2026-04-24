@@ -1,4 +1,6 @@
 require "base64"
+require "json"
+require "openssl"
 require "tmpdir"
 
 # Helpr — iOS App Store automation
@@ -32,24 +34,54 @@ def changelog_text
   File.exist?(CHANGELOG_PATH) ? File.read(CHANGELOG_PATH) : "Bug fixes and improvements."
 end
 
+def extract_key_payload(raw_value)
+  normalized = raw_value.to_s.strip.sub(/\A["']/, "").sub(/["']\z/, "")
+  return normalized unless normalized.start_with?("{")
+
+  parsed = JSON.parse(normalized)
+  %w[key_content key private_key p8 api_key].each do |field|
+    value = parsed[field].to_s.strip
+    return value unless value.empty?
+  end
+
+  normalized
+rescue JSON::ParserError
+  normalized
+end
+
+def valid_private_key_content?(value)
+  return false if value.to_s.empty? || value.include?("\x00")
+  return false unless value.include?("BEGIN PRIVATE KEY") && value.include?("END PRIVATE KEY")
+
+  OpenSSL::PKey.read(value)
+  true
+rescue OpenSSL::PKey::PKeyError, ArgumentError
+  false
+end
+
 def normalized_asc_key_content
-  raw_key_content = (ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"]).to_s.strip
+  raw_key_content = extract_key_payload(ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"])
   return "" if raw_key_content.empty?
 
-  key_content = if raw_key_content.include?("BEGIN PRIVATE KEY") && raw_key_content.include?("\\n")
-    raw_key_content.gsub("\\n", "\n")
-  else
-    raw_key_content
+  candidates = []
+  candidates << raw_key_content
+  candidates << raw_key_content.gsub("\\n", "\n") if raw_key_content.include?("\\n")
+
+  compact_base64 = raw_key_content.gsub(/\s+/, "")
+  if !compact_base64.empty? && !raw_key_content.include?("BEGIN PRIVATE KEY")
+    begin
+      candidates << Base64.strict_decode64(compact_base64)
+    rescue ArgumentError
+      nil
+    end
   end
 
-  return key_content if key_content.include?("BEGIN PRIVATE KEY")
-
-  decoded_key = Base64.decode64(key_content)
-  unless decoded_key.include?("BEGIN PRIVATE KEY")
-    UI.user_error!("ASC_KEY_CONTENT/ASC_KEY is invalid. Provide raw .p8 text, PEM text with escaped newlines, or base64-encoded .p8 content.")
+  candidates.each do |candidate|
+    normalized = candidate.to_s.delete_prefix("\uFEFF").strip
+    return normalized if valid_private_key_content?(normalized)
   end
 
-  decoded_key
+  UI.user_error!("ASC_KEY_CONTENT/ASC_KEY is invalid. Provide raw .p8 text, PEM text with escaped newlines, a base64-encoded .p8 content string, or a JSON secret containing one of: key_content, key, private_key, p8, api_key.")
 end
 
 def xcodebuild_auth_key_path
@@ -81,8 +113,7 @@ def asc_api_key
   }
 
   if !key_content.empty?
-    params[:key_content]           = key_content
-    params[:is_key_content_base64] = false
+    params[:key_filepath] = xcodebuild_auth_key_path
   elsif ENV["ASC_KEY_PATH"] && File.exist?(ENV["ASC_KEY_PATH"])
     params[:key_filepath] = ENV["ASC_KEY_PATH"]
   else

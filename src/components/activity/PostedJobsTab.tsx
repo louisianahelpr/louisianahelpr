@@ -629,9 +629,20 @@ export const PostedJobsTab = ({
               </div>
               )}
             </div>
-          );
-        })}
-      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <VirtualList
+        items={jobs}
+        getKey={(job) => job.id}
+        estimateSize={260}
+        overscan={4}
+        className="space-y-0"
+        itemClassName="pb-3"
+        renderItem={(job) => renderJobCard(job)}
+      />
 
       {/* Applicants full-screen view */}
       {selectedJob && (

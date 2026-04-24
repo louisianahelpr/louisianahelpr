@@ -1,0 +1,50 @@
+name: Security Audit
+
+# Scans dependencies for known CVEs. Apple's review process flags apps that
+# ship with vulnerable libraries, so we want to catch these before submission.
+#
+# Runs:
+# - Weekly on Mondays (catches newly-disclosed CVEs in existing deps)
+# - On every PR that touches package.json (catches regressions from new deps)
+# - Manually via workflow_dispatch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+  schedule:
+    - cron: "0 8 * * 1" # Monday 08:00 UTC
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: npm audit (high + critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run npm audit (high+critical only)
+        # Exits non-zero only on high/critical findings.
+        # Moderate/low findings are reported but don't fail the build.
+        run: |
+          echo "::group::Full audit report"
+          npm audit --audit-level=low || true
+          echo "::endgroup::"
+          echo ""
+          echo "::group::High + critical findings (these fail the build)"
+          npm audit --audit-level=high
+          echo "::endgroup::"

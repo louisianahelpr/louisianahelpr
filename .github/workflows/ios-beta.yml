@@ -20,24 +20,24 @@ jobs:
       # (checkout, setup-node, etc.) so they don't trip on the EOL Node 20 runtime.
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      # ─── Fastlane / App Store Connect API key ────────────────────────────────
-      # Configure these as GitHub Actions repo secrets:
-      #   ASC_KEY_ID            — 10-char Key ID from App Store Connect
-      #   ASC_ISSUER_ID         — Issuer UUID from App Store Connect
-      #   ASC_KEY_CONTENT       — base64-encoded contents of the AuthKey_*.p8 file
-      #   DEVELOPER_TEAM_ID     — 10-char Apple Developer Team ID (P85MCK558V for Helpr)
-      #   FASTLANE_APPLE_ID     — Apple ID email signed in to Xcode
-      #   MATCH_PASSWORD        — passphrase for fastlane match (if Fastfile uses match)
-      #   MATCH_GIT_URL         — private git repo URL with signing certs (if using match)
-      #   MATCH_GIT_BASIC_AUTHORIZATION — base64("user:PAT") for HTTPS match repo access
+      # ─── App Store Connect API key (already configured as repo secrets) ──────
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      ASC_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
+      ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
       DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
       FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+
+      # ─── Fastlane match (signing certs + profiles in a private Git repo) ─────
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      # For HTTPS match repos: base64("username:personal_access_token")
+      # For SSH match repos: leave unset and provide MATCH_DEPLOY_KEY instead.
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      # Ephemeral keychain so we don't pollute the runner's default keychain.
+      MATCH_KEYCHAIN_NAME: fastlane_tmp_keychain
+      MATCH_KEYCHAIN_PASSWORD: ${{ github.run_id }}
+      MATCH_READONLY: "true"
+
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"
       LC_ALL: en_US.UTF-8
@@ -59,49 +59,26 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
+      - name: Configure SSH for fastlane match (if using SSH repo)
+        # Only runs when a MATCH_DEPLOY_KEY secret is provided. For HTTPS match
+        # repos this is skipped and MATCH_GIT_BASIC_AUTHORIZATION is used instead.
+        if: ${{ secrets.MATCH_DEPLOY_KEY != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MATCH_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Build web bundle
         run: npm run build
 
-      - name: Generate iOS native project (if missing)
-        # ios/App/ is gitignored per ios/README.md — recreate it in CI from
-        # the repo's stub config files (PrivacyInfo.xcprivacy, App.entitlements).
-        run: |
-          if [ ! -d ios/App ]; then
-            echo "ios/App/ missing — preserving repo stubs and generating native project..."
-            mkdir -p /tmp/ios-stubs
-            [ -f ios/App.entitlements ] && mv ios/App.entitlements /tmp/ios-stubs/
-            [ -f ios/PrivacyInfo.xcprivacy ] && mv ios/PrivacyInfo.xcprivacy /tmp/ios-stubs/
-            [ -f ios/README.md ] && mv ios/README.md /tmp/ios-stubs/
-            rm -rf ios
-            npx cap add ios
-            if [ -f /tmp/ios-stubs/PrivacyInfo.xcprivacy ]; then
-              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
-              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/PrivacyInfo.xcprivacy
-            fi
-            if [ -f /tmp/ios-stubs/App.entitlements ]; then
-              cp /tmp/ios-stubs/App.entitlements ios/App/App/App.entitlements
-              cp /tmp/ios-stubs/App.entitlements ios/App.entitlements
-            fi
-            [ -f /tmp/ios-stubs/README.md ] && cp /tmp/ios-stubs/README.md ios/README.md || true
-          fi
-
       - name: Sync Capacitor → iOS
+        # ios/App/ is committed to the repo, so cap sync just refreshes the web
+        # bundle and updates native plugin pods.
         run: npx cap sync ios
-
-      - name: Decode App Store Connect API key
-        # Fastlane needs the .p8 on disk. Store the file's contents base64-encoded
-        # in the ASC_KEY_CONTENT secret (e.g. `base64 -i AuthKey_XXXX.p8 | pbcopy`).
-        run: |
-          if [ -z "${{ secrets.ASC_KEY_CONTENT }}" ]; then
-            echo "❌ Missing required secret: ASC_KEY_CONTENT"
-            echo "   Add it under Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-          echo "${{ secrets.ASC_KEY_CONTENT }}" | base64 --decode > "$ASC_KEY_PATH"
-          chmod 600 "$ASC_KEY_PATH"
 
       - name: Run Fastlane beta lane
         working-directory: ios/App
@@ -110,5 +87,5 @@ jobs:
       - name: Cleanup signing material
         if: always()
         run: |
-          rm -f "$ASC_KEY_PATH"
           security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
+          rm -f ~/.ssh/id_ed25519 2>/dev/null || true

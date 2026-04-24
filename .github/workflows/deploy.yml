@@ -117,7 +117,11 @@ jobs:
   deploy:
     name: Build & upload via Fastlane
     needs: quality
-    runs-on: macos-14
+    # macos-15 ships Xcode 16 (Swift 6.x), required by Capacitor 8 plugins.
+    # Capacitor 8 was compiled with Swift 6.2 features that don't exist in
+    # Xcode 15.4 / Swift 5.10, causing "no member 'webView'" errors on SPM builds.
+    # See: https://github.com/ionic-team/capacitor/issues/8333
+    runs-on: macos-15
     timeout-minutes: 90
 
     env:
@@ -184,8 +188,19 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: true
 
-      - name: Select Xcode 15
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      - name: Select Xcode 16
+        # macos-15 runners include Xcode 16.x. Pick the highest available
+        # so Capacitor 8 SPM builds get Swift 6.x features they require.
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            echo "❌ No Xcode 16.x found on runner. Available:"
+            ls -d /Applications/Xcode*.app 2>/dev/null
+            exit 1
+          fi
+          echo "▶ Selecting $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH"
+          xcodebuild -version
 
       # ─── Web + Capacitor build ─────────────────────────────────────────────
       - name: Install npm deps

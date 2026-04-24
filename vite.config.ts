@@ -1,8 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { createRequire } from "module";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+const require = createRequire(import.meta.url);
+const reactEntry = require.resolve("react");
+const reactDomEntry = require.resolve("react-dom");
+const reactDomClientEntry = require.resolve("react-dom/client");
+const reactJsxRuntimeEntry = require.resolve("react/jsx-runtime");
+const reactJsxDevRuntimeEntry = require.resolve("react/jsx-dev-runtime");
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -58,6 +66,11 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      react: reactEntry,
+      "react-dom": reactDomEntry,
+      "react-dom/client": reactDomClientEntry,
+      "react/jsx-runtime": reactJsxRuntimeEntry,
+      "react/jsx-dev-runtime": reactJsxDevRuntimeEntry,
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
@@ -69,7 +82,9 @@ export default defineConfig(({ mode }) => ({
     include: [
       "react",
       "react-dom",
+      "react-dom/client",
       "react/jsx-runtime",
+      "react/jsx-dev-runtime",
       "@sentry/react",
       "@radix-ui/react-tooltip",
     ],

@@ -36,6 +36,12 @@ export default defineConfig(({ mode }) => ({
         globIgnores: [
           "**/assets/charts-*.js",
           "**/assets/Admin*-*.js",
+          // framer-motion is only used inside Dashboard / Community and a few
+          // dialogs that mount post-login. The landing page has zero motion
+          // imports, but the SW would otherwise fetch this 42 KB chunk on the
+          // first visit and Lighthouse attributes the load + a misleading
+          // forced-reflow source to it. Defer the cache fetch to actual use.
+          "**/assets/motion-*.js",
         ],
         // Bump the per-file precache limit so the main bundle still fits.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

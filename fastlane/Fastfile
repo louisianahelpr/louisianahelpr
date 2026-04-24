@@ -37,11 +37,32 @@ def changelog_text
 end
 
 def ci_fallback_build_number
+  run_number = ENV["GITHUB_RUN_NUMBER"].to_s.strip
   run_id = ENV["GITHUB_RUN_ID"].to_s.strip
-  return "" if run_id.empty?
+  base_number = run_number.empty? ? run_id : run_number
+  return "" if base_number.empty?
 
   run_attempt = ENV.fetch("GITHUB_RUN_ATTEMPT", "1").to_s.strip
-  "#{run_id}#{run_attempt.rjust(2, "0")}"
+  "#{base_number}#{run_attempt.rjust(2, "0")}"
+end
+
+def ci_environment?
+  [ENV["CI"], ENV["GITHUB_ACTIONS"], ENV["GITHUB_RUN_ID"]].any? do |value|
+    normalized = value.to_s.strip.downcase
+    !normalized.empty? && normalized != "false" && normalized != "0"
+  end
+end
+
+def remote_latest_build_number(api_key, version)
+  latest_testflight_build_number(
+    api_key: api_key,
+    app_identifier: APP_ID,
+    version: version,
+    initial_build_number: 0
+  ).to_i
+rescue => e
+  UI.important("Could not read the latest remote TestFlight build number for version #{version}: #{e.message}")
+  nil
 end
 
 def next_build_number(api_key)
@@ -50,26 +71,26 @@ def next_build_number(api_key)
     target: SCHEME
   )
 
-  if ENV["CI"]
-    begin
-      latest_remote = latest_testflight_build_number(
-        api_key: api_key,
-        app_identifier: APP_ID,
-        version: version,
-        initial_build_number: 0
-      ).to_i
-      return latest_remote + 1
-    rescue => e
-      UI.important("Falling back to a synthetic CI build number because the latest remote build number could not be read for version #{version}: #{e.message}")
+  local_candidate = get_build_number(xcodeproj: PROJECT).to_i + 1
+  remote_candidate = remote_latest_build_number(api_key, version)
+  remote_candidate = remote_candidate ? remote_candidate + 1 : nil
+  ci_candidate = ci_environment? ? ci_fallback_build_number.to_i : nil
 
-      fallback = ci_fallback_build_number
-      return fallback.to_i unless fallback.empty?
-
-      return Time.now.utc.strftime("%Y%m%d%H%M%S").to_i
-    end
+  if remote_candidate || ci_candidate
+    candidates = [local_candidate, remote_candidate, ci_candidate].compact
+    chosen = candidates.max
+    UI.message("Using unique build number #{chosen} for version #{version} (local #{local_candidate}, remote #{remote_candidate || 'n/a'}, ci #{ci_candidate || 'n/a'})")
+    return chosen
   end
 
-  get_build_number(xcodeproj: PROJECT).to_i + 1
+  if ci_environment?
+    fallback = ci_fallback_build_number
+    return fallback.to_i unless fallback.empty?
+
+    return Time.now.utc.strftime("%Y%m%d%H%M%S").to_i
+  end
+
+  local_candidate
 end
 
 def set_next_build_number!(api_key)

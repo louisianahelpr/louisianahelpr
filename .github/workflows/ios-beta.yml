@@ -30,8 +30,7 @@ jobs:
       # ─── Fastlane match (signing certs + profiles in a private Git repo) ─────
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-      # For HTTPS match repos: base64("username:personal_access_token")
-      # For SSH match repos: leave unset and provide MATCH_DEPLOY_KEY instead.
+      # HTTPS auth for fastlane match: base64("username:personal_access_token")
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
       # Ephemeral keychain so we don't pollute the runner's default keychain.
       MATCH_KEYCHAIN_NAME: fastlane_tmp_keychain

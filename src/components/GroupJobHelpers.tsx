@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { Users, CheckCircle2, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 type GroupHelper = {

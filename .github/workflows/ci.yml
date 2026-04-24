@@ -34,12 +34,12 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Lint
-        run: npm run lint || true
-        continue-on-error: true
+        # Lint now passes cleanly (0 errors, ~720 warnings tracked as tech debt).
+        # No more `|| true` mask — real regressions will fail CI.
+        run: npm run lint
 
       - name: Type check
-        run: npx tsc -b --noEmit || true
-        continue-on-error: true
+        run: npx tsc -b --noEmit
 
       - name: Test
         run: npm test

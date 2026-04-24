@@ -23,7 +23,8 @@ jobs:
       # ─── App Store Connect API key (already configured as repo secrets) ──────
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+      # Accept either ASC_KEY_CONTENT (preferred) or ASC_KEY_BASE64 (legacy name).
+      ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT || secrets.ASC_KEY_BASE64 }}
       DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
       FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
 

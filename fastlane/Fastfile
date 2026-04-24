@@ -37,11 +37,13 @@ def changelog_text
 end
 
 def ci_fallback_build_number
+  run_number = ENV["GITHUB_RUN_NUMBER"].to_s.strip
   run_id = ENV["GITHUB_RUN_ID"].to_s.strip
-  return "" if run_id.empty?
+  base_number = run_number.empty? ? run_id : run_number
+  return "" if base_number.empty?
 
   run_attempt = ENV.fetch("GITHUB_RUN_ATTEMPT", "1").to_s.strip
-  "#{run_id}#{run_attempt.rjust(2, "0")}"
+  "#{base_number}#{run_attempt.rjust(2, "0")}"
 end
 
 def ci_environment?

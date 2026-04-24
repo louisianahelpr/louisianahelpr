@@ -170,10 +170,13 @@ const HeroSection = () => {
           {/* RIGHT: image */}
           <div className="relative animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center lg:justify-end">
             <div className="relative w-full max-w-md mx-auto">
+              {/* sizes is intentionally tight: the rendered display width is ~497px max
+                  (max-w-md = 28rem). Tells the browser to pick the 500w variant on mobile
+                  and 600w on tablet, instead of jumping to the full 900w (Lighthouse fix). */}
               <img
-                src={heroImg}
+                src={heroImg500}
                 srcSet={`${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`}
-                sizes="(max-width: 767px) 90vw, (max-width: 1023px) 45vw, 500px"
+                sizes="(max-width: 767px) 320px, (max-width: 1023px) 400px, 500px"
                 alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
                 className="w-full h-auto rounded-2xl shadow-xl object-contain"
                 loading="eager"

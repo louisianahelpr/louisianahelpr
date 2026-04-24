@@ -1,5 +1,4 @@
 import { useEffect, useState, forwardRef } from "react";
-import { motion } from "framer-motion";
 import { MapPin, Calendar, DollarSign, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,13 +55,7 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
   return (
     <section ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
       <div className="container mx-auto max-w-5xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12 animate-fade-in">
           <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-4">
             Live right now
           </div>
@@ -72,17 +65,14 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
           <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
             Real tasks posted by your Louisiana neighbors. Sign up to start helping or post your own.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {jobs.map((job, i) => (
-            <motion.div
+            <div
               key={job.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: i * 0.08 }}
-              className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all"
+              style={{ animationDelay: `${i * 80}ms` }}
+              className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all animate-fade-in opacity-0"
             >
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
@@ -119,7 +109,7 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
                   <span className="font-medium text-foreground">${job.budget}</span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 

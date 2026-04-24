@@ -526,7 +526,6 @@ const PriorityAlert = ({ label, count, color, onClick }: {
 const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
-  const userTrend = computeTrend(stats.newUsers7d, stats.newUsersPrev7d);
   const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (

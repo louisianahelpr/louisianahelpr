@@ -445,7 +445,7 @@ const PostJob = () => {
   const detailsComplete = !!(title.trim() && description.trim() && category);
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   const budgetComplete = !!(budget && parseFloat(budget) >= 5);
-  const sectionsCompleted = [detailsComplete, logisticsComplete, budgetComplete].filter(Boolean).length;
+  void [detailsComplete, logisticsComplete, budgetComplete];
 
   // Budget presets derived from category suggested range
   const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;

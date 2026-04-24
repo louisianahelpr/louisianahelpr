@@ -119,11 +119,10 @@ export const PostedJobsTab = ({
   onBoost, onEdit, onCancel, onComplete, completingJobId,
   onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
-  onAcceptApplication, onLoadInlineApplicants, inlineApplicants, loadingApplicants,
+  onAcceptApplication, onLoadInlineApplicants: _onLoadInlineApplicants,
+  inlineApplicants: _inlineApplicants, loadingApplicants: _loadingApplicants,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
-  void inlineApplicants;
-  void loadingApplicants;
 
   if (jobs.length === 0) {
     return (

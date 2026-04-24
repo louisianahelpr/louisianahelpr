@@ -94,7 +94,7 @@ const ProfilePage = () => {
   }, []);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [, setStripeConnectLoading] = useState(false);
-  const [, setStripeOnboarding] = useState(false);
+  
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
@@ -131,8 +131,6 @@ const ProfilePage = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Inline job lists on landing
-  const [, setShowPostedJobs] = useState(false);
-  const [, setShowCompletedJobs] = useState(false);
   const [inlinePostedJobs, setInlinePostedJobs] = useState<Job[]>([]);
   const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
   const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
@@ -295,18 +293,6 @@ const ProfilePage = () => {
     }
   };
 
-  const startStripeOnboarding = async () => {
-    setStripeOnboarding(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "onboard" } });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start payout setup");
-    } finally {
-      setStripeOnboarding(false);
-    }
-  };
 
   const loadEarnings = async () => {
     if (!user) return;

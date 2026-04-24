@@ -47,7 +47,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const {
     loading, postedJobs, appliedApps, applicantCounts,
     startRequestedJobIds, helperNames, completedJobMeta,
-    declinedJobIds, helperReviewedJobIds, refresh,
+    helperReviewedJobIds, refresh,
   } = useActivityData(user);
 
   // UI state
@@ -77,7 +77,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
 
-  const { checkHelperStripeConnect, checking: checkingStripe } = useStripeConnectCheck();
+  const { checkHelperStripeConnect } = useStripeConnectCheck();
   const [idvDialogOpen, setIdvDialogOpen] = useState(false);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
 

@@ -5,7 +5,7 @@ import {
   MapPin, Calendar, DollarSign, Flag, Star, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
-import { computeBadges } from "@/components/HelperBadges";
+
 import { categoryLabels } from "./JobFilters";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { getCityState } from "@/lib/locationUtils";

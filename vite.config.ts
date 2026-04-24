@@ -107,9 +107,20 @@ export default defineConfig(({ mode }) => ({
         // tiny per-icon files (HTTP overhead > byte savings).
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
+          // CRITICAL: Keep React, React DOM, scheduler and the JSX runtime
+          // together in ONE chunk. Splitting react-dom away from react (or
+          // letting Radix end up in a separate chunk that loads first)
+          // causes "Cannot read properties of null (reading 'useRef')"
+          // because React's internal dispatcher isn't initialized yet when
+          // a hook in another chunk runs.
+          if (
+            id.includes("/node_modules/react/") ||
+            id.includes("/node_modules/react-dom/") ||
+            id.includes("/node_modules/scheduler/")
+          ) {
+            return "react-vendor";
+          }
           if (id.includes("lucide-react")) return "lucide";
-          if (id.includes("@radix-ui")) return "radix";
-          if (id.includes("react-dom")) return "react-dom";
           if (id.includes("recharts") || id.includes("d3-")) return "charts";
           if (id.includes("framer-motion")) return "motion";
           if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";

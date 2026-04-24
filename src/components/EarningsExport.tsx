@@ -35,6 +35,7 @@ interface ExportRow {
 type RangeMode = "month" | "ytd" | "custom";
 
 type CSVValue = string | number | null | undefined;
+type JsPDFWithAutoTable = jsPDF & { lastAutoTable?: { finalY?: number } };
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Export failed";
@@ -213,7 +214,7 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
       },
     });
 
-    const finalY = doc.lastAutoTable?.finalY || 200;
+    const finalY = (doc as JsPDFWithAutoTable).lastAutoTable?.finalY || 200;
     doc.setFontSize(8);
     doc.setTextColor(100);
     doc.text(

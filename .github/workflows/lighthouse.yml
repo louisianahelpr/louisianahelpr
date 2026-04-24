@@ -11,13 +11,24 @@ name: Lighthouse CI
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "package.json"
   schedule:
     - cron: "0 6 * * 0" # Sunday 06:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lighthouse:
     name: Mobile performance audit
+    # Skip Dependabot PRs — perf changes from dep bumps are evaluated separately.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

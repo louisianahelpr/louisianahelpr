@@ -12,12 +12,24 @@ env:
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - ".github/dependabot.yml"
+      - "LICENSE"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - "LICENSE"
 
+# Cancel superseded runs on the same ref to avoid burning minutes on stale commits.
 concurrency:
   group: test-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   test:

@@ -26,7 +26,10 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci || npm install
+        # Lovable manages package-lock.json out-of-band, so it can drift from
+        # package.json between syncs. Use `npm install` (not `npm ci`) so CI
+        # heals a stale lockfile instead of failing the run.
+        run: npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint || true

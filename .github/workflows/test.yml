@@ -36,10 +36,10 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        # `npm ci` is deterministic and ~2× faster than `npm install` in CI.
-        # Falls back to `npm install` if the lockfile happens to be missing
-        # (shouldn't be — package-lock.json is committed — but defensive).
-        run: npm ci || npm install
+        # Lovable manages package-lock.json out-of-band, so it can drift from
+        # package.json between syncs. Use `npm install` (not `npm ci`) so CI
+        # heals a stale lockfile instead of failing the run.
+        run: npm install --no-audit --no-fund
 
       - name: ESLint
         run: npm run lint || true

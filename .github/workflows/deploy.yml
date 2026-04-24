@@ -323,6 +323,8 @@ key_path.write_text(text, encoding="utf-8")
 PY
 
           openssl pkey -in "$KEY_PATH" -noout >/dev/null
+          echo "ASC_KEY_CONTENT=" >> "$GITHUB_ENV"
+          echo "ASC_KEY=" >> "$GITHUB_ENV"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
           echo "✓ ASC_KEY_PATH prepared at $KEY_PATH"
 

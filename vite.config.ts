@@ -110,7 +110,10 @@ export default defineConfig(({ mode }) => ({
     drop: mode === "production" ? ["console", "debugger"] : [],
   },
   build: {
-    target: "es2020",
+    // es2022 is Baseline-supported across all evergreen browsers (Chrome 94+,
+    // Safari 16.4+, Firefox 93+) and lets Vite skip down-leveling syntax like
+    // class fields / top-level await. Cuts a few KB of legacy helpers.
+    target: "es2022",
     cssCodeSplit: true,
     // Emit production source maps so Lighthouse / Sentry / DevTools can
     // map minified frames back to original source. Hidden = .map files

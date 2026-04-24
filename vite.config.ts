@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      // Defer the SW registration script so it doesn't block FCP.
+      // Lighthouse flagged /registerSW.js as a ~150ms render-blocking request
+      // in the critical chain. "script-defer" emits the same script tag with
+      // `defer` so the browser can paint before fetching/parsing it.
+      injectRegister: "script-defer",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],

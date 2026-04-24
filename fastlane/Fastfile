@@ -72,10 +72,12 @@ def next_build_number(api_key)
   local_candidate = get_build_number(xcodeproj: PROJECT).to_i + 1
   remote_candidate = remote_latest_build_number(api_key, version)
   remote_candidate = remote_candidate ? remote_candidate + 1 : nil
+  ci_candidate = ci_environment? ? ci_fallback_build_number.to_i : nil
 
-  if remote_candidate
-    chosen = [local_candidate, remote_candidate].max
-    UI.message("Using remote-aware build number #{chosen} for version #{version} (local candidate #{local_candidate}, remote candidate #{remote_candidate})")
+  if remote_candidate || ci_candidate
+    candidates = [local_candidate, remote_candidate, ci_candidate].compact
+    chosen = candidates.max
+    UI.message("Using unique build number #{chosen} for version #{version} (local #{local_candidate}, remote #{remote_candidate || 'n/a'}, ci #{ci_candidate || 'n/a'})")
     return chosen
   end
 

@@ -36,6 +36,12 @@ export function initPostHog() {
       // Capacitor wraps the app in a WebView; disable session recording
       // by default to avoid surprising bandwidth on cellular.
       disable_session_recording: true,
+      // Skip the surveys + exception-autocapture extension scripts (~37KB
+      // of unused JS flagged by Lighthouse). We never use surveys, and
+      // capture_exceptions above already wires error tracking via the
+      // core SDK without the standalone extension.
+      disable_surveys: true,
+      autocapture: false,
       loaded: (ph) => {
         if (import.meta.env.DEV) ph.debug(false);
       },

@@ -27,8 +27,18 @@ export function initSentry() {
       dsn: DSN,
       environment: ENV,
       release: RELEASE,
-      // Browser tracing for slow-page diagnostics.
-      integrations: [Sentry.browserTracingIntegration()],
+      // Replace defaults with a minimal set. Skips Replay (~38KB) and
+      // Feedback (~15KB) integrations that ship with @sentry/react by
+      // default — Lighthouse flagged 50KB+ of unused JS from them.
+      defaultIntegrations: false,
+      integrations: [
+        Sentry.breadcrumbsIntegration(),
+        Sentry.globalHandlersIntegration(),
+        Sentry.linkedErrorsIntegration(),
+        Sentry.dedupeIntegration(),
+        Sentry.httpContextIntegration(),
+        Sentry.browserTracingIntegration(),
+      ],
       // Sample 10% of transactions in production, 100% in dev.
       tracesSampleRate: import.meta.env.DEV ? 1.0 : 0.1,
       // Don't ship benign noise.

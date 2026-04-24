@@ -1,15 +1,13 @@
-import { useRef, useEffect, useCallback, type ReactNode, type CSSProperties } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRef, useEffect, type ReactNode, type CSSProperties } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 /**
- * Lightweight wrapper around @tanstack/react-virtual with dynamic height
- * measurement. Renders only the visible rows (+ overscan) so very long lists
- * (e.g. dashboard job feed, activity tabs, message threads) stay smooth on
- * older devices.
+ * Lightweight wrapper around @tanstack/react-virtual using the WINDOW as
+ * the scroll source. This keeps existing page layouts (sticky headers,
+ * pull-to-refresh) intact while still rendering only visible rows + overscan.
  *
- * The page itself stays the scroll container — we listen to window scroll so
- * existing layouts (sticky headers, pull-to-refresh, etc.) continue to work
- * without nesting another scroll area.
+ * Use it for very long lists (dashboard job feed, activity tabs, message
+ * threads) so the DOM stays small on older devices.
  */
 export interface VirtualListProps<T> {
   items: T[];
@@ -41,47 +39,27 @@ export function VirtualList<T>({
 }: VirtualListProps<T>) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const virtualizer = useVirtualizer({
+  const virtualizer = useWindowVirtualizer({
     count: items.length,
-    // Use the window as the scroll source so we don't introduce a nested
-    // scroller. The container's offset is added automatically.
-    getScrollElement: () => parentRef.current,
     estimateSize: () => estimateSize,
     overscan,
-    measureElement: (el) => el.getBoundingClientRect().height,
+    // Account for the container's offset from the top of the document so
+    // virtualization aligns with content above (headers, banners, etc.).
+    scrollMargin: parentRef.current?.offsetTop ?? 0,
   });
 
-  // Re-measure when the viewport changes (orientation, keyboard, etc.).
+  // Re-measure when items change length (filter / refresh) so positions stay accurate.
   useEffect(() => {
-    const onResize = () => virtualizer.measure();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [virtualizer]);
-
-  // We use the window as the actual scroll element by setting up a manual
-  // scroll listener; this keeps the existing page layout (sticky header,
-  // pull-to-refresh) intact.
-  const setRef = useCallback((node: HTMLDivElement | null) => {
-    parentRef.current = node;
-  }, []);
-
-  // Bridge window scroll → virtualizer
-  useEffect(() => {
-    const onScroll = () => virtualizer.measure();
-    // Note: getScrollElement returns parentRef.current; we additionally
-    // listen for window scroll because the parent itself isn't scrollable.
-    // react-virtual reads scroll position via getBoundingClientRect, which
-    // updates on every window scroll frame.
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [virtualizer]);
+    virtualizer.measure();
+  }, [items.length, virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
+  const offset = parentRef.current?.offsetTop ?? 0;
 
   return (
     <div
-      ref={setRef}
+      ref={parentRef}
       className={className}
       style={{ position: "relative", height: totalSize, width: "100%", ...style }}
     >
@@ -98,7 +76,7 @@ export function VirtualList<T>({
               top: 0,
               left: 0,
               width: "100%",
-              transform: `translateY(${virtualRow.start}px)`,
+              transform: `translateY(${virtualRow.start - offset}px)`,
             }}
           >
             {renderItem(item, virtualRow.index)}

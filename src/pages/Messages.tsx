@@ -30,6 +30,7 @@ import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { useChatPresence, OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 import { ConversationSkeleton } from "@/components/SkeletonLoaders";
+import { VirtualList } from "@/components/VirtualList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -455,53 +456,64 @@ const Messages = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {(showAllConvos ? conversations : conversations.slice(0, CONVO_LIMIT)).map((c) => (
-                    <div
-                      key={`${c.jobId}_${c.otherUserId}`}
-                      className="w-full text-left p-4 rounded-xl border border-border bg-card hover:shadow-md transition-shadow flex items-center gap-2"
-                    >
-                      <button
-                        onClick={() => openConvo(c)}
-                        className="flex-1 min-w-0 text-left"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-foreground truncate">{c.otherUserName}</p>
-                              {c.unread > 0 && (
-                                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                                  {c.unread}
+                  {(() => {
+                    const visibleConvos = showAllConvos ? conversations : conversations.slice(0, CONVO_LIMIT);
+                    return (
+                      <VirtualList
+                        items={visibleConvos}
+                        getKey={(c) => `${c.jobId}_${c.otherUserId}`}
+                        estimateSize={104}
+                        overscan={6}
+                        itemClassName="pb-2"
+                        renderItem={(c) => (
+                          <div
+                            className="w-full text-left p-4 rounded-xl border border-border bg-card hover:shadow-md transition-shadow flex items-center gap-2"
+                          >
+                            <button
+                              onClick={() => openConvo(c)}
+                              className="flex-1 min-w-0 text-left"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-semibold text-foreground truncate">{c.otherUserName}</p>
+                                    {c.unread > 0 && (
+                                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                                        {c.unread}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
+                                  <p className="text-sm text-muted-foreground truncate mt-1">{c.lastMessage}</p>
+                                </div>
+                                <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                                  {new Date(c.lastAt).toLocaleDateString()}
                                 </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
-                            <p className="text-sm text-muted-foreground truncate mt-1">{c.lastMessage}</p>
+                              </div>
+                            </button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
+                                  <Flag className="w-4 h-4 mr-2" /> Report user
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setBlockTarget({ id: c.otherUserId, name: c.otherUserName })}>
+                                  <Ban className="w-4 h-4 mr-2" /> Block user
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
+                                  <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                            {new Date(c.lastAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
-                            <Flag className="w-4 h-4 mr-2" /> Report user
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setBlockTarget({ id: c.otherUserId, name: c.otherUserName })}>
-                            <Ban className="w-4 h-4 mr-2" /> Block user
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  ))}
+                        )}
+                      />
+                    );
+                  })()}
                   {!showAllConvos && conversations.length > CONVO_LIMIT && (
                     <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-sm text-primary font-medium hover:underline">
                       Show all {conversations.length} conversations

@@ -21,9 +21,11 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     return <Navigate to="/login" replace />;
   }
 
-  // Banned users (temp or permanent)
+  // Banned users (temp or permanent) — send to dedicated page that explains
+  // the situation and shows support contact, never back to /login (which would
+  // create a redirect loop the moment they sign in again).
   if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/account-banned" replace />;
   }
 
   if (!allowUnapproved) {

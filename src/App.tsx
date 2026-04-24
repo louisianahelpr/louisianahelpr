@@ -26,6 +26,7 @@ const Signup = lazy(() => import("./pages/Signup"));
 const SignupPending = lazy(() => import("./pages/SignupPending"));
 const AccountPending = lazy(() => import("./pages/AccountPending"));
 const AccountDenied = lazy(() => import("./pages/AccountDenied"));
+const AccountBanned = lazy(() => import("./pages/AccountBanned"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -93,6 +94,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/signup-pending" element={<PageTransition><SignupPending /></PageTransition>} />
       <Route path="/account-pending" element={<PageTransition><AccountPending /></PageTransition>} />
       <Route path="/account-denied" element={<PageTransition><AccountDenied /></PageTransition>} />
+      <Route path="/account-banned" element={<PageTransition><AccountBanned /></PageTransition>} />
       <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
       <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

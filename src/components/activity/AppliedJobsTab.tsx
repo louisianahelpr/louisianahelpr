@@ -100,10 +100,12 @@ interface AppliedJobsTabProps {
 }
 
 export const AppliedJobsTab = ({
-  apps, expandedJobId, setExpandedJobId, startRequestedJobIds,
+  apps, expandedJobId, setExpandedJobId, startRequestedJobIds: _startRequestedJobIds,
   helperReviewedJobIds, userId, onHelperResponse,
-  onMarkOnTheWay, onTheWayLoading, onMarkArrived, arrivedLoading,
-  onStartJob, startJobLoading, onComplete, completingJobId,
+  onMarkOnTheWay: _onMarkOnTheWay, onTheWayLoading: _onTheWayLoading,
+  onMarkArrived: _onMarkArrived, arrivedLoading: _arrivedLoading,
+  onStartJob: _onStartJob, startJobLoading: _startJobLoading,
+  onComplete, completingJobId,
   onResolveRevision, onHelperReview,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();

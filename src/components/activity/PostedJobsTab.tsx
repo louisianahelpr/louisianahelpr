@@ -122,12 +122,8 @@ export const PostedJobsTab = ({
   onAcceptApplication, onLoadInlineApplicants, inlineApplicants, loadingApplicants,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
-
-  const handleCardClick = (jobId: string, job: Job) => {
-    if (job.status === "open" || job.status === "accepted") {
-      onLoadInlineApplicants(jobId);
-    }
-  };
+  void inlineApplicants;
+  void loadingApplicants;
 
   if (jobs.length === 0) {
     return (

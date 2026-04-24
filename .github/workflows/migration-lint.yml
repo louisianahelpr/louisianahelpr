@@ -1,0 +1,103 @@
+name: Supabase Migration Lint
+
+# Static-analyzes Supabase migration SQL for common mistakes:
+# - Missing RLS on new tables (= public data leak)
+# - Bad CHECK constraints with non-immutable functions (= restore failures)
+# - Dangerous DROP statements without IF EXISTS
+#
+# Runs:
+# - On every PR that touches supabase/migrations/
+# - Manually via workflow_dispatch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/migration-lint.yml"
+  workflow_dispatch:
+
+jobs:
+  lint-migrations:
+    name: Lint new migration SQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # need history to diff against main
+
+      - name: Find changed migrations
+        id: changed
+        run: |
+          # Get list of new/modified .sql files in this PR
+          FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD -- 'supabase/migrations/*.sql' || true)
+          if [ -z "$FILES" ]; then
+            echo "No migration changes — skipping lint"
+            echo "files=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Changed migrations:"
+          echo "$FILES"
+          # Multiline output
+          {
+            echo "files<<EOF"
+            echo "$FILES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Lint each migration
+        if: steps.changed.outputs.files != ''
+        run: |
+          set -e
+          FAIL=0
+          while IFS= read -r FILE; do
+            [ -z "$FILE" ] && continue
+            echo ""
+            echo "::group::Linting $FILE"
+
+            # Rule 1: New CREATE TABLE must enable RLS
+            if grep -iE "create table" "$FILE" > /dev/null; then
+              # Extract table names from CREATE TABLE statements
+              TABLES=$(grep -ioE "create table (if not exists )?(public\.)?[a-z_]+" "$FILE" | sed -E 's/create table (if not exists )?(public\.)?//I' | tr -d ' ')
+              for T in $TABLES; do
+                if ! grep -iE "alter table (public\.)?${T} enable row level security" "$FILE" > /dev/null; then
+                  echo "  ❌ Table '$T' created but RLS not enabled in same migration"
+                  echo "     Add: ALTER TABLE public.$T ENABLE ROW LEVEL SECURITY;"
+                  FAIL=1
+                fi
+              done
+            fi
+
+            # Rule 2: CHECK constraints must not use now() / current_timestamp (non-immutable)
+            if grep -iE "check\s*\(.*\b(now\(\)|current_timestamp)\b" "$FILE" > /dev/null; then
+              echo "  ❌ CHECK constraint uses now()/current_timestamp — must be immutable"
+              echo "     Use a BEFORE INSERT/UPDATE trigger instead"
+              FAIL=1
+            fi
+
+            # Rule 3: DROP TABLE/COLUMN should use IF EXISTS
+            if grep -iE "^\s*drop (table|column)" "$FILE" | grep -ivE "if exists" > /dev/null; then
+              echo "  ⚠️  DROP without IF EXISTS — may fail on re-run"
+              # Warning only, not a fail
+            fi
+
+            # Rule 4: No modifications to reserved schemas
+            if grep -iE "(alter|drop|create).*\b(auth|storage|realtime|vault|supabase_functions)\." "$FILE" > /dev/null; then
+              echo "  ❌ Modifying a Supabase-reserved schema (auth/storage/realtime/vault/supabase_functions)"
+              echo "     This can cause platform outages — use the public schema"
+              FAIL=1
+            fi
+
+            echo "::endgroup::"
+          done <<< "${{ steps.changed.outputs.files }}"
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "❌ Migration lint failed — see errors above"
+            exit 1
+          fi
+          echo ""
+          echo "✅ All migrations passed lint checks"

@@ -723,8 +723,18 @@ export const AppliedJobsTab = ({
               </div>
             )}
           </div>
-        );
-      })}
-    </div>
+    );
+  };
+
+  return (
+    <VirtualList
+      items={apps}
+      getKey={(app) => app.id}
+      estimateSize={260}
+      overscan={4}
+      itemClassName="pb-3"
+      renderItem={(app) => renderAppCard(app)}
+    />
+
   );
 };

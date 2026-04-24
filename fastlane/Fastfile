@@ -53,7 +53,8 @@ def ci_environment?
   end
 end
 
-def remote_latest_build_number(api_key, version)
+def remote_latest_build_number_for_version(api_key, version)
+  # Latest build number for the SPECIFIC marketing version on TestFlight.
   latest_testflight_build_number(
     api_key: api_key,
     app_identifier: APP_ID,
@@ -61,7 +62,22 @@ def remote_latest_build_number(api_key, version)
     initial_build_number: 0
   ).to_i
 rescue => e
-  UI.important("Could not read the latest remote TestFlight build number for version #{version}: #{e.message}")
+  UI.important("Could not read latest TestFlight build for version #{version}: #{e.message}")
+  nil
+end
+
+def remote_latest_build_number_any_version(api_key)
+  # Latest build number across ALL versions on App Store Connect (TestFlight + App Store).
+  # This is Apple's true "source of truth" — Apple rejects any new build whose
+  # number is <= the highest one they've ever seen for this app, regardless of
+  # which marketing version it was attached to.
+  latest_testflight_build_number(
+    api_key: api_key,
+    app_identifier: APP_ID,
+    initial_build_number: 0
+  ).to_i
+rescue => e
+  UI.important("Could not read latest TestFlight build (any version): #{e.message}")
   nil
 end
 
@@ -72,14 +88,18 @@ def next_build_number(api_key)
   )
 
   local_candidate = get_build_number(xcodeproj: PROJECT).to_i + 1
-  remote_candidate = remote_latest_build_number(api_key, version)
-  remote_candidate = remote_candidate ? remote_candidate + 1 : nil
+  remote_for_version = remote_latest_build_number_for_version(api_key, version)
+  remote_any_version = remote_latest_build_number_any_version(api_key)
+  # Apple's rule: next build must be strictly greater than the highest build
+  # number ever seen across the whole app, not just this marketing version.
+  remote_max = [remote_for_version, remote_any_version].compact.max
+  remote_candidate = remote_max ? remote_max + 1 : nil
   ci_candidate = ci_environment? ? ci_fallback_build_number.to_i : nil
 
   if remote_candidate || ci_candidate
     candidates = [local_candidate, remote_candidate, ci_candidate].compact
     chosen = candidates.max
-    UI.message("Using unique build number #{chosen} for version #{version} (local #{local_candidate}, remote #{remote_candidate || 'n/a'}, ci #{ci_candidate || 'n/a'})")
+    UI.message("Using unique build number #{chosen} for version #{version} (local #{local_candidate}, remote-for-version #{remote_for_version || 'n/a'}, remote-any-version #{remote_any_version || 'n/a'}, ci #{ci_candidate || 'n/a'})")
     return chosen
   end
 

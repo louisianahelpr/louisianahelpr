@@ -301,27 +301,27 @@ jobs:
           export KEY_PATH
 
           python3 - <<'PY'
-import base64
-import os
-from pathlib import Path
+          import base64
+          import os
+          from pathlib import Path
 
-raw = os.environ["ASC_KEY_BASE64"].strip()
-key_path = Path(os.environ["KEY_PATH"])
+          raw = os.environ["ASC_KEY_BASE64"].strip()
+          key_path = Path(os.environ["KEY_PATH"])
 
-try:
-    decoded = base64.b64decode("".join(raw.split()), validate=True)
-except Exception as exc:
-    raise SystemExit(f"ASC_KEY_BASE64 is not valid base64: {exc}")
+          try:
+              decoded = base64.b64decode("".join(raw.split()), validate=True)
+          except Exception as exc:
+              raise SystemExit(f"ASC_KEY_BASE64 is not valid base64: {exc}")
 
-if b"\x00" in decoded:
-    raise SystemExit("ASC_KEY_BASE64 decoded to binary data with null bytes; re-copy the .p8 file as plain base64 text.")
+          if b"\x00" in decoded:
+              raise SystemExit("ASC_KEY_BASE64 decoded to binary data with null bytes; re-copy the .p8 file as plain base64 text.")
 
-text = decoded.decode("utf-8").replace("\r\n", "\n").strip() + "\n"
-if "BEGIN PRIVATE KEY" not in text or "END PRIVATE KEY" not in text:
-    raise SystemExit("ASC_KEY_BASE64 did not decode to a valid .p8 private key.")
+          text = decoded.decode("utf-8").replace("\r\n", "\n").strip() + "\n"
+          if "BEGIN PRIVATE KEY" not in text or "END PRIVATE KEY" not in text:
+              raise SystemExit("ASC_KEY_BASE64 did not decode to a valid .p8 private key.")
 
-key_path.write_text(text, encoding="utf-8")
-PY
+          key_path.write_text(text, encoding="utf-8")
+          PY
 
           openssl pkey -in "$KEY_PATH" -noout >/dev/null
           echo "path=$KEY_PATH" >> "$GITHUB_OUTPUT"

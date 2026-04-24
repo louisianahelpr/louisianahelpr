@@ -248,7 +248,7 @@ const Dashboard = () => {
     setApplyLoading(false);
     setApplyMessage("");
     setApplyFiles([]);
-  }, [user, confirmApplyJobId, navigate, refresh, profile, applyLoading, applyFiles, applyMessage]);
+  }, [user, confirmApplyJobId, navigate, queryClient, profile, applyLoading, applyFiles, applyMessage]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

@@ -47,6 +47,16 @@ jobs:
       - name: Verify Capacitor config parses
         run: npx cap doctor
 
+      - name: Generate iOS native project
+        # The ios/App/ Xcode project is gitignored (generated locally on the
+        # developer's Mac per ios/README.md). In CI we create it fresh so
+        # `cap sync` has a Podfile to install into.
+        run: |
+          if [ ! -d ios/App ]; then
+            echo "Generating ios/App/ via npx cap add ios..."
+            npx cap add ios
+          fi
+
       - name: Sync to iOS (dry-run validation)
         # `cap sync ios` copies the web build + updates native plugins.
         # Failures here mean the iOS build will fail downstream in Fastlane.

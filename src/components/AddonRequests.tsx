@@ -37,16 +37,16 @@ export function AddonRequests({
 
   const loadAddons = async () => {
     const { data } = await supabase
-      .from("addon_requests" as any)
+      .from("addon_requests")
       .select("*")
       .eq("job_id", jobId)
       .order("created_at");
-    if (data) setAddons(data as any[]);
+    if (data) setAddons(data as unknown as Addon[]);
   };
 
   const submitAddon = async () => {
     if (!description.trim() || !cost) return;
-    const { error } = await (supabase.from("addon_requests" as any) as any).insert({
+    const { error } = await supabase.from("addon_requests").insert({
       job_id: jobId,
       requested_by: userId,
       description: description.trim(),
@@ -64,7 +64,8 @@ export function AddonRequests({
   };
 
   const updateAddonStatus = async (id: string, status: string) => {
-    await (supabase.from("addon_requests" as any) as any)
+    await supabase
+      .from("addon_requests")
       .update({ status, approved_at: status === "approved" ? new Date().toISOString() : null })
       .eq("id", id);
     toast.success(`Add-on ${status}`);

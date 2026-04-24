@@ -83,7 +83,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: ESLint (advisory — does not block deploy)
         run: npm run lint || true
@@ -214,7 +214,7 @@ jobs:
 
       # ─── Web + Capacitor build ─────────────────────────────────────────────
       - name: Install npm deps
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Check outdated Capacitor plugins (advisory)
         continue-on-error: true

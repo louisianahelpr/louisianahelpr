@@ -58,14 +58,13 @@
          in HeroSection has fetchpriority="high" + loading="eager" which gives it the
          same priority as a manual preload once the bundle parses. -->
 
-    <!-- Preconnect to Sentry ingest — Lighthouse flagged it as a preconnect
-         candidate (~85ms LCP savings). It fires shortly after first paint
-         when Sentry initializes inside requestIdleCallback.
-         PostHog was downgraded to dns-prefetch: the previous preconnect was
-         flagged as "unused" since PostHog scripts load later in the chain;
-         dns-prefetch keeps the DNS warm without wasting a preconnect slot
-         in the 4-origin soft cap. -->
-    <link rel="preconnect" href="https://o4511265714601984.ingest.us.sentry.io" crossorigin />
+    <!-- Sentry + PostHog both initialize inside requestIdleCallback (after
+         first paint), which means a preconnect handshake completes seconds
+         before the connection is actually used and gets flagged by
+         Lighthouse as "unused preconnect" (wastes ~50ms of main-thread + a
+         TLS slot). dns-prefetch keeps DNS resolution warm without paying
+         the TCP/TLS cost up front. -->
+    <link rel="dns-prefetch" href="https://o4511265714601984.ingest.us.sentry.io" />
     <link rel="dns-prefetch" href="https://us.i.posthog.com" />
     <link rel="dns-prefetch" href="https://us-assets.i.posthog.com" />
 

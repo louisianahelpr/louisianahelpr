@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, BellOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isPushSupported, requestPushPermission, registerServiceWorker } from "@/lib/pushNotifications";
+import { safeStorage } from "@/lib/safeStorage";
 
 export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);

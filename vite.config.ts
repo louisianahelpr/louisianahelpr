@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -24,6 +24,27 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    // Avoid the main app stylesheet blocking first paint. Vite emits the entry
+    // CSS as a synchronous <link rel="stylesheet">, which Lighthouse flagged as
+    // a ~150ms render-blocking request on the critical path. We rewrite that
+    // tag to the standard async-CSS pattern (media="print" + onload swap) and
+    // add a <noscript> fallback so non-JS clients still get styled output.
+    // This is build-time only and does not change any styles or load order
+    // beyond moving the stylesheet off the render-blocking critical path.
+    {
+      name: "html-async-entry-css",
+      apply: "build",
+      enforce: "post",
+      transformIndexHtml(html: string) {
+        return html.replace(
+          /<link rel="stylesheet"[^>]*?href="(\/assets\/[^"]+\.css)"[^>]*>/g,
+          (_match: string, href: string) =>
+            `<link rel="preload" as="style" href="${href}">` +
+            `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">` +
+            `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
+        );
+      },
+    } satisfies Plugin,
     VitePWA({
       registerType: "autoUpdate",
       // Defer the SW registration script so it doesn't block FCP.

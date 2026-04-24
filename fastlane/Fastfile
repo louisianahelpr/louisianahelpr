@@ -165,7 +165,9 @@ def normalized_asc_key_content
   end
 
   candidates.each do |candidate|
-    normalized = candidate.to_s.delete_prefix("\uFEFF").strip
+    str = candidate.to_s.dup.force_encoding("UTF-8")
+    str = str.encode("UTF-8", invalid: :replace, undef: :replace, replace: "") unless str.valid_encoding?
+    normalized = str.delete_prefix("\uFEFF").strip
     return normalized if valid_private_key_content?(normalized)
   end
 

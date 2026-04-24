@@ -5,9 +5,12 @@ name: Edge Function Smoke Test
 # only surface when functions are actually invoked.
 #
 # Runs:
-# - After every push to main (post-deploy check)
-# - Hourly on schedule (catches secret expirations / Supabase outages)
+# - After every push to main that touches edge functions (post-deploy check)
+# - Once daily on schedule (catches secret expirations / Supabase outages)
 # - Manually via workflow_dispatch
+#
+# Note: Reduced from hourly to daily to conserve GitHub Actions minutes.
+# Real outages will be caught by Sentry / user reports much faster than CI.
 
 on:
   push:
@@ -15,8 +18,12 @@ on:
     paths:
       - "supabase/functions/**"
   schedule:
-    - cron: "0 * * * *" # every hour
+    - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
   workflow_dispatch:
+
+concurrency:
+  group: edge-smoke-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   smoke:

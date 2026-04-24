@@ -14,6 +14,14 @@ import {
   DollarSign,
 } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v5-1000.webp";
+import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
+import heroImg500 from "@/assets/hero-illustration-v5-500.webp";
+import heroImg600 from "@/assets/hero-illustration-v5-600.webp";
+
+// Responsive srcset — display width is ~497px max (max-w-md = 28rem),
+// so mobile devices should use the 400/500w variant (~41–58 KB) instead
+// of the 1000w variant (~150 KB). Saves ~110 KB on mobile LCP.
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 1000w`;
 
 // Inject a <link rel="preload"> for the LCP hero image as soon as this module
 // loads, so the browser can discover the request before React renders the <img>.

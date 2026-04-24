@@ -42,6 +42,12 @@ export function initPostHog() {
       // core SDK without the standalone extension.
       disable_surveys: true,
       autocapture: false,
+      // Prevent PostHog from fetching its optional extension scripts
+      // (surveys.js ~33KB, exception-autocapture.js ~5KB, toolbar, etc.)
+      // from us-assets.i.posthog.com. We don't use any of them — surveys
+      // and toolbar are off, and capture_exceptions above wires error
+      // tracking via the core SDK instead of the standalone extension.
+      disable_external_dependency_loading: true,
       loaded: (ph) => {
         if (import.meta.env.DEV) ph.debug(false);
       },

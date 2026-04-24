@@ -133,16 +133,19 @@ platform :ios do
   lane :release do
     api_key = asc_api_key
 
+    configure_signing!
     increment_build_number(xcodeproj: PROJECT)
 
     build_app(
       **xcode_build_target,
-      scheme:           SCHEME,
-      export_method:    "app-store",
-      clean:            true,
-      output_directory: "build",
-      output_name:      "Helpr.ipa",
-      include_symbols:  true
+      scheme:                  SCHEME,
+      export_method:           "app-store",
+      clean:                   true,
+      output_directory:        "build",
+      output_name:             "Helpr.ipa",
+      include_symbols:         true,
+      xcargs:                  signing_xcargs,
+      export_options:          export_options_for_signing
     )
 
     upload_to_app_store(

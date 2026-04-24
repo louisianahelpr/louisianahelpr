@@ -10,6 +10,7 @@ import { AlertTriangle, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import type { Database } from "@/integrations/supabase/types";
 
 const DISPUTE_REASONS = [
   { value: "work_not_done", label: "Work was not done" },
@@ -35,6 +36,10 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   const [submitting, setSubmitting] = useState(false);
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  const disputedStatus: Database["public"]["Enums"]["job_status"] = "disputed";
+
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Failed to submit dispute";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -75,12 +80,12 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
 
       // Update job status to disputed
       const { error } = await supabase.from("jobs").update({
-        status: "disputed" as any,
+        status: disputedStatus,
         dispute_reason: `${DISPUTE_REASONS.find((r) => r.value === reason)?.label}: ${details}`.trim(),
         dispute_evidence_urls: evidenceUrls,
         disputed_at: new Date().toISOString(),
         disputed_by: userId,
-      } as any).eq("id", jobId);
+      }).eq("id", jobId);
 
       if (error) throw error;
 
@@ -117,8 +122,8 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       toast.success("Dispute submitted. Payment is on hold pending admin review.");
       onDisputed();
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit dispute");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

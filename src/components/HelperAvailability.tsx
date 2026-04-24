@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -14,6 +15,12 @@ type AvailabilitySlot = {
   start_time: string;
   end_time: string;
 };
+
+type HelperAvailabilityRow = Database["public"]["Tables"]["helper_availability"]["Row"];
+type HelperAvailabilityInsert = Database["public"]["Tables"]["helper_availability"]["Insert"];
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Failed to save";
 
 export function HelperAvailability({ userId }: { userId: string }) {
   const [slots, setSlots] = useState<AvailabilitySlot[]>(
@@ -28,20 +35,20 @@ export function HelperAvailability({ userId }: { userId: string }) {
 
   const loadAvailability = async () => {
     const { data } = await supabase
-      .from("helper_availability" as any)
+      .from("helper_availability")
       .select("*")
       .eq("helper_id", userId)
       .is("specific_date", null)
       .order("day_of_week");
 
-    if (data && (data as any[]).length > 0) {
+    if (data && data.length > 0) {
       const existingSlots = DAYS.map((_, i) => {
-        const existing = (data as any[]).find((d: any) => d.day_of_week === i);
+        const existing = data.find((slot: HelperAvailabilityRow) => slot.day_of_week === i);
         if (existing) {
           return {
             id: existing.id,
             day_of_week: i,
-            is_available: existing.is_available,
+            is_available: existing.is_available ?? true,
             start_time: existing.start_time || "09:00",
             end_time: existing.end_time || "17:00",
           };
@@ -53,7 +60,11 @@ export function HelperAvailability({ userId }: { userId: string }) {
     setLoaded(true);
   };
 
-  const updateSlot = (dayIndex: number, field: keyof AvailabilitySlot, value: any) => {
+  const updateSlot = <K extends "is_available" | "start_time" | "end_time">(
+    dayIndex: number,
+    field: K,
+    value: AvailabilitySlot[K]
+  ) => {
     setSlots((prev) =>
       prev.map((s) => (s.day_of_week === dayIndex ? { ...s, [field]: value } : s))
     );
@@ -63,13 +74,14 @@ export function HelperAvailability({ userId }: { userId: string }) {
     setSaving(true);
     try {
       // Delete existing weekly slots
-      await (supabase.from("helper_availability" as any) as any)
+      await supabase
+        .from("helper_availability")
         .delete()
         .eq("helper_id", userId)
         .is("specific_date", null);
 
       // Insert new slots
-      const inserts = slots.map((s) => ({
+      const inserts: HelperAvailabilityInsert[] = slots.map((s) => ({
         helper_id: userId,
         day_of_week: s.day_of_week,
         is_available: s.is_available,
@@ -78,11 +90,11 @@ export function HelperAvailability({ userId }: { userId: string }) {
         specific_date: null,
       }));
 
-      const { error } = await (supabase.from("helper_availability" as any) as any).insert(inserts);
+      const { error } = await supabase.from("helper_availability").insert(inserts);
       if (error) throw error;
       toast.success("Availability saved!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setSaving(false);
     }

@@ -11,8 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF + jspdf-autotable are ~450KB combined; load only when user clicks PDF export.
+import type jsPDFType from "jspdf";
 
 interface EarningsExportProps {
   helperId: string;
@@ -35,7 +35,7 @@ interface ExportRow {
 type RangeMode = "month" | "ytd" | "custom";
 
 type CSVValue = string | number | null | undefined;
-type JsPDFWithAutoTable = jsPDF & { lastAutoTable?: { finalY?: number } };
+type JsPDFWithAutoTable = jsPDFType & { lastAutoTable?: { finalY?: number } };
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Export failed";
@@ -112,7 +112,7 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
         return;
       }
       if (formatType === "csv") downloadCSV(rows, range.label);
-      else downloadPDF(rows, range.label);
+      else await downloadPDF(rows, range.label);
       toast.success(`${formatType.toUpperCase()} ready — ${rows.length} job${rows.length === 1 ? "" : "s"}.`);
       setOpen(false);
     } catch (err: unknown) {
@@ -162,7 +162,11 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
     triggerDownload(blob, `helpr-earnings-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`);
   };
 
-  const downloadPDF = (rows: ExportRow[], label: string) => {
+  const downloadPDF = async (rows: ExportRow[], label: string) => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
     const totals = rows.reduce(
       (acc, r) => ({

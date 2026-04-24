@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { safeStorage } from "@/lib/safeStorage";
 
 const DataRights = () => {
   usePageTitle("Your Data Rights — Helpr");
@@ -40,7 +41,7 @@ const DataRights = () => {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserId(data.user?.id ?? null);
-      const stored = localStorage.getItem("helpr_do_not_sell");
+      const stored = safeStorage.getItem("helpr_do_not_sell");
       if (stored === "1") setDoNotSell(true);
     });
   }, []);
@@ -99,7 +100,7 @@ const DataRights = () => {
 
   const toggleDoNotSell = (next: boolean) => {
     setDoNotSell(next);
-    localStorage.setItem("helpr_do_not_sell", next ? "1" : "0");
+    safeStorage.setItem("helpr_do_not_sell", next ? "1" : "0");
     toast.success(next ? "Opted out of data sharing" : "Opted in to data sharing");
   };
 

@@ -47,9 +47,11 @@ const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 
 type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing";
 
+import { safeStorage } from "@/lib/safeStorage";
+
 const SEEN_KEY_PREFIX = "admin_seen_";
-const getSeenTimestamp = (section: string): string | null => localStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
-const markSeen = (section: string) => localStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
+const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
+const markSeen = (section: string) => safeStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
 
 const navGroups: { title: string; items: AdminNavItem[] }[] = [
   {

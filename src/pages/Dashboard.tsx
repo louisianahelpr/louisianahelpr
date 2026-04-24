@@ -32,6 +32,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { safeStorage } from "@/lib/safeStorage";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -125,12 +126,12 @@ const Dashboard = () => {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
-      const stored = localStorage.getItem("helpr_dismissed_jobs");
+      const stored = safeStorage.getItem("helpr_dismissed_jobs");
       return stored ? new Set(JSON.parse(stored)) : new Set();
     } catch { return new Set(); }
   });
   const [showGreeting, setShowGreeting] = useState(() => {
-    const dismissed = localStorage.getItem("greeting_dismissed_at");
+    const dismissed = safeStorage.getItem("greeting_dismissed_at");
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;
     return true;
   });
@@ -222,7 +223,7 @@ const Dashboard = () => {
     setDismissedJobIds(prev => {
       const next = new Set(prev);
       next.add(confirmDismissJobId);
-      localStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
+      safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
       return next;
     });
     toast.success("Job removed from your feed.");
@@ -330,7 +331,7 @@ const Dashboard = () => {
                 <Briefcase className="w-3.5 h-3.5" /> Post
               </Button>
               <button
-                onClick={() => { setShowGreeting(false); localStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
+                onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Dismiss greeting"
               >

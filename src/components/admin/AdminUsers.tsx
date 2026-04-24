@@ -125,7 +125,7 @@ const AdminUsers = () => {
       }
       if (changed) {
         try {
-          localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(next)));
+          safeStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(next)));
         } catch {}
       }
       return next;

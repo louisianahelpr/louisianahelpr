@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Helpers can view own shadowbans" ON public.helper_shadowbans;

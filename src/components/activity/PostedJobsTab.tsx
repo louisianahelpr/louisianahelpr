@@ -17,6 +17,7 @@ import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { AttachmentLink } from "@/components/AttachmentLink";
+import { VirtualList } from "@/components/VirtualList";
 
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -136,15 +137,12 @@ export const PostedJobsTab = ({
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        {jobs.map((job) => {
-          const catStyle = categoryColors[job.category] || categoryColors.other;
-          const meta = completedJobMeta[job.id];
-          const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
-          const isExpanded = expandedJobId === job.id;
-          return (
+  const renderJobCard = (job: Job) => {
+    const catStyle = categoryColors[job.category] || categoryColors.other;
+    const meta = completedJobMeta[job.id];
+    const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
+    const isExpanded = expandedJobId === job.id;
+    return (
             <div
               key={job.id}
               className={`group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200 ${isFullyCompleted ? "cursor-pointer" : ""}`}
@@ -631,9 +629,20 @@ export const PostedJobsTab = ({
               </div>
               )}
             </div>
-          );
-        })}
-      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <VirtualList
+        items={jobs}
+        getKey={(job) => job.id}
+        estimateSize={260}
+        overscan={4}
+        className="space-y-0"
+        itemClassName="pb-3"
+        renderItem={(job) => renderJobCard(job)}
+      />
 
       {/* Applicants full-screen view */}
       {selectedJob && (

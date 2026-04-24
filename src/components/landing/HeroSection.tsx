@@ -13,7 +13,7 @@ import {
   MapPin,
   DollarSign,
 } from "lucide-react";
-import heroImg from "@/assets/hero-illustration-v5-1000.webp";
+import heroImg from "@/assets/hero-illustration-v6-900.webp";
 
 const categories = [
   { icon: Leaf, label: "Yard Work" },
@@ -175,8 +175,8 @@ const HeroSection = () => {
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
-                width={1000}
-                height={1000}
+                width={900}
+                height={900}
               />
             </div>
           </div>

@@ -1,0 +1,61 @@
+name: Capacitor Sync Check
+
+# Verifies the Capacitor native config is valid and the web build can be
+# synced into the iOS shell. Catches misconfigured plugins, missing
+# Info.plist entries, and broken capacitor.config.ts BEFORE Fastlane
+# wastes 30 minutes spinning up an Xcode build.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "capacitor.config.ts"
+      - "ios/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - ".github/workflows/capacitor-check.yml"
+  push:
+    branches: [main]
+    paths:
+      - "capacitor.config.ts"
+      - "ios/**"
+  workflow_dispatch:
+
+jobs:
+  cap-sync:
+    name: Validate Capacitor + iOS sync
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Verify Capacitor config parses
+        run: npx cap doctor
+
+      - name: Sync to iOS (dry-run validation)
+        # `cap sync ios` copies the web build + updates native plugins.
+        # Failures here mean the iOS build will fail downstream in Fastlane.
+        run: npx cap sync ios
+
+      - name: Validate PrivacyInfo.xcprivacy exists
+        run: |
+          if [ ! -f ios/PrivacyInfo.xcprivacy ]; then
+            echo "❌ PrivacyInfo.xcprivacy missing — App Store will reject"
+            exit 1
+          fi
+          echo "✅ Privacy manifest present"

@@ -11,6 +11,18 @@ APP_ID    = "com.Helpr"
 
 CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || "fastlane/changelog.txt"
 
+def xcode_build_target
+  if File.exist?(WORKSPACE)
+    UI.message("Using Xcode workspace: #{WORKSPACE}")
+    { workspace: WORKSPACE }
+  elsif File.exist?(PROJECT)
+    UI.message("Using Xcode project: #{PROJECT} (Swift Package Manager)")
+    { project: PROJECT }
+  else
+    UI.user_error!("Missing ios/App/App.xcworkspace and ios/App/App.xcodeproj")
+  end
+end
+
 def changelog_text
   File.exist?(CHANGELOG_PATH) ? File.read(CHANGELOG_PATH) : "Bug fixes and improvements."
 end
@@ -44,7 +56,7 @@ platform :ios do
     increment_build_number(xcodeproj: PROJECT)
 
     build_app(
-      workspace:        WORKSPACE,
+      **xcode_build_target,
       scheme:           SCHEME,
       export_method:    "app-store",
       clean:            true,
@@ -74,7 +86,7 @@ platform :ios do
     increment_build_number(xcodeproj: PROJECT)
 
     build_app(
-      workspace:        WORKSPACE,
+      **xcode_build_target,
       scheme:           SCHEME,
       export_method:    "app-store",
       clean:            true,

@@ -32,24 +32,34 @@ def changelog_text
   File.exist?(CHANGELOG_PATH) ? File.read(CHANGELOG_PATH) : "Bug fixes and improvements."
 end
 
+def normalized_asc_key_content
+  raw_key_content = (ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"]).to_s.strip
+  return "" if raw_key_content.empty?
+
+  key_content = if raw_key_content.include?("BEGIN PRIVATE KEY") && raw_key_content.include?("\\n")
+    raw_key_content.gsub("\\n", "\n")
+  else
+    raw_key_content
+  end
+
+  return key_content if key_content.include?("BEGIN PRIVATE KEY")
+
+  decoded_key = Base64.decode64(key_content)
+  unless decoded_key.include?("BEGIN PRIVATE KEY")
+    UI.user_error!("ASC_KEY_CONTENT/ASC_KEY is invalid. Provide raw .p8 text, PEM text with escaped newlines, or base64-encoded .p8 content.")
+  end
+
+  decoded_key
+end
+
 def xcodebuild_auth_key_path
   key_path = ENV["ASC_KEY_PATH"].to_s.strip
   return key_path if !key_path.empty? && File.exist?(key_path)
 
   key_id = ENV["ASC_KEY_ID"].to_s.strip
-  key_content = (ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"]).to_s.strip
   UI.user_error!("ASC_KEY_ID is required for xcodebuild authentication") if key_id.empty?
-  UI.user_error!("No App Store Connect API key found. Set ASC_KEY_CONTENT (base64 or raw .p8 text) or ASC_KEY_PATH.") if key_content.empty?
-
-  decoded_key = if key_content.include?("BEGIN PRIVATE KEY")
-    key_content
-  else
-    Base64.decode64(key_content)
-  end
-
-  unless decoded_key.include?("BEGIN PRIVATE KEY")
-    UI.user_error!("The App Store Connect key content is invalid. ASC_KEY_CONTENT/ASC_KEY must be raw .p8 text or base64-encoded .p8 content.")
-  end
+  decoded_key = normalized_asc_key_content
+  UI.user_error!("No App Store Connect API key found. Set ASC_KEY_CONTENT (base64 or raw .p8 text) or ASC_KEY_PATH.") if decoded_key.empty?
 
   # xcodebuild expects the standard Apple filename pattern: AuthKey_<KEY_ID>.p8
   generated_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
@@ -58,10 +68,10 @@ def xcodebuild_auth_key_path
 end
 
 def asc_api_key
-  # Accept either raw .p8 text or base64-encoded .p8 in ASC_KEY_CONTENT/ASC_KEY.
-  # We must tell fastlane the correct format, otherwise it will base64-decode
-  # raw PEM text and produce binary garbage with null bytes ("string contains null byte").
-  key_content = (ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"]).to_s
+  # Normalize everything to raw PEM before passing it to fastlane.
+  # This avoids fastlane double-decoding malformed/base64-ish input and fixes
+  # the "string contains null byte" failure from App Store Connect auth.
+  key_content = normalized_asc_key_content
 
   params = {
     key_id:    ENV["ASC_KEY_ID"],
@@ -70,20 +80,9 @@ def asc_api_key
     in_house:  false
   }
 
-  if !key_content.strip.empty?
-    if key_content.include?("BEGIN PRIVATE KEY")
-      # Already raw PEM text — pass through as-is.
-      params[:key_content]           = key_content
-      params[:is_key_content_base64] = false
-    else
-      # Treat as base64. Validate it decodes to a real .p8 before handing off.
-      decoded = Base64.decode64(key_content.strip)
-      unless decoded.include?("BEGIN PRIVATE KEY")
-        UI.user_error!("ASC_KEY_CONTENT/ASC_KEY is not valid base64-encoded .p8 content (decoded value missing PEM header).")
-      end
-      params[:key_content]           = key_content.strip
-      params[:is_key_content_base64] = true
-    end
+  if !key_content.empty?
+    params[:key_content]           = key_content
+    params[:is_key_content_base64] = false
   elsif ENV["ASC_KEY_PATH"] && File.exist?(ENV["ASC_KEY_PATH"])
     params[:key_filepath] = ENV["ASC_KEY_PATH"]
   else

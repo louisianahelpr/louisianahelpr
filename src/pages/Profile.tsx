@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -29,14 +30,21 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { lookupParishByZip } from "@/lib/parishLookup";
 
-// Extracted tab components
-import { SupportInline } from "@/components/profile/SupportInline";
-import { SubscriptionTab } from "@/components/profile/SubscriptionTab";
-import { LegalTab } from "@/components/profile/LegalTab";
-import { EarningsTab } from "@/components/profile/EarningsTab";
-import { ScheduleTab } from "@/components/profile/ScheduleTab";
-import { ReviewsTab } from "@/components/profile/ReviewsTab";
-import { WarningsTab } from "@/components/profile/WarningsTab";
+// Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
+// Each tab is only fetched the first time the user clicks it.
+const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
+const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
+const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
+const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m => ({ default: m.EarningsTab })));
+const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
+const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
+const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
+
+const TabFallback = () => (
+  <div className="flex items-center justify-center py-16">
+    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];

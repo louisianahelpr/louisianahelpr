@@ -4,12 +4,14 @@
 
 default_platform(:ios)
 
-WORKSPACE = "ios/App/App.xcworkspace"
-PROJECT   = "ios/App/App.xcodeproj"
+# Resolve paths from the repo root, not from fastlane/ (Fastlane's default cwd).
+REPO_ROOT = File.expand_path("..", __dir__)
+WORKSPACE = File.join(REPO_ROOT, "ios/App/App.xcworkspace")
+PROJECT   = File.join(REPO_ROOT, "ios/App/App.xcodeproj")
 SCHEME    = "App"
 APP_ID    = "com.Helpr"
 
-CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || "fastlane/changelog.txt"
+CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || File.join(REPO_ROOT, "fastlane/changelog.txt")
 
 def xcode_build_target
   if File.exist?(WORKSPACE)
@@ -19,7 +21,7 @@ def xcode_build_target
     UI.message("Using Xcode project: #{PROJECT} (Swift Package Manager)")
     { project: PROJECT }
   else
-    UI.user_error!("Missing ios/App/App.xcworkspace and ios/App/App.xcodeproj")
+    UI.user_error!("Missing #{WORKSPACE} and #{PROJECT}")
   end
 end
 

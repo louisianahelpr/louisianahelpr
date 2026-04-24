@@ -61,6 +61,19 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
+  // Force Vite to pre-bundle React and any libs that consume React hooks
+  // into a single dep graph. Without this, @sentry/react and Radix can end
+  // up in separate optimized chunks with their own React copy, which makes
+  // hooks like useRef return null at runtime (TooltipProvider crash).
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "@sentry/react",
+      "@radix-ui/react-tooltip",
+    ],
+  },
   // Strip console + debugger from production bundles. Keeps bundle slim
   // and avoids leaking debug info in App Store builds.
   esbuild: {

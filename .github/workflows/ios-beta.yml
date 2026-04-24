@@ -1,0 +1,114 @@
+name: iOS Beta (TestFlight)
+
+# Manual-only trigger to save GitHub Actions minutes — macOS runners cost 10x Linux.
+# Run from the Actions tab → "iOS Beta (TestFlight)" → "Run workflow".
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-beta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & upload to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    env:
+      # Force GitHub Actions to use Node 24 for its internal JS-based actions
+      # (checkout, setup-node, etc.) so they don't trip on the EOL Node 20 runtime.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+      # ─── Fastlane / App Store Connect API key ────────────────────────────────
+      # Configure these as GitHub Actions repo secrets:
+      #   ASC_KEY_ID            — 10-char Key ID from App Store Connect
+      #   ASC_ISSUER_ID         — Issuer UUID from App Store Connect
+      #   ASC_KEY_CONTENT       — base64-encoded contents of the AuthKey_*.p8 file
+      #   DEVELOPER_TEAM_ID     — 10-char Apple Developer Team ID (P85MCK558V for Helpr)
+      #   FASTLANE_APPLE_ID     — Apple ID email signed in to Xcode
+      #   MATCH_PASSWORD        — passphrase for fastlane match (if Fastfile uses match)
+      #   MATCH_GIT_URL         — private git repo URL with signing certs (if using match)
+      #   MATCH_GIT_BASIC_AUTHORIZATION — base64("user:PAT") for HTTPS match repo access
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
+      DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+      FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      FASTLANE_HIDE_CHANGELOG: "1"
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Setup Ruby (for Fastlane + CocoaPods)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Install npm dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Generate iOS native project (if missing)
+        # ios/App/ is gitignored per ios/README.md — recreate it in CI from
+        # the repo's stub config files (PrivacyInfo.xcprivacy, App.entitlements).
+        run: |
+          if [ ! -d ios/App ]; then
+            echo "ios/App/ missing — preserving repo stubs and generating native project..."
+            mkdir -p /tmp/ios-stubs
+            [ -f ios/App.entitlements ] && mv ios/App.entitlements /tmp/ios-stubs/
+            [ -f ios/PrivacyInfo.xcprivacy ] && mv ios/PrivacyInfo.xcprivacy /tmp/ios-stubs/
+            [ -f ios/README.md ] && mv ios/README.md /tmp/ios-stubs/
+            rm -rf ios
+            npx cap add ios
+            if [ -f /tmp/ios-stubs/PrivacyInfo.xcprivacy ]; then
+              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
+              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/PrivacyInfo.xcprivacy
+            fi
+            if [ -f /tmp/ios-stubs/App.entitlements ]; then
+              cp /tmp/ios-stubs/App.entitlements ios/App/App/App.entitlements
+              cp /tmp/ios-stubs/App.entitlements ios/App.entitlements
+            fi
+            [ -f /tmp/ios-stubs/README.md ] && cp /tmp/ios-stubs/README.md ios/README.md || true
+          fi
+
+      - name: Sync Capacitor → iOS
+        run: npx cap sync ios
+
+      - name: Decode App Store Connect API key
+        # Fastlane needs the .p8 on disk. Store the file's contents base64-encoded
+        # in the ASC_KEY_CONTENT secret (e.g. `base64 -i AuthKey_XXXX.p8 | pbcopy`).
+        run: |
+          if [ -z "${{ secrets.ASC_KEY_CONTENT }}" ]; then
+            echo "❌ Missing required secret: ASC_KEY_CONTENT"
+            echo "   Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "${{ secrets.ASC_KEY_CONTENT }}" | base64 --decode > "$ASC_KEY_PATH"
+          chmod 600 "$ASC_KEY_PATH"
+
+      - name: Run Fastlane beta lane
+        working-directory: ios/App
+        run: bundle exec fastlane ios beta
+
+      - name: Cleanup signing material
+        if: always()
+        run: |
+          rm -f "$ASC_KEY_PATH"
+          security delete-keychain fastlane_tmp_keychain 2>/dev/null || true

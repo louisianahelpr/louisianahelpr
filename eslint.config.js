@@ -19,7 +19,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // Disabled: we intentionally co-locate small helpers, types, and
+      // constants with their owning component (shadcn/ui pattern + our own
+      // HelperBadges/OnboardingTour/TimePickerSelect/JobFilters). HMR still
+      // works fine for component edits; this rule only affects refresh
+      // granularity, not correctness.
+      "react-refresh/only-export-components": "off",
       // `any` is used pervasively for Supabase row types and `catch (err: any)`
       // patterns — both are conventional and safe here. Disabling rather than
       // bulk-rewriting hundreds of call sites.

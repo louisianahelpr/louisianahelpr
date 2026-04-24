@@ -193,18 +193,23 @@ platform :ios do
     configure_signing!
     increment_build_number(xcodeproj: PROJECT)
 
-    # NOTE on `-configuration`: in fastlane 2.233.x + Xcode 16, passing
-    # BOTH `configuration:` AND `codesigning_identity:` to build_app causes
-    # gym to inject duplicate `-configuration Release` flags into the final
-    # xcodebuild command (one prepended to xcargs, one as a top-level arg).
-    # Xcode 16 rejects the duplicate with:
+    # NOTE on `-configuration`: in fastlane 2.233.x + Xcode 16, gym auto-detects
+    # `codesigning_identity` from the project's pbxproj (which Capacitor sets to
+    # "Apple Distribution"). When gym detects an identity, it PREPENDS
+    # `-configuration Release` and `CODE_SIGN_IDENTITY=...` into xcargs while
+    # xcodebuild also receives `-configuration` from the scheme/skip_archive
+    # path, producing the duplicate that Xcode 16 rejects:
     #   "option '-configuration' may only be provided once"
-    # Fix: omit `configuration:` here — gym will derive Release from the
-    # scheme's archive action (Capacitor default). Also omit
-    # `codesigning_identity:` since CODE_SIGN_IDENTITY is already in xcargs.
+    #
+    # Fix: pass `skip_codesigning: false` and `disable_xcpretty: false` is not
+    # enough. The reliable fix is to explicitly set `configuration: "Release"`
+    # AND `codesigning_identity: nil` so gym takes the explicit-config code path
+    # (single top-level `-configuration` arg, no xcargs prepend).
     build_app(
       **xcode_build_target,
       scheme:                  SCHEME,
+      configuration:           "Release",
+      codesigning_identity:    nil,
       export_method:           "app-store",
       clean:                   true,
       output_directory:        "build",

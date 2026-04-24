@@ -13,7 +13,7 @@ interface SubscribedProfile {
 }
 
 const AdminSubscriptions = () => {
-  const [profiles, setProfiles] = useState<SubscribedProfile[]>([]);
+  const [, setProfiles] = useState<SubscribedProfile[]>([]);
   const [allProfiles, setAllProfiles] = useState<SubscribedProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

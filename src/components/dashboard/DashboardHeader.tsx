@@ -20,7 +20,7 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
   const { isAdmin, user } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (!user) return;

@@ -1,10 +1,9 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
 import { useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 
 const PrivacyPolicy = () => {
-  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "Privacy Policy — Helpr";

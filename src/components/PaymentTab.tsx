@@ -21,10 +21,10 @@ type ConnectStatus = {
   charges_enabled?: boolean;
 };
 
-export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProps) {
+export function PaymentTab({ role: _role, earningsJobs, totalEarnings }: PaymentTabProps) {
   const [searchParams] = useSearchParams();
-  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
-  const [loadingConnect, setLoadingConnect] = useState(true);
+  const [, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [, setLoadingConnect] = useState(true);
 
   useEffect(() => {
     checkConnectStatus();
@@ -42,7 +42,7 @@ export function PaymentTab({ role, earningsJobs, totalEarnings }: PaymentTabProp
       const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
       if (error) throw error;
       setConnectStatus(data);
-    } catch (err: any) {
+    } catch {
       setConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
     } finally {
       setLoadingConnect(false);

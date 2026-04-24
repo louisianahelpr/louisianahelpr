@@ -23,13 +23,6 @@ const TIER_COLORS: Record<string, string> = {
   free: "hsl(var(--muted))",
 };
 
-const TIER_LABELS: Record<string, string> = {
-  basic: "Basic ($9.99/mo)",
-  pro: "Pro ($14.99/mo)",
-  elite: "Elite ($24.99/mo)",
-  free: "Free",
-};
-
 const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#06b6d4"];
 
 const AdminAnalytics = () => {
@@ -85,8 +78,6 @@ const AdminAnalytics = () => {
   // Jobs where money is actually held or paid out (NOT refunded/cancelled)
   const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
   const capturedJobs = allJobs.filter(j => capturedPaymentStatuses.includes(j.payment_status || ""));
-  // Cancelled jobs where payment was NOT refunded — platform keeps fees from these
-  const cancelledRetainedJobs = allJobs.filter(j => j.status === "cancelled" && capturedPaymentStatuses.includes(j.payment_status || ""));
   // Refunded jobs — money was returned, platform does NOT keep fees
   const refundedJobs = allJobs.filter(j => ["refunded"].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");

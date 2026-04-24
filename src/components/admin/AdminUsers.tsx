@@ -34,14 +34,14 @@ const AdminUsers = () => {
   const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]>([]);
   const [profileReviewsLeft, setProfileReviewsLeft] = useState<{ rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]>([]);
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
-  const [profileBans, setProfileBans] = useState<any[]>([]);
+  const [, setProfileBans] = useState<any[]>([]);
   const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
   const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
   const [emailSendStats, setEmailSendStats] = useState<{ template_name: string; count: number; last_sent: string }[]>([]);
   // Jobs history (worked as helper + posted as customer)
   const [profileJobs, setProfileJobs] = useState<any[]>([]);
   const [jobsRole, setJobsRole] = useState<"all" | "worked" | "posted">("all");
-  const [jobsSort, setJobsSort] = useState<"recent" | "earnings_desc" | "earnings_asc">("recent");
+  const [jobsSort] = useState<"recent" | "earnings_desc" | "earnings_asc">("recent");
 
   // Deny dialog
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
@@ -59,8 +59,6 @@ const AdminUsers = () => {
   const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
   const [newEmail1, setNewEmail1] = useState("");
   const [newEmail2, setNewEmail2] = useState("");
-  const [adminPass1] = useState(""); // kept for compat, unused
-  const [adminPass2] = useState(""); // kept for compat, unused
   const [updatingEmail, setUpdatingEmail] = useState(false);
 
   // Delete denied account
@@ -86,7 +84,7 @@ const AdminUsers = () => {
   // Per-user strike counts (from user_violations)
   const [strikesSummary, setStrikesSummary] = useState<Record<string, number>>({});
   // Per-user last activity { [user_id]: { label, at } }
-  const [activitySummary, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
+  const [, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
   // Per-user last login time
   const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
   // Per-user pay totals: earned (as helper) + spent (as poster)
@@ -864,14 +862,6 @@ const AdminUsers = () => {
     return <Badge variant="outline" className="text-muted-foreground text-[10px] gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />ID Not Submitted</Badge>;
   };
 
-  // Role badge — Helper / Poster (Customer)
-  const roleBadge = (profile: Profile) => {
-    if (profile.role === "admin") return <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Admin</Badge>;
-    if (profile.role === "customer") return <Badge variant="outline" className="text-[10px] gap-0.5"><UserIcon className="w-2.5 h-2.5" />Poster</Badge>;
-    // helpers / dual-role default
-    return <Badge variant="outline" className="text-[10px] gap-0.5"><Briefcase className="w-2.5 h-2.5" />Helpr</Badge>;
-  };
-
   // Notes icon w/ count badge + hover preview of recent 2 notes
   const NotesIndicator = ({ userId }: { userId: string }) => {
     const summary = notesSummary[userId];
@@ -928,7 +918,6 @@ const AdminUsers = () => {
     { key: "all", label: "All", count: allCount },
   ];
 
-  const activeTab = tabs.find((t) => t.key === tab);
   const tabCountLabel: Record<Tab, string> = {
     pending: "pending",
     awaiting_email: "pending email verification",
@@ -1945,8 +1934,6 @@ const AdminUsers = () => {
                       const hasStripe = !!(viewProfile as any).stripe_account_id;
                       const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
                       const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
-                      const sent = (viewProfile as any).approval_email_count || 0;
-                      const maxReached = sent >= 3;
                       const activeLabel = idvVerified
                         ? "ID verified"
                         : hasLoggedIn

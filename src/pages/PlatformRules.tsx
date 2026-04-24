@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { 
   Shield, DollarSign, Clock, AlertTriangle, Ban, 
@@ -8,7 +8,6 @@ import PageHeader from "@/components/PageHeader";
 
 const PlatformRules = () => {
   usePageTitle("Platform Rules & Policies — Helpr");
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background pb-20">

@@ -15,7 +15,7 @@ const Earnings = () => {
   const [tips, setTips] = useState<{ amount: number; job_id: string; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [instantAvailable, setInstantAvailable] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [, setBalanceLoading] = useState(false);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
 
   const loadBalance = async () => {

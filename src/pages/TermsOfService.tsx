@@ -1,11 +1,9 @@
 import { Link } from "react-router-dom";
 import { FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Crown, Scale, Receipt } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
 
 const TermsOfService = () => {
-  const navigate = useNavigate();
   usePageTitle("Terms & Policies — Helpr");
 
   return (

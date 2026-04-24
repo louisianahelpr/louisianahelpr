@@ -80,7 +80,7 @@ interface OnboardingTourProps {
   profileCreatedAt?: string | null;
 }
 
-const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCreatedAt }: OnboardingTourProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState<OnboardingState>(getState);

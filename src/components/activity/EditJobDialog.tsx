@@ -25,7 +25,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
-  const [budget, setBudget] = useState("");
+  const [, setBudget] = useState("");
   const [specialReq, setSpecialReq] = useState("");
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -65,7 +65,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   if (!job) return null;
 
   const hasHelper = !!job.helper_id;
-  const isPaid = job.payment_status === "escrow" || job.payment_status === "released";
   const locked = hasHelper;
 
   return (

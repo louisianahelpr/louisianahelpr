@@ -26,7 +26,7 @@ import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
   const tab = defaultTab as Tab;

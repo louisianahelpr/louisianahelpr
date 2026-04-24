@@ -6,7 +6,7 @@ import { safeStorage } from "@/lib/safeStorage";
 
 export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);
-  const [permission, setPermission] = useState<string>("default");
+  const [, setPermission] = useState<string>("default");
 
   useEffect(() => {
     if (!isPushSupported()) return;

@@ -112,7 +112,11 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: "es2020",
     cssCodeSplit: true,
-    sourcemap: false,
+    // Emit production source maps so Lighthouse / Sentry / DevTools can
+    // map minified frames back to original source. Hidden = .map files
+    // are uploaded but no `//# sourceMappingURL=` comment is appended,
+    // keeping the maps available without exposing them via the bundle.
+    sourcemap: true,
     // Terser produces tighter output than esbuild's default minifier for ESM
     // packages like lucide-react that ship with comments + whitespace.
     minify: "terser",

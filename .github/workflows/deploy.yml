@@ -189,17 +189,26 @@ jobs:
           bundler-cache: true
 
       - name: Select Xcode 16
-        # macos-15 runners include Xcode 16.x. Pick the highest available
-        # so Capacitor 8 SPM builds get Swift 6.x features they require.
+        # macos-15 runners include Xcode 16.x. Pick the highest available so
+        # Capacitor 8 SPM builds get Swift 6.x features they require.
+        # We export DEVELOPER_DIR to $GITHUB_ENV so it persists across every
+        # subsequent step (including Fastlane). `xcode-select -s` alone is not
+        # enough — Fastlane/gym resolves Xcode via DEVELOPER_DIR first, and
+        # without it the runner's default (often Xcode 15.4) gets used and
+        # Capacitor 8 plugins fail with "no member 'webView'" Swift errors.
         run: |
           XCODE_PATH=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
           if [ -z "$XCODE_PATH" ]; then
             echo "❌ No Xcode 16.x found on runner. Available:"
             ls -d /Applications/Xcode*.app 2>/dev/null
+            echo ""
+            echo "This workflow requires macos-15 (which ships Xcode 16)."
+            echo "If you see only Xcode 15.x, the runner image is wrong — check `runs-on:`."
             exit 1
           fi
           echo "▶ Selecting $XCODE_PATH"
           sudo xcode-select -s "$XCODE_PATH"
+          echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
           xcodebuild -version
 
       # ─── Web + Capacitor build ─────────────────────────────────────────────

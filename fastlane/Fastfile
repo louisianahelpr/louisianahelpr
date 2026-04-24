@@ -139,7 +139,11 @@ end
 
 def valid_private_key_content?(value)
   return false if value.to_s.empty? || value.include?("\x00")
-  return false unless value.include?("BEGIN PRIVATE KEY") && value.include?("END PRIVATE KEY")
+  # Apple .p8 keys are PKCS#8 ("BEGIN PRIVATE KEY"). Accept EC/RSA variants too
+  # in case someone exported in a different PEM wrapper.
+  has_pem_header = value =~ /-----BEGIN (EC |RSA |)PRIVATE KEY-----/
+  has_pem_footer = value =~ /-----END (EC |RSA |)PRIVATE KEY-----/
+  return false unless has_pem_header && has_pem_footer
 
   OpenSSL::PKey.read(value)
   true
@@ -147,32 +151,58 @@ rescue OpenSSL::PKey::PKeyError, ArgumentError
   false
 end
 
+def describe_candidate(candidate)
+  bytes = candidate.to_s.bytesize
+  preview_head = candidate.to_s.byteslice(0, 30).to_s.dup.force_encoding("UTF-8")
+  preview_head = preview_head.scrub("?").gsub(/[^\x20-\x7e]/, ".")
+  has_begin = candidate.to_s.include?("BEGIN") ? "yes" : "no"
+  has_end = candidate.to_s.include?("END") ? "yes" : "no"
+  has_dashes = candidate.to_s.include?("-----") ? "yes" : "no"
+  "bytes=#{bytes} starts_with=#{preview_head.inspect} BEGIN=#{has_begin} END=#{has_end} dashes=#{has_dashes}"
+end
+
 def normalized_asc_key_content
   raw_key_content = extract_key_payload(ENV["ASC_KEY_CONTENT"] || ENV["ASC_KEY"])
   return "" if raw_key_content.empty?
 
   candidates = []
-  candidates << raw_key_content
-  candidates << raw_key_content.gsub("\\n", "\n") if raw_key_content.include?("\\n")
+  candidates << ["raw", raw_key_content]
+  candidates << ["unescaped-newlines", raw_key_content.gsub("\\n", "\n")] if raw_key_content.include?("\\n")
+  candidates << ["crlf-stripped", raw_key_content.gsub("\r", "")] if raw_key_content.include?("\r")
 
+  # Try base64 decode (strict first, then lenient that tolerates whitespace/newlines).
   compact_base64 = raw_key_content.gsub(/\s+/, "")
-  if !compact_base64.empty? && !raw_key_content.include?("BEGIN PRIVATE KEY")
+  if !compact_base64.empty? && !raw_key_content.include?("BEGIN")
     begin
-      candidates << Base64.strict_decode64(compact_base64)
+      candidates << ["base64-strict", Base64.strict_decode64(compact_base64)]
+    rescue ArgumentError
+      nil
+    end
+    begin
+      candidates << ["base64-lenient", Base64.decode64(compact_base64)]
     rescue ArgumentError
       nil
     end
   end
 
-  candidates.each do |candidate|
+  diagnostics = []
+  candidates.each do |label, candidate|
     str = candidate.to_s.dup.force_encoding("UTF-8")
     str = str.encode("UTF-8", invalid: :replace, undef: :replace, replace: "") unless str.valid_encoding?
     normalized = str.delete_prefix("\uFEFF").strip
-    return normalized if valid_private_key_content?(normalized)
+    if valid_private_key_content?(normalized)
+      UI.message("ASC_KEY_CONTENT decoded successfully via strategy: #{label}")
+      return normalized
+    end
+    diagnostics << "  - #{label}: #{describe_candidate(normalized)}"
   end
 
+  UI.error("ASC_KEY_CONTENT/ASC_KEY could not be parsed. Tried #{candidates.size} strategies:")
+  diagnostics.each { |d| UI.error(d) }
+  UI.error("Raw secret length: #{ENV['ASC_KEY_CONTENT'].to_s.bytesize} bytes")
   UI.user_error!("ASC_KEY_CONTENT/ASC_KEY is invalid. Provide raw .p8 text, PEM text with escaped newlines, a base64-encoded .p8 content string, or a JSON secret containing one of: key_content, key, private_key, p8, api_key.")
 end
+
 
 def xcodebuild_auth_key_path
   key_path = ENV["ASC_KEY_PATH"].to_s.strip

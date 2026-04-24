@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { createNotification } from "@/lib/notifications";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, Clock } from "lucide-react";
+import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";

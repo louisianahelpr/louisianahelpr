@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Calendar, Filter } from "lucide-react";
+import { MapPin, DollarSign, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import type { Database } from "@/integrations/supabase/types";
 

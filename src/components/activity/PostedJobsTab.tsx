@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw,
   Star, MessageSquare, Users, Pencil, AlertTriangle, RefreshCw,
-  Rocket, Clock, Calendar, Timer, Navigation as NavigationIcon, Wrench, FileText,
+  Rocket, Clock, Calendar, Timer, Wrench,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
-import { PhotoProof, PhotoProofGroup } from "@/components/PhotoProof";
+import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
@@ -21,7 +21,7 @@ import { VirtualList } from "@/components/VirtualList";
 
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { type Job, type Application, type EnrichedApplication, categoryColors } from "./activityConstants";
+import { type Job, type EnrichedApplication, categoryColors } from "./activityConstants";
 
 const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
   const [now, setNow] = useState(new Date());

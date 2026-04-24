@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
-  Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone, Shield,
+  Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Loader2, Mail, Smartphone, Navigation, CheckCircle2, Inbox, Lock,
 } from "lucide-react";
 

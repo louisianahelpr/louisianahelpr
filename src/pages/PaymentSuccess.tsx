@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, ShieldCheck } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";

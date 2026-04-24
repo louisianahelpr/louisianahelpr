@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, Megaphone, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2 } from "lucide-react";
 
 interface Broadcast {
   id: string;

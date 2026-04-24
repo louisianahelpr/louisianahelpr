@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, MapPin, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X } from "lucide-react";
+import { Clock, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X } from "lucide-react";
 
 const quickReplies = [
   { label: "Running late", icon: Clock, message: "⏰ Running about 10 minutes late — sorry for the delay!" },

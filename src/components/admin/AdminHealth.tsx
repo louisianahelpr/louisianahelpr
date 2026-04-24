@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Activity, RefreshCw, Mail, ShieldAlert, Database, Download, Bug } from "lucide-react";
+import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { toast } from "@/hooks/use-toast";
 

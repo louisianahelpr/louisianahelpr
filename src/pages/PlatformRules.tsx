@@ -1,9 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Button } from "@/components/ui/button";
 import { 
   Shield, DollarSign, Clock, AlertTriangle, Ban, 
-  Scale, CheckCircle, XCircle, Timer, Receipt
+  Scale, CheckCircle, XCircle, Receipt
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 

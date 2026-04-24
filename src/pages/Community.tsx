@@ -4,7 +4,6 @@ import { Heart, Users, Star, HandHeart, Sparkles, Gift, Shield, Zap } from "luci
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 

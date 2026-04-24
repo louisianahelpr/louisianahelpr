@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import type { Job, Application, AppliedApp } from "@/components/activity/activityConstants";
+import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 
 export function useActivityData(user: SupaUser | null) {
   const [loading, setLoading] = useState(true);

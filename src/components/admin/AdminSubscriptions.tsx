@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Crown, Clock, Users, DollarSign } from "lucide-react";
+import { Search, Crown, Clock, Users } from "lucide-react";
 
 interface SubscribedProfile {
   user_id: string;

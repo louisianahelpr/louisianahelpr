@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, ImageIcon, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
+  MapPin, Calendar, DollarSign, Flag, Star, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
-import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import { computeBadges } from "@/components/HelperBadges";
 import { categoryLabels } from "./JobFilters";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { getCityState } from "@/lib/locationUtils";

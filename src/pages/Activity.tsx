@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -19,7 +19,6 @@ import { PostedJobsTab } from "@/components/activity/PostedJobsTab";
 import { AppliedJobsTab } from "@/components/activity/AppliedJobsTab";
 import {
   type Job, type Application, type Tab, type EnrichedApplication,
-  categoryLabels, categories, categoryColors, statusBadge,
 } from "@/components/activity/activityConstants";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";

@@ -49,10 +49,10 @@ const config: CapacitorConfig = {
     //   <false/>
     //   <key>UIRequiresFullScreen</key>
     //   <false/>
-    //   <key>UIStatusBarStyle</key>
-    //   <string>UIStatusBarStyleDarkContent</string>
-    //   <key>UIViewControllerBasedStatusBarAppearance</key>
-    //   <true/>
+    //   NOTE: Do NOT set UIStatusBarStyle / UIViewControllerBasedStatusBarAppearance
+    //   in Info.plist. The Capacitor StatusBar plugin owns this at runtime
+    //   (see plugins.StatusBar below + src/lib/nativeInit.ts). Mixing both
+    //   leads to the bar flickering between styles on launch.
     //   <key>UISupportedInterfaceOrientations</key>
     //   <array><string>UIInterfaceOrientationPortrait</string></array>
     //   <key>UISupportedInterfaceOrientations~ipad</key>
@@ -82,7 +82,12 @@ const config: CapacitorConfig = {
       splashImmersive: true
     },
     StatusBar: {
-      style: 'LIGHT', // dark icons on light backgrounds
+      // Capacitor semantics (counter-intuitive but correct):
+      //   Style.Light => dark icons (for LIGHT backgrounds — what we want here)
+      //   Style.Dark  => light icons (for DARK backgrounds)
+      // Helpr's default surface is the cream #F4F8F5, so we want dark icons.
+      // Per-screen overrides live in src/hooks/useStatusBar.ts.
+      style: 'LIGHT',
       backgroundColor: '#F4F8F5',
       overlaysWebView: false
     },

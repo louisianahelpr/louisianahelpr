@@ -51,10 +51,28 @@ jobs:
         # The ios/App/ Xcode project is gitignored (generated locally on the
         # developer's Mac per ios/README.md). In CI we create it fresh so
         # `cap sync` has a Podfile to install into.
+        #
+        # The repo's ios/ folder only contains config stubs (App.entitlements,
+        # PrivacyInfo.xcprivacy, README). Capacitor refuses to run `cap add ios`
+        # if ios/ exists at all, so we move those stubs aside, generate the
+        # native project, then restore the stubs into ios/App/App/.
         run: |
           if [ ! -d ios/App ]; then
-            echo "Generating ios/App/ via npx cap add ios..."
+            echo "ios/App/ missing — preserving repo stubs and generating native project..."
+            mkdir -p /tmp/ios-stubs
+            # Preserve any non-generated files Capacitor would clobber
+            [ -f ios/App.entitlements ] && mv ios/App.entitlements /tmp/ios-stubs/
+            [ -f ios/PrivacyInfo.xcprivacy ] && mv ios/PrivacyInfo.xcprivacy /tmp/ios-stubs/
+            [ -f ios/README.md ] && mv ios/README.md /tmp/ios-stubs/
+            rm -rf ios
             npx cap add ios
+            # Restore the privacy manifest into the generated native project
+            if [ -f /tmp/ios-stubs/PrivacyInfo.xcprivacy ]; then
+              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
+              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/PrivacyInfo.xcprivacy
+            fi
+            [ -f /tmp/ios-stubs/App.entitlements ] && cp /tmp/ios-stubs/App.entitlements ios/App.entitlements || true
+            [ -f /tmp/ios-stubs/README.md ] && cp /tmp/ios-stubs/README.md ios/README.md || true
           fi
 
       - name: Sync to iOS (dry-run validation)

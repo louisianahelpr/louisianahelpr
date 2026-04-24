@@ -41,7 +41,7 @@ const categoryColors: Record<string, { badge: string; title: string; accent: str
   other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", accent: "from-slate-400/10 to-slate-500/5" },
 };
 
-const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, onReport, onSelect, index = 0, isExpanded = false, onToggleExpand, isSaved = false, onToggleSave }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = true, onApply, onReport, onSelect: _onSelect, index = 0, isExpanded = false, onToggleExpand, isSaved = false, onToggleSave }: JobCardProps) => {
   const [savingBookmark, setSavingBookmark] = useState(false);
 
   const handleToggleSave = async (e: React.MouseEvent) => {
@@ -64,12 +64,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply = true, onApply, 
       setSavingBookmark(false);
     }
   };
-
-  const posterBadges = computeBadges({
-    avgRating: job.posterAvgRating || 0,
-    reviewCount: job.posterReviewCount || 0,
-    completedJobs: job.posterCompletedJobs || 0,
-  });
 
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelperBudget = job.budget / helpersCount;

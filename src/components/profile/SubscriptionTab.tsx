@@ -46,7 +46,7 @@ const tierConfig = [
   },
 ];
 
-export const SubscriptionTab = ({ profile, user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
+export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("one_time");

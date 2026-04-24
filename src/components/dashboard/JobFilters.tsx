@@ -40,9 +40,9 @@ interface JobFiltersProps {
 }
 
 const JobFilters = ({
-  searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
+  searchQuery: _searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
   maxBudget, setMaxBudget, locationFilter, setLocationFilter,
-  sortBy, setSortBy, filtersOpen, setFiltersOpen,
+  sortBy, setSortBy, filtersOpen: _filtersOpen, setFiltersOpen: _setFiltersOpen,
   expiresWithin, setExpiresWithin,
   matchAvailability, setMatchAvailability, hasAvailability,
 }: JobFiltersProps) => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Cake } from "lucide-react";
+import { safeStorage } from "@/lib/safeStorage";
 
 interface BirthdayPopupProps {
   dateOfBirth: string | null | undefined;
@@ -16,7 +17,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
     const today = new Date();
     const dob = new Date(dateOfBirth);
     if (today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
-      const dismissed = localStorage.getItem("birthday_popup_dismissed");
+      const dismissed = safeStorage.getItem("birthday_popup_dismissed");
       if (dismissed) {
         const dismissedDate = new Date(parseInt(dismissed, 10));
         if (
@@ -33,7 +34,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
 
   const dismiss = () => {
     setShow(false);
-    localStorage.setItem("birthday_popup_dismissed", Date.now().toString());
+    safeStorage.setItem("birthday_popup_dismissed", Date.now().toString());
   };
 
   return (

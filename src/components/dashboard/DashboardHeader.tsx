@@ -8,7 +8,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import helprIcon from "@/assets/helpr-icon.png";
+import helprIcon from "@/assets/helpr-icon-96.webp";
 
 interface DashboardHeaderProps {
   title?: string;

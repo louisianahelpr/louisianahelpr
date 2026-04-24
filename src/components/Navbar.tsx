@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
-import helprIcon from "@/assets/helpr-icon.png";
+import helprIcon from "@/assets/helpr-icon-96.webp";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);

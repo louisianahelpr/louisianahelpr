@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -101,7 +101,27 @@ const Dashboard = () => {
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
 
-  const { user, profile, isAdmin, loading, helprTier, allJobs, platformFee, helperAvailability, recommendedJobs, refresh } = useDashboardData();
+  const {
+    user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
+    helperAvailability, recommendedJobs, refresh,
+    fetchNextPage, hasNextPage, isFetchingNextPage,
+  } = useDashboardData();
+
+  // Sentinel for infinite scroll — fires fetchNextPage when ~80% of the list is in view.
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage || isFetchingNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage();
+      },
+      // rootMargin pulls the trigger ~20% of viewport early (~80% scroll point)
+      { root: null, rootMargin: "0px 0px 20% 0px", threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, allJobs.length]);
 
   const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
     onRefresh: refresh,
@@ -580,18 +600,45 @@ const Dashboard = () => {
                   return true;
                 });
               return (
-                <VirtualList
-                  items={visibleJobs}
-                  getKey={(job) => job.id}
-                  estimateSize={220}
-                  overscan={4}
-                  className="divide-y divide-border/30"
-                  renderItem={(job, i) => (
-                    <div className="px-3 py-2.5">
-                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                <>
+                  <VirtualList
+                    items={visibleJobs}
+                    getKey={(job) => job.id}
+                    estimateSize={220}
+                    overscan={4}
+                    className="divide-y divide-border/30"
+                    renderItem={(job, i) => (
+                      <div className="px-3 py-2.5">
+                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                      </div>
+                    )}
+                  />
+                  {/* Infinite scroll sentinel + manual fallback */}
+                  {hasNextPage && (
+                    <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">
+                      {isFetchingNextPage ? (
+                        <span className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                          Loading more jobs…
+                        </span>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => fetchNextPage()}
+                          className="text-xs text-muted-foreground hover:text-foreground rounded-xl btn-press"
+                        >
+                          Load more
+                        </Button>
+                      )}
                     </div>
                   )}
-                />
+                  {!hasNextPage && visibleJobs.length >= 25 && (
+                    <div className="px-4 py-4 text-center text-[11px] text-muted-foreground">
+                      You've reached the end of the feed.
+                    </div>
+                  )}
+                </>
               );
             })()}
           </motion.section>

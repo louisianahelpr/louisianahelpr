@@ -12,6 +12,7 @@ import {
   Navigation as NavigationIcon, Send, XCircle, Paperclip, FileText, Trash2, ExternalLink, Pencil, Check, X,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
+import { VirtualList } from "@/components/VirtualList";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -177,34 +178,32 @@ export const AppliedJobsTab = ({
     return location;
   };
 
-  return (
-    <div className="space-y-3">
-      {apps.map((app) => {
-        const job = app.job;
-        if (!job) return null;
-        const jobAny = job as any;
-        const status = job.status;
-        const isOffered = app.status === "accepted" && status === "accepted" && !jobAny.helper_confirmed_at;
-        const isConfirmed = app.status === "accepted" && status === "accepted" && !!jobAny.helper_confirmed_at;
-        const isActive = app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
-        const isDisputed = app.status === "accepted" && status === "disputed";
-        const isCompleted = app.status === "accepted" && status === "completed";
-        const isCancelled = job.status === "cancelled";
-        const isPending = app.status === "pending";
-        const isRejected = app.status === "rejected";
-        const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
-        const isExpanded = expandedJobId === app.job_id;
+  const renderAppCard = (app: AppliedApp) => {
+    const job = app.job;
+    if (!job) return null;
+    const jobAny = job as any;
+    const status = job.status;
+    const isOffered = app.status === "accepted" && status === "accepted" && !jobAny.helper_confirmed_at;
+    const isConfirmed = app.status === "accepted" && status === "accepted" && !!jobAny.helper_confirmed_at;
+    const isActive = app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
+    const isDisputed = app.status === "accepted" && status === "disputed";
+    const isCompleted = app.status === "accepted" && status === "completed";
+    const isCancelled = job.status === "cancelled";
+    const isPending = app.status === "pending";
+    const isRejected = app.status === "rejected";
+    const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
+    const isExpanded = expandedJobId === app.job_id;
 
-        // Payout calc
-        const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-        const perHelper = job.budget / helpers;
-        const commissionPercent = jobAny.helper_fee_percent ?? 10;
-        const commission = (perHelper * commissionPercent) / 100;
-        const payout = perHelper - commission + (job.urgent_fee ?? 0);
+    // Payout calc
+    const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+    const perHelper = job.budget / helpers;
+    const commissionPercent = jobAny.helper_fee_percent ?? 10;
+    const commission = (perHelper * commissionPercent) / 100;
+    const payout = perHelper - commission + (job.urgent_fee ?? 0);
 
-        const isMinimalCard = isRejected || isCancelled;
+    const isMinimalCard = isRejected || isCancelled;
 
-        return (
+    return (
           <div
             key={app.id}
             className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer" : ""}`}

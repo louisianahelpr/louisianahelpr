@@ -1,0 +1,68 @@
+name: Broken Link Check
+
+# Crawls the published site for broken links (404s, dead redirects).
+# App Store reviewers click through privacy/support/terms URLs — a 404 on
+# any of those is grounds for rejection. This catches them before submission.
+#
+# Runs:
+# - Weekly on Tuesdays (App Store reviews happen all week)
+# - Manually via workflow_dispatch
+
+on:
+  schedule:
+    - cron: "0 9 * * 2" # Tuesday 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  link-check:
+    name: Crawl louisianahelpr.lovable.app for 404s
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check critical legal/support pages
+        # These are the URLs Apple reviewers click. If any 404, we fail loud.
+        run: |
+          set -e
+          URLS=(
+            "https://louisianahelpr.lovable.app/"
+            "https://louisianahelpr.lovable.app/privacy"
+            "https://louisianahelpr.lovable.app/terms"
+            "https://louisianahelpr.lovable.app/rules"
+            "https://louisianahelpr.lovable.app/support"
+            "https://louisianahelpr.lovable.app/login"
+            "https://louisianahelpr.lovable.app/signup"
+            "https://louisianahelpr.lovable.app/data-rights"
+          )
+          FAIL=0
+          for URL in "${URLS[@]}"; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "$URL")
+            if [ "$CODE" = "200" ]; then
+              echo "✅ $CODE  $URL"
+            else
+              echo "❌ $CODE  $URL"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "💡 One or more critical pages are broken. Fix before App Store submission."
+            exit 1
+          fi
+
+      - name: Run lychee link checker on homepage
+        # Catches broken outbound links (CDN images, social profiles, etc.)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --max-concurrency 4
+            --accept 200,206,429
+            --exclude-mail
+            --exclude-path node_modules
+            https://louisianahelpr.lovable.app/
+          fail: false # don't fail on flaky external links — log only

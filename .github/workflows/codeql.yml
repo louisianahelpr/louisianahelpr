@@ -1,0 +1,49 @@
+name: CodeQL Security Scan
+
+# GitHub's free static analysis for JavaScript/TypeScript.
+# Catches XSS, injection vulnerabilities, hardcoded secrets, and other
+# security issues that could put user data at risk OR get flagged by
+# App Store reviewers.
+#
+# Runs:
+# - On every PR to main
+# - Weekly on Wednesdays (catches newly-disclosed query patterns)
+# - Manually via workflow_dispatch
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 7 * * 3" # Wednesday 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze JavaScript/TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # security-and-quality is more thorough than security-extended;
+          # tune down to "security-extended" if it gets noisy.
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

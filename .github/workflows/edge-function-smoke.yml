@@ -1,0 +1,66 @@
+name: Edge Function Smoke Test
+
+# Verifies that critical edge functions boot and respond after deploy.
+# Catches Deno import errors, missing env vars, and runtime crashes that
+# only surface when functions are actually invoked.
+#
+# Runs:
+# - After every push to main (post-deploy check)
+# - Hourly on schedule (catches secret expirations / Supabase outages)
+# - Manually via workflow_dispatch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+  schedule:
+    - cron: "0 * * * *" # every hour
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Health-check edge functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Wait for deploy to propagate
+        # Edge functions deploy automatically but take a few seconds to be live.
+        run: sleep 30
+
+      - name: Hit health-check endpoint
+        # Public function — no auth required. If this 500s, something is broken.
+        run: |
+          set -e
+          URL="https://steigdwrpkosbiycshwz.supabase.co/functions/v1/health-check"
+          echo "Pinging $URL"
+          HTTP_CODE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0ZWlnZHdycGtvc2JpeWNzaHd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODUxOTUsImV4cCI6MjA4ODc2MTE5NX0.OzTZGTj86ZZyudkGVp8go0b0ORpg--h2dVh2qxKLxQI" \
+            "$URL")
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/response.json
+          echo ""
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ health-check returned $HTTP_CODE — edge functions are unhealthy"
+            exit 1
+          fi
+          echo "✅ Edge functions are responding"
+
+      - name: Verify Stripe public key endpoint
+        # Confirms get-stripe-public-key boots — proves Stripe secrets are wired.
+        run: |
+          set -e
+          URL="https://steigdwrpkosbiycshwz.supabase.co/functions/v1/get-stripe-public-key"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0ZWlnZHdycGtvc2JpeWNzaHd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODUxOTUsImV4cCI6MjA4ODc2MTE5NX0.OzTZGTj86ZZyudkGVp8go0b0ORpg--h2dVh2qxKLxQI" \
+            "$URL")
+          echo "get-stripe-public-key: HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "⚠️  get-stripe-public-key returned $HTTP_CODE — Stripe may be misconfigured"
+            exit 1
+          fi
+          echo "✅ Stripe public key endpoint healthy"

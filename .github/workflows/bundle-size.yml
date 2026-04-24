@@ -1,0 +1,79 @@
+name: Bundle Size Check
+
+# Guards against JS bundle bloat that hurts mobile performance.
+# Mobile Lighthouse score is heavily impacted by total JS shipped — this
+# workflow fails PRs that push individual chunks over a defined budget.
+#
+# Runs:
+# - On every PR to main (catches regressions before merge)
+# - Manually via workflow_dispatch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "vite.config.ts"
+      - ".github/workflows/bundle-size.yml"
+  workflow_dispatch:
+
+jobs:
+  bundle-size:
+    name: Check production bundle sizes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Check chunk sizes
+        # Budgets in KB (gzipped equivalent estimate ~ raw * 0.3).
+        # Tuned to current sizes with ~25% headroom — failures = real regressions.
+        # Adjust here if you intentionally add a large dep.
+        run: |
+          set -e
+          MAX_CHUNK_KB=300       # any single JS chunk
+          MAX_TOTAL_KB=900       # total JS shipped on initial load (rough)
+          FAIL=0
+
+          echo "::group::Per-chunk sizes"
+          for f in dist/assets/*.js; do
+            SIZE_KB=$(( $(stat -c%s "$f") / 1024 ))
+            printf "  %6s KB  %s\n" "$SIZE_KB" "$(basename "$f")"
+            if [ "$SIZE_KB" -gt "$MAX_CHUNK_KB" ]; then
+              echo "    ❌ exceeds ${MAX_CHUNK_KB} KB budget"
+              FAIL=1
+            fi
+          done
+          echo "::endgroup::"
+
+          TOTAL_KB=$(( $(du -cb dist/assets/*.js | tail -1 | cut -f1) / 1024 ))
+          echo ""
+          echo "Total JS shipped: ${TOTAL_KB} KB (budget: ${MAX_TOTAL_KB} KB)"
+          if [ "$TOTAL_KB" -gt "$MAX_TOTAL_KB" ]; then
+            echo "❌ Total JS exceeds budget — mobile perf will suffer"
+            FAIL=1
+          fi
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "💡 To fix: lazy-load the offending chunk with React.lazy(),"
+            echo "   split the route, or remove unused dependencies."
+            exit 1
+          fi
+          echo "✅ All chunks within budget"

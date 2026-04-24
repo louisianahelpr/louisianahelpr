@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -35,16 +35,16 @@ export default defineConfig(({ mode }) => ({
       name: "html-async-entry-css",
       apply: "build",
       enforce: "post",
-      transformIndexHtml(html) {
+      transformIndexHtml(html: string) {
         return html.replace(
           /<link rel="stylesheet"[^>]*?href="(\/assets\/[^"]+\.css)"[^>]*>/g,
-          (_match, href) =>
+          (_match: string, href: string) =>
             `<link rel="preload" as="style" href="${href}">` +
             `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">` +
             `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
         );
       },
-    },
+    } satisfies Plugin,
     VitePWA({
       registerType: "autoUpdate",
       // Defer the SW registration script so it doesn't block FCP.

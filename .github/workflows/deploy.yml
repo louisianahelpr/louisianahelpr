@@ -179,8 +179,12 @@ jobs:
       # already exists from a previous cached run.
       - name: Generate iOS Xcode project (if missing)
         run: |
-          if [ ! -d "ios/App" ]; then
-            echo "▶ ios/App not found — running 'npx cap add ios'"
+          if [ ! -d "ios/App" ] && [ ! -d "ios" ]; then
+            echo "▶ ios/ not found — running 'npx cap add ios'"
+            npx cap add ios
+          elif [ ! -d "ios/App" ] && [ -d "ios" ]; then
+            echo "▶ ios/ exists but ios/App is missing — removing stale ios/ and re-adding"
+            rm -rf ios
             npx cap add ios
           else
             echo "✓ ios/App already exists — skipping 'cap add'"

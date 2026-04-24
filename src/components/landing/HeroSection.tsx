@@ -17,6 +17,32 @@ import heroImg from "@/assets/hero-illustration-v6-900.webp";
 import heroImg600 from "@/assets/hero-illustration-v6-600.webp";
 import heroImg500 from "@/assets/hero-illustration-v6-500.webp";
 
+// Inject a <link rel="preload"> for the LCP hero image as soon as this module
+// loads, so the browser can discover the request before React renders the <img>.
+// Fixes Lighthouse "LCP request discovery" — the image is otherwise only
+// findable after the JS bundle parses and renders, costing ~1s on mobile.
+if (typeof document !== "undefined") {
+  const PRELOAD_ID = "hero-lcp-preload";
+  if (!document.getElementById(PRELOAD_ID)) {
+    const link = document.createElement("link");
+    link.id = PRELOAD_ID;
+    link.rel = "preload";
+    link.as = "image";
+    link.type = "image/webp";
+    link.fetchPriority = "high";
+    link.href = heroImg500;
+    link.setAttribute(
+      "imagesrcset",
+      `${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`,
+    );
+    link.setAttribute(
+      "imagesizes",
+      "(max-width: 767px) 320px, (max-width: 1023px) 400px, 500px",
+    );
+    document.head.appendChild(link);
+  }
+}
+
 const categories = [
   { icon: Leaf, label: "Yard Work" },
   { icon: Sparkles, label: "Cleaning" },

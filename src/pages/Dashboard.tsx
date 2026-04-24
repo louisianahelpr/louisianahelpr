@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -101,7 +101,27 @@ const Dashboard = () => {
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
 
-  const { user, profile, isAdmin, loading, helprTier, allJobs, platformFee, helperAvailability, recommendedJobs, refresh } = useDashboardData();
+  const {
+    user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
+    helperAvailability, recommendedJobs, refresh,
+    fetchNextPage, hasNextPage, isFetchingNextPage,
+  } = useDashboardData();
+
+  // Sentinel for infinite scroll — fires fetchNextPage when ~80% of the list is in view.
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage || isFetchingNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage();
+      },
+      // rootMargin pulls the trigger ~20% of viewport early (~80% scroll point)
+      { root: null, rootMargin: "0px 0px 20% 0px", threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, allJobs.length]);
 
   const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
     onRefresh: refresh,

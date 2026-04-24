@@ -119,6 +119,20 @@ export default defineConfig(({ mode }) => ({
     // class fields / top-level await. Cuts a few KB of legacy helpers.
     target: "es2022",
     cssCodeSplit: true,
+    // Vite default emits <link rel="modulepreload"> for the entry AND walks
+    // dynamic-import graphs to preload their dependencies too. That meant
+    // chunks like `charts` (recharts, only used in /admin) and `posthog`
+    // were being preloaded on the landing page even though no landing
+    // component touches them — Lighthouse flagged 200KB+ of "unused JS"
+    // on first paint.
+    //
+    // Setting `resolveDependencies` to an empty array keeps modulepreload
+    // for the entry's static graph but stops the recursive walk into
+    // dynamic-import branches. Lazy chunks still load on demand when the
+    // user navigates — they just aren't preloaded ahead of time.
+    modulePreload: {
+      resolveDependencies: () => [],
+    },
     // Emit production source maps so Lighthouse / Sentry / DevTools can
     // map minified frames back to original source. Hidden = .map files
     // are uploaded but no `//# sourceMappingURL=` comment is appended,

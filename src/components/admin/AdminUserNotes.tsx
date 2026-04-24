@@ -103,7 +103,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentAdminId(data.user?.id || null));
     loadNotes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [userId]);
 
   const addNote = async () => {

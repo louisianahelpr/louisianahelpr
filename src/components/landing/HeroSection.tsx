@@ -14,6 +14,8 @@ import {
   DollarSign,
 } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v6-900.webp";
+import heroImg600 from "@/assets/hero-illustration-v6-600.webp";
+import heroImg500 from "@/assets/hero-illustration-v6-500.webp";
 
 const categories = [
   { icon: Leaf, label: "Yard Work" },
@@ -170,6 +172,8 @@ const HeroSection = () => {
             <div className="relative w-full max-w-md mx-auto">
               <img
                 src={heroImg}
+                srcSet={`${heroImg500} 500w, ${heroImg600} 600w, ${heroImg} 900w`}
+                sizes="(max-width: 767px) 90vw, (max-width: 1023px) 45vw, 500px"
                 alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
                 className="w-full h-auto rounded-2xl shadow-xl object-contain"
                 loading="eager"

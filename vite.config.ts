@@ -168,7 +168,13 @@ export default defineConfig(({ mode }) => ({
             return "react-vendor";
           }
           if (id.includes("lucide-react")) return "lucide";
-          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          // NOTE: Do NOT manually chunk recharts/d3. When we did, Rollup
+          // hoisted clsx (a recharts dep that's also used app-wide) into the
+          // "charts" chunk, which then forced the main entry to statically
+          // import 102KB of recharts on EVERY page — including the landing
+          // page where no chart is rendered. Letting recharts ride along
+          // with the dynamically imported AdminAnalytics chunk keeps it off
+          // the critical path entirely.
           if (id.includes("framer-motion")) return "motion";
           if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
           if (id.includes("@supabase")) return "supabase";

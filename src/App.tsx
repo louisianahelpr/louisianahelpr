@@ -60,10 +60,15 @@ const AdminRoute = lazy(() => import("./components/AdminRoute"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
+      // Keep data considered fresh for 60s — short enough that refocusing
+      // after a brief context switch triggers a background refetch, long
+      // enough to avoid hammering Supabase on rapid remounts.
+      staleTime: 60 * 1000,
       gcTime: 10 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false,
+      // Re-enable: in a live marketplace, returning to the app should
+      // surface jobs that may have been claimed/cancelled while away.
+      refetchOnWindowFocus: true,
     },
   },
 });

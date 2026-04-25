@@ -14,6 +14,7 @@ import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hamm
 import PageHeader from "@/components/PageHeader";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import CredentialBadge from "@/components/CredentialBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { ParishBadges } from "@/components/ParishBadges";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
@@ -295,6 +296,9 @@ const UserProfile = () => {
                 </div>
               )}
               <HelperBadges badges={badges} />
+              <div className="pt-1 flex justify-center">
+                <CredentialBadge credentials={profile as any} size="md" />
+              </div>
               <div className="pt-1">
                 <ParishBadges userId={userId!} />
               </div>

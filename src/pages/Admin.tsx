@@ -44,8 +44,9 @@ const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
+const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -63,6 +64,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
     items: [
       { id: "people", label: "Users", icon: Users },
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
+      { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
       { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
@@ -313,6 +315,7 @@ const Admin = () => {
     audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
+    credentials: "License & Insurance",
   };
 
   const renderContent = () => {
@@ -338,6 +341,7 @@ const Admin = () => {
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
+      case "credentials": return <AdminCredentialQueue />;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;

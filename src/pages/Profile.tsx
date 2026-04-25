@@ -13,7 +13,7 @@ import {
   Star, Edit, CalendarDays, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
-  Briefcase,
+  Briefcase, ShieldCheck,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";
@@ -37,6 +37,7 @@ const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m
 const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
+const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
 
 const TabFallback = () => (
   <div className="flex items-center justify-center py-16">
@@ -47,7 +48,7 @@ const TabFallback = () => (
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -442,6 +443,7 @@ const ProfilePage = () => {
       title: "Account",
       items: [
         { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
+        { key: "credentials", label: "Licensed & Insured", icon: <ShieldCheck className="w-5 h-5" />, desc: "Earn the verified Seal of Trust" },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
         { key: "landing" as Tab, label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
@@ -1063,6 +1065,23 @@ const ProfilePage = () => {
             <Suspense fallback={<TabFallback />}>
               <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
             </Suspense>
+          )}
+
+          {tab === "credentials" && user && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-foreground">Licensed & Insured</h1>
+                  <p className="text-muted-foreground text-sm">Verify your professional credentials</p>
+                </div>
+              </div>
+              <Suspense fallback={<TabFallback />}>
+                <CredentialsTab userId={user.id} />
+              </Suspense>
+            </div>
           )}
         </div>
       </main>

@@ -13,7 +13,7 @@ import {
   Star, Edit, CalendarDays, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
-  Briefcase,
+  Briefcase, ShieldCheck,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";

@@ -53,7 +53,7 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
   if (loading || jobs.length === 0) return null;
 
   return (
-    <section ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
+    <section id="open-jobs" ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30 scroll-mt-20">
       <div className="container mx-auto max-w-5xl">
         <div className="text-center mb-12 animate-fade-in">
           <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-4">

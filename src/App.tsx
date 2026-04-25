@@ -61,6 +61,7 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const Heroes = lazy(() => import("./pages/Heroes"));
 const SavedHelpers = lazy(() => import("./pages/SavedHelpers"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
+const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 
 // Lazy load less-critical global components
 
@@ -143,6 +144,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
       <Route path="/saved-helpers" element={<ProtectedRoute><SavedHelpers /></ProtectedRoute>} />
       <Route path="/for-business" element={<PageTransition><ForBusiness /></PageTransition>} />
+      <Route path="/business/team" element={<ProtectedRoute><BusinessTeam /></ProtectedRoute>} />
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,65 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Building2, CheckCircle2, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Building2, CheckCircle2, ShieldCheck, Sparkles, Users, CreditCard } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Link } from "react-router-dom";
-
-const PARISHES = [
-  "Orleans", "Jefferson", "East Baton Rouge", "Caddo", "St. Tammany",
-  "Lafayette", "Calcasieu", "Ouachita", "Rapides", "Bossier", "Livingston",
-  "Tangipahoa", "Ascension", "St. Bernard", "Iberia", "Terrebonne",
-];
 
 const ForBusiness = () => {
   const navigate = useNavigate();
   usePageTitle("Helpr for Business — Louisiana Commercial Services");
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [company, setCompany] = useState("");
-  const [parish, setParish] = useState("");
-  const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !company.trim()) {
-      toast.error("Email and company are required");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.functions.invoke("hubspot-lead-capture", {
-        body: {
-          email: email.trim(),
-          firstName: firstName.trim() || undefined,
-          lastName: lastName.trim() || undefined,
-          phone: phone.trim() || undefined,
-          company: company.trim(),
-          parish: parish || undefined,
-          message: message.trim() || undefined,
-          source: "for_business_landing",
-        },
-      });
-      if (error) throw error;
-      setSubmitted(true);
-      toast.success("Thanks! We'll be in touch within 1 business day.");
-    } catch (err: any) {
-      toast.error(err.message || "Submission failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
@@ -75,18 +21,20 @@ const ForBusiness = () => {
               <Building2 className="w-3.5 h-3.5" /> For Business
             </div>
             <h1 className="text-4xl sm:text-5xl font-display font-bold leading-tight">
-              Vetted Louisiana help, on demand for your business.
+              ID-verified Louisiana help, on demand for your business.
             </h1>
             <p className="text-lg text-muted-foreground">
-              Property managers, realtors, small business owners, and commercial cleaners — get
-              recurring access to ID-verified local helprs without the agency markup.
+              Property managers, realtors, small business owners, and commercial cleaners — give your team
+              shared access to vetted local helprs without the agency markup.
             </p>
 
             <div className="space-y-3 pt-4">
               {[
                 { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
-                { icon: Sparkles, text: "Recurring jobs with discounted rates for repeat business" },
-                { icon: CheckCircle2, text: "Single point of contact + monthly invoicing available" },
+                { icon: Users, text: "Up to 5 team members can post jobs on the company's behalf" },
+                { icon: CreditCard, text: "All jobs billed to the owner's card on file — no per-poster invoicing" },
+                { icon: Sparkles, text: "Recurring jobs across all 64 parishes" },
+                { icon: CheckCircle2, text: "Same flat platform fee as everyone — no contracts, no minimums" },
               ].map((row, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -106,79 +54,52 @@ const ForBusiness = () => {
             </div>
           </div>
 
-          {/* Lead form */}
+          {/* Self-serve CTA */}
           <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-8">
-            {submitted ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h2 className="text-2xl font-display font-bold mb-2">You're in.</h2>
-                <p className="text-muted-foreground mb-6">
-                  We'll email you within 1 business day to set up your business account.
-                </p>
-                <Button variant="outline" onClick={() => navigate("/")}>Back home</Button>
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <Building2 className="w-8 h-8" />
               </div>
-            ) : (
-              <form onSubmit={submit} className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-display font-bold">Talk to our team</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Tell us about your business — we reply within 1 business day.
-                  </p>
-                </div>
+              <h2 className="text-2xl font-display font-bold mb-2">Get started in minutes</h2>
+              <p className="text-muted-foreground mb-6">
+                Sign up as a business, invite your team, and start posting jobs. No sales calls, no waiting.
+              </p>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="first">First name</Label>
-                    <Input id="first" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="last">Last name</Label>
-                    <Input id="last" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                  </div>
-                </div>
+              <Button
+                size="lg"
+                className="w-full mb-3"
+                onClick={() => navigate("/signup?type=business")}
+              >
+                Sign up as a business
+              </Button>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Work email *</Label>
-                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
+              <p className="text-xs text-muted-foreground">
+                Already have an account?{" "}
+                <Link to="/login" className="text-primary hover:underline">Log in</Link>
+              </p>
+            </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="company">Company *</Label>
-                  <Input id="company" required value={company} onChange={(e) => setCompany(e.target.value)} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Parish</Label>
-                    <Select value={parish} onValueChange={setParish}>
-                      <SelectTrigger><SelectValue placeholder="Pick parish" /></SelectTrigger>
-                      <SelectContent>
-                        {PARISHES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="msg">What do you need help with?</Label>
-                  <Textarea id="msg" rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Weekly turnover cleans for 12-unit complex in Mid-City" />
-                </div>
-
-                <Button type="submit" className="w-full" size="lg" disabled={submitting}>
-                  {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Get in touch"}
-                </Button>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  We'll only use your info to follow up about your business inquiry.
+            <div className="mt-8 pt-6 border-t border-border/60 space-y-4">
+              <div>
+                <p className="text-sm font-semibold mb-1">How billing works</p>
+                <p className="text-xs text-muted-foreground">
+                  When any team member posts a job, the owner's saved card is charged at checkout — same
+                  per-job pricing, no monthly fees.
                 </p>
-              </form>
-            )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1">Team size</p>
+                <p className="text-xs text-muted-foreground">
+                  Free for up to 5 team members (owner counts as 1). Need more? Contact support.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1">Permissions</p>
+                <p className="text-xs text-muted-foreground">
+                  All team members can post, message helprs, and manage jobs on the company's behalf.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -187,3 +108,4 @@ const ForBusiness = () => {
 };
 
 export default ForBusiness;
+

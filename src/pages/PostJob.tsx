@@ -22,6 +22,7 @@ import { compressImage } from "@/lib/imageCompression";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { useMyBusiness } from "@/hooks/useMyBusiness";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -41,6 +42,7 @@ type Step = "form" | "checkout";
 const PostJob = () => {
   const navigate = useNavigate();
   usePageTitle("Post a Task — Helpr");
+  const { business } = useMyBusiness();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
@@ -324,6 +326,7 @@ const PostJob = () => {
 
     const { data: jobData, error } = await supabase.from("jobs").insert({
       customer_id: user.id,
+      business_id: business?.business_id ?? null,
       title: title.trim(),
       description: description.trim(),
       category: category as any,

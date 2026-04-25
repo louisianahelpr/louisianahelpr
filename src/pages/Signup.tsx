@@ -28,6 +28,8 @@ const Signup = () => {
     track(AhaEvent.SignupStarted, { source: "web" });
   }, []);
   const [searchParams] = useSearchParams();
+  const isBusinessSignup = searchParams.get("type") === "business";
+  const [companyName, setCompanyName] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -139,6 +141,7 @@ const Signup = () => {
   };
 
   const validateStep1 = async () => {
+    if (isBusinessSignup && !companyName.trim()) { toast.error("Company name is required"); return false; }
     if (!firstName.trim()) { toast.error("First name is required"); return false; }
     if (!lastName.trim()) { toast.error("Last name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }
@@ -306,6 +309,29 @@ const Signup = () => {
         } catch { /* silent */ }
       }
 
+      // Business signup: create business
+      if (isBusinessSignup && companyName.trim()) {
+        try {
+          await supabase.from("businesses").insert({
+            owner_id: userId,
+            name: companyName.trim(),
+          });
+        } catch (e) { console.error("Business creation failed", e); }
+      }
+
+      // Auto-accept any pending invite for this email
+      try {
+        const { data: invites } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        if (invites && invites.length > 0) {
+          for (const inv of invites) {
+            await supabase
+              .from("business_members")
+              .update({ user_id: userId, status: "active", joined_at: new Date().toISOString() })
+              .eq("id", inv.invite_id);
+          }
+        }
+      } catch (e) { console.error("Invite linking failed", e); }
+
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
       toast.success("Account created! Check your email to verify, then connect your payout account.");
       navigate("/signup-pending");
@@ -382,6 +408,26 @@ const Signup = () => {
         {/* Step 1: Account basics */}
         {step === 1 && (
           <div className="space-y-4">
+
+            {isBusinessSignup && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <p className="text-sm font-semibold text-primary">📊 Business account</p>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className={labelCls}>Company name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="companyName"
+                    placeholder="Acme Property Management"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  You'll be the owner. After signup, invite up to 4 team members from the Team page.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

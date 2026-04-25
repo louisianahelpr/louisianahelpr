@@ -308,6 +308,29 @@ const Signup = () => {
         } catch { /* silent */ }
       }
 
+      // Business signup: create business
+      if (isBusinessSignup && companyName.trim()) {
+        try {
+          await supabase.from("businesses").insert({
+            owner_id: userId,
+            name: companyName.trim(),
+          });
+        } catch (e) { console.error("Business creation failed", e); }
+      }
+
+      // Auto-accept any pending invite for this email
+      try {
+        const { data: invites } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        if (invites && invites.length > 0) {
+          for (const inv of invites) {
+            await supabase
+              .from("business_members")
+              .update({ user_id: userId, status: "active", joined_at: new Date().toISOString() })
+              .eq("id", inv.invite_id);
+          }
+        }
+      } catch (e) { console.error("Invite linking failed", e); }
+
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
       toast.success("Account created! Check your email to verify, then connect your payout account.");
       navigate("/signup-pending");

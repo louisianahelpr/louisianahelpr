@@ -22,6 +22,7 @@ import { compressImage } from "@/lib/imageCompression";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { useMyBusiness } from "@/hooks/useMyBusiness";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },

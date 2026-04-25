@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -155,7 +155,7 @@ jobs:
           echo "▶ Lane: $LANE"
           echo "▶ Version override: ${VERSION:-<none, keeping current>}"
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0   # full history for changelog generation
 

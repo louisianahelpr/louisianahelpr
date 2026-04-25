@@ -351,6 +351,15 @@ const Signup = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="flex items-start sm:items-center justify-center px-5 py-8 sm:py-12">
         <div className={`w-full max-w-md ${step === 4 ? "pb-32" : "pb-12"} sm:pb-12`}>
+          <div className="mb-4">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to home
+            </Link>
+          </div>
           <div className="text-center mb-6">
             <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
               Helpr

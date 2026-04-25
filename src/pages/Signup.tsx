@@ -390,6 +390,33 @@ const Signup = () => {
               </div>
             </div>
 
+            {/* Dev-only step jumper — visible on preview/localhost so you can click through every signup screen without making an account. Hidden in production. */}
+            {(typeof window !== "undefined" &&
+              (window.location.hostname === "localhost" ||
+                window.location.hostname.endsWith(".lovable.app"))) && (
+              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-xs">
+                <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
+                <span className="text-muted-foreground">Jump to step:</span>
+                {[1, 2, 3, 4].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setStep(n)}
+                    className={`w-6 h-6 rounded-md text-[11px] font-semibold transition-colors ${
+                      step === n
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80 text-foreground"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <Link to="/signup-pending" className="ml-auto text-primary hover:underline">
+                  Pending →
+                </Link>
+              </div>
+            )}
+
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">
                 {step === 1 ? "Create your account" :

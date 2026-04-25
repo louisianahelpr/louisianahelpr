@@ -1812,12 +1812,24 @@ export type Database = {
           idv_failure_reason: string | null
           idv_session_id: string | null
           idv_status: string | null
+          insurance_rejection_reason: string | null
+          insurance_reviewed_at: string | null
+          insurance_reviewed_by: string | null
+          insurance_status: string
+          insurance_url: string | null
+          is_insured: boolean
+          is_licensed: boolean
           job_radius: string | null
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
           last_verification_email_at: string | null
           legacy_manual_review: boolean
+          license_rejection_reason: string | null
+          license_reviewed_at: string | null
+          license_reviewed_by: string | null
+          license_status: string
+          license_url: string | null
           location: string | null
           onboarding_fee_charged_at: string | null
           onboarding_fee_paid: boolean
@@ -1866,12 +1878,24 @@ export type Database = {
           idv_failure_reason?: string | null
           idv_session_id?: string | null
           idv_status?: string | null
+          insurance_rejection_reason?: string | null
+          insurance_reviewed_at?: string | null
+          insurance_reviewed_by?: string | null
+          insurance_status?: string
+          insurance_url?: string | null
+          is_insured?: boolean
+          is_licensed?: boolean
           job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
           last_verification_email_at?: string | null
           legacy_manual_review?: boolean
+          license_rejection_reason?: string | null
+          license_reviewed_at?: string | null
+          license_reviewed_by?: string | null
+          license_status?: string
+          license_url?: string | null
           location?: string | null
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
@@ -1920,12 +1944,24 @@ export type Database = {
           idv_failure_reason?: string | null
           idv_session_id?: string | null
           idv_status?: string | null
+          insurance_rejection_reason?: string | null
+          insurance_reviewed_at?: string | null
+          insurance_reviewed_by?: string | null
+          insurance_status?: string
+          insurance_url?: string | null
+          is_insured?: boolean
+          is_licensed?: boolean
           job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
           last_verification_email_at?: string | null
           legacy_manual_review?: boolean
+          license_rejection_reason?: string | null
+          license_reviewed_at?: string | null
+          license_reviewed_by?: string | null
+          license_status?: string
+          license_url?: string | null
           location?: string | null
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
@@ -3098,6 +3134,22 @@ export type Database = {
           total_payout: number
         }[]
       }
+      get_pending_credentials: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          email: string
+          full_name: string
+          insurance_status: string
+          insurance_url: string
+          is_insured: boolean
+          is_licensed: boolean
+          license_status: string
+          license_url: string
+          submitted_at: string
+          user_id: string
+        }[]
+      }
       get_pending_invite_for_email: {
         Args: { _email: string }
         Returns: {
@@ -3206,6 +3258,15 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      review_credential: {
+        Args: {
+          _credential: string
+          _decision: string
+          _reason?: string
+          _user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

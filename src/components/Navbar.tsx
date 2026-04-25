@@ -106,7 +106,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Community
           </Link>
-          <Link to="/jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+          <Link to="/#open-jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Jobs
           </Link>
           <Link to="/for-business" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>

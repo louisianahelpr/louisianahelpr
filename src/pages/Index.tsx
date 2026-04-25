@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/landing/HeroSection";

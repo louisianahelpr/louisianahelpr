@@ -109,6 +109,7 @@ const Index = () => {
   // Hooks must run unconditionally — call them all before any early return.
   const { user, isLoading } = useCurrentUser();
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
+  const location = useLocation();
 
   usePageMeta({
     title: "Helpr — Louisiana's #1 Local Help Marketplace | Cleaning, Moving, Errands & More",
@@ -123,6 +124,22 @@ const Index = () => {
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });
+
+  // Scroll to hash target after lazy-loaded sections mount.
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (attempts++ < 20) setTimeout(tryScroll, 150);
+    };
+    tryScroll();
+  }, [location.hash, location.pathname]);
 
   // iOS/Android native app: skip the marketing landing entirely.
   // Logged-in users go straight to /dashboard, guests "window shop" /jobs.

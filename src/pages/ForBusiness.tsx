@@ -31,7 +31,7 @@ const ForBusiness = () => {
             <div className="space-y-3 pt-4">
               {[
                 { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
-                { icon: Users, text: "Up to 5 team members can post jobs on the company's behalf" },
+                { icon: Users, text: "Up to 2 team members free — add more anytime with seat upgrades" },
                 { icon: CreditCard, text: "All jobs billed to the owner's card on file — no per-poster invoicing" },
                 { icon: Sparkles, text: "Recurring jobs across all 64 parishes" },
                 { icon: CheckCircle2, text: "Same flat platform fee as everyone — no contracts, no minimums" },
@@ -88,10 +88,28 @@ const ForBusiness = () => {
                 </p>
               </div>
               <div>
-                <p className="text-sm font-semibold mb-1">Team size</p>
-                <p className="text-xs text-muted-foreground">
-                  Free for up to 5 team members (owner counts as 1). Need more? Contact support.
+                <p className="text-sm font-semibold mb-2">Team size & pricing</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Free for up to 2 team members (owner counts as 1). Need more seats? Add them anytime:
                 </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs rounded-md border border-border/50 bg-background/50 px-3 py-2">
+                    <span className="font-medium">Starter</span>
+                    <span className="text-muted-foreground">2 seats · <span className="text-foreground font-semibold">Free</span></span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs rounded-md border border-border/50 bg-background/50 px-3 py-2">
+                    <span className="font-medium">Crew</span>
+                    <span className="text-muted-foreground">5 seats · <span className="text-foreground font-semibold">$19/mo</span></span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                    <span className="font-medium">Team</span>
+                    <span className="text-muted-foreground">10 seats · <span className="text-foreground font-semibold">$39/mo</span></span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs rounded-md border border-border/50 bg-background/50 px-3 py-2">
+                    <span className="font-medium">Enterprise</span>
+                    <span className="text-muted-foreground">25 seats · <span className="text-foreground font-semibold">$89/mo</span></span>
+                  </div>
+                </div>
               </div>
               <div>
                 <p className="text-sm font-semibold mb-1">Permissions</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Send, MessageSquare, User, Plus, ClipboardList, Lock } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { prefetchRoute } from "@/lib/routePrefetch";

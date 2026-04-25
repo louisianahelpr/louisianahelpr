@@ -87,7 +87,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
         update.is_insured = true;
         update.insurance_status = "pending";
       }
-      const { error: updErr } = await supabase.from("profiles").update(update).eq("user_id", userId);
+      const { error: updErr } = await (supabase.from("profiles") as any).update(update).eq("user_id", userId);
       if (updErr) throw updErr;
 
       // Reload

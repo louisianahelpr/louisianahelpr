@@ -1,6 +1,7 @@
 import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Send, MessageSquare, User, Plus, ClipboardList, Lock } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -76,6 +77,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-pending", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
+  // Guest "tease & convert" bottom nav is iOS/Android-app only.
+  // On the web, guests should see only the top Navbar (no bottom bar).
+  if (isGuest && !Capacitor.isNativePlatform()) return null;
 
   // Hide nav when in an active message conversation
   const params = new URLSearchParams(location.search);

@@ -408,6 +408,26 @@ const Signup = () => {
         {step === 1 && (
           <div className="space-y-4">
 
+            {isBusinessSignup && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <p className="text-sm font-semibold text-primary">📊 Business account</p>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className={labelCls}>Company name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="companyName"
+                    placeholder="Acme Property Management"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  You'll be the owner. After signup, invite up to 4 team members from the Team page.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>

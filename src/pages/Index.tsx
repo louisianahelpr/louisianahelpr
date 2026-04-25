@@ -1,9 +1,12 @@
 import { lazy, Suspense } from "react";
+import { Navigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import SocialProofSection from "@/components/landing/SocialProofSection";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Lazy load below-the-fold sections
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
@@ -103,6 +106,10 @@ const faqSchema = {
 };
 
 const Index = () => {
+  // Hooks must run unconditionally — call them all before any early return.
+  const { user, isLoading } = useCurrentUser();
+  const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
+
   usePageMeta({
     title: "Helpr — Louisiana's #1 Local Help Marketplace | Cleaning, Moving, Errands & More",
     description:
@@ -116,6 +123,14 @@ const Index = () => {
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });
+
+  // iOS/Android native app: skip the marketing landing entirely.
+  // Logged-in users go straight to /dashboard, guests "window shop" /jobs.
+  // Web visitors keep seeing the full landing page (SEO + funnel intact).
+  if (isNative && !isLoading) {
+    return <Navigate to={user ? "/dashboard" : "/jobs"} replace />;
+  }
+
 
   return (
     <div className="min-h-screen bg-background">

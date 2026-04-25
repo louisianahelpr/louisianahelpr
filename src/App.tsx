@@ -61,6 +61,7 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const Heroes = lazy(() => import("./pages/Heroes"));
 const SavedHelpers = lazy(() => import("./pages/SavedHelpers"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
+const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 
 // Lazy load less-critical global components
 

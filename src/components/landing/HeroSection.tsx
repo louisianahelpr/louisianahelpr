@@ -143,8 +143,8 @@ const HeroSection = () => {
               Post a job, get matched with trusted local helprs, and pay securely when the work's done.
             </p>
 
-            {/* Category pills */}
-            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+            {/* Category pills - hidden on mobile so hero image isn't cut off */}
+            <div className="hidden md:flex flex-wrap justify-start gap-2">
               {categories.map((c) => (
                 <span
                   key={c.label}

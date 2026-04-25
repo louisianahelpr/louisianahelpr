@@ -79,12 +79,12 @@ const ForBusiness = () => {
             </h1>
             <p className="text-lg text-muted-foreground">
               Property managers, realtors, small business owners, and commercial cleaners — get
-              recurring access to background-checked local helprs without the agency markup.
+              recurring access to ID-verified local helprs without the agency markup.
             </p>
 
             <div className="space-y-3 pt-4">
               {[
-                { icon: ShieldCheck, text: "Stripe-verified, background-screened helprs" },
+                { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
                 { icon: Sparkles, text: "Recurring jobs with discounted rates for repeat business" },
                 { icon: CheckCircle2, text: "Single point of contact + monthly invoicing available" },
               ].map((row, i) => (

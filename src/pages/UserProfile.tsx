@@ -297,8 +297,9 @@ const UserProfile = () => {
                 </div>
               )}
               <HelperBadges badges={badges} />
-              <div className="pt-1 flex justify-center">
+              <div className="pt-1 flex flex-wrap justify-center gap-1.5">
                 <CredentialBadge credentials={profile as any} size="md" />
+                <BusinessBadge userId={userId!} size="md" />
               </div>
               <div className="pt-1">
                 <ParishBadges userId={userId!} />

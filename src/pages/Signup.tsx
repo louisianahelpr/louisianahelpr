@@ -141,6 +141,7 @@ const Signup = () => {
   };
 
   const validateStep1 = async () => {
+    if (isBusinessSignup && !companyName.trim()) { toast.error("Company name is required"); return false; }
     if (!firstName.trim()) { toast.error("First name is required"); return false; }
     if (!lastName.trim()) { toast.error("Last name is required"); return false; }
     if (!email.trim()) { toast.error("Email is required"); return false; }

@@ -325,7 +325,8 @@ const PostJob = () => {
     const lockedSalesTaxAmount = parseFloat(budget) * (lockedSalesTaxRate / 100);
 
     const { data: jobData, error } = await supabase.from("jobs").insert({
-      customer_id: user.id,
+      customer_id: business?.is_owner ? user.id : (business ? user.id : user.id),
+      business_id: business?.business_id ?? null,
       title: title.trim(),
       description: description.trim(),
       category: category as any,

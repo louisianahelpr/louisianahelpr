@@ -99,15 +99,15 @@ const ForBusiness = () => {
                   </div>
                   <div className="flex items-center justify-between text-xs rounded-md border border-border/50 bg-background/50 px-3 py-2">
                     <span className="font-medium">Crew</span>
-                    <span className="text-muted-foreground">5 seats · <span className="text-foreground font-semibold">$19/mo</span></span>
+                    <span className="text-muted-foreground">5 seats · <span className="text-foreground font-semibold">$10/mo</span></span>
                   </div>
                   <div className="flex items-center justify-between text-xs rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
                     <span className="font-medium">Team</span>
-                    <span className="text-muted-foreground">10 seats · <span className="text-foreground font-semibold">$39/mo</span></span>
+                    <span className="text-muted-foreground">10 seats · <span className="text-foreground font-semibold">$20/mo</span></span>
                   </div>
                   <div className="flex items-center justify-between text-xs rounded-md border border-border/50 bg-background/50 px-3 py-2">
                     <span className="font-medium">Enterprise</span>
-                    <span className="text-muted-foreground">25 seats · <span className="text-foreground font-semibold">$89/mo</span></span>
+                    <span className="text-muted-foreground">25 seats · <span className="text-foreground font-semibold">$40/mo</span></span>
                   </div>
                 </div>
               </div>

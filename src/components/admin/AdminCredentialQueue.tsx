@@ -38,7 +38,7 @@ const AdminCredentialQueue = () => {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("get_pending_credentials");
+    const { data, error } = await (supabase.rpc as any)("get_pending_credentials");
     if (error) toast.error(error.message);
     else setRows((data as PendingRow[]) || []);
     setLoading(false);
@@ -55,11 +55,11 @@ const AdminCredentialQueue = () => {
     reason?: string
   ) => {
     setBusy(`${userId}:${credential}`);
-    const { error } = await supabase.rpc("review_credential", {
+    const { error } = await (supabase.rpc as any)("review_credential", {
       _user_id: userId,
       _credential: credential,
       _decision: decision,
-      _reason: reason ?? null,
+      _reason: reason ?? undefined,
     });
     setBusy(null);
     if (error) {

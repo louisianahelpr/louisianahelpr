@@ -123,7 +123,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
       update.is_insured = false;
       update.insurance_status = "none";
     }
-    const { error } = await supabase.from("profiles").update(update).eq("user_id", userId);
+    const { error } = await (supabase.from("profiles") as any).update(update).eq("user_id", userId);
     setSaving(false);
     if (error) {
       toast.error(error.message);

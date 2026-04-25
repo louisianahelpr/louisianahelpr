@@ -54,12 +54,12 @@ export function CredentialBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full font-semibold border bg-gradient-to-r from-amber-500/15 to-amber-300/15 text-amber-800 dark:text-amber-200 border-amber-500/40 shadow-sm",
+          "inline-flex items-center rounded-full font-semibold border bg-gradient-to-r from-accent/30 to-accent/10 text-accent-foreground border-accent shadow-sm",
           sizeCls
         )}
         title="Licensed & Insured — verified by Helpr"
       >
-        <ShieldCheck className={cn(iconSize, "fill-amber-500/20")} />
+        <ShieldCheck className={cn(iconSize, "fill-accent/30")} />
         Licensed & Insured
       </span>
     );

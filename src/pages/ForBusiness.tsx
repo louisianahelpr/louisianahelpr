@@ -31,7 +31,7 @@ const ForBusiness = () => {
             <div className="space-y-3 pt-4">
               {[
                 { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
-                { icon: Users, text: "Up to 5 team members can post jobs on the company's behalf" },
+                { icon: Users, text: "Up to 2 team members free — add more anytime with seat upgrades" },
                 { icon: CreditCard, text: "All jobs billed to the owner's card on file — no per-poster invoicing" },
                 { icon: Sparkles, text: "Recurring jobs across all 64 parishes" },
                 { icon: CheckCircle2, text: "Same flat platform fee as everyone — no contracts, no minimums" },

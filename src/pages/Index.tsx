@@ -106,15 +106,9 @@ const faqSchema = {
 };
 
 const Index = () => {
-  // iOS/Android native app: skip the marketing landing entirely.
-  // Logged-in users go straight to /dashboard, guests "window shop" /jobs.
-  // Web visitors keep seeing the full landing page (SEO + funnel intact).
+  // Hooks must run unconditionally — call them all before any early return.
   const { user, isLoading } = useCurrentUser();
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
-
-  if (isNative && !isLoading) {
-    return <Navigate to={user ? "/dashboard" : "/jobs"} replace />;
-  }
 
   usePageMeta({
     title: "Helpr — Louisiana's #1 Local Help Marketplace | Cleaning, Moving, Errands & More",
@@ -129,6 +123,14 @@ const Index = () => {
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });
+
+  // iOS/Android native app: skip the marketing landing entirely.
+  // Logged-in users go straight to /dashboard, guests "window shop" /jobs.
+  // Web visitors keep seeing the full landing page (SEO + funnel intact).
+  if (isNative && !isLoading) {
+    return <Navigate to={user ? "/dashboard" : "/jobs"} replace />;
+  }
+
 
   return (
     <div className="min-h-screen bg-background">

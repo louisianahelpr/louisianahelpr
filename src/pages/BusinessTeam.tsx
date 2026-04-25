@@ -164,6 +164,10 @@ const BusinessTeam = () => {
           </div>
         </div>
 
+        <div className="mb-5">
+          <BusinessVerificationCard />
+        </div>
+
         {business.is_owner && (
           <Card className="p-5 mb-5">
             <h2 className="font-semibold mb-1 flex items-center gap-2">

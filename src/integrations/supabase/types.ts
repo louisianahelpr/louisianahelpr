@@ -353,6 +353,12 @@ export type Database = {
           name: string
           owner_id: string
           updated_at: string
+          verification_document_type: string | null
+          verification_document_url: string | null
+          verification_rejection_reason: string | null
+          verification_reviewed_at: string | null
+          verification_reviewed_by: string | null
+          verification_status: string
         }
         Insert: {
           created_at?: string
@@ -360,6 +366,12 @@ export type Database = {
           name: string
           owner_id: string
           updated_at?: string
+          verification_document_type?: string | null
+          verification_document_url?: string | null
+          verification_rejection_reason?: string | null
+          verification_reviewed_at?: string | null
+          verification_reviewed_by?: string | null
+          verification_status?: string
         }
         Update: {
           created_at?: string
@@ -367,6 +379,12 @@ export type Database = {
           name?: string
           owner_id?: string
           updated_at?: string
+          verification_document_type?: string | null
+          verification_document_url?: string | null
+          verification_rejection_reason?: string | null
+          verification_reviewed_at?: string | null
+          verification_reviewed_by?: string | null
+          verification_status?: string
         }
         Relationships: []
       }
@@ -3096,6 +3114,18 @@ export type Database = {
           parish: string
         }[]
       }
+      get_my_business_verification: {
+        Args: never
+        Returns: {
+          business_id: string
+          business_name: string
+          is_owner: boolean
+          verification_document_type: string
+          verification_document_url: string
+          verification_rejection_reason: string
+          verification_status: string
+        }[]
+      }
       get_my_saved_helpers: {
         Args: never
         Returns: {
@@ -3132,6 +3162,19 @@ export type Database = {
           oldest_completed_at: string
           stripe_account_id: string
           total_payout: number
+        }[]
+      }
+      get_pending_business_verifications: {
+        Args: never
+        Returns: {
+          business_id: string
+          business_name: string
+          document_type: string
+          document_url: string
+          owner_email: string
+          owner_id: string
+          owner_name: string
+          submitted_at: string
         }[]
       }
       get_pending_credentials: {
@@ -3225,6 +3268,10 @@ export type Database = {
         Returns: boolean
       }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
+      is_user_verified_business_member: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       log_notification: {
         Args: {
           _category: string
@@ -3258,6 +3305,14 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      review_business_verification: {
+        Args: {
+          _business_id: string
+          _decision: string
+          _rejection_reason?: string
+        }
+        Returns: undefined
       }
       review_credential: {
         Args: {

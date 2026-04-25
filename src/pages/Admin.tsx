@@ -9,7 +9,7 @@ import {
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, ShieldCheck,
-  Shield, LogOut, ArrowLeft, Mail,
+  Shield, LogOut, ArrowLeft, Mail, Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -45,8 +45,9 @@ const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
+const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -65,6 +66,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "people", label: "Users", icon: Users },
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
+      { id: "business_verify", label: "Business Verification", icon: Building2 },
       { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
@@ -316,6 +318,7 @@ const Admin = () => {
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
     credentials: "License & Insurance",
+    business_verify: "Business Verification",
   };
 
   const renderContent = () => {
@@ -342,6 +345,7 @@ const Admin = () => {
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
+      case "business_verify": return <AdminBusinessVerificationQueue />;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;

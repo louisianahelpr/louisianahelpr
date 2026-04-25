@@ -15,6 +15,7 @@ import PageHeader from "@/components/PageHeader";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
+import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { ParishBadges } from "@/components/ParishBadges";
 import { RetainerAgreement } from "@/components/RetainerAgreement";
@@ -296,8 +297,9 @@ const UserProfile = () => {
                 </div>
               )}
               <HelperBadges badges={badges} />
-              <div className="pt-1 flex justify-center">
+              <div className="pt-1 flex flex-wrap justify-center gap-1.5">
                 <CredentialBadge credentials={profile as any} size="md" />
+                <BusinessBadge userId={userId!} size="md" />
               </div>
               <div className="pt-1">
                 <ParishBadges userId={userId!} />

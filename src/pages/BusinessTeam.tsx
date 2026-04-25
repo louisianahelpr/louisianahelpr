@@ -12,6 +12,7 @@ import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail } from "lu
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 
 interface Member {
   id: string;
@@ -161,6 +162,10 @@ const BusinessTeam = () => {
               {totalSlots} of 5 seats used · {remainingSlots} remaining
             </p>
           </div>
+        </div>
+
+        <div className="mb-5">
+          <BusinessVerificationCard />
         </div>
 
         {business.is_owner && (

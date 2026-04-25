@@ -345,6 +345,7 @@ const Admin = () => {
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
+      case "business_verify": return <AdminBusinessVerificationQueue />;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;

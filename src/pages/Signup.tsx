@@ -28,6 +28,8 @@ const Signup = () => {
     track(AhaEvent.SignupStarted, { source: "web" });
   }, []);
   const [searchParams] = useSearchParams();
+  const isBusinessSignup = searchParams.get("type") === "business";
+  const [companyName, setCompanyName] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 

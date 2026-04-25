@@ -1,9 +1,11 @@
 import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Send, MessageSquare, User, Plus, ClipboardList } from "lucide-react";
+import { Home, Send, MessageSquare, User, Plus, ClipboardList, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { prefetchRoute } from "@/lib/routePrefetch";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -16,12 +18,19 @@ const rightItems = [
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
+// Routes guests are allowed to land on. Anything else triggers the
+// signup sheet instead of navigating.
+const GUEST_OPEN_ROUTES = new Set(["/jobs", "/login", "/signup"]);
+
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useCurrentUser();
+  const { user, isLoading } = useCurrentUser();
+  const isGuest = !isLoading && !user;
   const [unreadCount, setUnreadCount] = useState(0);
   const [, setUnreadNotifCount] = useState(0);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateLabel, setGateLabel] = useState("this feature");
 
   useEffect(() => {
     if (!user) return;
@@ -88,31 +97,64 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     return stack.some((p) => location.pathname.startsWith(p));
   };
 
+  const triggerGate = (label: string) => {
+    setGateLabel(label);
+    setGateOpen(true);
+  };
+
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
-    const active = location.pathname === path || (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) || (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied");
-    const inStack = isInStack(path);
-    const badgeCount = badgeKey === "messages" ? unreadCount : 0;
+    // Guest-mode tab remap: Home -> /jobs, Profile -> /login.
+    // Other tabs stay visually present but show a lock + open the signup sheet.
+    const guestLocked = isGuest && !["/dashboard", "/profile"].includes(path);
+    const effectivePath = isGuest
+      ? path === "/dashboard"
+        ? "/jobs"
+        : path === "/profile"
+          ? "/login"
+          : path
+      : path;
+
+    const active =
+      location.pathname === effectivePath ||
+      (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) ||
+      (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied") ||
+      (isGuest && path === "/dashboard" && location.pathname === "/jobs");
+
+    const inStack = !isGuest && isInStack(path);
+    const badgeCount = !isGuest && badgeKey === "messages" ? unreadCount : 0;
     const showBadge = badgeCount > 0;
+
     const handleClick = () => {
+      if (guestLocked) {
+        triggerGate(label.toLowerCase());
+        return;
+      }
       // If we're inside this tab's stack but not on its root, pop back to root.
-      if (inStack && location.pathname !== path) {
+      if (!isGuest && inStack && location.pathname !== path) {
         navigate(path);
         return;
       }
-      if (location.pathname !== path) navigate(path);
+      if (location.pathname !== effectivePath) navigate(effectivePath);
     };
+
     return (
       <button
         key={path}
         onClick={handleClick}
-        onMouseEnter={() => prefetchRoute(path)}
-        onFocus={() => prefetchRoute(path)}
+        onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
+        onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
+        aria-label={guestLocked ? `${label} — sign up required` : label}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-all duration-200 btn-press ${
           active || inStack ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
         <div className="relative">
           <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
+          {guestLocked && (
+            <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
+              <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
+            </span>
+          )}
           {showBadge && (
             <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
               {badgeCount > 9 ? "9+" : badgeCount}
@@ -127,29 +169,84 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     );
   };
 
-  return (
-    <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-      <div className="mx-3 mb-2 flex items-end gap-2 max-w-lg md:max-w-xl lg:max-w-2xl md:mx-auto">
-        {/* Main nav pill — glassmorphism */}
-        <div className="flex-1 rounded-2xl glass shadow-[0_-4px_30px_-4px_hsl(158_45%_42%/0.1),0_4px_20px_-4px_hsl(0_0%_0%/0.08)]">
-          <div className="flex items-center justify-around h-14 px-2">
-            {leftItems.map(renderItem)}
-            {rightItems.map(renderItem)}
-          </div>
-        </div>
+  const handlePostClick = () => {
+    if (isGuest) {
+      triggerGate("post a job");
+      return;
+    }
+    navigate("/post-job");
+  };
 
-        {/* Post button bubble */}
-        <button
-          onClick={() => navigate("/post-job")}
-          onMouseEnter={() => prefetchRoute("/post-job")}
-          onFocus={() => prefetchRoute("/post-job")}
-          aria-label="Post a new job"
-          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15 active:scale-95 transition-transform duration-150"
-        >
-          <Plus className="w-7 h-7" strokeWidth={2.5} />
-        </button>
-      </div>
-    </nav>
+  return (
+    <>
+      <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div className="mx-3 mb-2 flex items-end gap-2 max-w-lg md:max-w-xl lg:max-w-2xl md:mx-auto">
+          {/* Main nav pill — glassmorphism */}
+          <div className="flex-1 rounded-2xl glass shadow-[0_-4px_30px_-4px_hsl(158_45%_42%/0.1),0_4px_20px_-4px_hsl(0_0%_0%/0.08)]">
+            <div className="flex items-center justify-around h-14 px-2">
+              {leftItems.map(renderItem)}
+              {rightItems.map(renderItem)}
+            </div>
+          </div>
+
+          {/* Post button bubble */}
+          <button
+            onClick={handlePostClick}
+            onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
+            onFocus={() => !isGuest && prefetchRoute("/post-job")}
+            aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+            className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15 active:scale-95 transition-transform duration-150"
+          >
+            <Plus className="w-7 h-7" strokeWidth={2.5} />
+            {isGuest && (
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-primary/20 flex items-center justify-center">
+                <Lock className="w-2.5 h-2.5 text-primary" strokeWidth={3} />
+              </span>
+            )}
+          </button>
+        </div>
+      </nav>
+
+      <Sheet open={gateOpen} onOpenChange={setGateOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader className="text-left">
+            <SheetTitle>Sign up to {gateLabel}</SheetTitle>
+            <SheetDescription>
+              Join Helpr to post jobs, message helprs, and track your activity. It only takes a minute.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setGateOpen(false);
+                navigate("/signup");
+              }}
+            >
+              Create free account
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setGateOpen(false);
+                navigate("/login");
+              }}
+            >
+              I already have an account
+            </Button>
+            <button
+              onClick={() => setGateOpen(false)}
+              className="text-sm text-muted-foreground py-2 hover:text-foreground transition-colors"
+            >
+              Keep browsing
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 });
 MobileNav.displayName = "MobileNav";

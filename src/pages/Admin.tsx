@@ -318,6 +318,7 @@ const Admin = () => {
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
     credentials: "License & Insurance",
+    business_verify: "Business Verification",
   };
 
   const renderContent = () => {

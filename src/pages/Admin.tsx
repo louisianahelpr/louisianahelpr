@@ -45,8 +45,9 @@ const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
+const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify";
 
 import { safeStorage } from "@/lib/safeStorage";
 

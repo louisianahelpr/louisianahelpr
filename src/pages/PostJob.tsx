@@ -42,6 +42,7 @@ type Step = "form" | "checkout";
 const PostJob = () => {
   const navigate = useNavigate();
   usePageTitle("Post a Task — Helpr");
+  const { business } = useMyBusiness();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);

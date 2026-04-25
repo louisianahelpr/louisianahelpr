@@ -44,15 +44,15 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
 
         {/* Desktop */}
         <div className="hidden lg:flex items-center gap-6">
-          <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             How it works
-          </a>
-          <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          </Link>
+          <Link to="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Features
-          </a>
-          <a href="#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          </Link>
+          <Link to="/#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
-          </a>
+          </Link>
           <Link to="/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Jobs
           </Link>
@@ -97,15 +97,15 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             paddingRight: "max(1rem, env(safe-area-inset-right))",
           }}
         >
-          <a href="#how-it-works" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+          <Link to="/#how-it-works" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             How it works
-          </a>
-          <a href="#features" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+          </Link>
+          <Link to="/#features" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Features
-          </a>
-          <a href="#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+          </Link>
+          <Link to="/#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Community
-          </a>
+          </Link>
           <Link to="/jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Jobs
           </Link>

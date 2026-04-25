@@ -299,6 +299,77 @@ export type Database = {
         }
         Relationships: []
       }
+      business_members: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          invited_email: string | null
+          joined_at: string | null
+          role: Database["public"]["Enums"]["business_member_role"]
+          status: Database["public"]["Enums"]["business_member_status"]
+          user_id: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          invited_email?: string | null
+          joined_at?: string | null
+          role?: Database["public"]["Enums"]["business_member_role"]
+          status?: Database["public"]["Enums"]["business_member_status"]
+          user_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          invited_email?: string | null
+          joined_at?: string | null
+          role?: Database["public"]["Enums"]["business_member_role"]
+          status?: Database["public"]["Enums"]["business_member_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      businesses: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1047,6 +1118,7 @@ export type Database = {
           boost_expires_at: string | null
           boosted_at: string | null
           budget: number
+          business_id: string | null
           cancellation_fee: number | null
           cancellation_fee_status: string | null
           cancellation_reason: string | null
@@ -1131,6 +1203,7 @@ export type Database = {
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget: number
+          business_id?: string | null
           cancellation_fee?: number | null
           cancellation_fee_status?: string | null
           cancellation_reason?: string | null
@@ -1215,6 +1288,7 @@ export type Database = {
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget?: number
+          business_id?: string | null
           cancellation_fee?: number | null
           cancellation_fee_status?: string | null
           cancellation_reason?: string | null
@@ -1296,6 +1370,13 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_parent_job_id_fkey"
             columns: ["parent_job_id"]
@@ -3017,6 +3098,15 @@ export type Database = {
           total_payout: number
         }[]
       }
+      get_pending_invite_for_email: {
+        Args: { _email: string }
+        Returns: {
+          business_id: string
+          business_name: string
+          invite_id: string
+          invited_by_name: string
+        }[]
+      }
       get_public_platform_settings: {
         Args: never
         Returns: {
@@ -3062,11 +3152,20 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_business_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_business_member: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_business_owner: {
+        Args: { _business_id: string; _user_id: string }
         Returns: boolean
       }
       is_category_taxable: {
@@ -3112,6 +3211,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "customer" | "helper"
       application_status: "pending" | "accepted" | "rejected"
+      business_member_role: "owner" | "member"
+      business_member_status: "pending" | "active" | "removed"
       job_category:
         | "cleaning"
         | "yard_work"
@@ -3260,6 +3361,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "customer", "helper"],
       application_status: ["pending", "accepted", "rejected"],
+      business_member_role: ["owner", "member"],
+      business_member_status: ["pending", "active", "removed"],
       job_category: [
         "cleaning",
         "yard_work",

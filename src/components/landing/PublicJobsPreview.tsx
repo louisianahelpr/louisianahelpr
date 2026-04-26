@@ -50,70 +50,85 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
     fetchJobs();
   }, []);
 
-  if (loading || jobs.length === 0) return null;
-
   return (
-    <section id="open-jobs" ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30 scroll-mt-20">
+    <section id="open-jobs" ref={ref} className="py-20 px-4 bg-gradient-to-b from-background to-secondary/30 scroll-mt-24">
       <div className="container mx-auto max-w-5xl">
         <div className="text-center mb-12 animate-fade-in">
           <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-4">
-            Live right now
+            Live jobs
           </div>
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-            Tasks Waiting for Help
+            Browse open jobs
           </h2>
           <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
             Real tasks posted by your Louisiana neighbors. Sign up to start helping or post your own.
           </p>
         </div>
 
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide overscroll-x-contain snap-x snap-mandatory">
-          <div className="flex gap-4 w-max pb-2">
-            {jobs.map((job, i) => (
-              <div
-                key={job.id}
-                style={{ animationDelay: `${i * 80}ms` }}
-                className="snap-start shrink-0 w-72 rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all animate-fade-in opacity-0"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
-                    {job.title}
-                  </h3>
-                  {job.is_urgent && (
-                    <Badge variant="destructive" className="text-[10px] shrink-0">
-                      Urgent
-                    </Badge>
-                  )}
-                </div>
-
-                <Badge variant="secondary" className="text-xs">
-                  {categoryLabels[job.category] || job.category}
-                </Badge>
-
-                <div className="space-y-1.5 text-xs text-muted-foreground">
-                  <a
-                    href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MapPin className="w-3 h-3" />
-                    <span className="line-clamp-1">{getCityState(job.location)}</span>
-                  </a>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3" />
-                    <span>{format(new Date(job.date_needed), "MMM d, yyyy")}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3 h-3" />
-                    <span className="font-medium text-foreground">${job.budget}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+        {loading ? (
+          <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide overscroll-x-contain snap-x snap-mandatory">
+            <div className="flex gap-4 w-max pb-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="snap-start shrink-0 w-72 h-40 rounded-2xl border border-border bg-card p-5 animate-pulse"
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : jobs.length > 0 ? (
+          <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide overscroll-x-contain snap-x snap-mandatory">
+            <div className="flex gap-4 w-max pb-2">
+              {jobs.map((job, i) => (
+                <div
+                  key={job.id}
+                  style={{ animationDelay: `${i * 80}ms` }}
+                  className="snap-start shrink-0 w-72 rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all animate-fade-in opacity-0"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
+                      {job.title}
+                    </h3>
+                    {job.is_urgent && (
+                      <Badge variant="destructive" className="text-[10px] shrink-0">
+                        Urgent
+                      </Badge>
+                    )}
+                  </div>
+
+                  <Badge variant="secondary" className="text-xs">
+                    {categoryLabels[job.category] || job.category}
+                  </Badge>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <a
+                      href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MapPin className="w-3 h-3" />
+                      <span className="line-clamp-1">{getCityState(job.location)}</span>
+                    </a>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3" />
+                      <span>{format(new Date(job.date_needed), "MMM d, yyyy")}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-3 h-3" />
+                      <span className="font-medium text-foreground">${job.budget}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <p className="text-muted-foreground">No open jobs are posted right now. Check back soon — new tasks are added daily.</p>
+          </div>
+        )}
 
         <div className="text-center mt-8">
           <Button

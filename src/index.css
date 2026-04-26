@@ -8,6 +8,7 @@ html {
   scroll-behavior: smooth;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 /* Native app feel for iOS wrapper */
@@ -17,6 +18,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   overscroll-behavior-y: none;
+  overflow-x: hidden;
 }
 
 /* Allow text selection in inputs and textareas */

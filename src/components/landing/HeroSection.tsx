@@ -176,26 +176,7 @@ const HeroSection = () => {
               Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
             </p>
 
-            {/* 3-step How it works */}
-            <div className="mt-7 flex items-center justify-center md:justify-start gap-4 sm:gap-6 flex-wrap">
-              {[
-                { n: "1", label: "Post" },
-                { n: "2", label: "Match" },
-                { n: "3", label: "Done" },
-              ].map((s, i) => (
-                <div key={s.n} className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary text-base font-bold border border-primary/20">
-                      {s.n}
-                    </span>
-                    <span className="text-base font-semibold text-foreground">{s.label}</span>
-                  </div>
-                  {i < 2 && (
-                    <span aria-hidden className="hidden sm:block w-6 h-px bg-border" />
-                  )}
-                </div>
-              ))}
-            </div>
+            {/* 3-step How it works — removed */}
 
             {/* Category pills — bigger, interactive */}
             <div className="relative w-full mt-7">

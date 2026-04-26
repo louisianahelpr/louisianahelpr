@@ -74,9 +74,7 @@ updates:
       time: "06:00"
       timezone: "America/Chicago"
     open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "github-actions"
+    # `labels:` removed — see note above.
     commit-message:
       prefix: "chore(ci)"
       include: "scope"

@@ -143,9 +143,9 @@ const HeroSection = () => {
             </div>
 
             <h1 className="mx-auto max-w-[21rem] text-[2rem] sm:max-w-lg sm:text-4xl lg:text-6xl md:mx-0 font-display font-bold text-foreground leading-[1.08] text-balance break-words">
-              Where Louisiana neighbors{" "}
+              Your local{" "}
               <span className="relative inline">
-                <span className="relative z-10 text-primary">help neighbors.</span>
+                <span className="relative z-10 text-primary">task partner.</span>
                 <span
                   aria-hidden
                   className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
@@ -154,7 +154,7 @@ const HeroSection = () => {
             </h1>
 
             <p className="mx-auto max-w-[21rem] sm:max-w-lg md:mx-0 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
+              The marketplace for everyday help. Post a job in minutes and connect with neighbors who are ready to work.
             </p>
 
             {/* Category pills - single row, horizontally scrollable */}

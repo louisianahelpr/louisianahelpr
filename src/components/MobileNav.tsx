@@ -20,8 +20,10 @@ const rightItems = [
 ];
 
 // Routes guests are allowed to land on. Anything else triggers the
-// signup sheet instead of navigating.
-const GUEST_OPEN_ROUTES = new Set(["/jobs", "/login", "/signup"]);
+// signup sheet instead of navigating. /browse is the read-only "home
+// dashboard" iOS guests open into; /jobs is the older simple list (kept
+// for web links / deep links during the transition).
+const GUEST_OPEN_ROUTES = new Set(["/browse", "/jobs", "/login", "/signup"]);
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -73,7 +75,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/job-history"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/browse", "/job-history"];
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-pending", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
@@ -107,12 +109,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   };
 
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
-    // Guest-mode tab remap: Home -> /jobs, Profile -> /login.
-    // Other tabs stay visually present but show a lock + open the signup sheet.
+    // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
+    // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
+    // visually present but show a lock + open the signup sheet.
     const guestLocked = isGuest && !["/dashboard", "/profile"].includes(path);
     const effectivePath = isGuest
       ? path === "/dashboard"
-        ? "/jobs"
+        ? "/browse"
         : path === "/profile"
           ? "/login"
           : path
@@ -122,7 +125,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       location.pathname === effectivePath ||
       (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) ||
       (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied") ||
-      (isGuest && path === "/dashboard" && location.pathname === "/jobs");
+      (isGuest && path === "/dashboard" && (location.pathname === "/browse" || location.pathname === "/jobs"));
 
     const inStack = !isGuest && isInStack(path);
     const badgeCount = !isGuest && badgeKey === "messages" ? unreadCount : 0;

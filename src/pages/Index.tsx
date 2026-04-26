@@ -139,12 +139,14 @@ const Index = () => {
   }, [location.hash, location.pathname]);
 
   // iOS/Android native app: skip the marketing landing entirely.
-  // Logged-in users go to /dashboard, guests get the read-only browse view
-  // at /jobs (which mirrors the Dashboard layout — same hero, same job cards,
-  // tap-to-sign-up gating already wired through MobileNav).
-  // Web visitors keep seeing the full landing page (SEO + funnel intact).
+  // Logged-in users go to /dashboard, guests get the read-only "home
+  // dashboard" at /browse — same chrome, same JobCard layout as the real
+  // /dashboard, but every action button routes to /signup. This satisfies
+  // Apple's "preview before signup" expectation while matching what users
+  // see *after* they create an account, so onboarding feels seamless.
+  // Web visitors keep seeing the full marketing landing (SEO + funnel intact).
   if (isNative && !isLoading) {
-    return <Navigate to={user ? "/dashboard" : "/jobs"} replace />;
+    return <Navigate to={user ? "/dashboard" : "/browse"} replace />;
   }
 
 

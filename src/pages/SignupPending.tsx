@@ -29,7 +29,7 @@ const SignupPending = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-premium-page px-4">
+    <div className="min-h-screen flex items-start sm:items-center justify-center bg-premium-page px-4 pt-[calc(env(safe-area-inset-top)+24px)] pb-10 sm:py-10">
       <div className="w-full max-w-md text-center space-y-8">
         <div className="flex items-center justify-between">
           <Link

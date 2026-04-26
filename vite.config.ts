@@ -66,14 +66,24 @@ export default defineConfig(({ mode }) => ({
             const m = fileName.match(/^assets\/hero-porch-garden-(\d+)-[^.]+\.webp$/);
             if (m) heroes[m[1]] = "/" + fileName;
           }
-          if (!heroes["400"] || !heroes["500"] || !heroes["600"] || !heroes["1000"]) {
-            return html;
-          }
+          // Need the full responsive set used by HeroSection's <img>. If any
+          // variant is missing, skip preload entirely — a partial srcset that
+          // doesn't match the <img> would cause the browser to discard the
+          // preload and re-fetch, making LCP worse.
+          const required = ["400", "500", "600", "800", "1000", "1500"];
+          if (required.some((w) => !heroes[w])) return html;
+          // CRITICAL: srcset + sizes MUST exactly match HeroSection.tsx's
+          // <img> attributes. Any mismatch causes the browser's preload
+          // scanner to fetch a different variant than the one <img> ends up
+          // requesting, wasting the preload AND adding a second download to
+          // the LCP path.
           const srcset =
-            `${heroes["400"]} 400w, ${heroes["600"]} 600w, ` +
-            `${heroes["500"]} 500w, ${heroes["1000"]} 1000w`;
+            `${heroes["400"]} 400w, ${heroes["500"]} 500w, ` +
+            `${heroes["600"]} 600w, ${heroes["800"]} 800w, ` +
+            `${heroes["1000"]} 1000w, ${heroes["1500"]} 1500w`;
           const sizes =
-            "(max-width: 640px) 400px, (max-width: 1023px) 600px, 500px";
+            "(max-width: 640px) 360px, (max-width: 1023px) 600px, " +
+            "(max-width: 1280px) 700px, 1000px";
           const tag =
             `<link rel="preload" as="image" type="image/webp" ` +
             `imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`;

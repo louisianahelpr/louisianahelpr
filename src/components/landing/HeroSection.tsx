@@ -104,24 +104,50 @@ const HeroSection = () => {
   const [liveJobs, setLiveJobs] = useState<LiveJob[]>([]);
 
   useEffect(() => {
+    // Auth check is cheap and gates UI (CTA label) — keep eager.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setLoggedIn(true);
     });
-    Promise.all([
-      supabase.rpc("count_profiles"),
-      supabase.rpc("get_public_completed_job_count"),
-    ]).then(([profilesRes, jobsRes]) => {
-      setStats({
-        users: typeof profilesRes.data === "number" ? profilesRes.data : 0,
-        completed: typeof jobsRes.data === "number" ? jobsRes.data : Number(jobsRes.data) || 0,
+
+    // Defer non-critical Supabase queries until after LCP. These power the
+    // stats counter and the "live jobs" social-proof row — both render only
+    // when data arrives, so deferring them does NOT change the UX (no
+    // skeletons swap in/out). This unblocks the longest network chain
+    // Lighthouse flagged (HTML → JS → 8 parallel API calls competing with
+    // the hero image). requestIdleCallback fires after the browser has
+    // painted and processed any urgent work; setTimeout fallback covers
+    // Safari which lacks the API.
+    const runDeferred = () => {
+      Promise.all([
+        supabase.rpc("count_profiles"),
+        supabase.rpc("get_public_completed_job_count"),
+      ]).then(([profilesRes, jobsRes]) => {
+        setStats({
+          users: typeof profilesRes.data === "number" ? profilesRes.data : 0,
+          completed: typeof jobsRes.data === "number" ? jobsRes.data : Number(jobsRes.data) || 0,
+        });
       });
-    });
-    // Real recent open jobs for the social-proof row (only renders if >=3)
-    supabase
-      .rpc("get_public_open_jobs", { p_limit: 3 })
-      .then(({ data }) => {
-        if (data) setLiveJobs(data as unknown as LiveJob[]);
-      });
+      supabase
+        .rpc("get_public_open_jobs", { p_limit: 3 })
+        .then(({ data }) => {
+          if (data) setLiveJobs(data as unknown as LiveJob[]);
+        });
+    };
+
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    const handle = w.requestIdleCallback
+      ? w.requestIdleCallback(runDeferred, { timeout: 2000 })
+      : window.setTimeout(runDeferred, 1500);
+
+    return () => {
+      const cancel = (window as Window & {
+        cancelIdleCallback?: (h: number) => void;
+      }).cancelIdleCallback;
+      if (cancel) cancel(handle);
+      else window.clearTimeout(handle);
+    };
   }, []);
 
   return (

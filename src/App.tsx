@@ -181,7 +181,7 @@ const App = () => (
             <Suspense fallback={null}>
               <StrikeBanner />
             </Suspense>
-            <main id="main-content" className="w-full max-w-full overflow-x-hidden overflow-y-visible">
+            <main id="main-content" className="w-full max-w-full overflow-y-visible">
               <Suspense fallback={<PageFallback />}>
                 <AnimatedRoutes />
               </Suspense>

@@ -281,21 +281,6 @@ const HeroSection = () => {
                 </div>
               )}
 
-              {/* Floating verified-helpr card (bottom-right) */}
-              <div className="hidden sm:flex absolute -bottom-5 -right-4 lg:-right-8 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:800ms] opacity-0">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent/40 to-primary/20 flex items-center justify-center shrink-0">
-                  <CheckCircle className="w-4 h-4 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-foreground leading-tight">
-                    Verified Helpr
-                  </p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Star className="w-2.5 h-2.5 fill-accent text-accent" />
-                    4.9 · 127 jobs
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

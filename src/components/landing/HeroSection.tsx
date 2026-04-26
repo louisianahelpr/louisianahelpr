@@ -27,6 +27,7 @@ import { getCityState } from "@/lib/locationUtils";
 import heroImg400 from "@/assets/hero-porch-garden-400.webp";
 import heroImg500 from "@/assets/hero-porch-garden-500.webp";
 import heroImg600 from "@/assets/hero-porch-garden-600.webp";
+import heroImg800 from "@/assets/hero-porch-garden-800.webp";
 import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
 import heroImg1500 from "@/assets/hero-porch-garden-1500.webp";
 
@@ -34,8 +35,11 @@ import heroImg1500 from "@/assets/hero-porch-garden-1500.webp";
 // display × DPR. We cap at 1500w (~190 KB) instead of 2000w; the previous
 // 2000w file was 2 MB and dominated the page-load critical path on retina
 // laptops, which is why the hero "loaded after everything else".
-const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg1000} 1000w, ${heroImg1500} 1500w`;
-const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 600px, 1000px";
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg800} 800w, ${heroImg1000} 1000w, ${heroImg1500} 1500w`;
+// Tightened sizes: on tablets the image renders ~695 CSS px, not 1000.
+// Telling the browser the true display width lets srcset pick the 800w
+// variant (~91 KB) instead of the 1000w (~121 KB).
+const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 600px, (max-width: 1280px) 700px, 1000px";
 
 // NOTE: We intentionally do NOT inject a JS-side <link rel="preload"> here.
 // That code only runs after React's bundle parses, which is the very thing

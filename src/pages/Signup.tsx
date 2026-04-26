@@ -112,6 +112,22 @@ const Signup = () => {
     }
   };
 
+  const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "License document")) {
+      setLicenseFile(file);
+      setLicensePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  };
+
+  const handleInsuranceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "Insurance document")) {
+      setInsuranceFile(file);
+      setInsurancePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  };
+
   const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (portfolioFiles.length + files.length > 10) {

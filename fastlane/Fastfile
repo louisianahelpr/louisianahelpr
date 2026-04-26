@@ -94,6 +94,17 @@ def assert_ios_identity!
   UI.user_error!("Info.plist CFBundleDisplayName must be #{APP_DISPLAY_NAME}") unless info_plist.include?("<key>CFBundleDisplayName</key>") && info_plist.include?("<string>#{APP_DISPLAY_NAME}</string>")
   UI.user_error!("Info.plist LSApplicationCategoryType must be #{APP_CATEGORY_TYPE}") unless info_plist.include?("<key>LSApplicationCategoryType</key>") && info_plist.include?("<string>#{APP_CATEGORY_TYPE}</string>")
 
+  capacitor_text = File.read(File.join(REPO_ROOT, "capacitor.config.ts"))
+  required_capacitor_values = {
+    "appId: '#{APP_ID}'," => "Capacitor appId must match the App Store bundle ID",
+    "appName: '#{APP_DISPLAY_NAME}'," => "Capacitor appName must match the Xcode display name",
+    "version: '#{APP_MARKETING_VERSION}'," => "Capacitor iOS version must match the marketing version",
+    "category: '#{APP_CATEGORY_TYPE}'," => "Capacitor iOS category must match Xcode"
+  }
+  required_capacitor_values.each do |needle, message|
+    UI.user_error!("#{message}. Missing Capacitor setting: #{needle}") unless capacitor_text.include?(needle)
+  end
+
   UI.success("iOS identity is committed — #{APP_DISPLAY_NAME} / #{APP_ID} / #{APP_CATEGORY_TYPE}")
 end
 

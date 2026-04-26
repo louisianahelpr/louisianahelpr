@@ -1187,9 +1187,11 @@ const Signup = () => {
                 className="flex-1"
                 onClick={() => {
                   if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return; }
+                  if (isLicensed && !licenseFile) { toast.error("Please upload your license or turn off the Licensed toggle"); return; }
+                  if (isInsured && !insuranceFile) { toast.error("Please upload your insurance document or turn off the Insured toggle"); return; }
                   createAccountAndFinish();
                 }}
-                disabled={loading || !idFile}
+                disabled={loading || !idFile || (isLicensed && !licenseFile) || (isInsured && !insuranceFile)}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>

@@ -37,7 +37,7 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-3">
           <h3 className="text-sm font-semibold text-foreground mb-3">Company</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li><Link to="/features" className="hover:text-primary transition-colors">Features</Link></li>

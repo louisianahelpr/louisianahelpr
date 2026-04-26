@@ -269,6 +269,9 @@ jobs:
       - name: Build web bundle
         run: npm run build
 
+      - name: Sync Fastlane metadata into Xcode
+        run: bundle exec fastlane ios sync_xcode_metadata --verbose
+
       # The iOS Xcode project is committed because it contains the App Store
       # identity/capabilities for the existing com.Helpr record. Do not
       # regenerate it in CI or signing/capability settings can be lost.
@@ -279,9 +282,9 @@ jobs:
           test -f ios/App/App/App.entitlements || (echo "❌ Missing committed App.entitlements" && exit 1)
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.Helpr;" ios/App/App.xcodeproj/project.pbxproj
           grep -q "DEVELOPMENT_TEAM = P85MCK558V;" ios/App/App.xcodeproj/project.pbxproj
-          grep -q 'INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'INFOPLIST_KEY_CFBundleDisplayName = "'"$(cat fastlane/metadata/en-US/name.txt)"'";' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";' ios/App/App.xcodeproj/project.pbxproj
-          grep -q 'PRODUCT_NAME = "Louisiana Helpr";' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'PRODUCT_NAME = "'"$(cat fastlane/metadata/en-US/name.txt)"'";' ios/App/App.xcodeproj/project.pbxproj
           grep -q "<key>LSApplicationCategoryType</key>" ios/App/App/Info.plist
           echo "✓ Committed iOS project matches Louisiana Helpr / com.Helpr / P85MCK558V"
 

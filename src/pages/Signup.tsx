@@ -165,16 +165,12 @@ const Signup = () => {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   };
 
+  // Step 1 = About you + ID
   const validateStep1 = async () => {
     if (isBusinessSignup && !companyName.trim()) { toast.error("Company name is required"); return false; }
+    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!firstName.trim()) { toast.error("First name is required"); return false; }
     if (!lastName.trim()) { toast.error("Last name is required"); return false; }
-    if (!email.trim()) { toast.error("Email is required"); return false; }
-    if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
-    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
     if (!phone.trim()) { toast.error("Phone number is required"); return false; }
     if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
     const dob = new Date(dateOfBirth);
@@ -183,7 +179,9 @@ const Signup = () => {
     const monthDiff = today.getMonth() - dob.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
     if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
-    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
+    if (!location.trim()) { toast.error("City is required"); return false; }
+    if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
+    if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
 
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (normalizedPhone.length === 10) {
@@ -201,12 +199,15 @@ const Signup = () => {
     return true;
   };
 
-  // Required-profile validation now happens at the end of Step 1
-  const validateRequiredProfile = () => {
-    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
-    if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
-    if (!location.trim()) { toast.error("City is required"); return false; }
-    if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
+  // Step 2 = Account credentials + agreements
+  const validateStep2 = async () => {
+    if (!email.trim()) { toast.error("Email is required"); return false; }
+    if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
+    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
+    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
+    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
+    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
+    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
     return true;
   };
 

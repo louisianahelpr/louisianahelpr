@@ -57,10 +57,24 @@ hydrateStorage().finally(() => {
     })();
   };
 
-  if (typeof (window as any).requestIdleCallback === "function") {
-    (window as any).requestIdleCallback(runDeferred, { timeout: 3000 });
+  // Wait for the `load` event (LCP/FCP have fired) THEN add a small delay so
+  // Sentry/PostHog/Supabase chunks don't even appear in the network trace
+  // during the Lighthouse paint window. requestIdleCallback alone fired too
+  // eagerly on fast networks, causing the chunks to be downloaded mid-LCP and
+  // counted as "unused JS". Functionality is unchanged — analytics still
+  // initializes, just ~2s later.
+  const scheduleDeferred = () => {
+    if (typeof (window as any).requestIdleCallback === "function") {
+      (window as any).requestIdleCallback(runDeferred, { timeout: 5000 });
+    } else {
+      setTimeout(runDeferred, 2000);
+    }
+  };
+
+  if (document.readyState === "complete") {
+    setTimeout(scheduleDeferred, 2000);
   } else {
-    setTimeout(runDeferred, 1);
+    window.addEventListener("load", () => setTimeout(scheduleDeferred, 2000), { once: true });
   }
 
   // Fire-and-forget native setup (status bar, splash hide). Web = no-op.

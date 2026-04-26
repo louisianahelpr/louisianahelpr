@@ -729,22 +729,17 @@ const Signup = () => {
               </div>
             </section>
 
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </Button>
-              <Button
-                className="flex-1"
-                size="lg"
-                onClick={async () => {
-                  if (!(await validateStep2())) return;
-                  setStep(3);
-                }}
-                disabled={!acceptedPolicies}
-              >
-                Continue <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={async () => {
+                if (!(await validateStep2())) return;
+                setStep(2);
+              }}
+              disabled={!acceptedPolicies}
+            >
+              Continue <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

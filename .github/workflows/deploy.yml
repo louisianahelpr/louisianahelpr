@@ -461,11 +461,19 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_PATH: ${{ steps.asc_key.outputs.path }}
-          ASC_KEY_CONTENT: ""
+          # Provide the raw base64 too — the Fastfile prefers ASC_KEY_CONTENT
+          # and falls back to ASC_KEY_BASE64 (the original secret name).
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT || secrets.ASC_KEY_BASE64 }}
           ASC_KEY: ""
           FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
           FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
           ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+          # Required by Fastfile for cert import (avoids hitting Apple's
+          # max-distribution-certificates limit by reusing an existing one).
+          IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          MATCH_KEYCHAIN_NAME: fastlane_tmp_keychain
+          MATCH_KEYCHAIN_PASSWORD: ${{ github.run_id }}
         run: bundle exec fastlane ios ${{ steps.resolve.outputs.lane }}
 
       # ─── Artifacts + logs ──────────────────────────────────────────────────

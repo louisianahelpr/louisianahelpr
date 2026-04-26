@@ -66,4 +66,11 @@ jobs:
           fi
 
       - name: Run Fastlane metadata lane
-        run: bundle exec fastlane ios metadata --verbose
+        env:
+          DELIVER_IGNORE_LANGUAGE_DIRECTORY_VALIDATION: "true"
+        run: |
+          set -e
+          rm -rf fastlane/metadata/custom_product_pages fastlane/metadata/ppo_tests
+          echo "Metadata directory after cleanup:"
+          find fastlane/metadata -maxdepth 2 -type d | sort
+          bundle exec fastlane ios metadata --verbose

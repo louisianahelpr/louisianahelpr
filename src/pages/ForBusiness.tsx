@@ -174,7 +174,7 @@ const ForBusiness = () => {
                     <span className="w-1 h-4 rounded-full bg-primary" />
                     Team seats
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {[
                       { name: "Starter", seats: "2", price: "Free", featured: false },
                       { name: "Crew", seats: "5", price: "$10", featured: false },

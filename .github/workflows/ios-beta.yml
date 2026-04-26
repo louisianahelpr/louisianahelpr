@@ -114,6 +114,9 @@ jobs:
       - name: Build web bundle
         run: npm run build
 
+      - name: Sync Fastlane metadata into Xcode
+        run: bundle exec fastlane ios sync_xcode_metadata --verbose
+
       - name: Verify committed iOS Xcode project
         # The Xcode project is committed because it contains the existing
         # com.Helpr App Store identity and native capabilities.

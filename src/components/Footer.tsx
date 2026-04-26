@@ -11,8 +11,7 @@ const Footer = () => (
             Helpr
           </Link>
           <p className="text-sm text-muted-foreground max-w-md">
-            Louisiana's trusted marketplace connecting neighbors with verified local helprs
-            for cleaning, yard work, moving, handyman tasks, errands, and more.
+            Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
           </p>
           <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
             <a

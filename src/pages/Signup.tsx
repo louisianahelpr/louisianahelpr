@@ -647,7 +647,65 @@ const Signup = () => {
               </div>
             </section>
 
-            {/* ── Section 6: Agreements ── */}
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={async () => {
+                if (!(await validateStep1())) return;
+                setStep(2);
+              }}
+            >
+              Continue <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        )}
+
+        {/* Step 2: Account credentials + agreements */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Account login</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
+                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+                {confirmEmail && (
+                  <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
+                    {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {confirmPassword && (
+                  <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+                    {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+                  </p>
+                )}
+              </div>
+            </section>
+
             <section className="space-y-3">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
                 <Checkbox
@@ -666,18 +724,22 @@ const Signup = () => {
               </div>
             </section>
 
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={async () => {
-                if (!(await validateStep1())) return;
-                if (!validateRequiredProfile()) return;
-                setStep(2);
-              }}
-              disabled={!acceptedPolicies}
-            >
-              Continue <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={async () => {
+                  if (!(await validateStep2())) return;
+                  setStep(3);
+                }}
+                disabled={!acceptedPolicies}
+              >
+                Continue <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -694,6 +756,7 @@ const Signup = () => {
             </div>
           </div>
         )}
+
 
         {/* Step 2: Optional helpr-quality details (everyone can skip) */}
         {step === 2 && (

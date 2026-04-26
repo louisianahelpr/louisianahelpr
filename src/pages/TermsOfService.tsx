@@ -45,7 +45,7 @@ const TermsOfService = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Split Fee Model</p>
-                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helprs pay a <strong className="text-foreground">10% commission</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
+                <p>Helpr uses a split fee model: customers pay a <strong className="text-foreground">10% service fee</strong> added at checkout, and helprs pay a <strong className="text-foreground">10% platform fee</strong> deducted from their payout. The total platform take is 20% per transaction.</p>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Payout Schedule</p>
@@ -128,7 +128,7 @@ const TermsOfService = () => {
                   <span>~$150/yr</span>
                 </div>
               </div>
-              <p>Billing intervals include One-Time, Monthly, and Annual (discounted at ~10× monthly rate). All tiers include early access to new jobs and maintain the same 10% customer service fee + 10% helpr commission. Stripe handles billing dates automatically based on your subscription start date.</p>
+              <p>Billing intervals include One-Time, Monthly, and Annual (discounted at ~10× monthly rate). All tiers include early access to new jobs and maintain the same 10% customer service fee + 10% helpr platform fee. Stripe handles billing dates automatically based on your subscription start date.</p>
             </div>
           </section>
 

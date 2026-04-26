@@ -118,7 +118,7 @@ const AccountPending = () => {
                   Click the link in your inbox to unlock your account.
                 </>
               ) : (
-                "Your email is verified. You can now browse the app, post jobs, and message helpers."
+                "Your email is verified. You can now browse the app, post jobs, and message helprs."
               )}
             </p>
           </div>

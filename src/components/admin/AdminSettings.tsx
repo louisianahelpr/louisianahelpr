@@ -194,7 +194,7 @@ const AdminSettings = () => {
         <div className="space-y-1">
           <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
           <p className="text-xs text-muted-foreground">
-            The platform earns from both sides: a service fee from customers and a commission from helpers.
+            The platform earns from both sides: a service fee from customers and a platform fee from helprs.
           </p>
         </div>
         <div className="space-y-4">
@@ -213,7 +213,7 @@ const AdminSettings = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="helpFee">Helpr commission (%)</Label>
+            <Label htmlFor="helpFee">Helpr platform fee (%)</Label>
             <p className="text-xs text-muted-foreground">Deducted from the helpr's payout (e.g. 10% on a $100 job = $10 deducted)</p>
             <Input
               id="helpFee"
@@ -229,7 +229,7 @@ const AdminSettings = () => {
           <div className="rounded-lg bg-primary/5 p-3">
             <p className="text-xs text-muted-foreground">
               <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
-              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helper = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
+              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helpr = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
             </p>
           </div>
         </div>
@@ -313,8 +313,8 @@ const AdminSettings = () => {
         <h3 className="font-semibold text-foreground">How the split fee model works</h3>
         <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
           <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
-          <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> commission + urgent tip</li>
-          <li>Platform keeps: service fee from customer + commission from helpr</li>
+          <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent tip</li>
+          <li>Platform keeps: service fee from customer + platform fee from helpr</li>
           <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
         </ul>
       </div>

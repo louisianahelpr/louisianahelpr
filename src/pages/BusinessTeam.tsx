@@ -91,8 +91,9 @@ const BusinessTeam = () => {
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
   const pendingMembers = members?.filter((m) => m.status === "pending") ?? [];
+  const SEAT_LIMIT = 2;
   const totalSlots = activeMembers.length + pendingMembers.length;
-  const remainingSlots = Math.max(0, 5 - totalSlots);
+  const remainingSlots = Math.max(0, SEAT_LIMIT - totalSlots);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +160,7 @@ const BusinessTeam = () => {
           <div>
             <h1 className="text-2xl font-display font-bold">{business.business_name}</h1>
             <p className="text-sm text-muted-foreground">
-              {totalSlots} of 5 seats used · {remainingSlots} remaining
+              {totalSlots} of {SEAT_LIMIT} seats used · {remainingSlots} remaining
             </p>
           </div>
         </div>
@@ -194,7 +195,7 @@ const BusinessTeam = () => {
             </form>
             {remainingSlots <= 0 && (
               <p className="text-xs text-destructive mt-2">
-                You've reached the 5-seat limit. Contact support to upgrade.
+                You've reached the {SEAT_LIMIT}-seat free limit. Contact support to upgrade to 5, 10, or 25 seats.
               </p>
             )}
           </Card>

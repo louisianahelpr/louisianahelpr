@@ -43,7 +43,7 @@ const Heroes = () => {
     title: "Community Heroes — Top-Rated Helprs in Louisiana | Helpr",
     description:
       "Meet Louisiana's top-rated Helprs near you. Trusted, vetted neighbors with proven 5-star track records in cleaning, yard work, handyman, moving and more.",
-    keywords: "Louisiana top helpers, best handymen Louisiana, top rated cleaners, community heroes, local helpers",
+    keywords: "Louisiana top helprs, best handymen Louisiana, top rated cleaners, community heroes, local helprs",
     canonical: `${SITE_URL}/heroes`,
     ogTitle: "Louisiana's Community Heroes — Top Helprs Near You",
     ogDescription: "Discover the highest-rated, most-trusted helprs in your area.",

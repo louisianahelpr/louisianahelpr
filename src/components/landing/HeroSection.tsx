@@ -222,13 +222,13 @@ const HeroSection = () => {
 
         {/* RIGHT: keep the full hero artwork visible on phone and iPad */}
         <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-4 md:mt-0 self-stretch flex-1 md:flex-none flex items-center px-5 sm:px-8 md:px-0 min-h-[13rem] sm:min-h-[16rem]">
-          <div className="relative w-full h-full min-h-[13rem] sm:min-h-[16rem] md:min-h-0 bg-card/60 md:bg-transparent overflow-hidden rounded-2xl md:rounded-none md:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30">
+          <div className="relative w-full h-full min-h-[13rem] sm:min-h-[16rem] md:min-h-0 overflow-hidden rounded-2xl md:rounded-none md:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30">
             <img
               src={heroImg400}
               srcSet={heroSrcSet}
               sizes="(max-width: 767px) 100vw, 50vw"
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-contain md:object-contain lg:object-cover object-center rounded-2xl md:rounded-none md:rounded-l-[2rem]"
+              className="absolute inset-0 w-full h-full object-cover object-center rounded-2xl md:rounded-none md:rounded-l-[2rem]"
               loading="eager"
               fetchPriority="high"
               decoding="async"

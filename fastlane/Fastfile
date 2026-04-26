@@ -144,10 +144,17 @@ def next_build_number(api_key)
   remote_candidate = remote_max ? remote_max + 1 : nil
   ci_candidate = ci_environment? ? ci_fallback_build_number.to_i : nil
 
-  if remote_candidate || ci_candidate
-    candidates = [local_candidate, remote_candidate, ci_candidate].compact
+  # Allow operator to force a specific floor when ASC's API lags behind the
+  # actual latest upload (the Iris validator sometimes knows about a build
+  # before `latest_testflight_build_number` does). Set BUILD_NUMBER_FLOOR
+  # in the workflow env to bump past a "Redundant Binary Upload" error.
+  floor_candidate = ENV["BUILD_NUMBER_FLOOR"].to_s.strip
+  floor_candidate = floor_candidate.empty? ? nil : floor_candidate.to_i
+
+  if remote_candidate || ci_candidate || floor_candidate
+    candidates = [local_candidate, remote_candidate, ci_candidate, floor_candidate].compact
     chosen = candidates.max
-    UI.message("Using unique build number #{chosen} for version #{version} (local #{local_candidate}, remote-for-version #{remote_for_version || 'n/a'}, remote-any-version #{remote_any_version || 'n/a'}, ci #{ci_candidate || 'n/a'})")
+    UI.message("Using unique build number #{chosen} for version #{version} (local #{local_candidate}, remote-for-version #{remote_for_version || 'n/a'}, remote-any-version #{remote_any_version || 'n/a'}, ci #{ci_candidate || 'n/a'}, floor #{floor_candidate || 'n/a'})")
     return chosen
   end
 

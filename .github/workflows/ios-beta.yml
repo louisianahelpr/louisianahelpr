@@ -4,6 +4,11 @@ name: iOS Beta (TestFlight)
 # Run from the Actions tab → "iOS Beta (TestFlight)" → "Run workflow".
 on:
   workflow_dispatch:
+    inputs:
+      build_number_floor:
+        description: "Optional: force build number to be at least this value (use to skip past a 'Redundant Binary Upload' error from App Store Connect)"
+        required: false
+        default: ""
 
 concurrency:
   group: ios-beta-${{ github.ref }}
@@ -42,6 +47,9 @@ jobs:
       FASTLANE_SKIP_UPDATE_CHECK: "1"
       LC_ALL: en_US.UTF-8
       LANG: en_US.UTF-8
+      # Operator-supplied floor to bypass App Store Connect's "Redundant Binary
+      # Upload" 409 when its API lags behind a previously-uploaded build.
+      BUILD_NUMBER_FLOOR: ${{ inputs.build_number_floor }}
 
     steps:
       - name: Checkout

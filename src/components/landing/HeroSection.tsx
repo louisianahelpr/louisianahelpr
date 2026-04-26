@@ -191,21 +191,6 @@ const HeroSection = () => {
               />
             </div>
 
-            {/* Social proof — fixed reserved space so CTAs never jump while stats load or wrap */}
-            <div className="h-10 sm:h-5 flex flex-wrap items-start justify-center md:justify-start gap-x-4 gap-y-1 overflow-hidden text-sm text-muted-foreground">
-              {stats && stats.users >= 50 && stats.completed >= 50 && (
-                <>
-                  <span className="flex h-5 items-center gap-1.5 whitespace-nowrap">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> neighbors
-                  </span>
-                  <span className="flex h-5 items-center gap-1.5 whitespace-nowrap">
-                    <CheckCircle className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> jobs done
-                  </span>
-                </>
-              )}
-            </div>
 
             <div className="grid min-h-14 grid-cols-2 gap-3 sm:gap-4 pt-2 w-full max-w-[21rem] sm:max-w-md mx-auto md:mx-0">
               <Button

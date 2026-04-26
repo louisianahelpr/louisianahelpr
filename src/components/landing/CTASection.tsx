@@ -1,7 +1,7 @@
 import { Apple, Facebook, Sparkles } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
-const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61575800761358";
+const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 
 const CTASection = () => {
   return (

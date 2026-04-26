@@ -1,8 +1,9 @@
-name: iOS Metadata Sync (App Store Connect)
+name: iOS Metadata Sync (App Store Connect + Xcode)
 
-# Manual-only — pushes fastlane/metadata/ (App Store listing text, URLs,
-# categories, review info, screenshots) to App Store Connect WITHOUT
-# building the app or submitting for review.
+# Manual-only — syncs fastlane/ios_app_metadata.yml into the committed
+# Xcode project / Info.plist, then pushes fastlane/metadata/ (App Store
+# listing text, URLs, categories, review info, screenshots) to App Store
+# Connect WITHOUT building the app or submitting for review.
 #
 # Run from the Actions tab → "iOS Metadata Sync (App Store Connect)" →
 # "Run workflow". Cheap (Linux runner, no Xcode), safe to re-run.
@@ -13,9 +14,12 @@ concurrency:
   group: ios-metadata-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   upload-metadata:
-    name: Upload App Store metadata
+    name: Sync Xcode + upload App Store metadata
     # Linux is fine — fastlane's `deliver` only talks to the App Store
     # Connect API. No Xcode, no signing, no macOS needed.
     runs-on: ubuntu-latest
@@ -37,6 +41,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Ruby (for Fastlane)
         uses: ruby/setup-ruby@v1
@@ -68,7 +74,28 @@ jobs:
       - name: Sync Fastlane metadata into Xcode
         run: bundle exec fastlane ios sync_xcode_metadata --verbose
 
-      - name: Run Fastlane metadata lane
+      - name: Show synced Xcode metadata
+        run: |
+          set -e
+          echo "Xcode project values now committed in this checkout:"
+          grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|INFOPLIST_KEY_CFBundleDisplayName|INFOPLIST_KEY_LSApplicationCategoryType|PRODUCT_NAME|MARKETING_VERSION|CURRENT_PROJECT_VERSION|IPHONEOS_DEPLOYMENT_TARGET" ios/App/App.xcodeproj/project.pbxproj | sort -u
+          echo "Info.plist values now committed in this checkout:"
+          grep -A1 -E "<key>(CFBundleDisplayName|LSApplicationCategoryType|ITSAppUsesNonExemptEncryption|NSCameraUsageDescription|NSLocationWhenInUseUsageDescription|NSPhotoLibraryUsageDescription|NSPhotoLibraryAddUsageDescription|NSContactsUsageDescription)</key>" ios/App/App/Info.plist
+
+      - name: Commit synced Xcode metadata back to GitHub
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios/App/App.xcodeproj/project.pbxproj ios/App/App/Info.plist capacitor.config.ts fastlane/metadata/en-US/name.txt fastlane/metadata/en-US/marketing_url.txt fastlane/metadata/en-US/privacy_url.txt fastlane/metadata/en-US/support_url.txt fastlane/metadata/primary_category.txt
+          if git diff --cached --quiet; then
+            echo "No Xcode metadata changes to commit."
+          else
+            git commit -m "Sync iOS Xcode metadata [skip ci]"
+            git push
+          fi
+
+      - name: Upload App Store Connect listing metadata
         env:
           DELIVER_IGNORE_LANGUAGE_DIRECTORY_VALIDATION: "true"
         run: |

@@ -622,7 +622,7 @@ platform :ios do
     assert_ios_identity!
   end
 
-  desc "Sync fastlane/metadata values into the committed Xcode project"
+  desc "Sync fastlane/ios_app_metadata.yml into the committed Xcode project and Info.plist"
   lane :sync_xcode_metadata do
     sync_metadata_to_xcode!
     assert_ios_identity!
@@ -784,7 +784,7 @@ platform :ios do
   # submit anything for App Store review. Safe to run anytime — Apple just
   # updates the "Prepare for Submission" version's listing fields.
   #
-  # Run from GitHub Actions → "iOS Metadata Sync" → "Run workflow",
+  # Run from GitHub Actions → "iOS Metadata Sync (App Store Connect + Xcode)" → "Run workflow",
   # or locally with: bundle exec fastlane ios metadata
   # ──────────────────────────────────────────────────────────────────────
   desc "Upload App Store listing metadata (text, URLs, screenshots) without building or submitting"

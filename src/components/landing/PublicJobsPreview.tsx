@@ -130,17 +130,6 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
           </div>
         )}
 
-        <div className="text-center mt-8">
-          <Button
-            variant="hero"
-            size="lg"
-            onClick={() => navigate("/signup")}
-            className="group"
-          >
-            Sign up to help or post a task
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-          </Button>
-        </div>
       </div>
     </section>
   );

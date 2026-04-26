@@ -72,6 +72,14 @@ const Signup = () => {
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
 
+  // Step 3 — Professional credentials (optional)
+  const [isLicensed, setIsLicensed] = useState(false);
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [licensePreview, setLicensePreview] = useState<string | null>(null);
+  const [isInsured, setIsInsured] = useState(false);
+  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
+
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

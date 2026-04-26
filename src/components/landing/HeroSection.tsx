@@ -129,7 +129,7 @@ const HeroSection = () => {
       <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-4 sm:pb-6 lg:pb-14">
         {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
         <div className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center">
-          <div className="w-full max-w-2xl sm:max-w-none lg:max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
+          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
             {/* TOP cluster — copy + categories */}
             <div className="flex flex-col gap-3 sm:gap-3 lg:gap-8">
               {/* Eyebrow — Louisiana stamp */}

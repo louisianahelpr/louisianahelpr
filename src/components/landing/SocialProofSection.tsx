@@ -22,7 +22,22 @@ const SocialProofSection = () => {
       });
       setLoaded(true);
     };
-    loadStats();
+
+    // Defer until after LCP — section renders null until `loaded`, so the
+    // delay only affects when the stats appear, not whether they appear.
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    const handle = w.requestIdleCallback
+      ? w.requestIdleCallback(() => { loadStats(); }, { timeout: 2500 })
+      : window.setTimeout(loadStats, 1500);
+    return () => {
+      const cancel = (window as Window & {
+        cancelIdleCallback?: (h: number) => void;
+      }).cancelIdleCallback;
+      if (cancel) cancel(handle);
+      else window.clearTimeout(handle);
+    };
   }, []);
 
   // Animate counter

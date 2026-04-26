@@ -54,7 +54,23 @@ const HelperSpotlightSection = forwardRef<HTMLDivElement>((_props, ref) => {
       setHeroesByParish(Object.fromEntries(topParishes));
       setLoaded(true);
     };
-    load();
+
+    // Defer until after LCP — section returns null until `loaded`, so the
+    // user sees no flash; this just unblocks the hero from competing with
+    // a heavy RPC call on the critical path.
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    const handle = w.requestIdleCallback
+      ? w.requestIdleCallback(() => { load(); }, { timeout: 2500 })
+      : window.setTimeout(load, 1500);
+    return () => {
+      const cancel = (window as Window & {
+        cancelIdleCallback?: (h: number) => void;
+      }).cancelIdleCallback;
+      if (cancel) cancel(handle);
+      else window.clearTimeout(handle);
+    };
   }, []);
 
   if (!loaded || Object.keys(heroesByParish).length === 0) return null;

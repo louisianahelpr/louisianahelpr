@@ -16,7 +16,7 @@ const SocialProofSection = () => {
 
       const ratings = reviewsRes.data?.map(r => r.rating) || [];
       setStats({
-        completedJobs: jobsRes.count || 0,
+        completedJobs: typeof jobsRes.data === "number" ? jobsRes.data : Number(jobsRes.data) || 0,
         totalUsers: (usersRes.data as number) || 0,
         avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
       });

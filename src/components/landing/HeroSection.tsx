@@ -157,9 +157,9 @@ const HeroSection = () => {
               Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
             </p>
 
-            {/* Category pills - two rows, horizontally scrollable both directions */}
-            <div className="-mx-5 sm:mx-0 overflow-x-auto scrollbar-hide">
-              <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 px-5 sm:px-0">
+            {/* Category pills - two rows, horizontally scrollable */}
+            <div className="-mx-4 sm:mx-0 overflow-x-auto scrollbar-hide">
+              <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 px-4 sm:px-0 w-max">
                 {categories.map((c) => (
                   <span
                     key={c.label}

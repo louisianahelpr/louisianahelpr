@@ -94,6 +94,54 @@ def assert_ios_identity!
   UI.success("iOS identity is committed — #{APP_DISPLAY_NAME} / #{APP_ID} / #{APP_CATEGORY_TYPE}")
 end
 
+def sync_metadata_to_xcode!
+  UI.user_error!("Missing #{APP_NAME_METADATA_PATH}") unless File.exist?(APP_NAME_METADATA_PATH)
+  UI.user_error!("Missing #{APP_PRIMARY_CATEGORY_PATH}") unless File.exist?(APP_PRIMARY_CATEGORY_PATH)
+
+  app_name = APP_DISPLAY_NAME
+  category_type = APP_CATEGORY_TYPE
+  plist_path = File.join(REPO_ROOT, "ios/App/App/Info.plist")
+  project_path = File.join(PROJECT, "project.pbxproj")
+
+  project_text = File.read(project_path)
+  project_text.gsub!(/INFOPLIST_KEY_CFBundleDisplayName = .*?;/, "INFOPLIST_KEY_CFBundleDisplayName = #{app_name.inspect};")
+  project_text.gsub!(/INFOPLIST_KEY_LSApplicationCategoryType = .*?;/, "INFOPLIST_KEY_LSApplicationCategoryType = #{category_type.inspect};")
+  project_text.gsub!(/PRODUCT_NAME = .*?;/, "PRODUCT_NAME = #{app_name.inspect};")
+  File.write(project_path, project_text)
+
+  require "rexml/document"
+  require "rexml/formatters/default"
+  plist = REXML::Document.new(File.read(plist_path))
+  dict = plist.root.elements["dict"]
+
+  set_plist_value = lambda do |key, value|
+    elements = dict.elements.to_a
+    key_element = elements.find { |element| element.name == "key" && element.text == key }
+    value_element = key_element && elements[elements.index(key_element) + 1]
+
+    if key_element && value_element&.name == "string"
+      value_element.text = value
+    else
+      new_key = REXML::Element.new("key")
+      new_key.text = key
+      new_value = REXML::Element.new("string")
+      new_value.text = value
+      dict.add_element(new_key)
+      dict.add_element(new_value)
+    end
+  end
+
+  set_plist_value.call("CFBundleDisplayName", app_name)
+  set_plist_value.call("LSApplicationCategoryType", category_type)
+
+  formatter = REXML::Formatters::Default.new
+  output = ""
+  formatter.write(plist, output)
+  File.write(plist_path, output)
+
+  UI.success("Synced fastlane metadata into Xcode — #{app_name} / #{category_type}")
+end
+
 def ci_fallback_build_number
   run_number = ENV["GITHUB_RUN_NUMBER"].to_s.strip
   run_id = ENV["GITHUB_RUN_ID"].to_s.strip

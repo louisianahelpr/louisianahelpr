@@ -596,7 +596,7 @@ const Signup = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
-                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
+                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} autoComplete="bday" className={inputCls} />
                 <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
               </div>
               <div className="space-y-2">

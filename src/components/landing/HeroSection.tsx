@@ -66,37 +66,39 @@ const categories = [
   { icon: MoreHorizontal, label: "More" },
 ];
 
-const mockJobs = [
-  {
-    title: "Lawn mowing & trim",
-    location: "Delcambre, LA",
-    price: "$85",
-    icon: Leaf,
-    rating: "4.9",
-    accent: "from-primary/20 to-primary/5",
-  },
-  {
-    title: "Deep clean — 3 BR",
-    location: "Erath, LA",
-    price: "$160",
-    icon: Sparkles,
-    rating: "5.0",
-    accent: "from-accent/30 to-accent/5",
-  },
-  {
-    title: "Help moving couch",
-    location: "Lafayette, LA",
-    price: "$75",
-    icon: Truck,
-    rating: "4.8",
-    accent: "from-secondary/40 to-secondary/5",
-  },
+const CATEGORY_ICONS: Record<string, typeof Leaf> = {
+  yard_work: Leaf,
+  cleaning: Sparkles,
+  moving: Truck,
+  errands: ShoppingBag,
+  handyman: Wrench,
+  painting: Paintbrush,
+  delivery: Package,
+  pet_care: PawPrint,
+  assembly: Hammer,
+  senior_help: Heart,
+  other: MoreHorizontal,
+};
+
+const CATEGORY_ACCENTS = [
+  "from-primary/20 to-primary/5",
+  "from-accent/30 to-accent/5",
+  "from-secondary/40 to-secondary/5",
 ];
+
+type LiveJob = {
+  id: string;
+  title: string;
+  location: string;
+  budget: number;
+  category: string;
+};
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
   const [stats, setStats] = useState<{ users: number; completed: number } | null>(null);
+  const [liveJobs, setLiveJobs] = useState<LiveJob[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -111,6 +113,15 @@ const HeroSection = () => {
         completed: jobsRes.count || 0,
       });
     });
+    // Real recent open jobs for the social-proof row (only renders if >=3)
+    supabase
+      .from("open_jobs_browse")
+      .select("id,title,location,budget,category")
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data }) => {
+        if (data) setLiveJobs(data as LiveJob[]);
+      });
   }, []);
 
   return (
@@ -246,44 +257,43 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Live job cards row — under buttons + image */}
-        <div className="mt-28 sm:mt-20 pt-4">
-          <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4 px-4">
-            Recently posted in Louisiana
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {mockJobs.map((job, i) => {
-              const Icon = job.icon;
-              return (
-                <div
-                  key={job.title}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
-                >
-                  <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${job.accent} flex items-center justify-center shrink-0`}>
-                    <Icon className="w-5 h-5 text-primary" />
+        {/* Live job cards row — only shown when we actually have ≥3 real open jobs */}
+        {liveJobs.length >= 3 && (
+          <div className="mt-28 sm:mt-20 pt-4">
+            <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4 px-4">
+              Recently posted in Louisiana
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              {liveJobs.map((job, i) => {
+                const Icon = CATEGORY_ICONS[job.category] ?? MoreHorizontal;
+                const accent = CATEGORY_ACCENTS[i % CATEGORY_ACCENTS.length];
+                return (
+                  <div
+                    key={job.id}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
+                  >
+                    <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${accent} flex items-center justify-center shrink-0`}>
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-semibold text-foreground truncate">{job.title}</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        {job.location}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-primary flex items-center justify-end">
+                        <DollarSign className="w-3 h-3" />
+                        {Math.round(Number(job.budget))}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-sm font-semibold text-foreground truncate">{job.title}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                      <MapPin className="w-3 h-3 shrink-0" />
-                      {job.location}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary flex items-center justify-end">
-                      <DollarSign className="w-3 h-3" />
-                      {job.price.replace("$", "")}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                      <Star className="w-2.5 h-2.5 fill-primary text-primary" />
-                      {job.rating}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

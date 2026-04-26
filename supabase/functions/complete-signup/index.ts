@@ -152,6 +152,8 @@ serve(async (req) => {
     };
     checkBase64Size(avatarBase64, "Profile picture");
     checkBase64Size(idBase64, "ID document");
+    checkBase64Size(licenseBase64, "License document");
+    checkBase64Size(insuranceBase64, "Insurance document");
     if (portfolioFiles && Array.isArray(portfolioFiles)) {
       for (const f of portfolioFiles) {
         checkBase64Size(f.base64, "Portfolio file");
@@ -160,6 +162,8 @@ serve(async (req) => {
 
     let avatarUrl: string | null = null;
     let idDocumentUrl: string | null = null;
+    let licenseUrl: string | null = null;
+    let insuranceUrl: string | null = null;
     const portfolioUrls: string[] = [];
 
     // 1. Upload avatar

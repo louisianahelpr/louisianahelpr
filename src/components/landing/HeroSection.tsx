@@ -202,7 +202,18 @@ const HeroSection = () => {
                 variant="hero-outline"
                 size="xl"
                 className="group w-full px-3"
-                onClick={() => navigate(loggedIn ? "/dashboard" : "/jobs")}
+                onClick={() => {
+                  if (loggedIn) {
+                    navigate("/dashboard");
+                    return;
+                  }
+                  const el = document.getElementById("open-jobs");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  } else {
+                    navigate("/#open-jobs");
+                  }
+                }}
               >
                 <Search className="transition-transform duration-300 group-hover:scale-110" />
                 <span>Browse jobs</span>

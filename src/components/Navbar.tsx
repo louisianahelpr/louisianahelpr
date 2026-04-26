@@ -14,11 +14,13 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       ref={ref}
       className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30 bg-background/80"
       style={{
-        // Use the larger of the iOS safe-area inset and a sensible
-        // fallback so the Helpr logo never collides with the status bar
-        // when env(safe-area-inset-top) reports 0 (e.g. inside the
-        // Capacitor WebView with contentInset: 'always').
-        paddingTop: "max(env(safe-area-inset-top), 0.75rem)",
+        // iOS Capacitor shell renders with `overlaysWebView: false` +
+        // `contentInset: 'always'`, so env(safe-area-inset-top) reports 0
+        // inside the WebView. Without a real fallback the Helpr logo sits
+        // flush against the status-bar band. 1rem gives a comfortable
+        // breathing room on every device while still respecting the inset
+        // on browsers that DO report it (notched iPhones in mobile Safari).
+        paddingTop: "max(env(safe-area-inset-top), 1rem)",
       }}
     >
       <div

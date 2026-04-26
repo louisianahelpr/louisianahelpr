@@ -23,11 +23,17 @@ import {
   Search,
   Shield,
 } from "lucide-react";
-import heroImg from "@/assets/hero-porch-garden.jpg";
-import heroImg400 from "@/assets/hero-porch-garden.jpg";
+import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
+import heroImg500 from "@/assets/hero-illustration-v5-500.webp";
+import heroImg600 from "@/assets/hero-illustration-v5-600.webp";
+import heroImg1000 from "@/assets/hero-illustration-v5-1000.webp";
 
-// Single high-quality source — sized to fill the taller right column.
-const heroSrcSet = `${heroImg} 1024w`;
+// Real responsive set so the browser picks the smallest variant that fits the
+// display × DPR. Without multiple entries, Chrome would always pick the 1000w
+// file even when only ~500 CSS px are needed (Lighthouse: "image larger than
+// needed", ~110 KiB wasted).
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg1000} 1000w`;
+const heroSizes = "(max-width: 640px) 400px, (max-width: 1023px) 600px, 500px";
 
 // Inject a <link rel="preload"> for the LCP hero image as soon as this module
 // loads, so the browser can discover the request before React renders the <img>.
@@ -40,11 +46,11 @@ if (typeof document !== "undefined") {
     link.id = PRELOAD_ID;
     link.rel = "preload";
     link.as = "image";
-    link.type = "image/jpeg";
+    link.type = "image/webp";
     link.fetchPriority = "high";
-    link.href = heroImg;
+    link.href = heroImg500;
     link.setAttribute("imagesrcset", heroSrcSet);
-    link.setAttribute("imagesizes", "(max-width: 1023px) 400px, 500px");
+    link.setAttribute("imagesizes", heroSizes);
     document.head.appendChild(link);
   }
 }

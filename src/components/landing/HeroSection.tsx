@@ -152,44 +152,42 @@ const HeroSection = () => {
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-xl mx-auto md:mx-0">
+          <div className="w-full max-w-2xl mx-auto md:mx-0">
             {/* Eyebrow — Louisiana stamp */}
-            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1.5 mb-8 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-10 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="truncate">Made in Louisiana</span>
             </div>
 
             {/* Headline — split-color kept */}
-            <h1 className="mt-5 text-[2.25rem] sm:text-5xl lg:text-[3.5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
+            <h1 className="mt-6 text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
               Your local{" "}
               <span className="relative inline">
                 <span className="relative z-10 text-primary">task partner.</span>
                 <span
                   aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-3 sm:h-4 bg-primary/20 -z-0 rounded"
+                  className="absolute inset-x-0 bottom-1 h-4 sm:h-5 lg:h-6 bg-primary/20 -z-0 rounded"
                 />
               </span>
             </h1>
 
             {/* Subhead — locked tight to headline */}
-            <p className="mt-2 sm:mt-3 text-base sm:text-lg text-foreground/75 font-medium leading-snug max-w-lg mx-auto md:mx-0">
+            <p className="mt-5 sm:mt-6 text-lg sm:text-xl lg:text-2xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0">
               Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
             </p>
 
-            {/* 3-step How it works — removed */}
-
             {/* Category pills — bigger, interactive */}
-            <div className="relative w-full mt-7">
+            <div className="relative w-full mt-10">
               <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
-                <div className="flex min-w-max gap-2.5 pb-2 pr-8">
+                <div className="flex min-w-max gap-3 pb-2 pr-8">
                   {categories.map((c) => (
                     <button
                       key={c.label}
                       type="button"
                       onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-                      className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
+                      className="group inline-flex items-center gap-2 px-5 py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
                     >
-                      <c.icon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                      <c.icon className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                       {c.label}
                     </button>
                   ))}
@@ -202,20 +200,20 @@ const HeroSection = () => {
             </div>
 
             {/* Premium dual CTA */}
-            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-3 w-full">
+            <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-4 w-full">
               <Button
                 variant="hero"
                 size="xl"
-                className="group relative flex-1 sm:flex-none sm:min-w-[15rem] h-14 px-8 text-base font-semibold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
+                className="group relative flex-1 sm:flex-none sm:min-w-[16rem] h-16 px-10 text-lg font-semibold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
                 <span className="relative z-10">Post a job</span>
-                <ArrowRight className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                <ArrowRight className="relative z-10 w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
               <Button
                 variant="outline"
                 size="xl"
-                className="group relative flex-1 sm:flex-none sm:min-w-[15rem] h-14 px-8 text-base font-semibold bg-card/60 backdrop-blur border-2 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/15 transition-all duration-300"
+                className="group relative flex-1 sm:flex-none sm:min-w-[16rem] h-16 px-10 text-lg font-semibold bg-card/60 backdrop-blur border-2 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/15 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");
@@ -229,9 +227,9 @@ const HeroSection = () => {
                   }
                 }}
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-6 h-6" />
                 <span>Browse jobs</span>
-                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                <ArrowRight className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
             </div>
           </div>

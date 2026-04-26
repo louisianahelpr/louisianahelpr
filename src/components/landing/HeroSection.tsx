@@ -123,10 +123,10 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
+      className="relative w-full max-w-full pt-16 sm:pt-20 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
     >
       {/* MAIN: split-screen, image locked to right edge */}
-      <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-6 sm:pb-8 lg:pb-14">
+      <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-4 sm:pb-6 lg:pb-14">
         {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
         <div
           className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center"
@@ -134,9 +134,9 @@ const HeroSection = () => {
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-6 sm:gap-8">
+          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-4 sm:gap-5 lg:gap-8">
             {/* TOP cluster — copy + categories */}
-            <div className="flex flex-col gap-6 sm:gap-8">
+            <div className="flex flex-col gap-3 sm:gap-4 lg:gap-8">
               {/* Eyebrow — Louisiana stamp */}
               <div className="inline-flex max-w-full self-center lg:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -144,19 +144,19 @@ const HeroSection = () => {
               </div>
 
               {/* Headline */}
-              <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
+              <h1 className="text-4xl sm:text-5xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
                 Your local{" "}
                 <span className="relative inline">
                   <span className="relative z-10 text-primary">task partner.</span>
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 bottom-1 h-4 sm:h-5 lg:h-6 bg-primary/20 -z-0 rounded"
+                    className="absolute inset-x-0 bottom-1 h-3 sm:h-4 lg:h-6 bg-primary/20 -z-0 rounded"
                   />
                 </span>
               </h1>
 
               {/* Subhead */}
-              <p className="text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto lg:mx-0 lg:text-xl font-sans">
+              <p className="text-base sm:text-lg text-foreground/75 font-medium leading-snug max-w-xl mx-auto lg:mx-0 lg:text-xl font-sans">
                 Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
 
@@ -169,9 +169,9 @@ const HeroSection = () => {
                         key={c.label}
                         type="button"
                         onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-                        className="group inline-flex items-center gap-2 px-5 py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
+                        className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
                       >
-                        <c.icon className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                        <c.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary group-hover:scale-110 transition-transform" />
                         {c.label}
                       </button>
                     ))}
@@ -184,11 +184,11 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* BOTTOM: CTAs grouped tightly under the content stack */}
-            <div className="flex flex-col items-stretch gap-4 w-full max-w-xl">
+            {/* BOTTOM: CTAs grouped tightly under the content stack — centered on mobile/iPad */}
+            <div className="flex flex-col items-stretch gap-3 lg:gap-4 w-full max-w-md lg:max-w-xl mx-auto lg:mx-0">
               <Button
                 size="xl"
-                className="group w-full h-16 px-8 rounded-xl text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-12 sm:h-14 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
                 <Sparkles className="mr-2 w-5 h-5" />
@@ -198,7 +198,7 @@ const HeroSection = () => {
               <Button
                 variant="outline"
                 size="xl"
-                className="group w-full h-16 px-8 rounded-xl text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-12 sm:h-14 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");

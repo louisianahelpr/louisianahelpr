@@ -9,7 +9,7 @@ const SocialProofSection = () => {
   useEffect(() => {
     const loadStats = async () => {
       const [jobsRes, usersRes, reviewsRes] = await Promise.all([
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
+        supabase.rpc("get_public_completed_job_count"),
         supabase.rpc("count_profiles"),
         supabase.from("reviews").select("rating"),
       ]);

@@ -471,19 +471,19 @@ const Signup = () => {
 
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">
-                {step === 1 ? "Tell us about you" : step === 2 ? "Create your account" : "Make your profile stand out"}
+                {step === 1 ? "Create your account" : step === 2 ? "Tell us about you" : "Make your profile stand out"}
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {step === 1
-                  ? `Step 1 of ${totalSteps} — your basic info & ID`
+                  ? `Step 1 of ${totalSteps} — email, password, and agreements`
                   : step === 2
-                  ? `Step 2 of ${totalSteps} — email, password, and agreements`
+                  ? `Step 2 of ${totalSteps} — your basic info & ID`
                   : `Step 3 of ${totalSteps} — optional, but recommended if you'll apply to jobs`}
               </p>
             </div>
 
-        {/* Step 1: Account basics — organized top-down: Profile → Account → Personal → ID → Policies */}
-        {step === 1 && (
+        {/* Step 2: About you + ID — organized top-down: Profile → Personal → ID */}
+        {step === 2 && (
           <div className="space-y-6">
 
             {isBusinessSignup && (
@@ -647,21 +647,26 @@ const Signup = () => {
               </div>
             </section>
 
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={async () => {
-                if (!(await validateStep1())) return;
-                setStep(2);
-              }}
-            >
-              Continue <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={async () => {
+                  if (!(await validateStep1())) return;
+                  setStep(3);
+                }}
+              >
+                Continue <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Step 2: Account credentials + agreements */}
-        {step === 2 && (
+        {/* Step 1: Account credentials + agreements */}
+        {step === 1 && (
           <div className="space-y-6">
             <section className="space-y-3">
               <div className="flex items-center gap-2">
@@ -724,22 +729,17 @@ const Signup = () => {
               </div>
             </section>
 
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </Button>
-              <Button
-                className="flex-1"
-                size="lg"
-                onClick={async () => {
-                  if (!(await validateStep2())) return;
-                  setStep(3);
-                }}
-                disabled={!acceptedPolicies}
-              >
-                Continue <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={async () => {
+                if (!(await validateStep2())) return;
+                setStep(2);
+              }}
+              disabled={!acceptedPolicies}
+            >
+              Continue <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

@@ -28,15 +28,15 @@ jobs:
       DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
       FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
 
-      # ─── Fastlane match (signing certs + profiles in a private Git repo) ─────
-      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-      # HTTPS auth for fastlane match: base64("username:personal_access_token")
-      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      # ─── Existing Apple Distribution .p12 certificate import ────────────────
+      # Export the already-created Distribution cert + private key as .p12,
+      # base64 it, and store it in these GitHub secrets. This avoids creating
+      # more Apple Distribution certificates in CI.
+      IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
       # Ephemeral keychain so we don't pollute the runner's default keychain.
       MATCH_KEYCHAIN_NAME: fastlane_tmp_keychain
       MATCH_KEYCHAIN_PASSWORD: ${{ github.run_id }}
-      MATCH_READONLY: "true"
 
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"

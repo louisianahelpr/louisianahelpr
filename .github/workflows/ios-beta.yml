@@ -110,6 +110,7 @@ jobs:
           test -n "$ASC_ISSUER_ID" || missing+=("ASC_ISSUER_ID")
           test -n "$ASC_KEY_CONTENT" || missing+=("ASC_KEY_CONTENT")
           test -n "$DEVELOPER_TEAM_ID" || missing+=("DEVELOPER_TEAM_ID")
+          test -n "$IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64" || missing+=("IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64")
 
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing required GitHub secrets: ${missing[*]}"

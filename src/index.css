@@ -159,6 +159,42 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Premium page background — drop-in replacement for bg-background.
+     Use on any page root for the unified gradient + ambient orbs feel. */
+  .bg-premium-page {
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
+    position: relative;
+  }
+  .bg-premium-page::before,
+  .bg-premium-page::after {
+    content: "";
+    position: fixed;
+    pointer-events: none;
+    border-radius: 9999px;
+    filter: blur(80px);
+    z-index: 0;
+  }
+  .bg-premium-page::before {
+    top: -10rem;
+    right: -8rem;
+    width: 32rem;
+    height: 32rem;
+    background: hsl(var(--primary) / 0.12);
+  }
+  .bg-premium-page::after {
+    bottom: -10rem;
+    left: -8rem;
+    width: 28rem;
+    height: 28rem;
+    background: hsl(var(--accent) / 0.15);
+  }
+  /* Ensure page content sits above the orbs */
+  .bg-premium-page > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* Enhanced global styles */

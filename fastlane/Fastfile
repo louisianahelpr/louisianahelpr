@@ -18,6 +18,8 @@ WORKSPACE = File.join(REPO_ROOT, "ios/App/App.xcworkspace")
 PROJECT   = File.join(REPO_ROOT, "ios/App/App.xcodeproj")
 SCHEME    = "App"
 APP_ID    = "com.Helpr"
+APP_DISPLAY_NAME = "Louisiana Helpr"
+APP_CATEGORY_TYPE = "public.app-category.lifestyle"
 
 CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || File.join(REPO_ROOT, "fastlane/changelog.txt")
 
@@ -35,6 +37,30 @@ end
 
 def changelog_text
   File.exist?(CHANGELOG_PATH) ? File.read(CHANGELOG_PATH) : "Bug fixes and improvements."
+end
+
+def assert_ios_identity!
+  UI.user_error!("Missing #{PROJECT}") unless File.exist?(PROJECT)
+  UI.user_error!("Missing committed Info.plist") unless File.exist?(File.join(REPO_ROOT, "ios/App/App/Info.plist"))
+
+  project_text = File.read(File.join(PROJECT, "project.pbxproj"))
+  required_project_values = {
+    "PRODUCT_BUNDLE_IDENTIFIER = #{APP_ID};" => "Bundle ID must stay locked to #{APP_ID}",
+    "DEVELOPMENT_TEAM = P85MCK558V;" => "Apple Developer Team must stay locked to P85MCK558V",
+    "INFOPLIST_KEY_CFBundleDisplayName = \"#{APP_DISPLAY_NAME}\";" => "Xcode Display Name must be committed",
+    "INFOPLIST_KEY_LSApplicationCategoryType = \"#{APP_CATEGORY_TYPE}\";" => "Xcode App Category must be committed",
+    "PRODUCT_NAME = \"#{APP_DISPLAY_NAME}\";" => "Built product name must be #{APP_DISPLAY_NAME}"
+  }
+
+  required_project_values.each do |needle, message|
+    UI.user_error!("#{message}. Missing project setting: #{needle}") unless project_text.include?(needle)
+  end
+
+  info_plist = File.read(File.join(REPO_ROOT, "ios/App/App/Info.plist"))
+  UI.user_error!("Info.plist CFBundleDisplayName must be #{APP_DISPLAY_NAME}") unless info_plist.include?("<key>CFBundleDisplayName</key>") && info_plist.include?("<string>#{APP_DISPLAY_NAME}</string>")
+  UI.user_error!("Info.plist LSApplicationCategoryType must be #{APP_CATEGORY_TYPE}") unless info_plist.include?("<key>LSApplicationCategoryType</key>") && info_plist.include?("<string>#{APP_CATEGORY_TYPE}</string>")
+
+  UI.success("iOS identity is committed — #{APP_DISPLAY_NAME} / #{APP_ID} / #{APP_CATEGORY_TYPE}")
 end
 
 def ci_fallback_build_number

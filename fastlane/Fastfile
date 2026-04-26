@@ -633,20 +633,22 @@ platform :ios do
 
       UI.message("Uploading staged metadata from #{staged_metadata_dir}")
 
-      upload_to_app_store(
-        api_key:                           api_key,
-        app_identifier:                    APP_ID,
-        skip_binary_upload:                true,
-        submit_for_review:                 false,
-        automatic_release:                 false,
-        force:                             true,
-        precheck_include_in_app_purchases: false,
-        skip_metadata:                     false,
-        metadata_path:                     staged_metadata_dir,
-        skip_screenshots:                  !screenshots_present,
-        screenshots_path:                  staged_screenshots_dir,
+      upload_args = {
+        api_key:                              api_key,
+        app_identifier:                       APP_ID,
+        skip_binary_upload:                   true,
+        submit_for_review:                    false,
+        automatic_release:                    false,
+        force:                                true,
+        precheck_include_in_app_purchases:    false,
+        skip_metadata:                        false,
+        metadata_path:                        staged_metadata_dir,
+        skip_screenshots:                     !screenshots_present,
         ignore_language_directory_validation: true
-      )
+      }
+      upload_args[:screenshots_path] = staged_screenshots_dir if screenshots_present
+
+      upload_to_app_store(**upload_args)
     end
 
     UI.success("App Store metadata synced from fastlane/metadata/ → App Store Connect")

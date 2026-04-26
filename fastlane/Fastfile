@@ -68,12 +68,20 @@ def assert_ios_identity!
     "INFOPLIST_KEY_LSApplicationCategoryType = \"#{APP_CATEGORY_TYPE}\";" => "Xcode App Category must be committed",
     "PRODUCT_NAME = \"#{APP_PRODUCT_NAME}\";" => "Built product name must be #{APP_PRODUCT_NAME}",
     "MARKETING_VERSION = #{APP_MARKETING_VERSION};" => "Marketing version must be #{APP_MARKETING_VERSION}",
-    "CURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};" => "Build number must be #{APP_BUILD_VERSION}",
     "IPHONEOS_DEPLOYMENT_TARGET = #{APP_DEPLOYMENT_TARGET};" => "Deployment target must be #{APP_DEPLOYMENT_TARGET}"
   }
 
   required_project_values.each do |needle, message|
     UI.user_error!("#{message}. Missing project setting: #{needle}") unless project_text.include?(needle)
+  end
+
+  # CURRENT_PROJECT_VERSION is a floor, not an exact match — `set_next_build_number!`
+  # bumps it past TestFlight's latest on every archive, and `persist_build_number!`
+  # writes the bumped value back into ios_app_metadata.yml. Anything below the floor
+  # means a stale project.pbxproj that would get rejected by App Store Connect.
+  project_text.scan(/CURRENT_PROJECT_VERSION = (\d+);/).flatten.map(&:to_i).each do |actual|
+    next if actual >= APP_BUILD_VERSION.to_i
+    UI.user_error!("CURRENT_PROJECT_VERSION #{actual} in project.pbxproj is below the YAML floor #{APP_BUILD_VERSION}. Run `bundle exec fastlane ios sync_xcode_metadata`.")
   end
 
   info_plist = File.read(File.join(REPO_ROOT, "ios/App/App/Info.plist"))

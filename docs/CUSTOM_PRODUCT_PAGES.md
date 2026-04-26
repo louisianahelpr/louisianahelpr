@@ -16,8 +16,8 @@ also spin up parish-specific or seasonal pages later.
 
 | Path | Purpose |
 |------|---------|
-| `fastlane/metadata/custom_product_pages/poster/` | Poster CPP copy + screenshots |
-| `fastlane/metadata/custom_product_pages/helper/` | Helper CPP copy + screenshots |
+| `fastlane/custom_product_pages/poster/` | Poster CPP copy + screenshots |
+| `fastlane/custom_product_pages/helper/` | Helper CPP copy + screenshots |
 | `src/lib/cppRouting.ts` | Reads `?ppid=…` / `?cpp=…` from the launch URL and deep-links to the right screen |
 
 The router is wired into `App.tsx` once and runs on first paint.
@@ -30,7 +30,7 @@ The router is wired into `App.tsx` once and runs on first paint.
 2. Create the first page:
    - **Reference name:** `Poster Funnel`
    - **Locale:** English (U.S.)
-3. Upload assets from `fastlane/metadata/custom_product_pages/poster/`:
+3. Upload assets from `fastlane/custom_product_pages/poster/`:
    - **Promotional text** — `promotional_text.txt`
    - **Description** — `description.txt`
    - **Screenshots** — `screenshots/iphone_6_7`, `iphone_6_1`, `ipad_pro_12_9`
@@ -97,7 +97,7 @@ they move the needle far more than copy.
 
 ## Adding a new CPP later
 
-1. Add a folder under `fastlane/metadata/custom_product_pages/<slug>/`
+1. Add a folder under `fastlane/custom_product_pages/<slug>/`
 2. Create the page in App Store Connect, submit, grab the ppid
 3. Add the ppid → variant mapping in `cppRouting.ts`
 4. Add a route in `VARIANT_ROUTES`

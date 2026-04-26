@@ -16,9 +16,9 @@ first job completed), not just the highest install count.
 
 | Path | Purpose |
 |------|---------|
-| `fastlane/metadata/ppo_tests/trust/` | Trust-vs-value test copy + screenshot brief |
-| `fastlane/metadata/ppo_tests/visual/` | App-UI-vs-lifestyle test copy + screenshot brief |
-| `fastlane/metadata/ppo_tests/local/` | Statewide-vs-parish test copy + screenshot brief |
+| `fastlane/ppo_tests/trust/` | Trust-vs-value test copy + screenshot brief |
+| `fastlane/ppo_tests/visual/` | App-UI-vs-lifestyle test copy + screenshot brief |
+| `fastlane/ppo_tests/local/` | Statewide-vs-parish test copy + screenshot brief |
 | `src/lib/ppoAttribution.ts` | Captures the `?ppt=` referrer Apple appends to PPO installs and tags every downstream analytics event |
 
 The attribution capture runs from `useCppVariantRouter()` in `App.tsx`,
@@ -57,7 +57,7 @@ the Trust treatment and we record both facts.
    - Pick a name matching `Trust Test` / `Visual Test` / `Local Test` so
      the dashboard correlates with this repo.
    - Upload control + treatment assets from
-     `fastlane/metadata/ppo_tests/<test>/{control,treatment}/`.
+     `fastlane/ppo_tests/<test>/{control,treatment}/`.
    - Set traffic split to **50/50** (default).
    - Run length: 60 days (Apple's max is 90; cut early if a winner
      declares).
@@ -115,7 +115,7 @@ on top of Apple's is catching that exact failure mode.
 ## Adding a new test later
 
 1. Add a new key in `PPO_TESTS` inside `src/lib/ppoAttribution.ts`.
-2. Add a folder under `fastlane/metadata/ppo_tests/<slug>/` with
+2. Add a folder under `fastlane/ppo_tests/<slug>/` with
    `control/` and `treatment/` subfolders mirroring the existing tests.
 3. Create the test in App Store Connect, copy back the treatment ID,
    commit, ship.

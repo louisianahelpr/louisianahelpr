@@ -127,15 +127,15 @@ const HeroSection = () => {
     >
       {/* MAIN: split-screen, image locked to right edge */}
       <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-stretch pb-10 sm:pb-14">
-        {/* LEFT: copy + CTAs — top content aligns to image top, CTAs align to image bottom */}
+        {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
         <div
-          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0 flex flex-col"
+          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0 flex flex-col md:justify-center"
           style={{
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col flex-1">
-            {/* TOP cluster — aligns with top of hero image */}
+          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col md:gap-10">
+            {/* TOP cluster — copy + categories */}
             <div>
               {/* Eyebrow — Louisiana stamp */}
               <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-6 sm:mb-8 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
@@ -184,10 +184,7 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* Spacer pushes CTAs to bottom of left column (= bottom of image) */}
-            <div className="flex-1 min-h-[2rem]" />
-
-            {/* BOTTOM: Bold pill CTAs aligned with bottom of hero image */}
+            {/* BOTTOM: CTAs grouped tightly under the content stack */}
             <div className="mt-8 md:mt-0 flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
                 size="xl"

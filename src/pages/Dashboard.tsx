@@ -323,6 +323,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />
+          <PayoutSetupBanner role={profile?.role} userId={user?.id} />
           {/* Welcome section */}
           {showGreeting && (
           <motion.div

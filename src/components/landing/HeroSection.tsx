@@ -140,7 +140,7 @@ const HeroSection = () => {
             </h1>
 
             <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto md:mx-0 leading-relaxed">
-              Post a job, get matched with trusted local helprs, and pay securely when the work's done.
+              Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
             </p>
 
             {/* Category pills - hidden on mobile so hero image isn't cut off */}

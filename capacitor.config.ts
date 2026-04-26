@@ -20,7 +20,7 @@ if (rawDevUrl && !devServerUrl) {
 
 const config: CapacitorConfig = {
   // App Store Connect record — locked to this exact value.
-  appId: 'com.louisianahelpr.app',
+  appId: 'com.Helpr',
   appName: 'Helpr',
   webDir: 'dist',
   // Only attach a remote server in dev. Production has no `server` block,

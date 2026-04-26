@@ -114,7 +114,7 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --secondary: 160 10% 16%;
     --secondary-foreground: 150 15% 90%;
     --muted: 160 8% 18%;
-    --muted-foreground: 150 8% 55%;
+    --muted-foreground: 150 10% 68%;
     --accent: 40 80% 58%;
     --accent-foreground: 40 80% 95%;
     --destructive: 0 62% 30%;

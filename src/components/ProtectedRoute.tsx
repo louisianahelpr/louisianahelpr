@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ProtectedRouteProps {
@@ -6,8 +6,35 @@ interface ProtectedRouteProps {
   allowUnapproved?: boolean;
 }
 
+// Routes a half-onboarded user is allowed to visit without being bounced
+// back to /complete-profile. Anything else redirects to the gate.
+const PROFILE_GATE_ALLOWED = new Set<string>([
+  "/complete-profile",
+  "/support",
+  "/terms",
+  "/privacy",
+  "/rules",
+  "/data-rights",
+]);
+
+const isProfileComplete = (
+  profile: { date_of_birth?: string | null; phone?: string | null; location?: string | null; bio?: string | null; avatar_url?: string | null; id_document_url?: string | null } | null,
+): boolean => {
+  if (!profile) return false;
+  return Boolean(
+    profile.date_of_birth &&
+      profile.phone &&
+      profile.location &&
+      profile.bio &&
+      profile.bio.trim().length >= 20 &&
+      profile.avatar_url &&
+      profile.id_document_url,
+  );
+};
+
 const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRouteProps) => {
   const { user, profile, isLoading } = useCurrentUser();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -40,6 +67,17 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     if (profile?.approval_status === "denied") {
       return <Navigate to="/account-denied" replace />;
     }
+  }
+
+  // Profile completion gate — catches OAuth signups that bypass the form,
+  // and any legacy account missing required data. Always allowed on the
+  // gate page itself and a small set of legal/support pages.
+  if (
+    user.email_confirmed_at &&
+    !isProfileComplete(profile) &&
+    !PROFILE_GATE_ALLOWED.has(location.pathname)
+  ) {
+    return <Navigate to="/complete-profile" replace />;
   }
 
   return <>{children}</>;

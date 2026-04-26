@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw } from "lucide-react";
+import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

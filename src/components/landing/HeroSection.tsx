@@ -126,10 +126,10 @@ const HeroSection = () => {
       className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-[80vh] sm:min-h-screen overflow-hidden"
     >
       {/* MAIN: split-screen, image locked to right edge */}
-      <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-stretch pb-10 sm:pb-14">
+      <div className="flex-1 w-full min-w-0 grid lg:grid-cols-2 items-stretch pb-10 sm:pb-14">
         {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
         <div
-          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0 flex flex-col md:justify-center"
+          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center"
           style={{
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}

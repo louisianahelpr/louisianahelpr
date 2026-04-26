@@ -147,9 +147,9 @@ const HeroSection = () => {
       <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-center pb-10 sm:pb-14">
         {/* LEFT: copy + CTAs */}
         <div
-          className="min-w-0 max-w-full animate-fade-in px-4 sm:px-6 md:pl-10 lg:pl-20 md:pr-8 text-center md:text-left"
+          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left"
           style={{
-            paddingLeft: "max(1rem, env(safe-area-inset-left))",
+            paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
           <div className="w-full max-w-xl mx-auto md:mx-0">

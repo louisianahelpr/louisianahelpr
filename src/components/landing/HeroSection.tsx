@@ -136,68 +136,75 @@ const HeroSection = () => {
       />
 
       {/* MAIN: split-screen, image locked to right edge */}
-      <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-start pb-10 sm:pb-14">
-        {/* LEFT: copy + CTAs */}
+      <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-stretch pb-10 sm:pb-14">
+        {/* LEFT: copy + CTAs — top content aligns to image top, CTAs align to image bottom */}
         <div
-          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0"
+          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0 flex flex-col"
           style={{
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto md:mx-0">
-            {/* Eyebrow — Louisiana stamp (sits above the image's top edge) */}
-            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-12 sm:mb-16 md:mb-20 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="truncate">Made in Louisiana, for Louisiana</span>
-            </div>
-
-            {/* Headline — aligned with the top of the hero image */}
-            <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
-              Your local{" "}
-              <span className="relative inline">
-                <span className="relative z-10 text-primary">task partner.</span>
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-4 sm:h-5 lg:h-6 bg-primary/20 -z-0 rounded"
-                />
-              </span>
-            </h1>
-
-            {/* Subhead — locked tight to headline */}
-            <p className="mt-5 sm:mt-6 text-lg sm:text-xl lg:text-2xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0">
-              Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
-            </p>
-
-            {/* Category pills — bigger, interactive */}
-            <div className="relative w-full mt-10">
-              <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
-                <div className="flex min-w-max gap-3 pb-2 pr-8">
-                  {categories.map((c) => (
-                    <button
-                      key={c.label}
-                      type="button"
-                      onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-                      className="group inline-flex items-center gap-2 px-5 py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
-                    >
-                      <c.icon className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
+          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col flex-1">
+            {/* TOP cluster — aligns with top of hero image */}
+            <div>
+              {/* Eyebrow — Louisiana stamp */}
+              <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-6 sm:mb-8 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="truncate">Made in Louisiana, for Louisiana</span>
               </div>
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
-              />
+
+              {/* Headline */}
+              <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
+                Your local{" "}
+                <span className="relative inline">
+                  <span className="relative z-10 text-primary">task partner.</span>
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-1 h-4 sm:h-5 lg:h-6 bg-primary/20 -z-0 rounded"
+                  />
+                </span>
+              </h1>
+
+              {/* Subhead */}
+              <p className="mt-5 sm:mt-6 text-lg sm:text-xl lg:text-2xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0">
+                Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
+              </p>
+
+              {/* Category pills */}
+              <div className="relative w-full mt-8">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+                  <div className="flex min-w-max gap-3 pb-2 pr-8">
+                    {categories.map((c) => (
+                      <button
+                        key={c.label}
+                        type="button"
+                        onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                        className="group inline-flex items-center gap-2 px-5 py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
+                      >
+                        <c.icon className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
+                />
+              </div>
             </div>
 
-            {/* Bold pill CTAs — stacked, full-width */}
-            <div className="mt-10 flex flex-col items-stretch gap-4 w-full max-w-xl">
+            {/* Spacer pushes CTAs to bottom of left column (= bottom of image) */}
+            <div className="flex-1 min-h-[2rem]" />
+
+            {/* BOTTOM: Bold pill CTAs aligned with bottom of hero image */}
+            <div className="mt-8 md:mt-0 flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
                 size="xl"
                 className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
+                <Sparkles className="mr-2 w-5 h-5" />
                 Post a job
                 <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
@@ -218,6 +225,7 @@ const HeroSection = () => {
                   }
                 }}
               >
+                <Search className="mr-2 w-5 h-5" />
                 Browse jobs
                 <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>

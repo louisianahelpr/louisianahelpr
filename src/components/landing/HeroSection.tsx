@@ -126,7 +126,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-16 sm:pb-24 md:pb-32 lg:pb-28 px-4 sm:px-6 flex items-start sm:items-center min-h-[88vh] sm:min-h-[90vh] md:min-h-[92vh] lg:min-h-0"
+      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 md:pb-20 lg:pb-28 px-4 sm:px-6 flex items-start sm:items-center min-h-[80vh] sm:min-h-[78vh] md:min-h-[78vh] lg:min-h-0"
       style={{
         paddingLeft: "max(1rem, env(safe-area-inset-left))",
         paddingRight: "max(1rem, env(safe-area-inset-right))",

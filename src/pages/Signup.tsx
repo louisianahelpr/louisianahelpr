@@ -580,10 +580,6 @@ const Signup = () => {
 
             {/* ── Section 5: Identity verification ── */}
             <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Identity verification</h2>
-              </div>
               <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
                 <div className="text-center space-y-2">
                   <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">

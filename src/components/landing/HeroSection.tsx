@@ -23,11 +23,17 @@ import {
   Search,
   Shield,
 } from "lucide-react";
-import heroImg from "@/assets/hero-porch-garden.jpg";
-import heroImg400 from "@/assets/hero-porch-garden.jpg";
+import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
+import heroImg500 from "@/assets/hero-illustration-v5-500.webp";
+import heroImg600 from "@/assets/hero-illustration-v5-600.webp";
+import heroImg1000 from "@/assets/hero-illustration-v5-1000.webp";
 
-// Single high-quality source — sized to fill the taller right column.
-const heroSrcSet = `${heroImg} 1024w`;
+// Real responsive set so the browser picks the smallest variant that fits the
+// display × DPR. Without multiple entries, Chrome would always pick the 1000w
+// file even when only ~500 CSS px are needed (Lighthouse: "image larger than
+// needed", ~110 KiB wasted).
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg1000} 1000w`;
+const heroSizes = "(max-width: 640px) 400px, (max-width: 1023px) 600px, 500px";
 
 // Inject a <link rel="preload"> for the LCP hero image as soon as this module
 // loads, so the browser can discover the request before React renders the <img>.
@@ -40,11 +46,11 @@ if (typeof document !== "undefined") {
     link.id = PRELOAD_ID;
     link.rel = "preload";
     link.as = "image";
-    link.type = "image/jpeg";
+    link.type = "image/webp";
     link.fetchPriority = "high";
-    link.href = heroImg;
+    link.href = heroImg500;
     link.setAttribute("imagesrcset", heroSrcSet);
-    link.setAttribute("imagesizes", "(max-width: 1023px) 400px, 500px");
+    link.setAttribute("imagesizes", heroSizes);
     document.head.appendChild(link);
   }
 }
@@ -219,9 +225,9 @@ const HeroSection = () => {
         <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[12rem]">
           <div className="relative w-full h-full lg:h-full lg:min-h-[36rem]">
             <img
-              src={heroImg400}
+              src={heroImg500}
               srcSet={heroSrcSet}
-              sizes="(max-width: 1023px) 100vw, 50vw"
+              sizes={heroSizes}
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
               className="absolute inset-0 w-full h-full object-cover object-[70%_center] sm:object-center lg:object-[70%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
               loading="eager"

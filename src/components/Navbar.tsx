@@ -13,7 +13,13 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
     <nav
       ref={ref}
       className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30 bg-background/80"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{
+        // Use the larger of the iOS safe-area inset and a sensible
+        // fallback so the Helpr logo never collides with the status bar
+        // when env(safe-area-inset-top) reports 0 (e.g. inside the
+        // Capacitor WebView with contentInset: 'always').
+        paddingTop: "max(env(safe-area-inset-top), 0.75rem)",
+      }}
     >
       <div
         className="container mx-auto flex items-center justify-between h-14 px-4"

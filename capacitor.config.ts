@@ -3,7 +3,20 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // Local dev hot-reload: set CAP_DEV_URL=https://<sandbox>.lovableproject.com
 // before `npx cap sync` to load the live preview into the app shell.
 // PRODUCTION builds MUST ship the bundled dist/ assets — never load a remote URL.
-const devServerUrl = process.env.CAP_DEV_URL;
+// Hard guard: only accept Lovable sandbox URLs. Anything else (e.g. the
+// production domain) is rejected so a stray env var can't ship a webview-
+// wrapper build that breaks the Capacitor bridge.
+const rawDevUrl = process.env.CAP_DEV_URL;
+const devServerUrl =
+  rawDevUrl && /^https:\/\/[^/]+\.(lovableproject|lovable)\.(app|dev)/.test(rawDevUrl)
+    ? rawDevUrl
+    : undefined;
+if (rawDevUrl && !devServerUrl) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[capacitor.config] Ignoring CAP_DEV_URL="${rawDevUrl}" — only Lovable sandbox URLs are allowed. Building with bundled dist/ assets.`,
+  );
+}
 
 const config: CapacitorConfig = {
   // App Store Connect record — locked to this exact value.

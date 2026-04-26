@@ -31,14 +31,9 @@ const JobStoriesSection = () => {
 
   useEffect(() => {
     const load = async () => {
-      // Get completed jobs with before/after photos
+      // Get completed jobs with before/after photos (public-safe RPC)
       const { data: jobs } = await supabase
-        .from("jobs")
-        .select("id, title, category, proof_before_urls, proof_after_urls, helper_id, poster_completed_at")
-        .eq("status", "completed")
-        .not("proof_after_urls", "is", null)
-        .order("poster_completed_at", { ascending: false })
-        .limit(10);
+        .rpc("get_public_job_stories", { p_limit: 10 });
 
       if (!jobs || jobs.length === 0) { setLoaded(true); return; }
 

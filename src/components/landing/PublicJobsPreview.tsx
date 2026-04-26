@@ -37,14 +37,9 @@ const PublicJobsPreview = forwardRef<HTMLElement>((_props, ref) => {
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const today = new Date().toISOString().split("T")[0];
       const { data } = await supabase
-        .from("open_jobs_safe" as any)
-        .select("id, title, category, location, budget, date_needed, is_urgent")
-        .gte("date_needed", today)
-        .order("created_at", { ascending: false })
-        .limit(6) as { data: PublicJob[] | null };
-      setJobs(data || []);
+        .rpc("get_public_open_jobs", { p_limit: 6 });
+      setJobs((data as unknown as PublicJob[]) || []);
       setLoading(false);
     };
     fetchJobs();

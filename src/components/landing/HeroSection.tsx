@@ -149,15 +149,16 @@ const HeroSection = () => {
       <div className="mx-auto w-full max-w-6xl min-w-0">
         <div className="grid min-w-0 md:grid-cols-2 gap-8 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
-          <div className="min-w-0 max-w-full animate-fade-in">
-            {/* Eyebrow badge */}
-            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="truncate">Built in Louisiana, for Louisiana</span>
-            </div>
+          <div className="min-w-0 max-w-full animate-fade-in md:flex md:justify-center lg:justify-start">
+            <div className="w-full max-w-md">
+              {/* Eyebrow badge */}
+              <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="truncate">Built in Louisiana, for Louisiana</span>
+              </div>
 
-            {/* Unified column — fills available space */}
-            <div className="mx-auto md:mx-0 w-full">
+              {/* Unified column — fills available space */}
+              <div className="mx-auto md:mx-0 w-full">
               {/* Headline + subhead — tight pair */}
               <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
                 Your local{" "}
@@ -232,6 +233,7 @@ const HeroSection = () => {
               <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground/80 text-center md:text-left">
                 Free to join · No subscription · Pay only when you post
               </p>
+            </div>
             </div>
           </div>
 

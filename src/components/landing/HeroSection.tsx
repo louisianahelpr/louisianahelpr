@@ -23,10 +23,10 @@ import {
   Search,
   Shield,
 } from "lucide-react";
-import heroImg400 from "@/assets/hero-porch-garden-400.webp";
-import heroImg500 from "@/assets/hero-porch-garden-500.webp";
-import heroImg600 from "@/assets/hero-porch-garden-600.webp";
-import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
+import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
+import heroImg500 from "@/assets/hero-illustration-v5-500.webp";
+import heroImg600 from "@/assets/hero-illustration-v5-600.webp";
+import heroImg1000 from "@/assets/hero-illustration-v5-1000.webp";
 
 // Real responsive set so the browser picks the smallest variant that fits the
 // display × DPR. Without multiple entries, Chrome would always pick the 1000w

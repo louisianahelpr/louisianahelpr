@@ -9,7 +9,19 @@
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
 import { supabase } from "@/integrations/supabase/client";
-import { captureEvent } from "@/lib/posthog";
+
+// PostHog is dynamically imported (NOT statically) to keep posthog-js
+// out of the initial bundle — Lighthouse "Reduce unused JavaScript"
+// flagged it at ~60KB / 55% unused. Lazy import resolves to a no-op
+// until initPostHog() runs in main.tsx.
+async function fanOutToPostHog(event: string, props: Record<string, any>) {
+  try {
+    const { captureEvent } = await import("@/lib/posthog");
+    captureEvent(event, props);
+  } catch {
+    /* analytics must never break the app */
+  }
+}
 
 /**
  * Curated list of "aha moment" + funnel events. Adding the type up here

@@ -2,6 +2,7 @@ require "base64"
 require "fileutils"
 require "json"
 require "openssl"
+require "securerandom"
 require "shellwords"
 require "tmpdir"
 

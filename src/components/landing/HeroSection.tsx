@@ -54,7 +54,14 @@ const categories = [
   { icon: Leaf, label: "Yard Work" },
   { icon: Sparkles, label: "Cleaning" },
   { icon: Truck, label: "Moving" },
+  { icon: ShoppingBag, label: "Errands" },
+  { icon: Wrench, label: "Handyman" },
+  { icon: Paintbrush, label: "Painting" },
+  { icon: Package, label: "Delivery" },
+  { icon: PawPrint, label: "Pet Care" },
+  { icon: Hammer, label: "Assembly" },
   { icon: Heart, label: "Senior Help" },
+  { icon: MoreHorizontal, label: "More" },
 ];
 
 const mockJobs = [

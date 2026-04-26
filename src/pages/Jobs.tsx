@@ -120,24 +120,26 @@ const Jobs = () => {
               />
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2">
-              <Badge
-                variant={selectedCategory === null ? "default" : "outline"}
-                className="cursor-pointer text-xs"
-                onClick={() => setSelectedCategory(null)}
-              >
-                All
-              </Badge>
-              {ALL_CATEGORIES.map((cat) => (
+            <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide overscroll-x-contain">
+              <div className="flex gap-2 w-max mx-auto">
                 <Badge
-                  key={cat}
-                  variant={selectedCategory === cat ? "default" : "outline"}
-                  className="cursor-pointer text-xs"
-                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  className="cursor-pointer text-xs whitespace-nowrap shrink-0"
+                  onClick={() => setSelectedCategory(null)}
                 >
-                  {categoryLabels[cat]}
+                  All
                 </Badge>
-              ))}
+                {ALL_CATEGORIES.map((cat) => (
+                  <Badge
+                    key={cat}
+                    variant={selectedCategory === cat ? "default" : "outline"}
+                    className="cursor-pointer text-xs whitespace-nowrap shrink-0"
+                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  >
+                    {categoryLabels[cat]}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
 

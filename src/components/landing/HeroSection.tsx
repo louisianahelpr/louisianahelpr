@@ -126,19 +126,19 @@ const HeroSection = () => {
       className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-[80vh] sm:min-h-screen overflow-hidden"
     >
       {/* MAIN: split-screen, image locked to right edge */}
-      <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-stretch pb-10 sm:pb-14">
+      <div className="flex-1 w-full min-w-0 grid lg:grid-cols-2 items-stretch pb-10 sm:pb-14">
         {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
         <div
-          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0 flex flex-col md:justify-center"
+          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center"
           style={{
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col gap-6 sm:gap-8">
+          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-6 sm:gap-8">
             {/* TOP cluster — copy + categories */}
             <div className="flex flex-col gap-6 sm:gap-8">
               {/* Eyebrow — Louisiana stamp */}
-              <div className="inline-flex max-w-full self-center md:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
+              <div className="inline-flex max-w-full self-center lg:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="truncate">Made in Louisiana, for Louisiana</span>
               </div>
@@ -156,7 +156,7 @@ const HeroSection = () => {
               </h1>
 
               {/* Subhead */}
-              <p className="text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0 lg:text-xl font-sans">
+              <p className="text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto lg:mx-0 lg:text-xl font-sans">
                 Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
 
@@ -220,15 +220,15 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* RIGHT: full-bleed image locked to right edge */}
-        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-10 md:mt-0 self-stretch flex items-center md:items-stretch">
-          <div className="relative w-full h-full md:min-h-[32rem] lg:min-h-[36rem]">
+        {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop */}
+        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-10 lg:mt-0 self-stretch flex items-center lg:items-stretch px-6 sm:px-10 lg:px-0">
+          <div className="relative w-full h-72 sm:h-[28rem] md:h-[32rem] lg:h-full lg:min-h-[36rem]">
             <img
               src={heroImg400}
               srcSet={heroSrcSet}
-              sizes="(max-width: 767px) 100vw, 50vw"
+              sizes="(max-width: 1023px) 100vw, 50vw"
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover md:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
+              className="absolute inset-0 w-full h-full object-cover rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
               loading="eager"
               fetchPriority="high"
               decoding="async"
@@ -238,7 +238,7 @@ const HeroSection = () => {
             {/* Subtle left-edge fade so image meets text section softly */}
             <div
               aria-hidden
-              className="hidden md:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent md:rounded-l-[2rem] pointer-events-none"
+              className="hidden lg:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent lg:rounded-l-[2rem] pointer-events-none"
             />
 
             {/* Floating live-job card */}

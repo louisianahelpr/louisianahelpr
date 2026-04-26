@@ -69,7 +69,7 @@ npx cap open ios       # requires macOS + Xcode
 npx cap open android   # requires Android Studio
 ```
 
-App ID: `com.louisianahelpr.app`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release automation.
+App ID: `com.Helpr`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release automation.
 
 ## Deployment
 

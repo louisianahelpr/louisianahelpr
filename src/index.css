@@ -51,7 +51,7 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --popover: 0 0% 100%;
     --popover-foreground: 160 10% 12%;
 
-    --primary: 158 67% 29%;
+    --primary: 158 67% 27%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 150 20% 94%;

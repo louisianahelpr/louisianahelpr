@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Gift, Copy, Share2, Users, DollarSign, Check, Banknote, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SocialShare from "@/components/SocialShare";
+import { nativeShare } from "@/lib/nativeShare";
+import { hapticLight } from "@/lib/haptics";
 
 interface ReferralCredit {
   id: string;
@@ -69,22 +71,18 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareLink = () => {
+  const shareLink = async () => {
     if (!referralCode) return;
+    hapticLight();
     const url = `https://www.louisianahelpr.com/signup?ref=${referralCode}`;
-    if (navigator.share) {
-      navigator.share({
-        title: "Join Helpr!",
-        text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job (post or work) and we both earn $5!`,
-        url,
-      }).catch(() => {
-        navigator.clipboard.writeText(url);
-        toast.success("Referral link copied!");
-      });
-    } else {
-      navigator.clipboard.writeText(url);
-      toast.success("Referral link copied!");
-    }
+    // nativeShare opens the iOS/Android system share sheet on native, falls back
+    // to Web Share API on browsers that support it, and copies to clipboard otherwise.
+    await nativeShare({
+      title: "Join Helpr!",
+      text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job (post or work) and we both earn $5!`,
+      url,
+      dialogTitle: "Share your Helpr referral",
+    });
   };
 
   const handleCashOut = async () => {

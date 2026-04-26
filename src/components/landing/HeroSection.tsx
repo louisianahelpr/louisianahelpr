@@ -185,19 +185,21 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* Social proof */}
-            {stats && stats.users >= 50 && stats.completed >= 50 && (
-              <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> neighbors
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> jobs done
-                </span>
-              </div>
-            )}
+            {/* Social proof — reserve height so CTAs never jump while stats load */}
+            <div className="min-h-5 flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted-foreground">
+              {stats && stats.users >= 50 && stats.completed >= 50 && (
+                <>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-foreground">{stats.users.toLocaleString()}</span> neighbors
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-foreground">{stats.completed.toLocaleString()}</span> jobs done
+                  </span>
+                </>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 w-full max-w-[21rem] sm:max-w-md mx-auto md:mx-0">
               <Button

@@ -66,32 +66,33 @@ const categories = [
   { icon: MoreHorizontal, label: "More" },
 ];
 
-const mockJobs = [
-  {
-    title: "Lawn mowing & trim",
-    location: "Delcambre, LA",
-    price: "$85",
-    icon: Leaf,
-    rating: "4.9",
-    accent: "from-primary/20 to-primary/5",
-  },
-  {
-    title: "Deep clean — 3 BR",
-    location: "Erath, LA",
-    price: "$160",
-    icon: Sparkles,
-    rating: "5.0",
-    accent: "from-accent/30 to-accent/5",
-  },
-  {
-    title: "Help moving couch",
-    location: "Lafayette, LA",
-    price: "$75",
-    icon: Truck,
-    rating: "4.8",
-    accent: "from-secondary/40 to-secondary/5",
-  },
+const CATEGORY_ICONS: Record<string, typeof Leaf> = {
+  yard_work: Leaf,
+  cleaning: Sparkles,
+  moving: Truck,
+  errands: ShoppingBag,
+  handyman: Wrench,
+  painting: Paintbrush,
+  delivery: Package,
+  pet_care: PawPrint,
+  assembly: Hammer,
+  senior_help: Heart,
+  other: MoreHorizontal,
+};
+
+const CATEGORY_ACCENTS = [
+  "from-primary/20 to-primary/5",
+  "from-accent/30 to-accent/5",
+  "from-secondary/40 to-secondary/5",
 ];
+
+type LiveJob = {
+  id: string;
+  title: string;
+  location: string;
+  budget: number;
+  category: string;
+};
 
 const HeroSection = () => {
   const navigate = useNavigate();

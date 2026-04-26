@@ -385,7 +385,7 @@ const Signup = () => {
   };
 
   const totalSteps = 3;
-  const stepLabels = ["About you", "Account", "Optional"];
+  const stepLabels = ["Account", "About you", "Optional"];
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 

@@ -52,36 +52,35 @@ export default defineConfig(({ mode }) => ({
     // generateBundle time, then inject responsive <link rel="preload"> tags
     // (with imagesrcset/imagesizes matching the <img>'s srcset) into <head>.
     // Pure perf — no UX/visual change.
-    (() => {
-      let preloadTags = "";
-      return {
-        name: "html-preload-hero-lcp",
-        apply: "build",
-        enforce: "post",
-        generateBundle(_options, bundle) {
+    {
+      name: "html-preload-hero-lcp",
+      apply: "build",
+      enforce: "post",
+      transformIndexHtml: {
+        order: "post",
+        handler(html: string, ctx) {
+          const bundle = ctx.bundle;
+          if (!bundle) return html;
           const heroes: Record<string, string> = {};
           for (const fileName of Object.keys(bundle)) {
             const m = fileName.match(/^assets\/hero-porch-garden-(\d+)-[^.]+\.webp$/);
             if (m) heroes[m[1]] = "/" + fileName;
           }
           if (!heroes["400"] || !heroes["500"] || !heroes["600"] || !heroes["1000"]) {
-            return;
+            return html;
           }
           const srcset =
             `${heroes["400"]} 400w, ${heroes["600"]} 600w, ` +
             `${heroes["500"]} 500w, ${heroes["1000"]} 1000w`;
           const sizes =
             "(max-width: 640px) 400px, (max-width: 1023px) 600px, 500px";
-          preloadTags =
+          const tag =
             `<link rel="preload" as="image" type="image/webp" ` +
             `imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`;
+          return html.replace("</head>", `    ${tag}\n  </head>`);
         },
-        transformIndexHtml(html: string) {
-          if (!preloadTags) return html;
-          return html.replace("</head>", `    ${preloadTags}\n  </head>`);
-        },
-      } satisfies Plugin;
-    })(),
+      },
+    } satisfies Plugin,
     VitePWA({
       registerType: "autoUpdate",
       // Defer the SW registration script so it doesn't block FCP.

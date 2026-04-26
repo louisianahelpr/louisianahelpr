@@ -149,13 +149,15 @@ const HeroSection = () => {
       <div className="mx-auto w-full max-w-6xl min-w-0">
         <div className="grid min-w-0 md:grid-cols-2 gap-8 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
-          <div className="min-w-0 max-w-full space-y-5 sm:space-y-6 animate-fade-in">
+          <div className="min-w-0 max-w-full animate-fade-in">
+            {/* Eyebrow badge */}
             <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               <span className="truncate">Built in Louisiana, for Louisiana</span>
             </div>
 
-            <h1 className="mx-auto max-w-[21rem] text-[2rem] sm:max-w-lg sm:text-4xl lg:text-6xl md:mx-0 font-display font-bold text-foreground leading-[1.08] text-balance break-words">
+            {/* Headline + subhead — tight pair */}
+            <h1 className="mt-5 mx-auto max-w-[21rem] text-[2rem] sm:max-w-lg sm:text-4xl lg:text-6xl md:mx-0 font-display font-bold text-foreground leading-[1.08] text-balance break-words">
               Your local{" "}
               <span className="relative inline">
                 <span className="relative z-10 text-primary">task partner.</span>
@@ -166,12 +168,12 @@ const HeroSection = () => {
               </span>
             </h1>
 
-            <p className="mx-auto max-w-[21rem] sm:max-w-lg md:mx-0 text-base sm:text-lg text-muted-foreground leading-relaxed">
+            <p className="mt-3 sm:mt-4 mx-auto max-w-[21rem] sm:max-w-lg md:mx-0 text-base sm:text-lg text-muted-foreground leading-relaxed">
               Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
             </p>
 
-            {/* Category pills - single row, horizontally scrollable, with edge fade so chips never appear sliced */}
-            <div className="relative w-full max-w-full">
+            {/* Category pills — extra breathing room above */}
+            <div className="relative w-full max-w-full mt-7 sm:mt-8">
               <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
                 <div className="flex min-w-max gap-2 pb-1 pr-8">
                   {categories.map((c) => (
@@ -191,8 +193,8 @@ const HeroSection = () => {
               />
             </div>
 
-
-            <div className="grid min-h-14 grid-cols-2 gap-3 sm:gap-4 pt-2 w-full max-w-[21rem] sm:max-w-md mx-auto md:mx-0">
+            {/* CTAs */}
+            <div className="mt-7 sm:mt-8 grid min-h-14 grid-cols-2 gap-3 sm:gap-4 w-full max-w-[21rem] sm:max-w-md mx-auto md:mx-0">
               <Button
                 variant="hero"
                 size="xl"
@@ -223,7 +225,9 @@ const HeroSection = () => {
                 <span>Browse jobs</span>
               </Button>
             </div>
-            <p className="text-[9px] sm:text-xs text-muted-foreground/80 -mt-2 sm:-mt-3">
+
+            {/* Footnote */}
+            <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground/80 text-center md:text-left">
               Free to join · No subscription · Pay only when you post
             </p>
           </div>

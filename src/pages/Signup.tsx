@@ -758,8 +758,8 @@ const Signup = () => {
         )}
 
 
-        {/* Step 2: Optional helpr-quality details (everyone can skip) */}
-        {step === 2 && (
+        {/* Step 3: Optional helpr-quality details (everyone can skip) */}
+        {step === 3 && (
           <div className="space-y-4">
             {/* Path A: Posters — quick skip card */}
             <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">

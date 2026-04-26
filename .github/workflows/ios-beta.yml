@@ -4,6 +4,11 @@ name: iOS Beta (TestFlight)
 # Run from the Actions tab → "iOS Beta (TestFlight)" → "Run workflow".
 on:
   workflow_dispatch:
+    inputs:
+      build_number_floor:
+        description: "Optional: force build number to be at least this value (use to skip past a 'Redundant Binary Upload' error from App Store Connect)"
+        required: false
+        default: ""
 
 concurrency:
   group: ios-beta-${{ github.ref }}

@@ -196,7 +196,7 @@ const HeroSection = () => {
             </div>
 
             {/* Premium dual CTA */}
-            <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-4 w-full">
+            <div className="mt-10 flex flex-col items-stretch md:items-start gap-4 w-full">
               <Button
                 variant="hero"
                 size="xl"

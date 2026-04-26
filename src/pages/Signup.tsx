@@ -669,10 +669,6 @@ const Signup = () => {
         {step === 1 && (
           <div className="space-y-6">
             <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Account login</h2>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
                 <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />

@@ -995,6 +995,139 @@ const Signup = () => {
               )}
             </div>
 
+            {/* Professional Credentials — optional, with hard requirement when toggled */}
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-card p-5 space-y-4">
+              <div className="text-center space-y-1">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto">
+                  <Award className="w-6 h-6 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
+                </div>
+                <h3 className="text-base font-display font-semibold text-foreground">Professional credentials</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Optional — earn a verified badge that helps you get picked first. You can also add these later in Profile → Credentials.
+                </p>
+              </div>
+
+              {/* Licensed toggle */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-licensed" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <BadgeCheck className="w-4 h-4 text-primary" /> I am licensed
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Trade, contractor, or professional license.</p>
+                  </div>
+                  <Switch
+                    id="is-licensed"
+                    checked={isLicensed}
+                    onCheckedChange={(v) => {
+                      setIsLicensed(v);
+                      if (!v) { setLicenseFile(null); setLicensePreview(null); }
+                    }}
+                  />
+                </div>
+                {isLicensed && (
+                  licenseFile ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {licensePreview ? (
+                          <img src={licensePreview} alt="License preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{licenseFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{(licenseFile.size / 1024).toFixed(0)} KB · pending review</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setLicenseFile(null); setLicensePreview(null); }}
+                        className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/[0.03] hover:border-amber-500/70 px-4 py-5 cursor-pointer transition-all">
+                      <ImagePlus className="w-5 h-5 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
+                      <span className="text-sm font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
+                      <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        className="hidden"
+                        onChange={handleLicenseChange}
+                      />
+                    </label>
+                  )
+                )}
+              </div>
+
+              {/* Insured toggle */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-insured" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 text-primary" /> I am insured
+                    </Label>
+                    <p className="text-xs text-muted-foreground">General liability or professional insurance.</p>
+                  </div>
+                  <Switch
+                    id="is-insured"
+                    checked={isInsured}
+                    onCheckedChange={(v) => {
+                      setIsInsured(v);
+                      if (!v) { setInsuranceFile(null); setInsurancePreview(null); }
+                    }}
+                  />
+                </div>
+                {isInsured && (
+                  insuranceFile ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {insurancePreview ? (
+                          <img src={insurancePreview} alt="Insurance preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{insuranceFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{(insuranceFile.size / 1024).toFixed(0)} KB · pending review</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setInsuranceFile(null); setInsurancePreview(null); }}
+                        className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/[0.03] hover:border-amber-500/70 px-4 py-5 cursor-pointer transition-all">
+                      <ImagePlus className="w-5 h-5 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
+                      <span className="text-sm font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
+                      <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        className="hidden"
+                        onChange={handleInsuranceChange}
+                      />
+                    </label>
+                  )
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground text-center">
+                Documents are reviewed by our team. Your verified badge appears once approved.
+              </p>
+            </div>
+
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />

@@ -8,7 +8,13 @@
  *   import { track, AhaEvent } from "@/lib/analytics";
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
-import { supabase } from "@/integrations/supabase/client";
+// Supabase client is dynamically imported (NOT statically) to keep the
+// ~50KB supabase-js chunk out of pages that only call track() (e.g. landing).
+// flush() is debounced 1.5s, well past any dynamic-import resolution time.
+async function getSupabase() {
+  const mod = await import("@/integrations/supabase/client");
+  return mod.supabase;
+}
 
 // PostHog is dynamically imported (NOT statically) to keep posthog-js
 // out of the initial bundle — Lighthouse "Reduce unused JavaScript"

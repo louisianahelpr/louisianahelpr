@@ -139,7 +139,9 @@ const Index = () => {
   }, [location.hash, location.pathname]);
 
   // iOS/Android native app: skip the marketing landing entirely.
-  // Logged-in users go straight to /dashboard, guests "window shop" /jobs.
+  // Logged-in users go to /dashboard, guests get the read-only browse view
+  // at /jobs (which mirrors the Dashboard layout — same hero, same job cards,
+  // tap-to-sign-up gating already wired through MobileNav).
   // Web visitors keep seeing the full landing page (SEO + funnel intact).
   if (isNative && !isLoading) {
     return <Navigate to={user ? "/dashboard" : "/jobs"} replace />;

@@ -785,26 +785,7 @@ const Signup = () => {
               </Button>
             </div>
 
-            {/* Referral code — moved from Step 1 to Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="referral" className={`${labelCls} flex items-center gap-1.5`}>
-                <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
-              </Label>
-              <Input
-                id="referral"
-                placeholder="Enter referral code for $5 credit"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                maxLength={10}
-                className={`${inputCls} uppercase`}
-              />
-              {referralCode && (
-                <p className="text-xs text-primary flex items-center gap-1">
-                  <Gift className="w-3 h-3" /> You'll earn $5 when you complete your first job — as poster or crew!
-                </p>
-              )}
-            </div>
-
+            {/* Skills — most important for job matching */}
             <div className="space-y-2">
               <Label htmlFor="skill-search" className={labelCls}>
                 Skills <span className="text-muted-foreground text-xs">(optional)</span>
@@ -888,6 +869,31 @@ const Signup = () => {
               })()}
             </div>
 
+            {/* Experience level */}
+            <div className="space-y-2">
+              <Label>Experience level <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Beginner", "Some experience", "Experienced", "Professional"].map((opt) => {
+                  const isActive = experienceLevel === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setExperienceLevel(isActive ? "" : opt)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : ""}{opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Availability */}
             <div className="space-y-2">
               <Label>Availability <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5">
@@ -912,16 +918,18 @@ const Signup = () => {
                 })}
               </div>
             </div>
+
+            {/* Preferred job radius */}
             <div className="space-y-2">
-              <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Preferred job radius <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5">
-                {["Word of mouth", "Social media", "Google search", "Flyer / poster", "Friend / family", "Other"].map((opt) => {
-                  const isActive = hearAboutUs === opt;
+                {["5 miles", "10 miles", "25 miles", "50+ miles", "Anywhere"].map((opt) => {
+                  const isActive = jobRadius === opt;
                   return (
                     <button
                       key={opt}
                       type="button"
-                      onClick={() => setHearAboutUs(isActive ? "" : opt)}
+                      onClick={() => setJobRadius(isActive ? "" : opt)}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                         isActive
                           ? "bg-primary text-primary-foreground border-primary"
@@ -935,29 +943,7 @@ const Signup = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Experience level <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <div className="flex flex-wrap gap-1.5">
-                {["Beginner", "Some experience", "Experienced", "Professional"].map((opt) => {
-                  const isActive = experienceLevel === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setExperienceLevel(isActive ? "" : opt)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {isActive ? "✓ " : ""}{opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
+            {/* Tools / Equipment */}
             <div className="space-y-2">
               <Label>Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input
@@ -987,16 +973,38 @@ const Signup = () => {
               <p className="text-xs text-muted-foreground">Type your own or tap common options above.</p>
             </div>
 
+            {/* Emergency contact */}
+            <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
+                <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
+              </div>
+            </div>
+
+            {/* Extra comments */}
             <div className="space-y-2">
-              <Label>Preferred job radius <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label htmlFor="extraComments">Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Textarea
+                id="extraComments"
+                placeholder="Special certifications, languages spoken, why you want to join, or anything else…"
+                value={extraComments}
+                onChange={(e) => setExtraComments(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* How did you hear about us */}
+            <div className="space-y-2">
+              <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5">
-                {["5 miles", "10 miles", "25 miles", "50+ miles", "Anywhere"].map((opt) => {
-                  const isActive = jobRadius === opt;
+                {["Word of mouth", "Social media", "Google search", "Flyer / poster", "Friend / family", "Other"].map((opt) => {
+                  const isActive = hearAboutUs === opt;
                   return (
                     <button
                       key={opt}
                       type="button"
-                      onClick={() => setJobRadius(isActive ? "" : opt)}
+                      onClick={() => setHearAboutUs(isActive ? "" : opt)}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                         isActive
                           ? "bg-primary text-primary-foreground border-primary"
@@ -1008,25 +1016,6 @@ const Signup = () => {
                   );
                 })}
               </div>
-            </div>
-
-            <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
-                <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="extraComments">Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Textarea
-                id="extraComments"
-                placeholder="Special certifications, languages spoken, why you want to join, or anything else…"
-                value={extraComments}
-                onChange={(e) => setExtraComments(e.target.value)}
-                rows={3}
-              />
             </div>
 
             {/* Professional Credentials — optional, with hard requirement when toggled */}

@@ -7,7 +7,6 @@
 html {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -17,7 +16,6 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  overflow-x: hidden;
   overflow-y: auto;
   min-height: 100%;
 }

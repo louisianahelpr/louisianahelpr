@@ -41,12 +41,11 @@ const config: CapacitorConfig = {
     // Allow iPad multitasking (Split View / Slide Over). Set to true to lock full screen.
     contentInset: 'always',
     // -------------------------------------------------------------------------
-    // Info.plist keys — MUST be added manually in Xcode.
-    // Capacitor has no API to inject Info.plist entries from this config; the
-    // previous `content:` field here was a no-op. After running `npx cap add ios`
-    // on your Mac, open ios/App/App/Info.plist (or the Info tab in Xcode) and
-    // paste the keys below. Apple will reject the build if camera / location /
-    // photo / contacts permissions are requested without matching usage strings.
+    // Info.plist keys — source-of-truth reminder for the committed native file.
+    // These values are already present in ios/App/App/Info.plist so GitHub →
+    // Xcode/Fastlane builds populate automatically without manual Xcode entry.
+    // Apple will reject the build if camera / location / photo / contacts
+    // permissions are requested without matching usage strings.
     //
     //   <key>NSCameraUsageDescription</key>
     //   <string>Helpr needs camera access so you can take before/after photos of jobs and upload your ID for verification.</string>

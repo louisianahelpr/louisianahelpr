@@ -133,8 +133,8 @@ const HeroSection = () => {
         className="pointer-events-none absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full bg-accent/20 blur-3xl -z-10"
       />
 
-      <div className="container mx-auto">
-        <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center text-center md:text-left">
+      <div className="container mx-auto w-full">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center md:min-h-[calc(100dvh-10rem)] text-center md:text-left">
           {/* LEFT: copy + CTAs */}
           <div className="space-y-5 sm:space-y-6 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">

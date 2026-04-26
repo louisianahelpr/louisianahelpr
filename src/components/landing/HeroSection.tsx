@@ -98,6 +98,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
   const [stats, setStats] = useState<{ users: number; completed: number } | null>(null);
+  const [liveJobs, setLiveJobs] = useState<LiveJob[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -112,6 +113,15 @@ const HeroSection = () => {
         completed: jobsRes.count || 0,
       });
     });
+    // Real recent open jobs for the social-proof row (only renders if >=3)
+    supabase
+      .from("open_jobs_browse")
+      .select("id,title,location,budget,category")
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data }) => {
+        if (data) setLiveJobs(data as LiveJob[]);
+      });
   }, []);
 
   return (

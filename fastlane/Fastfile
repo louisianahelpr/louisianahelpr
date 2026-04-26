@@ -413,11 +413,8 @@ platform :ios do
     end
   end
 
-  # Inject the Apple Developer Team ID into the freshly-generated Xcode
-  # project. Capacitor's `cap add ios` scaffolds App.xcodeproj with an empty
-  # DEVELOPMENT_TEAM, which causes `xcodebuild archive` to fail with
-  # "Signing for App requires a development team". We patch the pbxproj
-  # before archiving so signing succeeds in CI without manual Xcode edits.
+  # Ensure the committed Xcode project uses the Apple Developer Team ID before
+  # archiving, so signing succeeds in CI without manual Xcode edits.
   # On CI we use MANUAL signing because automatic signing requires a logged-in
   # Apple ID account in Xcode's Accounts preferences — which a GitHub Actions
   # runner does not have. Instead we use `sigh` (with the App Store Connect API

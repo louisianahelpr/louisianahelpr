@@ -65,6 +65,9 @@ jobs:
             exit 1
           fi
 
+      - name: Sync Fastlane metadata into Xcode
+        run: bundle exec fastlane ios sync_xcode_metadata --verbose
+
       - name: Run Fastlane metadata lane
         env:
           DELIVER_IGNORE_LANGUAGE_DIRECTORY_VALIDATION: "true"

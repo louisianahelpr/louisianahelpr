@@ -28,7 +28,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       }}
     >
       <div
-        className="container mx-auto flex items-center justify-between h-14 px-4"
+        className="w-full flex items-center justify-between h-14 px-4 sm:px-6 lg:px-8"
         style={{
           paddingLeft: "max(1rem, env(safe-area-inset-left))",
           paddingRight: "max(1rem, env(safe-area-inset-right))",

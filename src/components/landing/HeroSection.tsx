@@ -221,14 +221,14 @@ const HeroSection = () => {
         </div>
 
         {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop */}
-        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-6 md:mt-0 self-stretch flex-1 md:flex-none flex items-stretch px-6 sm:px-10 md:px-0 min-h-[16rem]">
-          <div className="relative w-full h-full md:min-h-[28rem] lg:min-h-[36rem]">
+        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-6 md:mt-0 self-stretch flex-1 md:flex-none flex items-stretch md:items-center justify-center md:justify-end px-6 sm:px-10 md:px-6 lg:px-0 min-h-[16rem]">
+          <div className="relative w-full h-full md:h-auto md:aspect-[4/5] md:max-h-[32rem] lg:aspect-auto lg:h-full md:min-h-0 lg:min-h-[36rem]">
             <img
               src={heroImg400}
               srcSet={heroSrcSet}
               sizes="(max-width: 1023px) 100vw, 50vw"
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover rounded-2xl md:rounded-none md:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
+              className="absolute inset-0 w-full h-full object-cover rounded-2xl md:rounded-[1.5rem] lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
               loading="eager"
               fetchPriority="high"
               decoding="async"
@@ -238,7 +238,7 @@ const HeroSection = () => {
             {/* Subtle left-edge fade so image meets text section softly */}
             <div
               aria-hidden
-              className="hidden md:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent md:rounded-l-[2rem] pointer-events-none"
+              className="hidden lg:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent lg:rounded-l-[2rem] pointer-events-none"
             />
 
             {/* Floating live-job card */}

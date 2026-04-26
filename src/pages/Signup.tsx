@@ -556,7 +556,7 @@ const Signup = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
-                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required className={inputCls} />
+                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
                 {confirmEmail && (
                   <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
                     {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}

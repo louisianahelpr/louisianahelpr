@@ -346,21 +346,51 @@ platform :ios do
   # DEVELOPMENT_TEAM, which causes `xcodebuild archive` to fail with
   # "Signing for App requires a development team". We patch the pbxproj
   # before archiving so signing succeeds in CI without manual Xcode edits.
-  def configure_signing!
+  # On CI we use MANUAL signing because automatic signing requires a logged-in
+  # Apple ID account in Xcode's Accounts preferences — which a GitHub Actions
+  # runner does not have. Instead we use `sigh` (with the App Store Connect API
+  # key) to download/create the App Store distribution profile, then point the
+  # Xcode project at that profile by UUID. This works headlessly on CI.
+  def configure_signing!(api_key)
     team_id = ENV["DEVELOPER_TEAM_ID"]
     UI.user_error!("DEVELOPER_TEAM_ID env var is required for signing") if team_id.nil? || team_id.strip.empty?
 
-    # Apply automatic signing to BOTH Debug and Release so the generated
-    # Capacitor project is fully configured on CI.
-    update_code_signing_settings(
-      path:            PROJECT,
-      use_automatic_signing: true,
-      team_id:         team_id,
-      bundle_identifier: APP_ID,
-      targets:         [SCHEME]
+    # 1) Fetch (or create) the App Store distribution provisioning profile
+    #    via the ASC API key. This drops a .mobileprovision into ./fastlane/
+    #    and exports SIGH_* lane context vars we use below.
+    sigh(
+      api_key:          api_key,
+      app_identifier:   APP_ID,
+      team_id:          team_id,
+      adhoc:            false,
+      development:      false,
+      app_store:        true,
+      force:            true,
+      readonly:         false,
+      output_path:      File.join(REPO_ROOT, "build", "profiles")
     )
 
-    UI.success("Set DEVELOPMENT_TEAM=#{team_id} on target #{SCHEME}")
+    profile_name = lane_context[SharedValues::SIGH_NAME] ||
+                   ENV["sigh_#{APP_ID}_appstore_profile-name"]
+    profile_uuid = lane_context[SharedValues::SIGH_UUID] ||
+                   ENV["sigh_#{APP_ID}_appstore"]
+
+    UI.user_error!("sigh did not return a profile name/uuid") if profile_name.nil? || profile_uuid.nil?
+
+    # 2) Switch the Xcode project to MANUAL signing pinned to that profile.
+    update_code_signing_settings(
+      path:                   PROJECT,
+      use_automatic_signing:  false,
+      team_id:                team_id,
+      bundle_identifier:      APP_ID,
+      code_sign_identity:     "Apple Distribution",
+      profile_name:           profile_name,
+      profile_uuid:           profile_uuid,
+      targets:                [SCHEME],
+      build_configurations:   ["Release"]
+    )
+
+    UI.success("Configured manual signing — team=#{team_id} profile=#{profile_name}")
   end
 
   def signing_xcargs

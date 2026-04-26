@@ -27,6 +27,8 @@ IOS_METADATA = YAML.safe_load(File.read(IOS_METADATA_PATH), permitted_classes: [
 
 APP_ID                = IOS_METADATA.fetch("identity").fetch("bundle_id")
 APP_TEAM_ID           = IOS_METADATA.fetch("identity").fetch("team_id")
+APP_APPLE_ID          = IOS_METADATA.fetch("identity").fetch("apple_id").to_s
+APP_SKU               = IOS_METADATA.fetch("identity").fetch("sku").to_s
 APP_DISPLAY_NAME      = IOS_METADATA.fetch("display").fetch("name")
 APP_PRODUCT_NAME      = IOS_METADATA.fetch("display").fetch("product_name")
 APP_CATEGORY_TYPE     = IOS_METADATA.fetch("display").fetch("category_uti")
@@ -34,6 +36,10 @@ APP_MARKETING_VERSION = IOS_METADATA.fetch("versioning").fetch("marketing_versio
 APP_BUILD_VERSION     = IOS_METADATA.fetch("versioning").fetch("current_project_version").to_s
 APP_DEPLOYMENT_TARGET = IOS_METADATA.fetch("build").fetch("ios_deployment_target").to_s
 APP_USES_NON_EXEMPT_ENCRYPTION = IOS_METADATA.fetch("build").fetch("uses_non_exempt_encryption")
+APP_STORE_METADATA = IOS_METADATA.fetch("app_store")
+APP_MARKETING_URL = APP_STORE_METADATA.fetch("marketing_url").to_s
+APP_PRIVACY_URL   = APP_STORE_METADATA.fetch("privacy_url").to_s
+APP_SUPPORT_URL   = APP_STORE_METADATA.fetch("support_url").to_s
 APP_PERMISSION_STRINGS = (IOS_METADATA["permission_strings"] || {}).each_with_object({}) do |(k, v), acc|
   acc[k] = v.to_s.gsub(/\s+/, " ").strip
 end
@@ -87,6 +93,17 @@ def assert_ios_identity!
   info_plist = File.read(File.join(REPO_ROOT, "ios/App/App/Info.plist"))
   UI.user_error!("Info.plist CFBundleDisplayName must be #{APP_DISPLAY_NAME}") unless info_plist.include?("<key>CFBundleDisplayName</key>") && info_plist.include?("<string>#{APP_DISPLAY_NAME}</string>")
   UI.user_error!("Info.plist LSApplicationCategoryType must be #{APP_CATEGORY_TYPE}") unless info_plist.include?("<key>LSApplicationCategoryType</key>") && info_plist.include?("<string>#{APP_CATEGORY_TYPE}</string>")
+
+  capacitor_text = File.read(File.join(REPO_ROOT, "capacitor.config.ts"))
+  required_capacitor_values = {
+    "appId: '#{APP_ID}'," => "Capacitor appId must match the App Store bundle ID",
+    "appName: '#{APP_DISPLAY_NAME}'," => "Capacitor appName must match the Xcode display name",
+    "version: '#{APP_MARKETING_VERSION}'," => "Capacitor iOS version must match the marketing version",
+    "category: '#{APP_CATEGORY_TYPE}'," => "Capacitor iOS category must match Xcode"
+  }
+  required_capacitor_values.each do |needle, message|
+    UI.user_error!("#{message}. Missing Capacitor setting: #{needle}") unless capacitor_text.include?(needle)
+  end
 
   UI.success("iOS identity is committed — #{APP_DISPLAY_NAME} / #{APP_ID} / #{APP_CATEGORY_TYPE}")
 end
@@ -161,10 +178,34 @@ def sync_metadata_to_xcode!
 
   File.write(plist_path, plist_text)
 
-  # ── 3. Mirror the App Store-facing fastlane/metadata files so deliver
+  # ── 3. Capacitor config ───────────────────────────────────────────────
+  # `npx cap sync ios` reads this file after the Fastlane sync step. Keep it
+  # aligned so Capacitor cannot regenerate stale app identifiers, names, or
+  # version metadata into the native project.
+  capacitor_config_path = File.join(REPO_ROOT, "capacitor.config.ts")
+  capacitor_text = File.read(capacitor_config_path)
+  capacitor_replacements = {
+    /appId: ['"].*?['"],/              => "appId: '#{APP_ID}',",
+    /appName: ['"].*?['"],/            => "appName: '#{APP_DISPLAY_NAME}',",
+    /appleId: ['"].*?['"],/            => "appleId: '#{APP_APPLE_ID}',",
+    /sku: ['"].*?['"],/                => "sku: '#{APP_SKU}',",
+    /version: ['"].*?['"],/            => "version: '#{APP_MARKETING_VERSION}',",
+    /build: ['"].*?['"],/              => "build: '#{effective_build_version}',",
+    /category: ['"].*?['"],/           => "category: '#{APP_CATEGORY_TYPE}',",
+    /supportUrl: ['"].*?['"],/         => "supportUrl: '#{APP_SUPPORT_URL}',",
+    /privacyPolicyUrl: ['"].*?['"],/   => "privacyPolicyUrl: '#{APP_PRIVACY_URL}',",
+    /marketingUrl: ['"].*?['"],/       => "marketingUrl: '#{APP_MARKETING_URL}',"
+  }
+  capacitor_replacements.each { |pattern, replacement| capacitor_text.gsub!(pattern, replacement) }
+  File.write(capacitor_config_path, capacitor_text)
+
+  # ── 4. Mirror the App Store-facing fastlane/metadata files so deliver
   #      and Xcode never disagree on display name / category. ──────────
   FileUtils.mkdir_p(File.join(REPO_ROOT, "fastlane/metadata/en-US"))
   File.write(File.join(REPO_ROOT, "fastlane/metadata/en-US/name.txt"), "#{APP_DISPLAY_NAME}\n")
+  File.write(File.join(REPO_ROOT, "fastlane/metadata/en-US/marketing_url.txt"), "#{APP_MARKETING_URL}\n")
+  File.write(File.join(REPO_ROOT, "fastlane/metadata/en-US/privacy_url.txt"), "#{APP_PRIVACY_URL}\n")
+  File.write(File.join(REPO_ROOT, "fastlane/metadata/en-US/support_url.txt"), "#{APP_SUPPORT_URL}\n")
   category_token = APP_CATEGORY_TYPE.split(".").last.upcase.tr("-", "_")
   category_token = "PHOTO_AND_VIDEO" if category_token == "PHOTOGRAPHY"
   category_token = "HEALTH_AND_FITNESS" if category_token == "HEALTHCARE_FITNESS"
@@ -179,6 +220,8 @@ def sync_metadata_to_xcode!
     "  marketing / build      : #{APP_MARKETING_VERSION} (#{APP_BUILD_VERSION})\n" \
     "  iOS deployment target  : #{APP_DEPLOYMENT_TARGET}\n" \
     "  category               : #{APP_CATEGORY_TYPE}\n" \
+    "  App Store IDs / SKU    : #{APP_APPLE_ID} / #{APP_SKU}\n" \
+    "  App Store URLs         : #{APP_MARKETING_URL}, #{APP_PRIVACY_URL}, #{APP_SUPPORT_URL}\n" \
     "  non-exempt encryption  : #{APP_USES_NON_EXEMPT_ENCRYPTION}\n" \
     "  permission strings     : #{APP_PERMISSION_STRINGS.keys.join(', ')}"
   )

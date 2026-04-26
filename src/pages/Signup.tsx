@@ -383,8 +383,8 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 3;
-  const stepLabels = ["Basics", "Profile", "Documents"];
+  const totalSteps = 2;
+  const stepLabels = ["Required", "Optional"];
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 

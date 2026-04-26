@@ -1,0 +1,79 @@
+# ============================================================
+# Helpr — Git attributes
+# Keeps line endings consistent and prevents Xcode merge pain
+# ============================================================
+
+# Default: auto-normalize text files to LF in the repo
+* text=auto eol=lf
+
+# ------------------------------------------------------------
+# Xcode project files — most common source of merge conflicts
+# Treat as binary so Git doesn't try to auto-merge them.
+# Resolve manually in Xcode if both sides edit at once.
+# ------------------------------------------------------------
+*.pbxproj           binary merge=union
+*.xcworkspacedata   binary
+*.xcuserstate       binary
+*.xcsettings        binary
+*.xcscheme          text eol=lf
+*.plist             text eol=lf
+*.storyboard        text eol=lf
+*.xib               text eol=lf
+*.entitlements      text eol=lf
+
+# ------------------------------------------------------------
+# Swift / Objective-C
+# ------------------------------------------------------------
+*.swift             text eol=lf diff=swift
+*.h                 text eol=lf
+*.m                 text eol=lf
+*.mm                text eol=lf
+
+# ------------------------------------------------------------
+# Web source files
+# ------------------------------------------------------------
+*.ts                text eol=lf
+*.tsx               text eol=lf
+*.js                text eol=lf
+*.jsx               text eol=lf
+*.json              text eol=lf
+*.css               text eol=lf
+*.html              text eol=lf
+*.md                text eol=lf
+*.yml               text eol=lf
+*.yaml              text eol=lf
+*.toml              text eol=lf
+
+# ------------------------------------------------------------
+# Lock files — keep as-is, never auto-merge
+# ------------------------------------------------------------
+bun.lockb           binary
+bun.lock            -diff
+package-lock.json   -diff
+Podfile.lock        -diff
+
+# ------------------------------------------------------------
+# Binary assets — never try to diff or merge
+# ------------------------------------------------------------
+*.png               binary
+*.jpg               binary
+*.jpeg              binary
+*.gif               binary
+*.webp              binary
+*.ico               binary
+*.icns              binary
+*.pdf               binary
+*.mp4               binary
+*.mov               binary
+*.zip               binary
+*.tar.gz            binary
+*.ttf               binary
+*.otf               binary
+*.woff              binary
+*.woff2             binary
+
+# ------------------------------------------------------------
+# GitHub linguist — hide generated/vendored files from stats
+# ------------------------------------------------------------
+src/integrations/supabase/types.ts  linguist-generated=true
+ios/App/Pods/**                     linguist-vendored=true

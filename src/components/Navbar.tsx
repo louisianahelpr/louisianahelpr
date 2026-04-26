@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, forwardRef } from "react";
@@ -8,19 +9,22 @@ import helprIcon from "@/assets/helpr-icon-96.webp";
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  // On iOS Capacitor we ship with `overlaysWebView: false` + `contentInset:
+  // 'always'`, so the WebView already starts BELOW the status bar. Adding
+  // another 1rem of padding-top here pushes the logo way down (visible on
+  // TestFlight as a giant gap above the header). On the web — where the
+  // browser owns the status bar — keep the breathing room so the logo isn't
+  // flush against notch insets reported by mobile Safari.
+  const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
 
   return (
     <nav
       ref={ref}
       className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30 bg-background/80"
       style={{
-        // iOS Capacitor shell renders with `overlaysWebView: false` +
-        // `contentInset: 'always'`, so env(safe-area-inset-top) reports 0
-        // inside the WebView. Without a real fallback the Helpr logo sits
-        // flush against the status-bar band. 1rem gives a comfortable
-        // breathing room on every device while still respecting the inset
-        // on browsers that DO report it (notched iPhones in mobile Safari).
-        paddingTop: "max(env(safe-area-inset-top), 1rem)",
+        paddingTop: isNative
+          ? "env(safe-area-inset-top, 0px)"
+          : "max(env(safe-area-inset-top), 1rem)",
       }}
     >
       <div

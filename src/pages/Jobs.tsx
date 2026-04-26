@@ -89,27 +89,30 @@ const Jobs = () => {
   });
 
   return (
-    <div className="min-h-screen bg-premium-page pt-16">
+    <div className="min-h-screen bg-premium-page">
       <Navbar />
 
-      <main className="pt-24 pb-20 px-4">
+      {/* pt-20 sits flush under the fixed Navbar (h-14 + safe-area). pb-32
+          leaves room for the floating glass MobileNav on native + mobile web. */}
+      <main className="pt-20 pb-32 md:pb-20 px-4">
         <div className="container mx-auto max-w-5xl">
-          {/* Header */}
-          <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-4">
+          {/* Header — tighter on mobile so it doesn't push the job cards
+              below the fold on a 6.1" iPhone screen. */}
+          <div className="text-center mb-6 md:mb-10 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-3">
               <Briefcase className="w-3 h-3" />
               Live Jobs
             </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            <h1 className="text-2xl md:text-4xl font-display font-bold text-foreground">
               Browse Open Jobs
             </h1>
-            <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
+            <p className="text-sm md:text-base text-muted-foreground mt-2 md:mt-3 max-w-xl mx-auto px-2">
               See what your Louisiana neighbors need help with. Sign up to apply or post your own task.
             </p>
           </div>
 
           {/* Search & Filters */}
-          <div className="mb-8 space-y-4">
+          <div className="mb-5 md:mb-8 space-y-3 md:space-y-4">
             <div className="relative max-w-md mx-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input

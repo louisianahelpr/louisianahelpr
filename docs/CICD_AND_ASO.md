@@ -9,9 +9,9 @@ steps that live outside the codebase.
 
 ## 1. GitHub Actions — iOS build + TestFlight
 
-Helpr is a Capacitor web-wrapper, so the only thing we actually build in CI
-is the iOS app shell pointing at the published web URL. Web changes don't
-require a new TestFlight build; they ship the moment the site is republished.
+Helpr is a Capacitor app that ships bundled production assets for App Store
+review. CI builds the web bundle, syncs it into iOS, archives the native shell,
+and uploads the binary that matches the existing App Store Connect record.
 
 ### When to cut a new TestFlight build
 - Capacitor plugin added/removed (`@capacitor/push-notifications`, etc.)

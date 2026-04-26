@@ -109,21 +109,18 @@ const HeroSection = () => {
     });
     Promise.all([
       supabase.rpc("count_profiles"),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
+      supabase.rpc("get_public_completed_job_count"),
     ]).then(([profilesRes, jobsRes]) => {
       setStats({
         users: typeof profilesRes.data === "number" ? profilesRes.data : 0,
-        completed: jobsRes.count || 0,
+        completed: typeof jobsRes.data === "number" ? jobsRes.data : Number(jobsRes.data) || 0,
       });
     });
     // Real recent open jobs for the social-proof row (only renders if >=3)
     supabase
-      .from("open_jobs_browse")
-      .select("id,title,location,budget,category")
-      .order("created_at", { ascending: false })
-      .limit(3)
+      .rpc("get_public_open_jobs", { p_limit: 3 })
       .then(({ data }) => {
-        if (data) setLiveJobs(data as LiveJob[]);
+        if (data) setLiveJobs(data as unknown as LiveJob[]);
       });
   }, []);
 

@@ -36,6 +36,7 @@ const Schedule = lazy(() => import("./pages/Schedule"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SignupPending = lazy(() => import("./pages/SignupPending"));
+const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
 const AccountPending = lazy(() => import("./pages/AccountPending"));
 const AccountDenied = lazy(() => import("./pages/AccountDenied"));
 const AccountBanned = lazy(() => import("./pages/AccountBanned"));
@@ -115,6 +116,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
       <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
       <Route path="/signup-pending" element={<PageTransition><SignupPending /></PageTransition>} />
+      <Route path="/complete-profile" element={<ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute>} />
       <Route path="/account-pending" element={<PageTransition><AccountPending /></PageTransition>} />
       <Route path="/account-denied" element={<PageTransition><AccountDenied /></PageTransition>} />
       <Route path="/account-banned" element={<PageTransition><AccountBanned /></PageTransition>} />

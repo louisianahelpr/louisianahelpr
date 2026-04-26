@@ -769,6 +769,26 @@ const Signup = () => {
               </p>
             </div>
 
+            {/* Referral code — moved from Step 1 to Optional */}
+            <div className="space-y-2">
+              <Label htmlFor="referral" className={`${labelCls} flex items-center gap-1.5`}>
+                <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <Input
+                id="referral"
+                placeholder="Enter referral code for $5 credit"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                maxLength={10}
+                className={`${inputCls} uppercase`}
+              />
+              {referralCode && (
+                <p className="text-xs text-primary flex items-center gap-1">
+                  <Gift className="w-3 h-3" /> You'll earn $5 when you complete your first job — as poster or crew!
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="skill-search" className={labelCls}>
                 Skills <span className="text-muted-foreground text-xs">(optional)</span>

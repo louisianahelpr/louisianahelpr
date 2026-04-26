@@ -246,6 +246,22 @@ end
 def export_options_plist_path
   plist_path = File.join(Dir.tmpdir, "helpr-export-options.plist")
   team_id = ENV.fetch("DEVELOPER_TEAM_ID").to_s.strip
+  profile_name = ENV["HELPR_PROFILE_NAME"].to_s.strip
+  signing_style = profile_name.empty? ? "automatic" : "manual"
+
+  provisioning_block = ""
+  unless profile_name.empty?
+    provisioning_block = <<~XML
+      <key>provisioningProfiles</key>
+      <dict>
+        <key>#{APP_ID}</key>
+        <string>#{profile_name}</string>
+      </dict>
+      <key>signingCertificate</key>
+      <string>Apple Distribution</string>
+    XML
+  end
+
   plist = <<~PLIST
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -254,13 +270,14 @@ def export_options_plist_path
       <key>method</key>
       <string>app-store</string>
       <key>signingStyle</key>
-      <string>automatic</string>
+      <string>#{signing_style}</string>
       <key>teamID</key>
       <string>#{team_id}</string>
       <key>stripSwiftSymbols</key>
       <true/>
       <key>uploadSymbols</key>
       <true/>
+      #{provisioning_block}
     </dict>
     </plist>
   PLIST

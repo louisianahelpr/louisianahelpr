@@ -19,6 +19,8 @@ import {
   Hammer,
   ShoppingBag,
   MoreHorizontal,
+  ArrowRight,
+  Search,
 } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v5-1000.webp";
 import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
@@ -190,18 +192,20 @@ const HeroSection = () => {
               <Button
                 variant="hero"
                 size="xl"
-                className="w-full px-3"
+                className="group w-full px-3"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
-                Post a job
+                <span className="relative z-10">Post a job</span>
+                <ArrowRight className="relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
               <Button
                 variant="hero-outline"
                 size="xl"
-                className="w-full px-3"
+                className="group w-full px-3"
                 onClick={() => navigate(loggedIn ? "/dashboard" : "/jobs")}
               >
-                Browse jobs
+                <Search className="transition-transform duration-300 group-hover:scale-110" />
+                <span>Browse jobs</span>
               </Button>
             </div>
             <p className="text-[9px] sm:text-xs text-muted-foreground/80 pt-1">

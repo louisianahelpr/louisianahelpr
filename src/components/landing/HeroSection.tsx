@@ -134,7 +134,7 @@ const HeroSection = () => {
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
+          <div className="w-full max-w-2xl sm:max-w-none lg:max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
             {/* TOP cluster — copy + categories */}
             <div className="flex flex-col gap-3 sm:gap-3 lg:gap-8">
               {/* Eyebrow — Louisiana stamp */}

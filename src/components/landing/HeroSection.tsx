@@ -204,7 +204,7 @@ const HeroSection = () => {
               <Button
                 variant="outline"
                 size="xl"
-                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-background border border-border text-foreground hover:bg-muted/40 hover:border-foreground/30 hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");
@@ -219,7 +219,7 @@ const HeroSection = () => {
                 }}
               >
                 Browse jobs
-                <ArrowRight className="ml-2 w-5 h-5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-foreground" />
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
             </div>
           </div>

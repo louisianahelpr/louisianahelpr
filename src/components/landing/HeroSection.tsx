@@ -223,7 +223,7 @@ const HeroSection = () => {
               srcSet={heroSrcSet}
               sizes="(max-width: 1023px) 100vw, 50vw"
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover object-[30%_center] sm:object-center lg:object-[30%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
+              className="absolute inset-0 w-full h-full object-cover object-[70%_center] sm:object-center lg:object-[70%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
               loading="eager"
               fetchPriority="high"
               decoding="async"

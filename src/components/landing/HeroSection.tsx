@@ -128,13 +128,8 @@ const HeroSection = () => {
       {/* MAIN: single column on phone & iPad, split-screen on desktop */}
       <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-4 sm:pb-6 lg:pb-14">
         {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
-        <div
-          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center"
-          style={{
-            paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
-          }}
-        >
-          <div className="w-full max-w-2xl sm:max-w-none lg:max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
+        <div className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center">
+          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
             {/* TOP cluster — copy + categories */}
             <div className="flex flex-col gap-3 sm:gap-3 lg:gap-8">
               {/* Eyebrow — Louisiana stamp */}
@@ -185,7 +180,7 @@ const HeroSection = () => {
             </div>
 
             {/* BOTTOM: CTAs grouped tightly under the content stack — centered on mobile/iPad */}
-            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch justify-center gap-3 lg:gap-4 w-full max-w-md sm:max-w-none lg:max-w-xl mx-auto lg:mx-0">
+            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch justify-center gap-3 lg:gap-4 w-full max-w-md sm:max-w-2xl lg:max-w-xl mx-auto lg:mx-0">
               <Button
                 size="xl"
                 className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"

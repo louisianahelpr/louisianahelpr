@@ -134,11 +134,11 @@ const HeroSection = () => {
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col md:gap-10">
+          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col gap-6 sm:gap-8">
             {/* TOP cluster — copy + categories */}
-            <div>
+            <div className="flex flex-col gap-6 sm:gap-8">
               {/* Eyebrow — Louisiana stamp */}
-              <div className="inline-flex max-w-full items-center gap-1.5 px-3 py-1 mb-3 sm:mb-4 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
+              <div className="inline-flex max-w-full self-center md:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="truncate">Made in Louisiana, for Louisiana</span>
               </div>
@@ -156,12 +156,12 @@ const HeroSection = () => {
               </h1>
 
               {/* Subhead */}
-              <p className="mt-5 sm:mt-6 text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0 lg:text-xl font-sans">
+              <p className="text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0 lg:text-xl font-sans">
                 Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
 
               {/* Category pills */}
-              <div className="relative w-full mt-8">
+              <div className="relative w-full">
                 <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
                   <div className="flex min-w-max gap-3 pb-2 pr-8">
                     {categories.map((c) => (
@@ -185,7 +185,7 @@ const HeroSection = () => {
             </div>
 
             {/* BOTTOM: CTAs grouped tightly under the content stack */}
-            <div className="mt-8 md:mt-0 flex flex-col items-stretch gap-4 w-full max-w-xl">
+            <div className="flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
                 size="xl"
                 className="group w-full h-16 px-8 rounded-xl text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"

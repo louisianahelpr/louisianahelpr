@@ -19,7 +19,7 @@ const appreciations = [
 ];
 
 const CommunityLoveSection = () => (
-  <section id="community" className="py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background scroll-mt-24">
+  <section id="community" className="py-16 md:py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background scroll-mt-24">
     <div className="container mx-auto max-w-4xl">
       <div className="text-center mb-12 animate-fade-in">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">

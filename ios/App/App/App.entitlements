@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Helpr — iOS entitlements template.
+
+  This file is the source of truth for the App target's entitlements.
+  On `npx cap sync ios` it is NOT auto-copied — copy it once on first setup:
+
+      cp ios/App.entitlements ios/App/App/App.entitlements
+
+  Then in Xcode (one-time, ~30 seconds — Apple does not let CocoaPods
+  or Capacitor write this for you):
+
+    1. Open ios/App/App.xcworkspace
+    2. Select the App target → Build Settings
+    3. Search for "Code Signing Entitlements"
+    4. Set value to:  App/App.entitlements
+    5. Signing & Capabilities → + Capability → Background Modes
+       → check "Remote notifications"
+    6. Build → Xcode regenerates the provisioning profile with the
+       aps-environment entitlement, and TestFlight builds will register
+       for APNs automatically on first launch.
+
+  Bundle ID: com.Helpr     Team ID: P85MCK558V
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Push notifications. Use "production" — Apple maps this to the
+      sandbox APNs server automatically for development provisioning
+      profiles, and to the production server for App Store / TestFlight
+      builds. There is no need to flip this between dev and prod.
+    -->
+    <key>aps-environment</key>
+    <string>production</string>
+
+    <!--
+      Universal Links — lets https://louisianahelpr.com/* deep-link
+      into the app instead of opening Safari.
+      Pairs with public/.well-known/apple-app-site-association.
+    -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>applinks:louisianahelpr.com</string>
+        <string>applinks:www.louisianahelpr.com</string>
+    </array>
+</dict>
+</plist>

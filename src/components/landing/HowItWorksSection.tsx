@@ -9,7 +9,7 @@ const steps = [
   {
     icon: Users,
     title: "Pick your helpr",
-    description: "Local applicants come to you. Compare profiles, ratings, and pricing — choose with confidence.",
+    description: "Local applicants come to you. Compare profiles and ratings — choose with confidence.",
   },
   {
     icon: CheckCircle,

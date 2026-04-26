@@ -445,6 +445,21 @@ const Dashboard = () => {
                     <X className="w-3 h-3 mr-1" /> Clear
                   </Button>
                 )}
+                {profile?.role === "helper" && user && (
+                  <SavedSearches
+                    userId={user.id}
+                    currentFilters={{
+                      selectedCategory: filters.selectedCategory,
+                      maxBudget: filters.maxBudget,
+                      locationFilter: filters.locationFilter,
+                    }}
+                    onApplySearch={(s) => {
+                      filters.setSelectedCategory(s.category);
+                      filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
+                      filters.setLocationFilter(s.location_keyword || "");
+                    }}
+                  />
+                )}
                 <Button
                   variant="ghost"
                   size="icon"

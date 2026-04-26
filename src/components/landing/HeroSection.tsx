@@ -220,15 +220,15 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop */}
-        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-6 md:mt-0 self-stretch flex-1 md:flex-none flex items-stretch px-6 sm:px-10 md:px-0 min-h-[16rem]">
-          <div className="relative w-full h-full md:min-h-[28rem] lg:min-h-[36rem]">
+        {/* RIGHT: keep the full hero artwork visible on phone and iPad */}
+        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-4 md:mt-0 self-stretch flex-1 md:flex-none flex items-center px-5 sm:px-8 md:px-0 min-h-[13rem] sm:min-h-[16rem]">
+          <div className="relative w-full h-full min-h-[13rem] sm:min-h-[16rem] md:min-h-0 bg-card/60 md:bg-transparent overflow-hidden rounded-2xl md:rounded-none md:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30">
             <img
               src={heroImg400}
               srcSet={heroSrcSet}
-              sizes="(max-width: 1023px) 100vw, 50vw"
+              sizes="(max-width: 767px) 100vw, 50vw"
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover rounded-2xl md:rounded-none md:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
+              className="absolute inset-0 w-full h-full object-contain md:object-contain lg:object-cover object-center rounded-2xl md:rounded-none md:rounded-l-[2rem]"
               loading="eager"
               fetchPriority="high"
               decoding="async"
@@ -238,7 +238,7 @@ const HeroSection = () => {
             {/* Subtle left-edge fade so image meets text section softly */}
             <div
               aria-hidden
-              className="hidden md:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent md:rounded-l-[2rem] pointer-events-none"
+              className="hidden lg:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent md:rounded-l-[2rem] pointer-events-none"
             />
 
             {/* Floating live-job card */}

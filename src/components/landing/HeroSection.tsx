@@ -39,7 +39,10 @@ const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, 
 // Tightened sizes: on tablets the image renders ~695 CSS px, not 1000.
 // Telling the browser the true display width lets srcset pick the 800w
 // variant (~91 KB) instead of the 1000w (~121 KB).
-const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 600px, (max-width: 1280px) 700px, 1000px";
+// Hero displays at ~772px on desktop (≥1024px). The 800w variant covers that
+// at 1x DPR with negligible visual difference vs. 1000w on standard displays,
+// and saves ~38 KiB of LCP-blocking transfer per Lighthouse.
+const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 600px, 800px";
 
 // NOTE: We intentionally do NOT inject a JS-side <link rel="preload"> here.
 // That code only runs after React's bundle parses, which is the very thing

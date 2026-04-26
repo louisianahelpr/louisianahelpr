@@ -157,13 +157,13 @@ const HeroSection = () => {
               Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
             </p>
 
-            {/* Category pills - horizontally scrollable on all screens */}
+            {/* Category pills - two rows, horizontally scrollable both directions */}
             <div className="-mx-5 sm:mx-0 overflow-x-auto scrollbar-hide">
-              <div className="flex flex-nowrap gap-2 px-5 sm:px-0 md:flex-wrap md:justify-start">
+              <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 px-5 sm:px-0">
                 {categories.map((c) => (
                   <span
                     key={c.label}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap"
                   >
                     <c.icon className="w-3.5 h-3.5 text-primary" />
                     {c.label}

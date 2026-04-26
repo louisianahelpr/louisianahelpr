@@ -1,11 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { Apple, ArrowRight } from "lucide-react";
+import { Apple } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 
 const CTASection = () => {
-  const navigate = useNavigate();
 
   return (
     <section className="py-20 px-4">

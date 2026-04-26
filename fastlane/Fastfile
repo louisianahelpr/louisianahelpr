@@ -516,6 +516,7 @@ platform :ios do
       sh("cd .. && npm run build")
       sh("cd .. && npx cap sync ios")
     end
+    sync_metadata_to_xcode!
     assert_ios_identity!
   end
 

@@ -996,10 +996,10 @@ const Signup = () => {
             </div>
 
             {/* Professional Credentials — optional, with hard requirement when toggled */}
-            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-card p-5 space-y-4">
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
               <div className="text-center space-y-1">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto">
-                  <Award className="w-6 h-6 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Award className="w-6 h-6 text-primary" strokeWidth={1.75} />
                 </div>
                 <h3 className="text-base font-display font-semibold text-foreground">Professional credentials</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1050,8 +1050,8 @@ const Signup = () => {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/[0.03] hover:border-amber-500/70 px-4 py-5 cursor-pointer transition-all">
-                      <ImagePlus className="w-5 h-5 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
+                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
+                      <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
                       <span className="text-sm font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
                       <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
                       <input
@@ -1108,8 +1108,8 @@ const Signup = () => {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/[0.03] hover:border-amber-500/70 px-4 py-5 cursor-pointer transition-all">
-                      <ImagePlus className="w-5 h-5 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
+                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
+                      <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
                       <span className="text-sm font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
                       <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
                       <input

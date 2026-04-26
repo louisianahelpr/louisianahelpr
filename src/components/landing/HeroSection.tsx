@@ -134,9 +134,9 @@ const HeroSection = () => {
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-6 sm:gap-8">
+          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-4 sm:gap-5 lg:gap-8">
             {/* TOP cluster — copy + categories */}
-            <div className="flex flex-col gap-6 sm:gap-8">
+            <div className="flex flex-col gap-3 sm:gap-4 lg:gap-8">
               {/* Eyebrow — Louisiana stamp */}
               <div className="inline-flex max-w-full self-center lg:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -144,19 +144,19 @@ const HeroSection = () => {
               </div>
 
               {/* Headline */}
-              <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
+              <h1 className="text-4xl sm:text-5xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
                 Your local{" "}
                 <span className="relative inline">
                   <span className="relative z-10 text-primary">task partner.</span>
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 bottom-1 h-4 sm:h-5 lg:h-6 bg-primary/20 -z-0 rounded"
+                    className="absolute inset-x-0 bottom-1 h-3 sm:h-4 lg:h-6 bg-primary/20 -z-0 rounded"
                   />
                 </span>
               </h1>
 
               {/* Subhead */}
-              <p className="text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto lg:mx-0 lg:text-xl font-sans">
+              <p className="text-base sm:text-lg text-foreground/75 font-medium leading-snug max-w-xl mx-auto lg:mx-0 lg:text-xl font-sans">
                 Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
 

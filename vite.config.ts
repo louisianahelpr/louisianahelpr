@@ -45,6 +45,43 @@ export default defineConfig(({ mode }) => ({
         );
       },
     } satisfies Plugin,
+    // Preload the hero LCP image. The <img> in HeroSection only starts loading
+    // AFTER the JS entry chunk parses + the React tree mounts (~2.3s on slow
+    // 4G — Lighthouse "resource load delay"). Production filenames are
+    // content-hashed so we resolve them from the build's emitted assets at
+    // generateBundle time, then inject responsive <link rel="preload"> tags
+    // (with imagesrcset/imagesizes matching the <img>'s srcset) into <head>.
+    // Pure perf — no UX/visual change.
+    (() => {
+      let preloadTags = "";
+      return {
+        name: "html-preload-hero-lcp",
+        apply: "build",
+        enforce: "post",
+        generateBundle(_options, bundle) {
+          const heroes: Record<string, string> = {};
+          for (const fileName of Object.keys(bundle)) {
+            const m = fileName.match(/^assets\/hero-porch-garden-(\d+)-[^.]+\.webp$/);
+            if (m) heroes[m[1]] = "/" + fileName;
+          }
+          if (!heroes["400"] || !heroes["500"] || !heroes["600"] || !heroes["1000"]) {
+            return;
+          }
+          const srcset =
+            `${heroes["400"]} 400w, ${heroes["600"]} 600w, ` +
+            `${heroes["500"]} 500w, ${heroes["1000"]} 1000w`;
+          const sizes =
+            "(max-width: 640px) 400px, (max-width: 1023px) 600px, 500px";
+          preloadTags =
+            `<link rel="preload" as="image" type="image/webp" ` +
+            `imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`;
+        },
+        transformIndexHtml(html: string) {
+          if (!preloadTags) return html;
+          return html.replace("</head>", `    ${preloadTags}\n  </head>`);
+        },
+      } satisfies Plugin;
+    })(),
     VitePWA({
       registerType: "autoUpdate",
       // Defer the SW registration script so it doesn't block FCP.

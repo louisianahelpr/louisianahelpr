@@ -147,36 +147,69 @@ const HeroSection = () => {
       />
 
       <div className="mx-auto w-full max-w-6xl min-w-0">
-        <div className="grid min-w-0 md:grid-cols-2 gap-8 lg:gap-12 items-center text-center md:text-left">
-          {/* LEFT: copy + CTAs */}
-          <div className="min-w-0 max-w-full animate-fade-in md:flex md:justify-center lg:justify-start">
-            <div className="w-full max-w-[21rem] sm:max-w-md">
-              {/* Eyebrow badge */}
-              <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="truncate">Built in Louisiana, for Louisiana</span>
+        <div className="grid min-w-0 md:grid-cols-12 gap-8 lg:gap-10 items-center text-center md:text-left">
+          {/* LEFT: copy + CTAs (7 cols on desktop for editorial feel) */}
+          <div className="md:col-span-7 min-w-0 max-w-full animate-fade-in">
+            <div className="w-full max-w-[34rem] mx-auto md:mx-0">
+              {/* Eyebrow with live indicator */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border/60 text-[11px] sm:text-xs font-medium tracking-wide text-foreground shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                </span>
+                <span>Built in Louisiana · Live across the state</span>
               </div>
 
-              {/* Unified column — fills available space */}
-              <div className="mx-auto md:mx-0 w-full">
-              {/* Headline + subhead — tight pair */}
-              <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
-                Your local{" "}
-                <span className="relative inline">
-                  <span className="relative z-10 text-primary">task partner.</span>
+              {/* Editorial headline */}
+              <h1 className="mt-5 text-[2.5rem] sm:text-5xl lg:text-[4rem] font-display font-bold text-foreground leading-[0.98] tracking-tight text-balance">
+                Get help.
+                <br />
+                <span className="italic font-normal text-muted-foreground">or get</span>{" "}
+                <span className="relative inline-block">
+                  <span className="relative z-10 text-primary">paid for it.</span>
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
+                    className="absolute inset-x-0 bottom-1.5 h-3 bg-primary/20 -z-0 rounded"
                   />
                 </span>
               </h1>
 
-              <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
-                Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
+              <p className="mt-4 sm:mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto md:mx-0">
+                Louisiana's trusted marketplace for everyday tasks — cleaning, yard work, moving, errands and more. Posted by neighbors, done by neighbors.
               </p>
 
+              {/* Inline stat strip */}
+              <div className="mt-6 flex items-center justify-center md:justify-start gap-5 sm:gap-7">
+                <div className="text-left">
+                  <div className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums">
+                    {stats ? stats.users.toLocaleString() : "—"}+
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Neighbors
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-border" />
+                <div className="text-left">
+                  <div className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums">
+                    {stats ? stats.completed.toLocaleString() : "—"}
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Tasks done
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-border hidden sm:block" />
+                <div className="text-left hidden sm:block">
+                  <div className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums">
+                    4.9★
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Avg rating
+                  </div>
+                </div>
+              </div>
+
               {/* Category pills */}
-              <div className="relative w-full mt-7 sm:mt-8">
+              <div className="relative w-full mt-6">
                 <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
                   <div className="flex min-w-max gap-2 pb-1 pr-8">
                     {categories.map((c) => (
@@ -197,11 +230,11 @@ const HeroSection = () => {
               </div>
 
               {/* CTAs */}
-              <div className="mt-7 sm:mt-8 grid min-h-14 grid-cols-2 gap-3 sm:gap-4 w-full">
+              <div className="mt-7 flex flex-col sm:flex-row gap-3 w-full max-w-md mx-auto md:mx-0">
                 <Button
                   variant="hero"
                   size="xl"
-                  className="group w-full px-3"
+                  className="group flex-1 px-3"
                   onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
                 >
                   <span className="relative z-10">Post a job</span>
@@ -210,7 +243,7 @@ const HeroSection = () => {
                 <Button
                   variant="hero-outline"
                   size="xl"
-                  className="group w-full px-3"
+                  className="group flex-1 px-3"
                   onClick={() => {
                     if (loggedIn) {
                       navigate("/dashboard");
@@ -229,73 +262,78 @@ const HeroSection = () => {
                 </Button>
               </div>
 
-              {/* Footnote */}
-              <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground/80 text-center md:text-left">
-                Free to join · No subscription · Pay only when you post
+              <p className="mt-3 text-[11px] sm:text-xs text-muted-foreground/80 text-center md:text-left flex items-center gap-2 justify-center md:justify-start">
+                <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                Free to join · Pay only when you post · Verified helprs
               </p>
-            </div>
             </div>
           </div>
 
-          {/* RIGHT: image */}
-          <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] px-0 md:flex md:justify-center lg:justify-end">
-            <div className="relative w-full max-w-[21rem] sm:max-w-md mx-auto">
-              {/* sizes is intentionally tight: the rendered display width is ~497px max
-                  (max-w-md = 28rem). Tells the browser to pick the 500w variant on mobile
-                  and 600w on tablet, instead of jumping to the full 900w (Lighthouse fix). */}
+          {/* RIGHT: image with floating cards (5 cols) */}
+          <div className="md:col-span-5 relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms]">
+            <div className="relative w-full max-w-[22rem] sm:max-w-md mx-auto md:ml-auto md:mr-0">
+              {/* Decorative offset gradient behind image */}
+              <div
+                aria-hidden
+                className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 blur-sm"
+              />
               <img
                 src={heroImg400}
                 srcSet={heroSrcSet}
                 sizes="(max-width: 1023px) 400px, 500px"
                 alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-                className="w-full h-auto rounded-2xl shadow-xl object-contain"
+                className="relative w-full h-auto rounded-2xl shadow-2xl object-contain ring-1 ring-border/50"
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
                 width={1000}
                 height={1000}
               />
+
+              {/* Floating live-job card (top-left) */}
+              {liveJobs[0] && (
+                <div className="hidden sm:flex absolute -top-4 -left-6 lg:-left-10 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:600ms] opacity-0 max-w-[14rem]">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                    {(() => {
+                      const Icon = CATEGORY_ICONS[liveJobs[0].category] ?? MoreHorizontal;
+                      return <Icon className="w-4 h-4 text-primary" />;
+                    })()}
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                      {liveJobs[0].title}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate mt-0.5">
+                      <MapPin className="w-2.5 h-2.5 shrink-0" />
+                      {liveJobs[0].location}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-primary tabular-nums">
+                      ${Math.round(Number(liveJobs[0].budget))}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Floating verified-helpr card (bottom-right) */}
+              <div className="hidden sm:flex absolute -bottom-5 -right-4 lg:-right-8 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:800ms] opacity-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent/40 to-primary/20 flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-foreground leading-tight">
+                    Verified Helpr
+                  </p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Star className="w-2.5 h-2.5 fill-accent text-accent" />
+                    4.9 · 127 jobs
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Live job cards row — only shown when we actually have ≥3 real open jobs */}
-        {liveJobs.length >= 3 && (
-          <div className="mt-28 sm:mt-20 pt-4">
-            <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4 px-4">
-              Recently posted in Louisiana
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              {liveJobs.map((job, i) => {
-                const Icon = CATEGORY_ICONS[job.category] ?? MoreHorizontal;
-                const accent = CATEGORY_ACCENTS[i % CATEGORY_ACCENTS.length];
-                return (
-                  <div
-                    key={job.id}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
-                  >
-                    <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${accent} flex items-center justify-center shrink-0`}>
-                      <Icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1 text-left">
-                      <p className="text-sm font-semibold text-foreground truncate">{job.title}</p>
-                      <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                        <MapPin className="w-3 h-3 shrink-0" />
-                        {job.location}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-primary flex items-center justify-end">
-                        <DollarSign className="w-3 h-3" />
-                        {Math.round(Number(job.budget))}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

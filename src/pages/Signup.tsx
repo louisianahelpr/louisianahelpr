@@ -470,16 +470,12 @@ const Signup = () => {
 
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">
-                {step === 1 ? "Create your account" :
-                 step === 2 ? "Tell us about you" :
-                 step === 3 ? "Verify & finish" :
-                 "Set up payouts"}
+                {step === 1 ? "Create your account" : "Make your profile stand out"}
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {step === 1 ? `Step 1 of ${totalSteps} — basic information` :
-                 step === 2 ? `Step 2 of ${totalSteps} — profile details` :
-                 step === 3 ? `Step 3 of ${totalSteps} — secure documents` :
-                 `Step 4 of ${totalSteps} — connect Stripe`}
+                {step === 1
+                  ? `Step 1 of ${totalSteps} — required to join Helpr`
+                  : `Step 2 of ${totalSteps} — optional, but recommended if you'll apply to jobs`}
               </p>
             </div>
 

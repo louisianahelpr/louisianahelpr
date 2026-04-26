@@ -195,6 +195,13 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     position: relative;
     z-index: 1;
   }
+
+  /* Quieter premium surface for dense data screens (Admin, Messages, PostJob).
+     Same gradient, no ambient orbs, so heavy layouts stay scannable. */
+  .bg-premium-surface {
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
+  }
 }
 
 /* Enhanced global styles */

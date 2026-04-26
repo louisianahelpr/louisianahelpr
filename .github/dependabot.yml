@@ -90,8 +90,6 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 2
-    labels:
-      - "dependencies"
-      - "ruby"
+    # `labels:` removed — see note above.
     commit-message:
       prefix: "chore(fastlane)"

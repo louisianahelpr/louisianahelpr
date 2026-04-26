@@ -146,13 +146,22 @@ const Dashboard = () => {
       return next;
     });
   }, []);
-  const handleApplyRequest = useCallback((jobId: string) => {
+  const handleApplyRequest = useCallback(async (jobId: string) => {
     hapticMedium(); // confirm tap on Apply
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
+    // Hard gate: helprs must have a Stripe Connect payout account before applying.
+    // Surfaces a friendly popup instead of a silent toast.
+    if (profile?.role === "helper") {
+      const stripeCheck = await checkHelperStripeConnect();
+      if (!stripeCheck.ok) {
+        setPayoutSetupDialogOpen(true);
+        return;
+      }
+    }
     setConfirmApplyJobId(jobId);
-  }, [user, allJobs, navigate]);
+  }, [user, allJobs, navigate, profile?.role, checkHelperStripeConnect]);
 
   const handleApplyConfirm = useCallback(async () => {
     if (!user || !confirmApplyJobId || applyLoading) return;

@@ -27,6 +27,8 @@ IOS_METADATA = YAML.safe_load(File.read(IOS_METADATA_PATH), permitted_classes: [
 
 APP_ID                = IOS_METADATA.fetch("identity").fetch("bundle_id")
 APP_TEAM_ID           = IOS_METADATA.fetch("identity").fetch("team_id")
+APP_APPLE_ID          = IOS_METADATA.fetch("identity").fetch("apple_id").to_s
+APP_SKU               = IOS_METADATA.fetch("identity").fetch("sku").to_s
 APP_DISPLAY_NAME      = IOS_METADATA.fetch("display").fetch("name")
 APP_PRODUCT_NAME      = IOS_METADATA.fetch("display").fetch("product_name")
 APP_CATEGORY_TYPE     = IOS_METADATA.fetch("display").fetch("category_uti")
@@ -34,6 +36,10 @@ APP_MARKETING_VERSION = IOS_METADATA.fetch("versioning").fetch("marketing_versio
 APP_BUILD_VERSION     = IOS_METADATA.fetch("versioning").fetch("current_project_version").to_s
 APP_DEPLOYMENT_TARGET = IOS_METADATA.fetch("build").fetch("ios_deployment_target").to_s
 APP_USES_NON_EXEMPT_ENCRYPTION = IOS_METADATA.fetch("build").fetch("uses_non_exempt_encryption")
+APP_STORE_METADATA = IOS_METADATA.fetch("app_store")
+APP_MARKETING_URL = APP_STORE_METADATA.fetch("marketing_url").to_s
+APP_PRIVACY_URL   = APP_STORE_METADATA.fetch("privacy_url").to_s
+APP_SUPPORT_URL   = APP_STORE_METADATA.fetch("support_url").to_s
 APP_PERMISSION_STRINGS = (IOS_METADATA["permission_strings"] || {}).each_with_object({}) do |(k, v), acc|
   acc[k] = v.to_s.gsub(/\s+/, " ").strip
 end

@@ -30,36 +30,6 @@ const Footer = () => (
               Serving all of Louisiana
             </span>
           </div>
-
-          {/* Social buttons — side by side under brand */}
-          <div className="flex flex-wrap gap-2.5 pt-2">
-            <a
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-11 items-center gap-2 rounded-lg bg-foreground px-4 text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
-              aria-label="App Store — Download Helpr (opens in a new tab)"
-            >
-              <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
-              <span className="text-left leading-tight">
-                <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
-                <span className="block text-xs font-semibold tracking-tight">App Store</span>
-              </span>
-            </a>
-            <a
-              href={FACEBOOK_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-11 items-center gap-2 rounded-lg bg-[hsl(var(--facebook))] px-4 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
-              aria-label="Facebook — Follow Helpr (opens in a new tab)"
-            >
-              <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
-              <span className="text-left leading-tight">
-                <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
-                <span className="block text-xs font-semibold tracking-tight">Facebook</span>
-              </span>
-            </a>
-          </div>
         </div>
 
         {/* Link columns — 3 tight columns, balanced */}

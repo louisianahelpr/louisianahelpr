@@ -1,11 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { Apple, ArrowRight } from "lucide-react";
+import { Apple } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 
 const CTASection = () => {
-  const navigate = useNavigate();
 
   return (
     <section className="py-20 px-4">
@@ -17,26 +14,6 @@ const CTASection = () => {
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
             Join Louisiana neighbors posting local tasks, finding trusted helprs, and getting work done.
           </p>
-
-          <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-            <Button
-              variant="hero-outline"
-              size="lg"
-              className="min-h-12 w-full border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary sm:w-auto"
-              onClick={() => navigate("/signup")}
-            >
-              Create free account
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              className="min-h-12 w-full text-primary-foreground hover:bg-primary-foreground/10 sm:w-auto"
-              onClick={() => navigate("/#open-jobs")}
-            >
-              Browse jobs first
-            </Button>
-          </div>
 
           <a
             href={APP_STORE_URL}

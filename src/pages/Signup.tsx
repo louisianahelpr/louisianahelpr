@@ -225,6 +225,12 @@ const Signup = () => {
     const idBase64 = idFile ? await fileToBase64(idFile) : null;
     const idExt = idFile ? idFile.name.split(".").pop() : null;
 
+    const licenseBase64 = licenseFile ? await fileToBase64(licenseFile) : null;
+    const licenseExt = licenseFile ? licenseFile.name.split(".").pop() : null;
+
+    const insuranceBase64 = insuranceFile ? await fileToBase64(insuranceFile) : null;
+    const insuranceExt = insuranceFile ? insuranceFile.name.split(".").pop() : null;
+
     const portfolioData = [];
     for (const file of portfolioFiles) {
       portfolioData.push({
@@ -234,7 +240,7 @@ const Signup = () => {
       });
     }
 
-    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
+    return { avatarBase64, avatarExt, idBase64, idExt, licenseBase64, licenseExt, insuranceBase64, insuranceExt, portfolioData };
   };
 
   const completeProfile = async (userId: string) => {

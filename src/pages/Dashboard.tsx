@@ -248,7 +248,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-premium-page pb-20">
         <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="container mx-auto flex items-center justify-between h-16 px-4">
             <span className="text-2xl font-display font-bold text-primary">Helpr</span>
@@ -268,7 +268,7 @@ const Dashboard = () => {
   // Block banned users
   if (!isAdmin && (banStatus === "permanently_banned" || banStatus === "temp_banned")) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="min-h-screen bg-premium-page flex items-center justify-center px-4">
         <div className="max-w-md text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
             <XCircle className="w-8 h-8 text-destructive" />
@@ -288,7 +288,7 @@ const Dashboard = () => {
 
   if (!isAdmin && approvalStatus !== "approved") {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-premium-page">
         <DashboardHeader />
         <main className="container mx-auto px-4 py-12">
           <div className="max-w-lg mx-auto text-center space-y-6">
@@ -315,7 +315,7 @@ const Dashboard = () => {
 
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-premium-page pb-20">
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 

@@ -89,7 +89,7 @@ const Jobs = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background pt-16">
+    <div className="min-h-screen bg-premium-page pt-16">
       <Navbar />
 
       <main className="pt-24 pb-20 px-4">

@@ -169,7 +169,7 @@ const CompleteProfile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-premium-page">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );

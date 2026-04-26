@@ -17,7 +17,7 @@ const ForBusiness = () => {
   usePageTitle("Helpr for Business — Louisiana Commercial Services");
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+    <div className="relative min-h-screen overflow-hidden bg-premium-page">
       {/* Ambient background orbs */}
       <div
         aria-hidden

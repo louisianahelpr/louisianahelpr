@@ -60,6 +60,7 @@ const Community = lazy(() => import("./pages/Community"));
 const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
+const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 const Heroes = lazy(() => import("./pages/Heroes"));
 const SavedHelpers = lazy(() => import("./pages/SavedHelpers"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
@@ -143,6 +144,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/data-rights" element={<PageTransition><DataRights /></PageTransition>} />
       <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
       <Route path="/jobs" element={<PageTransition><Jobs /></PageTransition>} />
+      {/* Guest "home dashboard" — what iOS native users see before signing up.
+          Mirrors /dashboard's chrome and JobCard rendering, but every action
+          routes to /signup. Public web visitors can hit it too if they want
+          a no-account preview, though the marketing landing remains canonical. */}
+      <Route path="/browse" element={<PageTransition><DashboardGuest /></PageTransition>} />
       <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
       <Route path="/heroes" element={<PageTransition><Heroes /></PageTransition>} />
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />

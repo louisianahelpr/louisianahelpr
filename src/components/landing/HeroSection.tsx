@@ -220,20 +220,21 @@ const HeroSection = () => {
               />
             </div>
 
-            {/* Single strong primary CTA + text-link secondary */}
-            <div className="mt-8 flex flex-col items-center md:items-start gap-4 w-full">
+            {/* Premium dual CTA */}
+            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-3 w-full">
               <Button
                 variant="hero"
                 size="xl"
-                className="group w-full max-w-md h-14 text-base shadow-xl shadow-primary/25"
+                className="group relative flex-1 sm:flex-none sm:min-w-[15rem] h-14 px-8 text-base font-semibold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
                 <span className="relative z-10">Post a job</span>
-                <ArrowRight className="relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+                <ArrowRight className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
-              <button
-                type="button"
-                className="group inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+              <Button
+                variant="outline"
+                size="xl"
+                className="group relative flex-1 sm:flex-none sm:min-w-[15rem] h-14 px-8 text-base font-semibold bg-card/60 backdrop-blur border-2 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/15 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");
@@ -247,10 +248,10 @@ const HeroSection = () => {
                   }
                 }}
               >
-                <Search className="w-4 h-4" />
-                Browse jobs
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
+                <Search className="w-5 h-5" />
+                <span>Browse jobs</span>
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+              </Button>
             </div>
           </div>
         </div>

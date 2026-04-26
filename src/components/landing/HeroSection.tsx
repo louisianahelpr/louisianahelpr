@@ -195,21 +195,20 @@ const HeroSection = () => {
               />
             </div>
 
-            {/* Premium dual CTA */}
-            <div className="mt-10 flex flex-col items-stretch md:items-start gap-4 w-full">
+            {/* Bold pill CTAs — stacked, full-width */}
+            <div className="mt-10 flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
-                variant="hero"
                 size="xl"
-                className="group relative flex-1 sm:flex-none sm:min-w-[16rem] h-16 px-10 text-lg font-semibold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
-                <span className="relative z-10">Post a job</span>
-                <ArrowRight className="relative z-10 w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" />
+                Post a job
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
               <Button
                 variant="outline"
                 size="xl"
-                className="group relative flex-1 sm:flex-none sm:min-w-[16rem] h-16 px-10 text-lg font-semibold bg-card/60 backdrop-blur border-2 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/15 transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-background border border-border text-foreground hover:bg-muted/40 hover:border-foreground/30 hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");
@@ -223,9 +222,8 @@ const HeroSection = () => {
                   }
                 }}
               >
-                <Search className="w-6 h-6" />
-                <span>Browse jobs</span>
-                <ArrowRight className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" />
+                Browse jobs
+                <ArrowRight className="ml-2 w-5 h-5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-foreground" />
               </Button>
             </div>
           </div>

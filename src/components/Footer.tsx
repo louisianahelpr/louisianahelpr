@@ -72,7 +72,7 @@ const Footer = () => (
                 aria-label="App Store — Download Helpr (opens in a new tab)"
               >
                 <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
-                <span className="text-left leading-tight">
+                <span className="ml-auto text-right leading-tight">
                   <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
                   <span className="block text-xs font-semibold tracking-tight">App Store</span>
                 </span>
@@ -87,7 +87,7 @@ const Footer = () => (
                 aria-label="Facebook — Follow Helpr (opens in a new tab)"
               >
                 <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
-                <span className="text-left leading-tight">
+                <span className="ml-auto text-right leading-tight">
                   <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
                   <span className="block text-xs font-semibold tracking-tight">Facebook</span>
                 </span>

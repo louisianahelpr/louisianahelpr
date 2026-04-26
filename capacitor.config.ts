@@ -20,8 +20,8 @@ if (rawDevUrl && !devServerUrl) {
 
 const config: CapacitorConfig = {
   // App Store Connect record — locked to this exact value.
-  appId: 'com.Helpr',
-  appName: 'Louisiana Helpr',
+  appId: 'com.louisianahelpr.app',
+  appName: 'Helpr',
   webDir: 'dist',
   // Only attach a remote server in dev. Production has no `server` block,
   // so the app loads bundled assets and Apple won't reject under Guideline 4.2.

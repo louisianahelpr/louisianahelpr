@@ -602,7 +602,118 @@ const Signup = () => {
                 I understand the cancellation, no-show, and dispute policies.
               </label>
             </div>
-            <Button className="w-full" size="lg" onClick={async () => { if (await validateStep1()) setStep(2); }} disabled={!acceptedPolicies}>
+            {/* Required profile section — moved into Step 1 so everyone fills it out */}
+            <div className="pt-2 border-t border-border/60 space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-base font-display font-semibold text-foreground">A bit about you</h2>
+                <p className="text-xs text-muted-foreground">Required for everyone — posters and helprs alike.</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <Label className="text-sm font-medium">Profile picture <span className="text-destructive text-xs">*</span></Label>
+                <label className="cursor-pointer group relative inline-block">
+                  <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
+                    )}
+                  </div>
+                  <div className="pointer-events-none absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-card z-10">
+                    <Camera className="w-5 h-5" strokeWidth={2.25} />
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                </label>
+                <p className="text-[11px] text-muted-foreground text-center max-w-[260px]">
+                  A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  rows={4}
+                  required
+                  minLength={20}
+                  className="rounded-xl"
+                />
+                <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
+                  {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
+                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
+              </div>
+
+              {/* Government-issued ID — required for everyone (re-verified by Stripe later) */}
+              <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
+                <div className="text-center space-y-2">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                    <ShieldCheck className="w-7 h-7 text-primary" strokeWidth={1.75} />
+                  </div>
+                  <h3 className="text-base font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance. Re-verified by Stripe when you post or apply to your first job.
+                  </p>
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
+                    <Lock className="w-3 h-3" /> Encrypted at rest · Never shared publicly
+                  </div>
+                </div>
+                {idFile ? (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {idPreview ? (
+                        <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg border border-border flex items-center justify-center bg-muted/40 shrink-0">
+                          <FileText className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{idFile.name}</p>
+                        <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB · uploaded</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setIdFile(null); setIdPreview(null); }}
+                      className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all">
+                    <Camera className="w-7 h-7 text-primary/70" strokeWidth={1.75} />
+                    <span className="text-sm font-semibold text-foreground">Upload your ID</span>
+                    <span className="text-xs text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      className="hidden"
+                      onChange={handleIdChange}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={async () => {
+                if (!(await validateStep1())) return;
+                if (!validateRequiredProfile()) return;
+                setStep(2);
+              }}
+              disabled={!acceptedPolicies}
+            >
               Continue <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
 

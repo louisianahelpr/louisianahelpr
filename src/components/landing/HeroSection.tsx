@@ -169,9 +169,9 @@ const HeroSection = () => {
                         key={c.label}
                         type="button"
                         onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-                        className="group inline-flex items-center gap-2 px-5 py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
+                        className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
                       >
-                        <c.icon className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                        <c.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary group-hover:scale-110 transition-transform" />
                         {c.label}
                       </button>
                     ))}

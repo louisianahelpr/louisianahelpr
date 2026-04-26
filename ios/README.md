@@ -63,11 +63,9 @@ exactly or signing will fail.
 
 ## Permissions
 
-All `NS*UsageDescription` strings live in `capacitor.config.ts` under
-`ios.content`. They are injected into Info.plist on `npx cap sync`.
-
-Edit them in one place — never edit Info.plist directly, since `cap sync`
-will overwrite changes.
+All `NS*UsageDescription` strings are committed in `ios/App/App/Info.plist`
+and mirrored as a reminder in `capacitor.config.ts`. Keep both aligned so
+GitHub → Xcode/Fastlane builds retain the same permission prompts.
 
 ## Required-reason APIs
 

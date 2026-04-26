@@ -59,7 +59,7 @@ const Community = () => {
   useCurrentUser();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-premium-page">
       <PageHeader title="Community" />
 
       {/* Hero */}

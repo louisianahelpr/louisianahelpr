@@ -10,7 +10,7 @@ const PlatformRules = () => {
   usePageTitle("Platform Rules & Policies — Helpr");
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-premium-page pb-20">
       <PageHeader title="Platform Rules" />
       <div className="container mx-auto max-w-3xl px-4 py-8">
         <div className="space-y-2 mb-12">

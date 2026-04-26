@@ -88,7 +88,7 @@ const AccountPending = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-premium-page px-4 py-8">
       <div className="w-full max-w-md text-center space-y-6">
         <Link to="/" className="text-3xl font-display font-bold text-primary inline-block">
           Helpr

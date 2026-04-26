@@ -17,7 +17,7 @@ const ForBusiness = () => {
   usePageTitle("Helpr for Business — Louisiana Commercial Services");
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+    <div className="relative min-h-screen overflow-hidden bg-premium-page">
       {/* Ambient background orbs */}
       <div
         aria-hidden
@@ -174,9 +174,9 @@ const ForBusiness = () => {
                   </p>
                   <div className="grid grid-cols-1 gap-2">
                     {[
-                      { name: "Starter", seats: "2", price: "Free", featured: true },
+                      { name: "Starter", seats: "2", price: "Free", featured: false },
                       { name: "Crew", seats: "5", price: "$10", featured: false },
-                      { name: "Team", seats: "10", price: "$20", featured: false },
+                      { name: "Team", seats: "10", price: "$20", featured: true },
                       { name: "Enterprise", seats: "25", price: "$40", featured: false },
                     ].map((tier) => (
                       <div

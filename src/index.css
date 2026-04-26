@@ -91,13 +91,13 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --glass-bg: hsl(0 0% 100% / 0.7);
     --glass-border: hsl(0 0% 100% / 0.3);
 
-    /* Premium design system tokens — used by PremiumPageShell / PremiumCard */
-    --gradient-page: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary) / 0.4) 100%);
-    --gradient-card: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.04) 100%);
-    --gradient-card-accent: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%);
-    --shadow-premium: 0 20px 60px -20px hsl(var(--primary) / 0.25);
-    --shadow-card-soft: 0 8px 32px -12px hsl(160 10% 12% / 0.08);
-    --shadow-elevated: 0 24px 70px -24px hsl(var(--primary) / 0.18), 0 8px 24px -8px hsl(160 10% 12% / 0.06);
+    /* Premium design system tokens (Phase 1) */
+    --gradient-page: linear-gradient(180deg, hsl(150 30% 98%) 0%, hsl(150 20% 96%) 40%, hsl(40 30% 97%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100% / 0.85) 0%, hsl(150 20% 98% / 0.7) 100%);
+    --gradient-card-accent: linear-gradient(135deg, hsl(158 67% 37% / 0.06) 0%, hsl(40 80% 58% / 0.04) 100%);
+    --shadow-premium: 0 20px 60px -20px hsl(158 67% 37% / 0.18), 0 8px 24px -12px hsl(160 10% 12% / 0.08);
+    --shadow-card-soft: 0 1px 3px hsl(160 10% 12% / 0.04), 0 4px 16px -4px hsl(160 10% 12% / 0.06);
+    --shadow-elevated: 0 12px 40px -12px hsl(160 10% 12% / 0.12);
 
     font-family: 'DM Sans', system-ui, sans-serif;
   }
@@ -132,6 +132,14 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --sidebar-ring: 159 43% 51%;
     --glass-bg: hsl(160 10% 11% / 0.7);
     --glass-border: hsl(0 0% 100% / 0.08);
+
+    /* Premium dark variants */
+    --gradient-page: linear-gradient(180deg, hsl(160 12% 7%) 0%, hsl(160 10% 9%) 40%, hsl(160 10% 8%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(160 10% 13% / 0.85) 0%, hsl(160 10% 11% / 0.7) 100%);
+    --gradient-card-accent: linear-gradient(135deg, hsl(159 43% 51% / 0.08) 0%, hsl(40 80% 58% / 0.05) 100%);
+    --shadow-premium: 0 20px 60px -20px hsl(159 43% 51% / 0.22), 0 8px 24px -12px hsl(0 0% 0% / 0.4);
+    --shadow-card-soft: 0 1px 3px hsl(0 0% 0% / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.25);
+    --shadow-elevated: 0 12px 40px -12px hsl(0 0% 0% / 0.5);
   }
 }
 
@@ -150,6 +158,49 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Premium page background — drop-in replacement for bg-background.
+     Use on any page root for the unified gradient + ambient orbs feel. */
+  .bg-premium-page {
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
+    position: relative;
+  }
+  .bg-premium-page::before,
+  .bg-premium-page::after {
+    content: "";
+    position: fixed;
+    pointer-events: none;
+    border-radius: 9999px;
+    filter: blur(80px);
+    z-index: 0;
+  }
+  .bg-premium-page::before {
+    top: -10rem;
+    right: -8rem;
+    width: 32rem;
+    height: 32rem;
+    background: hsl(var(--primary) / 0.12);
+  }
+  .bg-premium-page::after {
+    bottom: -10rem;
+    left: -8rem;
+    width: 28rem;
+    height: 28rem;
+    background: hsl(var(--accent) / 0.15);
+  }
+  /* Ensure page content sits above the orbs */
+  .bg-premium-page > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Quieter premium surface for dense data screens (Admin, Messages, PostJob).
+     Same gradient, no ambient orbs, so heavy layouts stay scannable. */
+  .bg-premium-surface {
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
   }
 }
 

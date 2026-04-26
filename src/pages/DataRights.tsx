@@ -106,7 +106,7 @@ const DataRights = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-premium-page pb-24">
       <PageHeader title="Your Data Rights" />
       <main className="container mx-auto px-4 py-6 max-w-2xl space-y-6">
         <p className="text-sm text-muted-foreground">

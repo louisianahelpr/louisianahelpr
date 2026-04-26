@@ -203,6 +203,42 @@ serve(async (req) => {
       }
     }
 
+    // 2b. Upload license document (if provided)
+    if (licenseBase64 && licenseExt) {
+      const licensePath = `${userId}/credentials/license-${Date.now()}.${licenseExt}`;
+      const licenseBytes = Uint8Array.from(atob(licenseBase64), (c) => c.charCodeAt(0));
+      const { error: licErr } = await supabase.storage
+        .from("user-documents")
+        .upload(licensePath, licenseBytes, {
+          contentType: licenseContentType || "application/octet-stream",
+          upsert: true,
+        });
+      if (licErr) {
+        console.error("License upload error:", licErr);
+      } else {
+        const { data: lUrl } = supabase.storage.from("user-documents").getPublicUrl(licensePath);
+        licenseUrl = lUrl.publicUrl;
+      }
+    }
+
+    // 2c. Upload insurance document (if provided)
+    if (insuranceBase64 && insuranceExt) {
+      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${insuranceExt}`;
+      const insuranceBytes = Uint8Array.from(atob(insuranceBase64), (c) => c.charCodeAt(0));
+      const { error: insErr } = await supabase.storage
+        .from("user-documents")
+        .upload(insurancePath, insuranceBytes, {
+          contentType: insuranceContentType || "application/octet-stream",
+          upsert: true,
+        });
+      if (insErr) {
+        console.error("Insurance upload error:", insErr);
+      } else {
+        const { data: iUrl } = supabase.storage.from("user-documents").getPublicUrl(insurancePath);
+        insuranceUrl = iUrl.publicUrl;
+      }
+    }
+
     // 3. Upload portfolio files
     if (portfolioFiles && Array.isArray(portfolioFiles)) {
       for (const file of portfolioFiles) {

@@ -1,0 +1,1 @@
+ALTER VIEW public.open_jobs_browse SET (security_invoker = on);

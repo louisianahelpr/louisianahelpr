@@ -1,4 +1,3 @@
-import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -13,7 +12,6 @@ import {
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ForBusiness = () => {
-  const navigate = useNavigate();
   usePageTitle("Helpr for Business — Louisiana Commercial Services");
 
   return (
@@ -29,12 +27,12 @@ const ForBusiness = () => {
       />
 
       <div className="relative container mx-auto px-5 py-5 lg:py-7 max-w-6xl">
-        <Link
-          to="/"
+        <a
+          href="/"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 lg:mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Helpr
-        </Link>
+        </a>
 
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-10 items-start">
           {/* LEFT — Pitch (3 cols) */}
@@ -150,7 +148,9 @@ const ForBusiness = () => {
                     variant="hero"
                     size="xl"
                     className="group w-full"
-                    onClick={() => navigate("/signup?type=business")}
+                    onClick={() => {
+                      window.location.href = "/signup?type=business";
+                    }}
                   >
                     <span>Sign up as a business</span>
                     <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -158,12 +158,12 @@ const ForBusiness = () => {
 
                   <p className="text-xs text-muted-foreground mt-3">
                     Already have an account?{" "}
-                    <Link
-                      to="/login"
+                    <a
+                      href="/login"
                       className="text-primary font-medium hover:underline"
                     >
                       Log in
-                    </Link>
+                    </a>
                   </p>
                 </div>
 

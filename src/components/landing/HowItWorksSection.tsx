@@ -25,7 +25,7 @@ const HowItWorksSection = () => {
         <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-4">
           How Helpr works
         </h2>
-        <p className="text-muted-foreground max-w-md mx-auto mb-16">
+        <p className="text-muted-foreground max-w-md mx-auto mb-8">
           Three steps. No back-and-forth. No surprises.
         </p>
 

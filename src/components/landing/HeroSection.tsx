@@ -151,62 +151,27 @@ const HeroSection = () => {
           {/* LEFT: copy + CTAs (7 cols on desktop for editorial feel) */}
           <div className="md:col-span-7 min-w-0 max-w-full animate-fade-in">
             <div className="w-full max-w-[34rem] mx-auto md:mx-0">
-              {/* Eyebrow with live indicator */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border/60 text-[11px] sm:text-xs font-medium tracking-wide text-foreground shadow-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                </span>
-                <span>Built in Louisiana · Live across the state</span>
+              {/* Eyebrow badge */}
+              <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="truncate">Built in Louisiana, for Louisiana</span>
               </div>
 
-              {/* Editorial headline */}
-              <h1 className="mt-5 text-[2.5rem] sm:text-5xl lg:text-[4rem] font-display font-bold text-foreground leading-[0.98] tracking-tight text-balance">
-                Get help.
-                <br />
-                <span className="italic font-normal text-muted-foreground">or get</span>{" "}
-                <span className="relative inline-block">
-                  <span className="relative z-10 text-primary">paid for it.</span>
+              {/* Headline + subhead */}
+              <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
+                Your local{" "}
+                <span className="relative inline">
+                  <span className="relative z-10 text-primary">task partner.</span>
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 bottom-1.5 h-3 bg-primary/20 -z-0 rounded"
+                    className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
                   />
                 </span>
               </h1>
 
-              <p className="mt-4 sm:mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto md:mx-0">
-                Louisiana's trusted marketplace for everyday tasks — cleaning, yard work, moving, errands and more. Posted by neighbors, done by neighbors.
+              <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
+                Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
-
-              {/* Inline stat strip */}
-              <div className="mt-6 flex items-center justify-center md:justify-start gap-5 sm:gap-7">
-                <div className="text-left">
-                  <div className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums">
-                    {stats ? stats.users.toLocaleString() : "—"}+
-                  </div>
-                  <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Neighbors
-                  </div>
-                </div>
-                <div className="h-8 w-px bg-border" />
-                <div className="text-left">
-                  <div className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums">
-                    {stats ? stats.completed.toLocaleString() : "—"}
-                  </div>
-                  <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Tasks done
-                  </div>
-                </div>
-                <div className="h-8 w-px bg-border hidden sm:block" />
-                <div className="text-left hidden sm:block">
-                  <div className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums">
-                    4.9★
-                  </div>
-                  <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Avg rating
-                  </div>
-                </div>
-              </div>
 
               {/* Category pills */}
               <div className="relative w-full mt-6">
@@ -316,21 +281,6 @@ const HeroSection = () => {
                 </div>
               )}
 
-              {/* Floating verified-helpr card (bottom-right) */}
-              <div className="hidden sm:flex absolute -bottom-5 -right-4 lg:-right-8 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:800ms] opacity-0">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent/40 to-primary/20 flex items-center justify-center shrink-0">
-                  <CheckCircle className="w-4 h-4 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-foreground leading-tight">
-                    Verified Helpr
-                  </p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Star className="w-2.5 h-2.5 fill-accent text-accent" />
-                    4.9 · 127 jobs
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

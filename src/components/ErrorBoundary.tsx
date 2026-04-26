@@ -24,7 +24,16 @@ const isChunkLoadError = (err: unknown): boolean => {
     /Failed to fetch dynamically imported module/i.test(msg) ||
     /Importing a module script failed/i.test(msg) ||
     /ChunkLoadError/i.test(msg) ||
-    /Loading chunk \d+ failed/i.test(msg)
+    /Loading chunk \d+ failed/i.test(msg) ||
+    // Stale React module after HMR / deploy: the previous render's React
+    // dispatcher was unmounted while a lazy chunk finished loading, so any
+    // hook call (useContext, useState, etc.) sees a null dispatcher. A
+    // hard reload re-binds every module to the same React instance.
+    /dispatcher\.use[A-Z]\w*/i.test(msg) ||
+    /Cannot read propert(y|ies) of null \(reading 'use[A-Z]\w*'\)/i.test(msg) ||
+    /null is not an object \(evaluating '[\w.]*dispatcher/i.test(msg) ||
+    // Invalid hook call — same root cause (mismatched React instances).
+    /Invalid hook call/i.test(msg)
   );
 };
 

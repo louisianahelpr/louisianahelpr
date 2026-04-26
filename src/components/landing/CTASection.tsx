@@ -5,9 +5,9 @@ const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 
 const CTASection = () => {
   return (
-    <section className="px-4 py-20">
-      <div className="container mx-auto max-w-5xl">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/85 px-5 py-14 text-center shadow-[0_30px_80px_-30px_hsl(var(--primary)/0.6)] sm:px-12 sm:py-20">
+    <section className="px-4 py-12">
+      <div className="container mx-auto max-w-3xl">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/85 px-4 py-10 text-center shadow-[0_20px_60px_-25px_hsl(var(--primary)/0.6)] sm:px-8 sm:py-12">
           {/* Decorative blobs */}
           <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-accent/30 blur-3xl" aria-hidden="true" />
           <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-secondary/40 blur-3xl" aria-hidden="true" />
@@ -28,26 +28,26 @@ const CTASection = () => {
               Built for Louisiana
             </div>
 
-            <h2 className="mx-auto mt-5 max-w-2xl text-3xl font-display font-bold leading-tight text-primary-foreground sm:text-5xl">
+            <h2 className="mx-auto mt-4 max-w-xl text-2xl font-display font-bold leading-tight text-primary-foreground sm:text-3xl">
               Ready to get help or start earning?
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
+            <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-primary-foreground/80">
               Join Louisiana neighbors posting local tasks, finding trusted helprs, and getting work done — all from your phone.
             </p>
 
             {/* Action buttons */}
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-3">
               <a
                 href={APP_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-foreground px-7 py-3.5 text-background shadow-[0_10px_30px_-10px_hsl(var(--foreground)/0.6)] ring-1 ring-foreground/10 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-12px_hsl(var(--foreground)/0.7)] sm:w-auto"
+                className="group inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground px-5 py-2.5 text-background shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.6)] ring-1 ring-foreground/10 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_16px_36px_-10px_hsl(var(--foreground)/0.7)] sm:w-auto"
                 aria-label="Download Helpr on the App Store"
               >
-                <Apple className="h-7 w-7 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <Apple className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[10px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
-                  <span className="block text-lg font-semibold tracking-tight">App Store</span>
+                  <span className="block text-[9px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
+                  <span className="block text-sm font-semibold tracking-tight">App Store</span>
                 </span>
               </a>
 
@@ -55,19 +55,19 @@ const CTASection = () => {
                 href={FACEBOOK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-foreground px-7 py-3.5 text-background shadow-[0_10px_30px_-10px_hsl(var(--foreground)/0.6)] ring-1 ring-foreground/10 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-12px_hsl(var(--foreground)/0.7)] sm:w-auto"
+                className="group inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground px-5 py-2.5 text-background shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.6)] ring-1 ring-foreground/10 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_16px_36px_-10px_hsl(var(--foreground)/0.7)] sm:w-auto"
                 aria-label="Follow Helpr on Facebook"
               >
-                <Facebook className="h-7 w-7 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <Facebook className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[10px] font-medium uppercase tracking-[0.18em] opacity-70">Follow us on</span>
-                  <span className="block text-lg font-semibold tracking-tight">Facebook</span>
+                  <span className="block text-[9px] font-medium uppercase tracking-[0.18em] opacity-70">Follow us on</span>
+                  <span className="block text-sm font-semibold tracking-tight">Facebook</span>
                 </span>
               </a>
             </div>
 
             {/* Trust strip */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-primary-foreground/70">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-primary-foreground/70">
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground/60" />
                 Free to join

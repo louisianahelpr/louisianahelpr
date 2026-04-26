@@ -601,8 +601,8 @@ const Signup = () => {
                   ) : (
                     <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
                   )}
-                  <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md border-2 border-card">
-                    <Camera className="w-3.5 h-3.5" />
+                  <div className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-card">
+                    <Camera className="w-5 h-5" strokeWidth={2.25} />
                   </div>
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />

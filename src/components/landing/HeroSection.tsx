@@ -123,7 +123,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-[80vh] sm:min-h-screen overflow-hidden"
+      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
     >
       {/* MAIN: split-screen, image locked to right edge */}
       <div className="flex-1 w-full min-w-0 grid lg:grid-cols-2 items-stretch pb-10 sm:pb-14">

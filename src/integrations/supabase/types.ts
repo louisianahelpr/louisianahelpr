@@ -3218,6 +3218,31 @@ export type Database = {
           invited_by_name: string
         }[]
       }
+      get_public_completed_job_count: { Args: never; Returns: number }
+      get_public_job_stories: {
+        Args: { p_limit?: number }
+        Returns: {
+          category: string
+          helper_id: string
+          id: string
+          poster_completed_at: string
+          proof_after_urls: string[]
+          proof_before_urls: string[]
+          title: string
+        }[]
+      }
+      get_public_open_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          budget: number
+          category: string
+          date_needed: string
+          id: string
+          is_urgent: boolean
+          location: string
+          title: string
+        }[]
+      }
       get_public_platform_settings: {
         Args: never
         Returns: {

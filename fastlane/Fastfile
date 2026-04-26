@@ -556,6 +556,51 @@ platform :ios do
   end
 
   # ──────────────────────────────────────────────────────────────────────
+  # Metadata-only sync (no build, no submission)
+  #
+  # Pushes everything under fastlane/metadata/ to App Store Connect:
+  #   - App name, subtitle, promotional text, description, keywords
+  #   - Marketing / privacy / support URLs
+  #   - Categories
+  #   - Review information (demo account, notes, contact)
+  #   - Screenshots (if present under fastlane/screenshots/)
+  #
+  # Does NOT build the app, does NOT bump the build number, and does NOT
+  # submit anything for App Store review. Safe to run anytime — Apple just
+  # updates the "Prepare for Submission" version's listing fields.
+  #
+  # Run from GitHub Actions → "iOS Metadata Sync" → "Run workflow",
+  # or locally with: bundle exec fastlane ios metadata
+  # ──────────────────────────────────────────────────────────────────────
+  desc "Upload App Store listing metadata (text, URLs, screenshots) without building or submitting"
+  lane :metadata do
+    api_key = asc_api_key
+
+    upload_to_app_store(
+      api_key:                           api_key,
+      app_identifier:                    APP_ID,
+      # Metadata only — no binary involved.
+      skip_binary_upload:                true,
+      # Don't submit for review; just save the listing fields.
+      submit_for_review:                 false,
+      automatic_release:                 false,
+      # Overwrite whatever is currently in the editable version on ASC.
+      force:                             true,
+      # Don't run precheck on IAPs (we have none and it errors).
+      precheck_include_in_app_purchases: false,
+      # Push everything that lives in fastlane/metadata/.
+      skip_metadata:                     false,
+      metadata_path:                     "fastlane/metadata",
+      # Push screenshots too if any exist; harmless when the dir is empty.
+      skip_screenshots:                  !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
+                                         Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
+      screenshots_path:                  "fastlane/screenshots"
+    )
+
+    UI.success("App Store metadata synced from fastlane/metadata/ → App Store Connect")
+  end
+
+  # ──────────────────────────────────────────────────────────────────────
   # App Store submission
   # ──────────────────────────────────────────────────────────────────────
   desc "Bump build, archive, upload, and submit for App Store review"

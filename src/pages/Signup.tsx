@@ -766,16 +766,11 @@ const Signup = () => {
 
             {/* Path A: Posters — quick skip card, now SECOND */}
             <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Only here to post jobs?</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    You're done — nothing below is required. Skip and start posting in seconds.
-                  </p>
-                </div>
+              <div className="space-y-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Only here to post jobs?</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  You're done — nothing below is required. Skip and start posting in seconds.
+                </p>
               </div>
               <Button
                 variant="outline"

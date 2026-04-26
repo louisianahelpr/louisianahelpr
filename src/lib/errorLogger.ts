@@ -8,8 +8,26 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { captureException as sentryCapture } from "@/lib/sentry";
-import { captureException as posthogCapture } from "@/lib/posthog";
+
+// Sentry + PostHog are dynamically imported (NOT statically) to keep them
+// out of the initial bundle. Static imports here would pull ~100KB of
+// vendor code into the entry chunk via main.tsx → errorLogger → sentry/
+// posthog, defeating the deferred init in main.tsx and triggering
+// Lighthouse's "Reduce unused JavaScript" audit. The fan-out below
+// resolves to no-ops if Sentry/PostHog haven't initialized yet.
+async function fanOutToObservability(
+  err: unknown,
+  extra: Record<string, unknown>,
+) {
+  try {
+    const [{ captureException: sentryCapture }, { captureException: posthogCapture }] =
+      await Promise.all([import("@/lib/sentry"), import("@/lib/posthog")]);
+    sentryCapture(err, extra);
+    posthogCapture(err, extra);
+  } catch {
+    /* observability must never break the app */
+  }
+}
 
 type Severity = "info" | "warning" | "error" | "fatal";
 

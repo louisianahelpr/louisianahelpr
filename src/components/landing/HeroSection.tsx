@@ -142,15 +142,9 @@ const HeroSection = () => {
               Built in Louisiana, for Louisiana
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance break-words">
               Where Louisiana neighbors{" "}
-              <span className="relative inline-block">
-                <span className="relative z-10 text-primary">help neighbors.</span>
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
-                />
-              </span>
+              <span className="text-primary">help neighbors.</span>
             </h1>
 
             <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto md:mx-0 leading-relaxed">

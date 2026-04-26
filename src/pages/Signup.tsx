@@ -738,18 +738,23 @@ const Signup = () => {
         {/* Step 2: Optional helpr-quality details (everyone can skip) */}
         {step === 2 && (
           <div className="space-y-4">
-            {/* Top intent banner + Skip CTA */}
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Just here to post jobs?</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  You're already done — none of the fields below are required. Skip and start posting in seconds.
-                </p>
+            {/* Path A: Posters — quick skip card */}
+            <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Only here to post jobs?</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    You're done — nothing below is required. Skip and start posting in seconds.
+                  </p>
+                </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-primary/40 text-primary hover:bg-primary/10"
+                className="w-full"
                 disabled={loading}
                 onClick={createAccountAndFinish}
               >
@@ -757,9 +762,30 @@ const Signup = () => {
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
                   : <>Skip & finish signup <ArrowRight className="w-4 h-4 ml-1" /></>}
               </Button>
-              <p className="text-[11px] text-muted-foreground leading-snug">
-                Planning to apply to jobs? Filling these out makes your profile look complete to posters — empty profiles rarely get hired.
-              </p>
+            </div>
+
+            {/* Path B: Helprs — strongly emphasized completion card */}
+            <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-4 space-y-3 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-foreground">Planning to apply for jobs?</p>
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground/80 leading-relaxed">
+                    Posters hire helprs with complete profiles. <span className="font-semibold text-foreground">Empty profiles rarely get picked.</span> Take 2 minutes now — fill out the fields below to stand out, get more offers, and start earning faster.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-primary font-medium pl-12">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary" />
+                Skills, photos, and a bio can <span className="font-bold">3× your chances</span> of being hired
+              </div>
             </div>
 
             {/* Referral code — moved from Step 1 to Optional */}

@@ -54,6 +54,35 @@ def ci_environment?
   end
 end
 
+def distribution_certificate_p12_base64
+  ENV["IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64"].to_s.strip
+end
+
+def distribution_certificate_password
+  ENV["IOS_DISTRIBUTION_CERTIFICATE_PASSWORD"].to_s
+end
+
+def import_distribution_certificate_from_p12!(keychain_name:, keychain_password:)
+  encoded_p12 = distribution_certificate_p12_base64
+  UI.user_error!("IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 is required in CI. Export your existing Apple Distribution certificate as a .p12, base64 it, and add it as a GitHub secret.") if encoded_p12.empty?
+
+  p12_path = File.join(Dir.tmpdir, "helpr-distribution-certificate.p12")
+  File.binwrite(p12_path, Base64.decode64(encoded_p12))
+
+  import_certificate(
+    certificate_path: p12_path,
+    certificate_password: distribution_certificate_password,
+    keychain_name: keychain_name,
+    keychain_password: keychain_password
+  )
+
+  UI.success("Imported existing Apple Distribution certificate from IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64")
+rescue ArgumentError => e
+  UI.user_error!("IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 is not valid base64: #{e.message}")
+ensure
+  FileUtils.rm_f(p12_path) if defined?(p12_path) && p12_path
+end
+
 def remote_latest_build_number_for_version(api_key, version)
   # Latest build number for the SPECIFIC marketing version on TestFlight.
   latest_testflight_build_number(
@@ -393,15 +422,12 @@ platform :ios do
       ENV["MATCH_KEYCHAIN_NAME"]     = keychain_name
       ENV["MATCH_KEYCHAIN_PASSWORD"] = keychain_password
 
-      # Fetch (or create) a Distribution certificate via the ASC API key and
-      # import it into the ephemeral keychain.
-      cert(
-        api_key:        api_key,
-        team_id:        team_id,
-        development:    false,
-        keychain_path:  File.expand_path("~/Library/Keychains/#{keychain_name}-db"),
-        keychain_password: keychain_password,
-        output_path:    File.join(REPO_ROOT, "build", "certs")
+      # Import an existing Apple Distribution certificate from CI secrets.
+      # This avoids Fastlane creating a new certificate and hitting Apple's
+      # "maximum number of Distribution certificates" limit.
+      import_distribution_certificate_from_p12!(
+        keychain_name: keychain_name,
+        keychain_password: keychain_password
       )
     end
 

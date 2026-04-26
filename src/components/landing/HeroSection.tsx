@@ -32,8 +32,11 @@ import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
 // display × DPR. Without multiple entries, Chrome would always pick the 1000w
 // file even when only ~500 CSS px are needed (Lighthouse: "image larger than
 // needed", ~110 KiB wasted).
+// Sizes tuned to actual rendered widths (Lighthouse measured ~364 CSS px on
+// mobile, ~600 px on tablet, ~500 px on desktop). At 2× DPR mobile picks 600w
+// instead of 1000w — saves ~60 KiB on the LCP request without quality loss.
 const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg1000} 1000w`;
-const heroSizes = "(max-width: 640px) 400px, (max-width: 1023px) 600px, 500px";
+const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 500px, 500px";
 
 // Inject a <link rel="preload"> for the LCP hero image as soon as this module
 // loads, so the browser can discover the request before React renders the <img>.

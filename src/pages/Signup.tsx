@@ -402,7 +402,8 @@ const Signup = () => {
             {/* Dev-only step jumper — visible on preview/localhost so you can click through every signup screen without making an account. Hidden in production. */}
             {(typeof window !== "undefined" &&
               (window.location.hostname === "localhost" ||
-                window.location.hostname.endsWith(".lovable.app"))) && (
+                window.location.hostname.endsWith(".lovable.app") ||
+                window.location.hostname.endsWith(".lovableproject.com"))) && (
               <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-xs">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>

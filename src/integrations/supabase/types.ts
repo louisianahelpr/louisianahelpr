@@ -2335,6 +2335,48 @@ export type Database = {
           },
         ]
       }
+      saved_searches: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          last_notified_at: string | null
+          location_keyword: string | null
+          max_budget: number | null
+          min_budget: number | null
+          name: string
+          notify_enabled: boolean
+          parish: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_notified_at?: string | null
+          location_keyword?: string | null
+          max_budget?: number | null
+          min_budget?: number | null
+          name: string
+          notify_enabled?: boolean
+          parish?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_notified_at?: string | null
+          location_keyword?: string | null
+          max_budget?: number | null
+          min_budget?: number | null
+          name?: string
+          notify_enabled?: boolean
+          parish?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_post_drafts: {
         Row: {
           content: string

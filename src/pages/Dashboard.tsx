@@ -24,6 +24,7 @@ import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
+import { SavedSearches } from "@/components/SavedSearches";
 
 import PayoutSetupDialog from "@/components/PayoutSetupDialog";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
@@ -444,6 +445,21 @@ const Dashboard = () => {
                   <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-xs text-muted-foreground hover:text-destructive h-8 rounded-xl btn-press">
                     <X className="w-3 h-3 mr-1" /> Clear
                   </Button>
+                )}
+                {profile?.role === "helper" && user && (
+                  <SavedSearches
+                    userId={user.id}
+                    currentFilters={{
+                      selectedCategory: filters.selectedCategory,
+                      maxBudget: filters.maxBudget,
+                      locationFilter: filters.locationFilter,
+                    }}
+                    onApplySearch={(s) => {
+                      filters.setSelectedCategory(s.category);
+                      filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
+                      filters.setLocationFilter(s.location_keyword || "");
+                    }}
+                  />
                 )}
                 <Button
                   variant="ghost"

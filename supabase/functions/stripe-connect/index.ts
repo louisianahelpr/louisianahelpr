@@ -162,6 +162,23 @@ serve(async (req) => {
 
       await stripe.accounts.deleteExternalAccount(profile.stripe_account_id, method_id);
 
+      // Security alert: removing a payout method is a sensitive action.
+      // Log an in-app notification so the helpr can spot account takeover
+      // attempts. Stripe's hosted onboarding handles 2FA + email confirm
+      // for ADDING a new method, so this closes the loop on removals.
+      try {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: user.id,
+          title: "🔒 Payout method removed",
+          message:
+            "A payout method was just removed from your account. If this wasn't you, contact support immediately.",
+          type: "financial_alerts",
+          link: "/profile?tab=payment",
+        });
+      } catch (_e) {
+        // notification failure must not block the actual removal
+      }
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

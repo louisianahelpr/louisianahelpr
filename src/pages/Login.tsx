@@ -97,8 +97,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 py-10">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 py-10 sm:px-8 sm:py-16">
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg">
         <div className="mb-4">
           <Link
             to="/"

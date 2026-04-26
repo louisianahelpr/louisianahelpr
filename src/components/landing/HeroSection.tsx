@@ -150,7 +150,7 @@ const HeroSection = () => {
         <div className="grid min-w-0 md:grid-cols-2 gap-8 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
           <div className="min-w-0 max-w-full animate-fade-in md:flex md:justify-center lg:justify-start">
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-[21rem] sm:max-w-md">
               {/* Eyebrow badge */}
               <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />

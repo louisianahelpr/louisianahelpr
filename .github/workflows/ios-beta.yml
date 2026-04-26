@@ -17,7 +17,9 @@ concurrency:
 jobs:
   build-and-deploy:
     name: Build & upload to TestFlight
-    runs-on: macos-latest
+    # macos-15 image ships with Xcode 26 (iOS 26 SDK), required by Apple
+    # for all App Store / TestFlight uploads from April 28, 2026 onward.
+    runs-on: macos-15
     timeout-minutes: 60
 
     env:

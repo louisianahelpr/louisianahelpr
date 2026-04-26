@@ -156,7 +156,7 @@ const HeroSection = () => {
               </h1>
 
               {/* Subhead */}
-              <p className="mt-5 sm:mt-6 text-lg sm:text-xl lg:text-2xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0">
+              <p className="mt-5 sm:mt-6 text-lg sm:text-xl text-foreground/75 font-medium leading-snug max-w-xl mx-auto md:mx-0 lg:text-xl font-sans">
                 Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
 

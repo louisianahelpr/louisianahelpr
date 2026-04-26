@@ -44,7 +44,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
 
         {/* Desktop */}
         <div className="hidden lg:flex items-center gap-6">
-          <Link to="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-sans">
             How it works
           </Link>
           <Link to="/#open-jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

@@ -494,7 +494,7 @@ const Signup = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  You'll be the owner. After signup, invite up to 4 team members from the Team page.
+                  You'll be the owner. Invite 1 teammate free (2 seats total) — add more anytime with seat upgrades.
                 </p>
               </div>
             )}

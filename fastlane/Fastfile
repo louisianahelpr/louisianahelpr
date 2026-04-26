@@ -520,6 +520,12 @@ platform :ios do
     assert_ios_identity!
   end
 
+  desc "Sync fastlane/metadata values into the committed Xcode project"
+  lane :sync_xcode_metadata do
+    sync_metadata_to_xcode!
+    assert_ios_identity!
+  end
+
   # Ensure the committed Xcode project uses the Apple Developer Team ID before
   # archiving, so signing succeeds in CI without manual Xcode edits.
   # On CI we use MANUAL signing because automatic signing requires a logged-in

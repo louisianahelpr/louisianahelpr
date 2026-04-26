@@ -482,8 +482,8 @@ const Signup = () => {
               </p>
             </div>
 
-        {/* Step 1: Account basics — organized top-down: Profile → Account → Personal → ID → Policies */}
-        {step === 1 && (
+        {/* Step 2: About you + ID — organized top-down: Profile → Personal → ID */}
+        {step === 2 && (
           <div className="space-y-6">
 
             {isBusinessSignup && (

@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff, ShieldCheck, UserRound, BadgeCheck, Lock } from "lucide-react";
+import { Camera, ArrowRight, ArrowLeft, FileText, X, ImagePlus, Gift, Loader2, Eye, EyeOff, ShieldCheck, UserRound, BadgeCheck, Lock, Award, Shield } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
@@ -71,6 +72,14 @@ const Signup = () => {
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
 
+  // Step 3 — Professional credentials (optional)
+  const [isLicensed, setIsLicensed] = useState(false);
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [licensePreview, setLicensePreview] = useState<string | null>(null);
+  const [isInsured, setIsInsured] = useState(false);
+  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
+
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -100,6 +109,22 @@ const Signup = () => {
     if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
       setIdFile(file);
       setIdPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  };
+
+  const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "License document")) {
+      setLicenseFile(file);
+      setLicensePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  };
+
+  const handleInsuranceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file, ALLOWED_DOC_TYPES, "Insurance document")) {
+      setInsuranceFile(file);
+      setInsurancePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
     }
   };
 
@@ -200,6 +225,12 @@ const Signup = () => {
     const idBase64 = idFile ? await fileToBase64(idFile) : null;
     const idExt = idFile ? idFile.name.split(".").pop() : null;
 
+    const licenseBase64 = licenseFile ? await fileToBase64(licenseFile) : null;
+    const licenseExt = licenseFile ? licenseFile.name.split(".").pop() : null;
+
+    const insuranceBase64 = insuranceFile ? await fileToBase64(insuranceFile) : null;
+    const insuranceExt = insuranceFile ? insuranceFile.name.split(".").pop() : null;
+
     const portfolioData = [];
     for (const file of portfolioFiles) {
       portfolioData.push({
@@ -209,11 +240,11 @@ const Signup = () => {
       });
     }
 
-    return { avatarBase64, avatarExt, idBase64, idExt, portfolioData };
+    return { avatarBase64, avatarExt, idBase64, idExt, licenseBase64, licenseExt, insuranceBase64, insuranceExt, portfolioData };
   };
 
   const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
+    const { avatarBase64, avatarExt, idBase64, idExt, licenseBase64, licenseExt, insuranceBase64, insuranceExt, portfolioData } = await prepareFileData();
 
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
@@ -224,6 +255,14 @@ const Signup = () => {
         idBase64,
         idExt,
         idContentType: idFile?.type,
+        licenseBase64,
+        licenseExt,
+        licenseContentType: licenseFile?.type,
+        isLicensed,
+        insuranceBase64,
+        insuranceExt,
+        insuranceContentType: insuranceFile?.type,
+        isInsured,
         portfolioFiles: portfolioData,
         phone,
         bio,
@@ -956,6 +995,139 @@ const Signup = () => {
               )}
             </div>
 
+            {/* Professional Credentials — optional, with hard requirement when toggled */}
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
+              <div className="text-center space-y-1">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Award className="w-6 h-6 text-primary" strokeWidth={1.75} />
+                </div>
+                <h3 className="text-base font-display font-semibold text-foreground">Professional credentials</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Optional — earn a verified badge that helps you get picked first. You can also add these later in Profile → Credentials.
+                </p>
+              </div>
+
+              {/* Licensed toggle */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-licensed" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <BadgeCheck className="w-4 h-4 text-primary" /> I am licensed
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Trade, contractor, or professional license.</p>
+                  </div>
+                  <Switch
+                    id="is-licensed"
+                    checked={isLicensed}
+                    onCheckedChange={(v) => {
+                      setIsLicensed(v);
+                      if (!v) { setLicenseFile(null); setLicensePreview(null); }
+                    }}
+                  />
+                </div>
+                {isLicensed && (
+                  licenseFile ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {licensePreview ? (
+                          <img src={licensePreview} alt="License preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{licenseFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{(licenseFile.size / 1024).toFixed(0)} KB · pending review</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setLicenseFile(null); setLicensePreview(null); }}
+                        className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
+                      <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                      <span className="text-sm font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
+                      <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        className="hidden"
+                        onChange={handleLicenseChange}
+                      />
+                    </label>
+                  )
+                )}
+              </div>
+
+              {/* Insured toggle */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-insured" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 text-primary" /> I am insured
+                    </Label>
+                    <p className="text-xs text-muted-foreground">General liability or professional insurance.</p>
+                  </div>
+                  <Switch
+                    id="is-insured"
+                    checked={isInsured}
+                    onCheckedChange={(v) => {
+                      setIsInsured(v);
+                      if (!v) { setInsuranceFile(null); setInsurancePreview(null); }
+                    }}
+                  />
+                </div>
+                {isInsured && (
+                  insuranceFile ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {insurancePreview ? (
+                          <img src={insurancePreview} alt="Insurance preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{insuranceFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{(insuranceFile.size / 1024).toFixed(0)} KB · pending review</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setInsuranceFile(null); setInsurancePreview(null); }}
+                        className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
+                      <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                      <span className="text-sm font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
+                      <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        className="hidden"
+                        onChange={handleInsuranceChange}
+                      />
+                    </label>
+                  )
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground text-center">
+                Documents are reviewed by our team. Your verified badge appears once approved.
+              </p>
+            </div>
+
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
@@ -1015,9 +1187,11 @@ const Signup = () => {
                 className="flex-1"
                 onClick={() => {
                   if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return; }
+                  if (isLicensed && !licenseFile) { toast.error("Please upload your license or turn off the Licensed toggle"); return; }
+                  if (isInsured && !insuranceFile) { toast.error("Please upload your insurance document or turn off the Insured toggle"); return; }
                   createAccountAndFinish();
                 }}
-                disabled={loading || !idFile}
+                disabled={loading || !idFile || (isLicensed && !licenseFile) || (isInsured && !insuranceFile)}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>

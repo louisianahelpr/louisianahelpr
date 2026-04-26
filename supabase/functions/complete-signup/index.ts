@@ -26,6 +26,14 @@ serve(async (req) => {
       idBase64,
       idExt,
       idContentType,
+      licenseBase64,
+      licenseExt,
+      licenseContentType,
+      isLicensed,
+      insuranceBase64,
+      insuranceExt,
+      insuranceContentType,
+      isInsured,
       portfolioFiles,
       phone,
       bio,
@@ -144,6 +152,8 @@ serve(async (req) => {
     };
     checkBase64Size(avatarBase64, "Profile picture");
     checkBase64Size(idBase64, "ID document");
+    checkBase64Size(licenseBase64, "License document");
+    checkBase64Size(insuranceBase64, "Insurance document");
     if (portfolioFiles && Array.isArray(portfolioFiles)) {
       for (const f of portfolioFiles) {
         checkBase64Size(f.base64, "Portfolio file");
@@ -152,6 +162,8 @@ serve(async (req) => {
 
     let avatarUrl: string | null = null;
     let idDocumentUrl: string | null = null;
+    let licenseUrl: string | null = null;
+    let insuranceUrl: string | null = null;
     const portfolioUrls: string[] = [];
 
     // 1. Upload avatar
@@ -188,6 +200,42 @@ serve(async (req) => {
         console.error("ID upload error:", idErr);
       } else {
         idDocumentUrl = idPath;
+      }
+    }
+
+    // 2b. Upload license document (if provided)
+    if (licenseBase64 && licenseExt) {
+      const licensePath = `${userId}/credentials/license-${Date.now()}.${licenseExt}`;
+      const licenseBytes = Uint8Array.from(atob(licenseBase64), (c) => c.charCodeAt(0));
+      const { error: licErr } = await supabase.storage
+        .from("user-documents")
+        .upload(licensePath, licenseBytes, {
+          contentType: licenseContentType || "application/octet-stream",
+          upsert: true,
+        });
+      if (licErr) {
+        console.error("License upload error:", licErr);
+      } else {
+        const { data: lUrl } = supabase.storage.from("user-documents").getPublicUrl(licensePath);
+        licenseUrl = lUrl.publicUrl;
+      }
+    }
+
+    // 2c. Upload insurance document (if provided)
+    if (insuranceBase64 && insuranceExt) {
+      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${insuranceExt}`;
+      const insuranceBytes = Uint8Array.from(atob(insuranceBase64), (c) => c.charCodeAt(0));
+      const { error: insErr } = await supabase.storage
+        .from("user-documents")
+        .upload(insurancePath, insuranceBytes, {
+          contentType: insuranceContentType || "application/octet-stream",
+          upsert: true,
+        });
+      if (insErr) {
+        console.error("Insurance upload error:", insErr);
+      } else {
+        const { data: iUrl } = supabase.storage.from("user-documents").getPublicUrl(insurancePath);
+        insuranceUrl = iUrl.publicUrl;
       }
     }
 
@@ -251,6 +299,24 @@ serve(async (req) => {
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;
     if (idDocumentUrl) updateData.id_document_url = idDocumentUrl;
+    if (typeof isLicensed === "boolean") {
+      updateData.is_licensed = isLicensed;
+      if (isLicensed && licenseUrl) {
+        updateData.license_url = licenseUrl;
+        updateData.license_status = "pending";
+      } else if (!isLicensed) {
+        updateData.license_status = "none";
+      }
+    }
+    if (typeof isInsured === "boolean") {
+      updateData.is_insured = isInsured;
+      if (isInsured && insuranceUrl) {
+        updateData.insurance_url = insuranceUrl;
+        updateData.insurance_status = "pending";
+      } else if (!isInsured) {
+        updateData.insurance_status = "none";
+      }
+    }
     if (portfolioUrls.length > 0) updateData.portfolio_urls = portfolioUrls;
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;

@@ -7,14 +7,19 @@ const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 const Footer = () => (
   <footer className="border-t border-border py-16 md:py-20 px-4">
     <div className="container mx-auto">
-      {/* Main grid: brand (2 cols) + Company + Legal & Pricing + Connect */}
-      <div className="grid gap-8 md:grid-cols-5">
-        <div className="md:col-span-2 space-y-4">
+      {/* Main grid: brand + Company + Legal & Pricing + Connect */}
+      <div className="grid gap-10 md:gap-8 md:grid-cols-12">
+        {/* Brand block */}
+        <div className="md:col-span-4 space-y-4">
           <Link to="/" className="text-xl font-display font-bold text-primary">
             Helpr
           </Link>
-          <p className="text-sm text-muted-foreground max-w-md">
-            Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
+          <p className="text-sm text-muted-foreground max-w-[16rem] leading-relaxed">
+            Hire a Helpr or find local work.
+            <br />
+            Your trusted Louisiana partner
+            <br />
+            for everyday tasks.
           </p>
           <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
             <a
@@ -32,7 +37,7 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div>
+        <div className="md:col-span-2">
           <h3 className="text-sm font-semibold text-foreground mb-3">Company</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li><Link to="/features" className="hover:text-primary transition-colors">Features</Link></li>
@@ -44,7 +49,7 @@ const Footer = () => (
         </div>
 
         {/* Legal & pricing */}
-        <div>
+        <div className="md:col-span-3">
           <h3 className="text-sm font-semibold text-foreground mb-3">Legal & Pricing</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li><Link to="/rules" className="hover:text-primary transition-colors">Pricing & Fees</Link></li>
@@ -55,41 +60,40 @@ const Footer = () => (
         </div>
 
         {/* Connect with us */}
-        <div>
+        <div className="md:col-span-3 md:text-right">
           <h3 className="text-sm font-semibold text-foreground mb-3">Connect with us</h3>
-          <ul className="space-y-2.5 text-sm flex flex-col items-end">
-            <li className="w-auto">
+          <ul className="space-y-2.5 text-sm flex flex-col md:items-end">
+            <li>
               <a
                 href={APP_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-foreground px-3 text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
+                className="group inline-flex h-11 w-44 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
                 aria-label="App Store — Download Helpr (opens in a new tab)"
               >
-                <Apple className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[7px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
-                  <span className="block text-[11px] font-semibold tracking-tight">App Store</span>
+                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
+                  <span className="block text-xs font-semibold tracking-tight">App Store</span>
                 </span>
               </a>
             </li>
-            <li className="w-auto">
+            <li>
               <a
                 href={FACEBOOK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[hsl(var(--facebook))] px-3 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
+                className="group inline-flex h-11 w-44 items-center justify-center gap-2 rounded-lg bg-[hsl(var(--facebook))] px-4 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
                 aria-label="Facebook — Follow Helpr (opens in a new tab)"
               >
-                <Facebook className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[7px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
-                  <span className="block text-[11px] font-semibold tracking-tight">Facebook</span>
+                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
+                  <span className="block text-xs font-semibold tracking-tight">Facebook</span>
                 </span>
               </a>
             </li>
           </ul>
-
         </div>
       </div>
 

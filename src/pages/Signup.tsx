@@ -244,7 +244,7 @@ const Signup = () => {
   };
 
   const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, idBase64, idExt, portfolioData } = await prepareFileData();
+    const { avatarBase64, avatarExt, idBase64, idExt, licenseBase64, licenseExt, insuranceBase64, insuranceExt, portfolioData } = await prepareFileData();
 
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
@@ -255,6 +255,14 @@ const Signup = () => {
         idBase64,
         idExt,
         idContentType: idFile?.type,
+        licenseBase64,
+        licenseExt,
+        licenseContentType: licenseFile?.type,
+        isLicensed,
+        insuranceBase64,
+        insuranceExt,
+        insuranceContentType: insuranceFile?.type,
+        isInsured,
         portfolioFiles: portfolioData,
         phone,
         bio,

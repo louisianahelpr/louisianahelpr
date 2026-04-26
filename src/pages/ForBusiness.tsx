@@ -174,9 +174,9 @@ const ForBusiness = () => {
                   </p>
                   <div className="grid grid-cols-1 gap-2">
                     {[
-                      { name: "Starter", seats: "2", price: "Free", featured: false },
+                      { name: "Starter", seats: "2", price: "Free", featured: true },
                       { name: "Crew", seats: "5", price: "$10", featured: false },
-                      { name: "Team", seats: "10", price: "$20", featured: true },
+                      { name: "Team", seats: "10", price: "$20", featured: false },
                       { name: "Enterprise", seats: "25", price: "$40", featured: false },
                     ].map((tier) => (
                       <div

@@ -9,7 +9,7 @@ to `com.Helpr`, SKU `Helpr`, Apple ID `6754470134`, Team `P85MCK558V`.
 ```bash
 git pull
 npm install
-npx cap add ios
+npm run build
 npx cap sync ios
 ```
 

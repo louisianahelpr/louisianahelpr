@@ -299,6 +299,24 @@ serve(async (req) => {
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;
     if (idDocumentUrl) updateData.id_document_url = idDocumentUrl;
+    if (typeof isLicensed === "boolean") {
+      updateData.is_licensed = isLicensed;
+      if (isLicensed && licenseUrl) {
+        updateData.license_url = licenseUrl;
+        updateData.license_status = "pending";
+      } else if (!isLicensed) {
+        updateData.license_status = "none";
+      }
+    }
+    if (typeof isInsured === "boolean") {
+      updateData.is_insured = isInsured;
+      if (isInsured && insuranceUrl) {
+        updateData.insurance_url = insuranceUrl;
+        updateData.insurance_status = "pending";
+      } else if (!isInsured) {
+        updateData.insurance_status = "none";
+      }
+    }
     if (portfolioUrls.length > 0) updateData.portfolio_urls = portfolioUrls;
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;

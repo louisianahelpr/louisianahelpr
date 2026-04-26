@@ -18,26 +18,6 @@ const CTASection = () => {
             Join Louisiana neighbors posting local tasks, finding trusted helprs, and getting work done.
           </p>
 
-          <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-            <Button
-              variant="hero-outline"
-              size="lg"
-              className="min-h-12 w-full border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary sm:w-auto"
-              onClick={() => navigate("/signup")}
-            >
-              Create free account
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              className="min-h-12 w-full text-primary-foreground hover:bg-primary-foreground/10 sm:w-auto"
-              onClick={() => navigate("/#open-jobs")}
-            >
-              Browse jobs first
-            </Button>
-          </div>
-
           <a
             href={APP_STORE_URL}
             target="_blank"

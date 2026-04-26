@@ -19,13 +19,13 @@ const CTASection = () => {
             href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mx-auto mt-6 inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-primary-foreground px-5 py-3 text-primary shadow-md transition-colors hover:bg-primary-foreground/90"
+            className="group mx-auto mt-8 inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-foreground px-7 py-3.5 text-background shadow-[0_10px_30px_-10px_hsl(var(--foreground)/0.5)] ring-1 ring-foreground/10 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-12px_hsl(var(--foreground)/0.6)]"
             aria-label="Download Helpr on the App Store"
           >
-            <Apple className="h-6 w-6" strokeWidth={1.5} />
+            <Apple className="h-7 w-7 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
             <span className="text-left leading-tight">
-              <span className="block text-[10px] uppercase tracking-wider opacity-70">Download on the</span>
-              <span className="block text-base font-semibold">App Store</span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
+              <span className="block text-lg font-semibold tracking-tight">App Store</span>
             </span>
           </a>
         </div>

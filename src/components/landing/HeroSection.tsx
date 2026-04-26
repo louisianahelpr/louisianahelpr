@@ -125,18 +125,14 @@ const HeroSection = () => {
     <section
       className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-[80vh] sm:min-h-screen overflow-hidden"
     >
-      {/* Brand gradient backdrop */}
+      {/* Clean background — flows seamlessly into next section */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-background to-accent/10"
+        className="pointer-events-none absolute inset-0 -z-10 bg-background"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-primary/15 blur-3xl -z-10"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full bg-accent/20 blur-3xl -z-10"
+        className="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-primary/10 blur-3xl -z-10"
       />
 
       {/* MAIN: split-screen, image locked to right edge */}

@@ -158,7 +158,7 @@ const HeroSection = () => {
               </div>
 
               {/* Headline + subhead */}
-              <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
+              <h1 className="mt-7 sm:mt-8 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.15] text-balance break-words">
                 Your local{" "}
                 <span className="relative inline">
                   <span className="relative z-10 text-primary">task partner.</span>
@@ -169,12 +169,36 @@ const HeroSection = () => {
                 </span>
               </h1>
 
-              <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
+              <p className="mt-5 sm:mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed">
                 Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
               </p>
 
+              {/* 3-step How it works */}
+              <div className="mt-8 sm:mt-10 grid grid-cols-3 gap-3 sm:gap-4 max-w-md mx-auto md:mx-0">
+                {[
+                  { n: "1", label: "Post" },
+                  { n: "2", label: "Match" },
+                  { n: "3", label: "Done" },
+                ].map((s, i) => (
+                  <div key={s.n} className="relative flex flex-col items-center md:items-start gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                        {s.n}
+                      </span>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">{s.label}</span>
+                    {i < 2 && (
+                      <span
+                        aria-hidden
+                        className="hidden md:block absolute top-3.5 left-9 w-[calc(100%-2.25rem)] h-px bg-gradient-to-r from-primary/30 to-transparent"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
               {/* Category pills */}
-              <div className="relative w-full mt-6">
+              <div className="relative w-full mt-8 sm:mt-10">
                 <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
                   <div className="flex min-w-max gap-2 pb-1 pr-8">
                     {categories.map((c) => (
@@ -195,7 +219,7 @@ const HeroSection = () => {
               </div>
 
               {/* CTAs */}
-              <div className="mt-7 flex flex-col sm:flex-row gap-3 w-full max-w-md mx-auto md:mx-0">
+              <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 w-full max-w-md mx-auto md:mx-0">
                 <Button
                   variant="hero"
                   size="xl"
@@ -227,10 +251,21 @@ const HeroSection = () => {
                 </Button>
               </div>
 
-              <p className="mt-3 text-[11px] sm:text-xs text-muted-foreground/80 text-center md:text-left flex items-center gap-2 justify-center md:justify-start">
-                <CheckCircle className="w-3.5 h-3.5 text-primary" />
-                Free to join · Pay only when you post · Verified helprs
-              </p>
+              {/* Trust strip */}
+              <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-primary" />
+                  Escrow protected
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                  Verified helprs
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  Louisiana-based support
+                </span>
+              </div>
             </div>
           </div>
 

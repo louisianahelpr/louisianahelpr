@@ -156,80 +156,83 @@ const HeroSection = () => {
               <span className="truncate">Built in Louisiana, for Louisiana</span>
             </div>
 
-            {/* Headline + subhead — tight pair */}
-            <h1 className="mt-5 mx-auto max-w-[21rem] text-[2rem] sm:max-w-lg sm:text-4xl lg:text-6xl md:mx-0 font-display font-bold text-foreground leading-[1.08] text-balance break-words">
-              Your local{" "}
-              <span className="relative inline">
-                <span className="relative z-10 text-primary">task partner.</span>
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
-                />
-              </span>
-            </h1>
+            {/* Unified column — everything constrained to the same width */}
+            <div className="mx-auto md:mx-0 w-full max-w-[21rem] sm:max-w-md">
+              {/* Headline + subhead — tight pair */}
+              <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
+                Your local{" "}
+                <span className="relative inline">
+                  <span className="relative z-10 text-primary">task partner.</span>
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
+                  />
+                </span>
+              </h1>
 
-            <p className="mt-3 sm:mt-4 mx-auto max-w-[21rem] sm:max-w-lg md:mx-0 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
-            </p>
+              <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
+                Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
+              </p>
 
-            {/* Category pills — extra breathing room above */}
-            <div className="relative w-full max-w-full mt-7 sm:mt-8">
-              <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
-                <div className="flex min-w-max gap-2 pb-1 pr-8">
-                  {categories.map((c) => (
-                    <span
-                      key={c.label}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
-                    >
-                      <c.icon className="w-3.5 h-3.5 text-primary" />
-                      {c.label}
-                    </span>
-                  ))}
+              {/* Category pills */}
+              <div className="relative w-full mt-7 sm:mt-8">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+                  <div className="flex min-w-max gap-2 pb-1 pr-8">
+                    {categories.map((c) => (
+                      <span
+                        key={c.label}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
+                      >
+                        <c.icon className="w-3.5 h-3.5 text-primary" />
+                        {c.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
+                />
               </div>
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
-              />
-            </div>
 
-            {/* CTAs */}
-            <div className="mt-7 sm:mt-8 grid min-h-14 grid-cols-2 gap-3 sm:gap-4 w-full max-w-[21rem] sm:max-w-md mx-auto md:mx-0">
-              <Button
-                variant="hero"
-                size="xl"
-                className="group w-full px-3"
-                onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-              >
-                <span className="relative z-10">Post a job</span>
-                <ArrowRight className="relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
-              </Button>
-              <Button
-                variant="hero-outline"
-                size="xl"
-                className="group w-full px-3"
-                onClick={() => {
-                  if (loggedIn) {
-                    navigate("/dashboard");
-                    return;
-                  }
-                  const el = document.getElementById("open-jobs");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  } else {
-                    navigate("/#open-jobs");
-                  }
-                }}
-              >
-                <Search className="transition-transform duration-300 group-hover:scale-110" />
-                <span>Browse jobs</span>
-              </Button>
-            </div>
+              {/* CTAs */}
+              <div className="mt-7 sm:mt-8 grid min-h-14 grid-cols-2 gap-3 sm:gap-4 w-full">
+                <Button
+                  variant="hero"
+                  size="xl"
+                  className="group w-full px-3"
+                  onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                >
+                  <span className="relative z-10">Post a job</span>
+                  <ArrowRight className="relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+                </Button>
+                <Button
+                  variant="hero-outline"
+                  size="xl"
+                  className="group w-full px-3"
+                  onClick={() => {
+                    if (loggedIn) {
+                      navigate("/dashboard");
+                      return;
+                    }
+                    const el = document.getElementById("open-jobs");
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    } else {
+                      navigate("/#open-jobs");
+                    }
+                  }}
+                >
+                  <Search className="transition-transform duration-300 group-hover:scale-110" />
+                  <span>Browse jobs</span>
+                </Button>
+              </div>
 
-            {/* Footnote */}
-            <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground/80 text-center md:text-left">
-              Free to join · No subscription · Pay only when you post
-            </p>
+              {/* Footnote */}
+              <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground/80 text-center md:text-left">
+                Free to join · No subscription · Pay only when you post
+              </p>
+            </div>
           </div>
 
           {/* RIGHT: image */}

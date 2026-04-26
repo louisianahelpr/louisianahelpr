@@ -18,8 +18,39 @@ WORKSPACE = File.join(REPO_ROOT, "ios/App/App.xcworkspace")
 PROJECT   = File.join(REPO_ROOT, "ios/App/App.xcodeproj")
 SCHEME    = "App"
 APP_ID    = "com.Helpr"
-APP_DISPLAY_NAME = "Louisiana Helpr"
-APP_CATEGORY_TYPE = "public.app-category.lifestyle"
+APP_NAME_METADATA_PATH = File.join(REPO_ROOT, "fastlane/metadata/en-US/name.txt")
+APP_PRIMARY_CATEGORY_PATH = File.join(REPO_ROOT, "fastlane/metadata/primary_category.txt")
+APP_CATEGORY_MAP = {
+  "BOOKS" => "public.app-category.books",
+  "BUSINESS" => "public.app-category.business",
+  "DEVELOPER_TOOLS" => "public.app-category.developer-tools",
+  "EDUCATION" => "public.app-category.education",
+  "ENTERTAINMENT" => "public.app-category.entertainment",
+  "FINANCE" => "public.app-category.finance",
+  "FOOD_AND_DRINK" => "public.app-category.food-and-drink",
+  "GAMES" => "public.app-category.games",
+  "GRAPHICS_AND_DESIGN" => "public.app-category.graphics-design",
+  "HEALTH_AND_FITNESS" => "public.app-category.healthcare-fitness",
+  "LIFESTYLE" => "public.app-category.lifestyle",
+  "MEDICAL" => "public.app-category.medical",
+  "MUSIC" => "public.app-category.music",
+  "NAVIGATION" => "public.app-category.navigation",
+  "NEWS" => "public.app-category.news",
+  "PHOTO_AND_VIDEO" => "public.app-category.photography",
+  "PRODUCTIVITY" => "public.app-category.productivity",
+  "REFERENCE" => "public.app-category.reference",
+  "SHOPPING" => "public.app-category.shopping",
+  "SOCIAL_NETWORKING" => "public.app-category.social-networking",
+  "SPORTS" => "public.app-category.sports",
+  "TRAVEL" => "public.app-category.travel",
+  "UTILITIES" => "public.app-category.utilities",
+  "WEATHER" => "public.app-category.weather"
+}
+APP_DISPLAY_NAME = File.exist?(APP_NAME_METADATA_PATH) ? File.read(APP_NAME_METADATA_PATH).strip : "Louisiana Helpr"
+APP_CATEGORY_TYPE = APP_CATEGORY_MAP.fetch(
+  File.exist?(APP_PRIMARY_CATEGORY_PATH) ? File.read(APP_PRIMARY_CATEGORY_PATH).strip.upcase : "LIFESTYLE",
+  "public.app-category.lifestyle"
+)
 
 CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || File.join(REPO_ROOT, "fastlane/changelog.txt")
 

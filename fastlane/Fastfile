@@ -321,7 +321,24 @@ def set_next_build_number!(api_key)
     build_number: build_number,
     xcodeproj: PROJECT
   )
+  persist_build_number!(build_number)
   UI.success("Using build number #{build_number}")
+end
+
+# After bumping the build number, write it back into ios_app_metadata.yml so the
+# YAML stays the source of truth and `assert_ios_identity!` keeps passing on the
+# next run. Idempotent — never writes a value lower than what's already there.
+def persist_build_number!(build_number)
+  contents = File.read(IOS_METADATA_PATH)
+  current_yaml_floor = contents[/current_project_version:\s*"?(\d+)"?/, 1].to_i
+  return if build_number.to_i <= current_yaml_floor
+
+  updated = contents.sub(
+    /current_project_version:\s*"?\d+"?/,
+    %(current_project_version: "#{build_number}")
+  )
+  File.write(IOS_METADATA_PATH, updated)
+  UI.message("Persisted build number #{build_number} into fastlane/ios_app_metadata.yml")
 end
 
 def extract_key_payload(raw_value)

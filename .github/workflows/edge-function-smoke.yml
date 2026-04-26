@@ -13,12 +13,19 @@ name: Edge Function Smoke Test
 # Real outages will be caught by Sentry / user reports much faster than CI.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "supabase/functions/**"
-  schedule:
-    - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
+  # DISABLED auto-triggers — daily cron + post-deploy push were failing
+  # noisily because CRON_SECRET isn't configured as a repo secret. Sentry +
+  # user reports catch real edge-function outages much faster anyway.
+  #
+  # To re-enable, add CRON_SECRET under Settings → Secrets → Actions, then
+  # uncomment the `push:` and `schedule:` blocks below.
+  #
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "supabase/functions/**"
+  # schedule:
+  #   - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
   workflow_dispatch:
 
 concurrency:

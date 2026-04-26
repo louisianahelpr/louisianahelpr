@@ -138,8 +138,8 @@ const HeroSection = () => {
             {/* TOP cluster — copy + categories */}
             <div>
               {/* Eyebrow — Louisiana stamp */}
-              <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-6 sm:mb-8 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <div className="inline-flex max-w-full items-center gap-1.5 px-3 py-1 mb-3 sm:mb-4 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="truncate">Made in Louisiana, for Louisiana</span>
               </div>
 

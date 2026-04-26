@@ -113,10 +113,10 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-6 min-h-[100dvh] flex items-center overflow-hidden"
+      className="relative pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-4 sm:px-6 min-h-[100dvh] flex items-center overflow-hidden"
       style={{
-        paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
-        paddingRight: "max(1.5rem, env(safe-area-inset-right))",
+        paddingLeft: "max(1rem, env(safe-area-inset-left))",
+        paddingRight: "max(1rem, env(safe-area-inset-right))",
       }}
     >
       {/* Soft brand gradient backdrop */}

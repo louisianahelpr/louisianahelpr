@@ -23,8 +23,8 @@ import {
   Search,
   Shield,
 } from "lucide-react";
-import heroImg from "@/assets/hero-photo-v3-porch.jpg";
-import heroImg400 from "@/assets/hero-photo-v3-porch.jpg";
+import heroImg from "@/assets/hero-photo-v1-tall.jpg";
+import heroImg400 from "@/assets/hero-photo-v1-tall.jpg";
 
 // Single high-quality source — sized to fill the taller right column.
 const heroSrcSet = `${heroImg} 1024w`;
@@ -149,13 +149,13 @@ const HeroSection = () => {
           }}
         >
           <div className="w-full max-w-2xl mx-auto md:mx-0">
-            {/* Eyebrow — Louisiana stamp */}
-            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-6 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
+            {/* Eyebrow — Louisiana stamp (sits above the image's top edge) */}
+            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-12 sm:mb-16 md:mb-20 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="truncate">Made in Louisiana, for Louisiana</span>
             </div>
 
-            {/* Headline — split-color kept */}
+            {/* Headline — aligned with the top of the hero image */}
             <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
               Your local{" "}
               <span className="relative inline">
@@ -195,23 +195,20 @@ const HeroSection = () => {
               />
             </div>
 
-            {/* Premium dual CTA — stacked, full-width, refined */}
+            {/* Bold pill CTAs — stacked, full-width */}
             <div className="mt-10 flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
-                variant="hero"
                 size="xl"
-                className="group relative w-full h-[4.5rem] px-8 rounded-2xl text-lg font-semibold tracking-tight justify-between bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-[0_18px_40px_-12px_hsl(var(--primary)/0.55)] ring-1 ring-primary/20 hover:shadow-[0_24px_50px_-12px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
-                <span className="relative z-10">Post a job</span>
-                <span className="relative z-10 inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/15 backdrop-blur transition-transform duration-300 group-hover:translate-x-1">
-                  <ArrowRight className="w-5 h-5" />
-                </span>
+                Post a job
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
               <Button
                 variant="outline"
                 size="xl"
-                className="group relative w-full h-[4.5rem] px-8 rounded-2xl text-lg font-semibold tracking-tight justify-between bg-card/70 backdrop-blur-md border border-border/60 text-foreground hover:bg-card hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-16px_hsl(var(--primary)/0.35)] transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-background border border-border text-foreground hover:bg-muted/40 hover:border-foreground/30 hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");
@@ -225,13 +222,8 @@ const HeroSection = () => {
                   }
                 }}
               >
-                <span className="inline-flex items-center gap-3">
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
-                    <Search className="w-5 h-5" />
-                  </span>
-                  Browse jobs
-                </span>
-                <ArrowRight className="w-5 h-5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
+                Browse jobs
+                <ArrowRight className="ml-2 w-5 h-5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-foreground" />
               </Button>
             </div>
           </div>

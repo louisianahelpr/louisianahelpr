@@ -113,10 +113,10 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-6 min-h-[100dvh] flex items-center overflow-hidden"
+      className="relative w-full max-w-full overflow-x-hidden pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-4 sm:px-6 min-h-[100dvh] flex items-start sm:items-center"
       style={{
-        paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
-        paddingRight: "max(1.5rem, env(safe-area-inset-right))",
+        paddingLeft: "max(1rem, env(safe-area-inset-left))",
+        paddingRight: "max(1rem, env(safe-area-inset-right))",
       }}
     >
       {/* Soft brand gradient backdrop */}
@@ -133,18 +133,18 @@ const HeroSection = () => {
         className="pointer-events-none absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full bg-accent/20 blur-3xl -z-10"
       />
 
-      <div className="container mx-auto w-full">
-        <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center md:min-h-[calc(100dvh-10rem)] text-center md:text-left">
+      <div className="mx-auto w-full max-w-6xl min-w-0">
+        <div className="grid min-w-0 md:grid-cols-2 gap-8 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
-          <div className="space-y-5 sm:space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+          <div className="min-w-0 max-w-full space-y-5 sm:space-y-6 animate-fade-in">
+            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Built in Louisiana, for Louisiana
+              <span className="truncate">Built in Louisiana, for Louisiana</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance">
+            <h1 className="mx-auto max-w-[21rem] text-[2rem] sm:max-w-lg sm:text-4xl lg:text-6xl md:mx-0 font-display font-bold text-foreground leading-[1.08] text-balance break-words">
               Where Louisiana neighbors{" "}
-              <span className="relative inline-block">
+              <span className="relative inline">
                 <span className="relative z-10 text-primary">help neighbors.</span>
                 <span
                   aria-hidden
@@ -153,13 +153,13 @@ const HeroSection = () => {
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto md:mx-0 leading-relaxed">
+            <p className="mx-auto max-w-[21rem] sm:max-w-lg md:mx-0 text-base sm:text-lg text-muted-foreground leading-relaxed">
               Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
             </p>
 
             {/* Category pills - two rows, horizontally scrollable both directions */}
-            <div className="-mx-5 sm:mx-0 overflow-x-auto scrollbar-hide">
-              <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 px-5 sm:px-0">
+            <div className="w-full max-w-full overflow-x-auto overscroll-x-contain scrollbar-hide">
+              <div className="grid min-w-max grid-rows-2 grid-flow-col auto-cols-max gap-2 pb-1">
                 {categories.map((c) => (
                   <span
                     key={c.label}
@@ -186,11 +186,11 @@ const HeroSection = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 max-w-md mx-auto md:mx-0">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2 w-full max-w-[21rem] sm:max-w-md mx-auto md:mx-0">
               <Button
                 variant="hero"
                 size="xl"
-                className="w-full"
+                className="w-full px-3"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
                 Post a job
@@ -198,7 +198,7 @@ const HeroSection = () => {
               <Button
                 variant="hero-outline"
                 size="xl"
-                className="w-full"
+                className="w-full px-3"
                 onClick={() => navigate(loggedIn ? "/dashboard" : "/jobs")}
               >
                 Browse jobs
@@ -210,8 +210,8 @@ const HeroSection = () => {
           </div>
 
           {/* RIGHT: image */}
-          <div className="relative animate-fade-in [animation-delay:200ms] px-2 sm:px-0 md:flex md:justify-center lg:justify-end">
-            <div className="relative w-full max-w-md mx-auto">
+          <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] px-0 md:flex md:justify-center lg:justify-end">
+            <div className="relative w-full max-w-[21rem] sm:max-w-md mx-auto">
               {/* sizes is intentionally tight: the rendered display width is ~497px max
                   (max-w-md = 28rem). Tells the browser to pick the 500w variant on mobile
                   and 600w on tablet, instead of jumping to the full 900w (Lighthouse fix). */}

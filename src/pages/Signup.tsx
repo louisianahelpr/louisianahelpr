@@ -616,7 +616,7 @@ const Signup = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
+                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required autoComplete="address-level2" className={inputCls} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>

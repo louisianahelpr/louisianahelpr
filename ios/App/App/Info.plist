@@ -45,6 +45,27 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>sms</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Helpr needs camera access so you can take before and after job photos and upload verification documents.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Helpr uses your location to show nearby jobs and confirm helpr arrival.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Helpr can save downloaded receipts and shared images to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Helpr needs photo library access so you can upload job details, progress photos, and verification documents.</string>
+	<key>UIRequiresFullScreen</key>
+	<false/>
+
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>

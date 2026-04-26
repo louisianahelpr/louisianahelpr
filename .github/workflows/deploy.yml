@@ -279,7 +279,11 @@ jobs:
           test -f ios/App/App/App.entitlements || (echo "❌ Missing committed App.entitlements" && exit 1)
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.Helpr;" ios/App/App.xcodeproj/project.pbxproj
           grep -q "DEVELOPMENT_TEAM = P85MCK558V;" ios/App/App.xcodeproj/project.pbxproj
-          echo "✓ Committed iOS project matches com.Helpr / P85MCK558V"
+          grep -q 'INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'PRODUCT_NAME = "Louisiana Helpr";' ios/App/App.xcodeproj/project.pbxproj
+          grep -q "<key>LSApplicationCategoryType</key>" ios/App/App/Info.plist
+          echo "✓ Committed iOS project matches Louisiana Helpr / com.Helpr / P85MCK558V"
 
       - name: Capacitor sync (iOS)
         run: npx cap sync ios
@@ -331,6 +335,12 @@ jobs:
             echo "❌ Bundle ID mismatch — expected com.Helpr, got $BUNDLE_ID"
             exit 1
           fi
+          grep -q 'INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";' ios/App/App.xcodeproj/project.pbxproj \
+            || (echo "❌ Xcode Display Name is not committed as Louisiana Helpr" && exit 1)
+          grep -q 'INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";' ios/App/App.xcodeproj/project.pbxproj \
+            || (echo "❌ Xcode App Category is not committed as Lifestyle" && exit 1)
+          grep -q 'PRODUCT_NAME = "Louisiana Helpr";' ios/App/App.xcodeproj/project.pbxproj \
+            || (echo "❌ Xcode Product Name is not committed as Louisiana Helpr" && exit 1)
           echo "✓ All pre-submission checks passed"
 
       # ─── App Store Connect API key ─────────────────────────────────────────

@@ -81,11 +81,10 @@ export function report(err: unknown, opts: ReportOptions = {}) {
     context: opts.context ?? {},
   });
 
-  // Fan out to Sentry. No-op until initSentry() runs in main.tsx.
-  sentryCapture(err, { ...opts.context, ...opts.tags });
-
-  // Fan out to PostHog Error Tracking. No-op until initPostHog() runs.
-  posthogCapture(err, { ...opts.context, ...opts.tags });
+  // Fan out to Sentry + PostHog Error Tracking. No-op until their init
+  // runs in main.tsx (and the SDKs themselves are lazy-loaded here so
+  // they don't bloat the initial bundle).
+  void fanOutToObservability(err, { ...opts.context, ...opts.tags });
 
   // Debounced flush — never block the caller.
   setTimeout(flush, 250);

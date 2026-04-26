@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import helprIcon from "@/assets/helpr-icon-96.webp";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
@@ -79,44 +80,64 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         {/* Mobile toggle */}
         <div className="lg:hidden flex items-center gap-1">
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="hover:bg-muted btn-press rounded-xl h-9 w-9"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          >
-            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </Button>
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-muted btn-press rounded-xl h-10 w-10"
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              >
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] sm:w-[320px] p-6 flex flex-col gap-4">
+              <div className="flex items-center gap-2 pb-4 border-b border-border/40">
+                <img src={helprIcon} alt="Helpr" className="w-8 h-8 rounded-lg" />
+                <span className="text-xl font-display font-bold text-primary">Helpr</span>
+              </div>
+              <Link
+                to="/#how-it-works"
+                className="block text-base font-medium text-foreground py-3 border-b border-border/30 min-h-[44px] flex items-center"
+                onClick={() => setMobileOpen(false)}
+              >
+                How it works
+              </Link>
+              <Link
+                to="/#open-jobs"
+                className="block text-base font-medium text-foreground py-3 border-b border-border/30 min-h-[44px] flex items-center"
+                onClick={() => setMobileOpen(false)}
+              >
+                Jobs
+              </Link>
+              <Link
+                to="/for-business"
+                className="block text-base font-medium text-foreground py-3 border-b border-border/30 min-h-[44px] flex items-center"
+                onClick={() => setMobileOpen(false)}
+              >
+                For Business
+              </Link>
+              <div className="flex flex-col gap-3 mt-auto pt-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full rounded-xl"
+                  onClick={() => { navigate("/login"); setMobileOpen(false); }}
+                >
+                  Log in
+                </Button>
+                <Button
+                  size="lg"
+                  className="w-full rounded-xl"
+                  onClick={() => { navigate("/signup"); setMobileOpen(false); }}
+                >
+                  Get started
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden glass border-b border-border/30 px-4 pb-4 space-y-3"
-          style={{
-            paddingLeft: "max(1rem, env(safe-area-inset-left))",
-            paddingRight: "max(1rem, env(safe-area-inset-right))",
-          }}
-        >
-          <Link to="/#how-it-works" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            How it works
-          </Link>
-          <Link to="/#open-jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Jobs
-          </Link>
-          <Link to="/for-business" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            For Business
-          </Link>
-          <Button variant="ghost" size="sm" className="w-full rounded-xl" onClick={() => { navigate("/login"); setMobileOpen(false); }}>
-            Log in
-          </Button>
-          <Button size="sm" className="w-full rounded-xl" onClick={() => { navigate("/signup"); setMobileOpen(false); }}>
-            Get started
-          </Button>
-        </div>
-      )}
     </nav>
   );
 });

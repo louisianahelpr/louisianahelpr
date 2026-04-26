@@ -70,8 +70,8 @@ const Footer = () => (
               >
                 <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
-                  <span className="block text-xs font-semibold tracking-tight">App Store</span>
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.16em] opacity-75">Download on the</span>
+                  <span className="block text-sm font-semibold tracking-tight">App Store</span>
                 </span>
               </a>
               <a
@@ -83,8 +83,8 @@ const Footer = () => (
               >
                 <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
-                  <span className="block text-xs font-semibold tracking-tight">Facebook</span>
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.16em] opacity-85">Follow us on</span>
+                  <span className="block text-sm font-semibold tracking-tight">Facebook</span>
                 </span>
               </a>
             </div>

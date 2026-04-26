@@ -151,7 +151,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
         onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
         aria-label={guestLocked ? `${label} — sign up required` : label}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-all duration-200 btn-press ${
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full text-xs transition-all duration-200 btn-press ${
           active || inStack ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
@@ -170,7 +170,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         </div>
         <span className="font-medium">{label}</span>
         {active && (
-          <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary transition-all duration-200" />
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary transition-all duration-200" />
         )}
       </button>
     );

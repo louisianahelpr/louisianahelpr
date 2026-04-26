@@ -141,7 +141,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative w-full max-w-full pt-16 sm:pt-20 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
+      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
     >
       {/* MAIN: single column on phone & iPad, split-screen on desktop */}
       <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-4 sm:pb-6 lg:pb-14">
@@ -175,14 +175,17 @@ const HeroSection = () => {
 
               {/* Category pills */}
               <div className="relative w-full">
-                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+                <div
+                  className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide snap-x snap-mandatory"
+                  style={{ touchAction: "pan-x" }}
+                >
                   <div className="flex min-w-max gap-3 pb-2 pr-8">
                     {categories.map((c) => (
                       <button
                         key={c.label}
                         type="button"
                         onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-                        className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0"
+                        className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 min-h-[44px] rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0 snap-start"
                       >
                         <c.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary group-hover:scale-110 transition-transform" />
                         {c.label}

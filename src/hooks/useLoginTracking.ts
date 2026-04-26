@@ -1,9 +1,20 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
-import { identifyUser } from "@/lib/posthog";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+
+// PostHog is dynamically imported to keep posthog-js out of the initial
+// bundle. identifyUser() runs after sign-in so the lazy import latency
+// is invisible to the user.
+async function identifyInPostHog(userId: string, props: Record<string, unknown>) {
+  try {
+    const { identifyUser } = await import("@/lib/posthog");
+    identifyUser(userId, props);
+  } catch {
+    /* analytics must never break auth */
+  }
+}
 
 const EMAIL_VERIFIED_KEY = "helpr_email_verified_tracked";
 

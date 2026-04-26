@@ -676,7 +676,9 @@ platform :ios do
         export_compliance_uses_encryption:   false
       },
       release_notes: { "en-US" => changelog_text },
-      skip_screenshots: true,
+      skip_screenshots: !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
+                        Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
+      screenshots_path: "fastlane/screenshots",
       skip_metadata:    false,
       metadata_path:    "fastlane/metadata"
     )

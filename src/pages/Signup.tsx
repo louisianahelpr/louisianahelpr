@@ -997,8 +997,8 @@ const Signup = () => {
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
               <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} />
-                <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} />
+                <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
+                <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
               </div>
             </div>
 

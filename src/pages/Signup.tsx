@@ -665,8 +665,8 @@ const Signup = () => {
           </div>
         )}
 
-        {/* Step 2: Account credentials + agreements */}
-        {step === 2 && (
+        {/* Step 1: Account credentials + agreements */}
+        {step === 1 && (
           <div className="space-y-6">
             <section className="space-y-3">
               <div className="flex items-center gap-2">

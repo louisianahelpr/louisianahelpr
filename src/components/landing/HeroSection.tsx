@@ -12,6 +12,13 @@ import {
   Star,
   MapPin,
   DollarSign,
+  Wrench,
+  Paintbrush,
+  Package,
+  PawPrint,
+  Hammer,
+  ShoppingBag,
+  MoreHorizontal,
 } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v5-1000.webp";
 import heroImg400 from "@/assets/hero-illustration-v5-400.webp";
@@ -47,7 +54,14 @@ const categories = [
   { icon: Leaf, label: "Yard Work" },
   { icon: Sparkles, label: "Cleaning" },
   { icon: Truck, label: "Moving" },
+  { icon: ShoppingBag, label: "Errands" },
+  { icon: Wrench, label: "Handyman" },
+  { icon: Paintbrush, label: "Painting" },
+  { icon: Package, label: "Delivery" },
+  { icon: PawPrint, label: "Pet Care" },
+  { icon: Hammer, label: "Assembly" },
   { icon: Heart, label: "Senior Help" },
+  { icon: MoreHorizontal, label: "More" },
 ];
 
 const mockJobs = [
@@ -143,17 +157,19 @@ const HeroSection = () => {
               Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
             </p>
 
-            {/* Category pills - hidden on mobile so hero image isn't cut off */}
-            <div className="hidden md:flex flex-wrap justify-start gap-2">
-              {categories.map((c) => (
-                <span
-                  key={c.label}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors"
-                >
-                  <c.icon className="w-3.5 h-3.5 text-primary" />
-                  {c.label}
-                </span>
-              ))}
+            {/* Category pills - horizontally scrollable on all screens */}
+            <div className="-mx-5 sm:mx-0 overflow-x-auto scrollbar-hide">
+              <div className="flex flex-nowrap gap-2 px-5 sm:px-0 md:flex-wrap md:justify-start">
+                {categories.map((c) => (
+                  <span
+                    key={c.label}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
+                  >
+                    <c.icon className="w-3.5 h-3.5 text-primary" />
+                    {c.label}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Social proof */}

@@ -352,6 +352,10 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          seat_subscription_current_period_end: string | null
+          seat_subscription_id: string | null
+          seat_subscription_status: string | null
+          seat_tier: string
           updated_at: string
           verification_document_type: string | null
           verification_document_url: string | null
@@ -365,6 +369,10 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          seat_subscription_current_period_end?: string | null
+          seat_subscription_id?: string | null
+          seat_subscription_status?: string | null
+          seat_tier?: string
           updated_at?: string
           verification_document_type?: string | null
           verification_document_url?: string | null
@@ -378,6 +386,10 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          seat_subscription_current_period_end?: string | null
+          seat_subscription_id?: string | null
+          seat_subscription_status?: string | null
+          seat_tier?: string
           updated_at?: string
           verification_document_type?: string | null
           verification_document_url?: string | null
@@ -3066,6 +3078,10 @@ export type Database = {
           subscription_tier: string
           user_id: string
         }[]
+      }
+      get_business_seat_limit: {
+        Args: { _business_id: string }
+        Returns: number
       }
       get_helper_earnings_export: {
         Args: { _end_date: string; _helper_id: string; _start_date: string }

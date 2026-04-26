@@ -161,9 +161,21 @@ export const AppliedJobsTab = ({
 
   if (apps.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">No applications match this filter.</p>
-        <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
+      <div className="text-center py-16 px-6 space-y-4">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
+          <Send className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-base font-display font-semibold text-foreground">
+            No applications in this view
+          </p>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+            Browse the dashboard for open tasks near you and apply with one tap.
+          </p>
+        </div>
+        <Button onClick={() => navigate("/dashboard")} className="rounded-xl btn-press">
+          <Send className="w-4 h-4 mr-1.5" /> Browse tasks
+        </Button>
       </div>
     );
   }

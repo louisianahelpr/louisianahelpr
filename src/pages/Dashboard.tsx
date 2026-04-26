@@ -23,6 +23,7 @@ import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import BroadcastBanner from "@/components/BroadcastBanner";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 
 import PayoutSetupDialog from "@/components/PayoutSetupDialog";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
@@ -323,6 +324,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />
+          <OnboardingChecklist userId={user?.id} profile={profile} />
           {/* Welcome section */}
           {showGreeting && (
           <motion.div

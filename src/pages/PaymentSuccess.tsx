@@ -1,11 +1,18 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, ShieldCheck } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { hapticSuccess } from "@/lib/haptics";
 
 const PaymentSuccess = () => {
   usePageTitle("Payment Authorized — Helpr");
   const navigate = useNavigate();
+
+  // Celebratory success buzz on landing — payment authorized is a milestone moment.
+  useEffect(() => {
+    hapticSuccess();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-premium-page px-4">

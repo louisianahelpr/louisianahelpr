@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { hapticLight } from "@/lib/haptics";
 
 interface UsePullToRefreshOptions {
   onRefresh: () => Promise<void>;
@@ -44,6 +45,7 @@ export const usePullToRefresh = ({
     if (!pulling || disabled) return;
     setPulling(false);
     if (pullDistance >= threshold) {
+      hapticLight(); // tactile cue when refresh actually fires
       setRefreshing(true);
       try {
         await onRefresh();

@@ -5,6 +5,7 @@ import { Send, ImagePlus, MapPin, X, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
+import { hapticLight, hapticError } from "@/lib/haptics";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,6 +84,7 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
     }
 
     if (!text.trim()) return;
+    hapticLight(); // gentle confirmation tap on message send
     onSend(text.trim());
     setText("");
   };
@@ -95,6 +97,7 @@ export const RichMessageInput = ({ onSend, onTyping, disabled }: RichMessageInpu
     if (text.trim()) {
       const violations = scanMessage(text);
       if (violations.length > 0) {
+        hapticError();
         setPendingViolation(violations[0].label);
         return;
       }

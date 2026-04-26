@@ -473,13 +473,6 @@ const Signup = () => {
               <h1 className="text-xl font-display font-bold text-foreground">
                 {step === 1 ? "Create your account" : step === 2 ? "Tell us about you" : "Make your profile stand out"}
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {step === 1
-                  ? `Step 1 of ${totalSteps} — email, password, and agreements`
-                  : step === 2
-                  ? `Step 2 of ${totalSteps} — your basic info & ID`
-                  : `Step 3 of ${totalSteps} — optional, but recommended if you'll apply to jobs`}
-              </p>
             </div>
 
         {/* Step 2: About you + ID — organized top-down: Profile → Personal → ID */}

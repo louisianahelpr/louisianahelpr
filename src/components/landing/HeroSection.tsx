@@ -23,6 +23,7 @@ import {
   Search,
   Shield,
 } from "lucide-react";
+import { getCityState } from "@/lib/locationUtils";
 import heroImg400 from "@/assets/hero-porch-garden-400.webp";
 import heroImg500 from "@/assets/hero-porch-garden-500.webp";
 import heroImg600 from "@/assets/hero-porch-garden-600.webp";
@@ -283,7 +284,7 @@ const HeroSection = () => {
                   </p>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate mt-0.5">
                     <MapPin className="w-2.5 h-2.5 shrink-0" />
-                    {liveJobs[0].location}
+                    {getCityState(liveJobs[0].location)}
                   </p>
                 </div>
                 <div className="text-right shrink-0">

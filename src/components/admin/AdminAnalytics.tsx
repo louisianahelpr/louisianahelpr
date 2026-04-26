@@ -368,7 +368,7 @@ const AdminAnalytics = () => {
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${value} helpers`, name]} />
+                  <Tooltip formatter={(value, name) => [`${value} helpers`, name as string]} />
                   <Legend />
                 </RePieChart>
               </ResponsiveContainer>

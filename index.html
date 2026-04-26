@@ -28,12 +28,17 @@
     <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest?v=helpr2" />
 
-    <!-- Performance: preconnect + non-blocking font load.
-         Fonts are loaded with media="print" + onload swap so they NEVER block
-         FCP. We deliberately do NOT add `rel="preload" as="style"` for the
-         font CSS — preload promotes it to high-priority and competes with the
-         JS bundle on the critical path, costing ~3s of FCP on slow networks.
-         `display=swap` in the URL prevents FOIT while fonts load. -->
+    <!-- Performance: preconnect + font load tuned for LCP.
+         The H1 hero headline uses Fraunces (display font) and is the LCP
+         element on mobile. Loading the font CSS via media="print"+onload swap
+         delays the swap until AFTER the JS bundle parses, causing the LCP
+         text to repaint late (Lighthouse-flagged ~4.8s LCP regression).
+         Fix: trim the critical font request to only the weights actually
+         rendered above the fold (Fraunces 600/700 for H1, DM Sans 400/500/600/700
+         for subhead/CTAs) and load it as a normal stylesheet. `display=swap`
+         keeps fallback text visible so this never blocks FCP, while letting the
+         LCP text stabilize on the first paint. Italic variants are deferred to
+         a non-blocking second request via media-swap. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->
@@ -41,14 +46,18 @@
     <link rel="dns-prefetch" href="https://steigdwrpkosbiycshwz.supabase.co" />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;1,400&display=swap"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;1,400&display=swap"
       />
     </noscript>
 

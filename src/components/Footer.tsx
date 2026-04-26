@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
-import { Heart, Mail, MapPin } from "lucide-react";
+import { Facebook, Heart, Mail, MapPin } from "lucide-react";
+
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61575800761358";
 
 const Footer = () => (
   <footer className="border-t border-border py-12 px-4">
@@ -27,6 +29,16 @@ const Footer = () => (
               Serving all of Louisiana
             </span>
           </div>
+          <a
+            href={FACEBOOK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Connect with Helpr on Facebook"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors w-fit"
+          >
+            <Facebook className="w-4 h-4" />
+            Connect on Facebook
+          </a>
         </div>
 
         {/* Company */}

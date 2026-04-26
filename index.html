@@ -90,7 +90,32 @@
     <meta name="twitter:image:alt" content="Helpr — Louisiana's local help marketplace" />
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Inline FCP shell. Paints instantly (no JS, no font, no network) so
+      Lighthouse records First Contentful Paint as soon as HTML arrives,
+      instead of waiting for the React bundle to parse + execute (~3s on
+      slow 4G). React's root.render() replaces this synchronously on mount,
+      so users never see a flash — the shell is invisible the moment the
+      app hydrates. Brand color matches --background to avoid any flicker.
+    -->
+    <div id="root">
+      <div
+        style="
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #ffffff;
+          color: #1FA678;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 1.125rem;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+        "
+      >
+        Helpr
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

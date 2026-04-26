@@ -414,7 +414,6 @@ platform :ios do
       team_id:          team_id,
       adhoc:            false,
       development:      false,
-      app_store:        true,
       force:            true,
       readonly:         false,
       output_path:      File.join(REPO_ROOT, "build", "profiles")

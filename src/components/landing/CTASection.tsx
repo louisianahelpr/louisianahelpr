@@ -5,7 +5,7 @@ const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 
 const CTASection = () => {
   return (
-    <section className="px-4 py-12">
+    <section className="px-4 py-10">
       <div className="container mx-auto max-w-3xl">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/85 px-4 py-10 text-center shadow-[0_20px_60px_-25px_hsl(var(--primary)/0.6)] sm:px-8 sm:py-12">
           {/* Decorative blobs */}

@@ -93,7 +93,7 @@ const JobStoriesSection = () => {
   if (!loaded || stories.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-20 px-4">
+    <section className="py-10 md:py-14 px-4">
       <div className="container mx-auto text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Camera className="w-6 h-6 text-primary" />

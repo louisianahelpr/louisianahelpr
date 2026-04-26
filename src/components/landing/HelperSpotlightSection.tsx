@@ -60,7 +60,7 @@ const HelperSpotlightSection = forwardRef<HTMLDivElement>((_props, ref) => {
   if (!loaded || Object.keys(heroesByParish).length === 0) return null;
 
   return (
-    <section ref={ref} className="py-16 md:py-20 px-4 bg-secondary/50">
+    <section ref={ref} className="py-10 md:py-14 px-4 bg-secondary/50">
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary mb-4">

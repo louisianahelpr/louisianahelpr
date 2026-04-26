@@ -40,9 +40,9 @@ if (typeof document !== "undefined") {
     link.id = PRELOAD_ID;
     link.rel = "preload";
     link.as = "image";
-    link.type = "image/webp";
+    link.type = "image/jpeg";
     link.fetchPriority = "high";
-    link.href = heroImg400;
+    link.href = heroImg;
     link.setAttribute("imagesrcset", heroSrcSet);
     link.setAttribute("imagesizes", "(max-width: 1023px) 400px, 500px");
     document.head.appendChild(link);

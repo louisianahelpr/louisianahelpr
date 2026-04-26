@@ -45,9 +45,9 @@ const ForBusiness = () => {
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-display font-bold leading-[1.08] text-balance">
-              ID-verified Louisiana help,{" "}
+              The best help for{" "}
               <span className="relative inline">
-                <span className="relative z-10 text-primary">on demand.</span>
+                <span className="relative z-10 text-primary">Louisiana businesses.</span>
                 <span
                   aria-hidden
                   className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"

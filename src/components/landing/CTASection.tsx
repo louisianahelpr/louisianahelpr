@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Apple } from "lucide-react";
-import SocialShare from "@/components/SocialShare";
+import { Apple, ArrowRight } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 
@@ -9,57 +8,49 @@ const CTASection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="py-24 px-4">
-      <div className="container mx-auto">
-        <div className="rounded-2xl bg-primary p-12 sm:p-16 text-center">
-          <h2 className="text-3xl sm:text-4xl font-display font-bold text-primary-foreground mb-4">
-            Your next helping hand is one tap away.
+    <section className="py-20 px-4">
+      <div className="container mx-auto max-w-4xl">
+        <div className="rounded-2xl bg-primary px-5 py-10 text-center sm:px-10 sm:py-14">
+          <h2 className="mx-auto max-w-2xl text-3xl font-display font-bold text-primary-foreground sm:text-4xl">
+            Ready to get help or start earning?
           </h2>
-          <p className="text-primary-foreground/80 max-w-md mx-auto mb-8">
-            Join Louisiana neighbors getting things done — or earning extra income on their own schedule.
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
+            Join Louisiana neighbors posting local tasks, finding trusted helprs, and getting work done.
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mb-6">
+
+          <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
             <Button
               variant="hero-outline"
-              size="xl"
-              className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
+              size="lg"
+              className="min-h-12 w-full border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary sm:w-auto"
               onClick={() => navigate("/signup")}
             >
               Create free account
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
-              size="xl"
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate("/jobs")}
+              size="lg"
+              className="min-h-12 w-full text-primary-foreground hover:bg-primary-foreground/10 sm:w-auto"
+              onClick={() => navigate("/#open-jobs")}
             >
               Browse jobs first
             </Button>
           </div>
 
-          {/* App Store download badge */}
-          <div className="flex justify-center mb-6">
-            <a
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 rounded-xl bg-primary-foreground text-primary px-5 py-3 hover:bg-primary-foreground/90 transition-colors shadow-md"
-              aria-label="Download Helpr on the App Store"
-            >
-              <Apple className="w-7 h-7" strokeWidth={1.5} />
-              <span className="text-left leading-tight">
-                <span className="block text-[10px] uppercase tracking-wider opacity-70">Download on the</span>
-                <span className="block text-base font-semibold -mt-0.5">App Store</span>
-              </span>
-            </a>
-          </div>
-
-          <div className="flex justify-center">
-            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl px-4 py-3 space-y-1.5">
-              <p className="text-xs text-primary-foreground/70 font-medium">Tell a neighbor about Helpr</p>
-              <SocialShare />
-            </div>
-          </div>
+          <a
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mx-auto mt-6 inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-primary-foreground px-5 py-3 text-primary shadow-md transition-colors hover:bg-primary-foreground/90"
+            aria-label="Download Helpr on the App Store"
+          >
+            <Apple className="h-6 w-6" strokeWidth={1.5} />
+            <span className="text-left leading-tight">
+              <span className="block text-[10px] uppercase tracking-wider opacity-70">Download on the</span>
+              <span className="block text-base font-semibold">App Store</span>
+            </span>
+          </a>
         </div>
       </div>
     </section>

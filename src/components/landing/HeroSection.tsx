@@ -154,7 +154,7 @@ const HeroSection = () => {
         >
           <div className="w-full max-w-xl mx-auto md:mx-0">
             {/* Eyebrow — Louisiana stamp */}
-            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
+            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1.5 mb-8 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               <span className="truncate">Made in Louisiana</span>
             </div>

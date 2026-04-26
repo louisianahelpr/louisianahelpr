@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQueryClient } from "@tanstack/react-query";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
@@ -99,6 +99,15 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 py-10">
       <div className="w-full max-w-sm">
+        <div className="mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to home
+          </Link>
+        </div>
         <div className="text-center mb-8">
           <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
             Helpr

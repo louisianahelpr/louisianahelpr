@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw } from "lucide-react";
+import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,9 +31,18 @@ const SignupPending = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md text-center space-y-8">
-        <Link to="/" className="text-3xl font-display font-bold text-primary inline-block">
-          Helpr
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to home
+          </Link>
+          <Link to="/" className="text-2xl font-display font-bold text-primary">
+            Helpr
+          </Link>
+        </div>
 
         <div className="rounded-2xl border border-border bg-card p-8 space-y-6">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -75,6 +75,15 @@ const ResetPassword = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
+        <div>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to login
+          </Link>
+        </div>
         <div className="text-center">
           <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
           <p className="mt-2 text-muted-foreground">Set a new password</p>

@@ -32,6 +32,15 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 py-10">
       <div className="w-full max-w-sm">
+        <div className="mb-4">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to login
+          </Link>
+        </div>
         <div className="text-center mb-8">
           <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
             Helpr

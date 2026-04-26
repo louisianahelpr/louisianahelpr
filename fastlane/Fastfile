@@ -167,7 +167,28 @@ def sync_metadata_to_xcode!
 
   File.write(plist_path, plist_text)
 
-  # ── 3. Mirror the App Store-facing fastlane/metadata files so deliver
+  # ── 3. Capacitor config ───────────────────────────────────────────────
+  # `npx cap sync ios` reads this file after the Fastlane sync step. Keep it
+  # aligned so Capacitor cannot regenerate stale app identifiers, names, or
+  # version metadata into the native project.
+  capacitor_config_path = File.join(REPO_ROOT, "capacitor.config.ts")
+  capacitor_text = File.read(capacitor_config_path)
+  capacitor_replacements = {
+    /appId: ['"].*?['"],/              => "appId: '#{APP_ID}',",
+    /appName: ['"].*?['"],/            => "appName: '#{APP_DISPLAY_NAME}',",
+    /appleId: ['"].*?['"],/            => "appleId: '#{APP_APPLE_ID}',",
+    /sku: ['"].*?['"],/                => "sku: '#{APP_SKU}',",
+    /version: ['"].*?['"],/            => "version: '#{APP_MARKETING_VERSION}',",
+    /build: ['"].*?['"],/              => "build: '#{effective_build_version}',",
+    /category: ['"].*?['"],/           => "category: '#{APP_CATEGORY_TYPE}',",
+    /supportUrl: ['"].*?['"],/         => "supportUrl: '#{APP_SUPPORT_URL}',",
+    /privacyPolicyUrl: ['"].*?['"],/   => "privacyPolicyUrl: '#{APP_PRIVACY_URL}',",
+    /marketingUrl: ['"].*?['"],/       => "marketingUrl: '#{APP_MARKETING_URL}',"
+  }
+  capacitor_replacements.each { |pattern, replacement| capacitor_text.gsub!(pattern, replacement) }
+  File.write(capacitor_config_path, capacitor_text)
+
+  # ── 4. Mirror the App Store-facing fastlane/metadata files so deliver
   #      and Xcode never disagree on display name / category. ──────────
   FileUtils.mkdir_p(File.join(REPO_ROOT, "fastlane/metadata/en-US"))
   File.write(File.join(REPO_ROOT, "fastlane/metadata/en-US/name.txt"), "#{APP_DISPLAY_NAME}\n")

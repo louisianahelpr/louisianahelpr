@@ -28,34 +28,21 @@ import heroImg400 from "@/assets/hero-porch-garden-400.webp";
 import heroImg500 from "@/assets/hero-porch-garden-500.webp";
 import heroImg600 from "@/assets/hero-porch-garden-600.webp";
 import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
-import heroImg2000 from "@/assets/hero-porch-garden-2000.webp";
+import heroImg1500 from "@/assets/hero-porch-garden-1500.webp";
 
-// Real responsive set so the browser picks the smallest variant that fits the
-// display × DPR. The 2000w variant is for retina (2x DPR) desktops where the
-// image renders at ~500 CSS px but actually needs ~1000 device px to look sharp.
-// Without it, retina displays were upscaling the 1000w file and looking blurry.
-const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg1000} 1000w, ${heroImg2000} 2000w`;
+// Real responsive set — the browser picks the smallest variant that fits
+// display × DPR. We cap at 1500w (~190 KB) instead of 2000w; the previous
+// 2000w file was 2 MB and dominated the page-load critical path on retina
+// laptops, which is why the hero "loaded after everything else".
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg1000} 1000w, ${heroImg1500} 1500w`;
 const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 600px, 1000px";
 
-// Inject a <link rel="preload"> for the LCP hero image as soon as this module
-// loads, so the browser can discover the request before React renders the <img>.
-// Fixes Lighthouse "LCP request discovery" — the image is otherwise only
-// findable after the JS bundle parses and renders, costing ~1s on mobile.
-if (typeof document !== "undefined") {
-  const PRELOAD_ID = "hero-lcp-preload";
-  if (!document.getElementById(PRELOAD_ID)) {
-    const link = document.createElement("link");
-    link.id = PRELOAD_ID;
-    link.rel = "preload";
-    link.as = "image";
-    link.type = "image/webp";
-    link.fetchPriority = "high";
-    link.href = heroImg500;
-    link.setAttribute("imagesrcset", heroSrcSet);
-    link.setAttribute("imagesizes", heroSizes);
-    document.head.appendChild(link);
-  }
-}
+// NOTE: We intentionally do NOT inject a JS-side <link rel="preload"> here.
+// That code only runs after React's bundle parses, which is the very thing
+// we'd want to race against — by the time the preload tag exists in the DOM,
+// the browser has already discovered the <img> tag itself. The <img>'s
+// fetchpriority="high" + loading="eager" + decoding="async" attributes
+// achieve the same goal without the dead-code overhead.
 
 const categories = [
   { icon: Leaf, label: "Yard Work" },

@@ -101,7 +101,17 @@ def sync_metadata_to_xcode!
   # Every build setting we manage is rewritten across BOTH Debug and
   # Release configurations so Xcode "General" + Signing tabs stay
   # consistent regardless of which scheme a developer opens locally.
+  #
+  # CURRENT_PROJECT_VERSION is special: we treat the YAML value as a
+  # FLOOR. If a previous `fastlane ios beta` run already bumped the
+  # project past it (e.g. project=42, yaml=17), we keep the higher value
+  # so Apple never sees a regressed build number.
   project_text = File.read(project_path)
+  effective_build_version = [
+    APP_BUILD_VERSION.to_i,
+    *project_text.scan(/CURRENT_PROJECT_VERSION = (\d+);/).flatten.map(&:to_i)
+  ].max.to_s
+
   pbxproj_replacements = {
     /INFOPLIST_KEY_CFBundleDisplayName = .*?;/      => "INFOPLIST_KEY_CFBundleDisplayName = #{APP_DISPLAY_NAME.inspect};",
     /INFOPLIST_KEY_LSApplicationCategoryType = .*?;/ => "INFOPLIST_KEY_LSApplicationCategoryType = #{APP_CATEGORY_TYPE.inspect};",
@@ -109,7 +119,7 @@ def sync_metadata_to_xcode!
     /PRODUCT_BUNDLE_IDENTIFIER = .*?;/               => "PRODUCT_BUNDLE_IDENTIFIER = #{APP_ID};",
     /DEVELOPMENT_TEAM = .*?;/                        => "DEVELOPMENT_TEAM = #{APP_TEAM_ID};",
     /MARKETING_VERSION = .*?;/                       => "MARKETING_VERSION = #{APP_MARKETING_VERSION};",
-    /CURRENT_PROJECT_VERSION = .*?;/                 => "CURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};",
+    /CURRENT_PROJECT_VERSION = .*?;/                 => "CURRENT_PROJECT_VERSION = #{effective_build_version};",
     /IPHONEOS_DEPLOYMENT_TARGET = .*?;/              => "IPHONEOS_DEPLOYMENT_TARGET = #{APP_DEPLOYMENT_TARGET};"
   }
   pbxproj_replacements.each { |pattern, replacement| project_text.gsub!(pattern, replacement) }

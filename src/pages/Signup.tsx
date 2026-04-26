@@ -201,10 +201,12 @@ const Signup = () => {
     return true;
   };
 
-  const validateStep2 = () => {
+  // Required-profile validation now happens at the end of Step 1
+  const validateRequiredProfile = () => {
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
     if (!location.trim()) { toast.error("City is required"); return false; }
+    if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
     return true;
   };
 

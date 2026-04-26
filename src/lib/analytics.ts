@@ -78,6 +78,7 @@ async function flush() {
   if (queue.length === 0) return;
   const batch = queue.splice(0, queue.length);
   try {
+    const supabase = await getSupabase();
     await supabase.from("analytics_events" as any).insert(batch);
   } catch {
     // Network failed — silently drop, don't recurse.

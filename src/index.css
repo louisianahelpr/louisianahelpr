@@ -91,6 +91,14 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --glass-bg: hsl(0 0% 100% / 0.7);
     --glass-border: hsl(0 0% 100% / 0.3);
 
+    /* Premium design system tokens — used by PremiumPageShell / PremiumCard */
+    --gradient-page: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary) / 0.4) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.04) 100%);
+    --gradient-card-accent: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%);
+    --shadow-premium: 0 20px 60px -20px hsl(var(--primary) / 0.25);
+    --shadow-card-soft: 0 8px 32px -12px hsl(160 10% 12% / 0.08);
+    --shadow-elevated: 0 24px 70px -24px hsl(var(--primary) / 0.18), 0 8px 24px -8px hsl(160 10% 12% / 0.06);
+
     font-family: 'DM Sans', system-ui, sans-serif;
   }
 

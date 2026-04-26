@@ -414,13 +414,15 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+      <div className="relative min-h-screen overflow-hidden bg-[image:var(--gradient-page)] pb-20">
+        <div aria-hidden className="pointer-events-none absolute -top-40 -right-32 w-[520px] h-[520px] rounded-full bg-primary/15 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-32 w-[480px] h-[480px] rounded-full bg-accent/20 blur-3xl" />
+        <header className="relative border-b border-border/60 bg-background/70 backdrop-blur-md sticky top-0 z-40">
           <div className="container mx-auto flex items-center justify-between h-16 px-4">
             <span className="text-2xl font-display font-bold text-primary">Helpr</span>
           </div>
         </header>
-        <main className="container mx-auto px-4 py-4">
+        <main className="relative container mx-auto px-4 py-4">
           <div className="max-w-lg mx-auto space-y-4">
             <ProfileCardSkeleton />
             <StatsSkeleton />
@@ -469,10 +471,12 @@ const ProfilePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="relative min-h-screen overflow-hidden bg-[image:var(--gradient-page)] pb-20">
+      <div aria-hidden className="pointer-events-none absolute -top-40 -right-32 w-[520px] h-[520px] rounded-full bg-primary/15 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-32 w-[480px] h-[480px] rounded-full bg-accent/20 blur-3xl" />
       <DashboardHeader />
 
-      <main className="container mx-auto px-4 py-4">
+      <main className="relative container mx-auto px-4 py-4">
         <div className="max-w-2xl mx-auto space-y-4">
 
           {/* LANDING VIEW */}

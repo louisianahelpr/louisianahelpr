@@ -7,7 +7,16 @@
  * When you're ready to add Sentry later, swap the body of `report()` to
  * call Sentry.captureException(err, { extra }) and you're done.
  */
-import { supabase } from "@/integrations/supabase/client";
+// Supabase client is dynamically imported (NOT statically) to keep the
+// ~50KB supabase-js chunk out of the initial bundle. installGlobalErrorHandlers()
+// is called eagerly from main.tsx so it can catch first-render throws, but the
+// actual flush is debounced 250ms — plenty of time for a dynamic import to
+// resolve. Anonymous landing-page visitors who never error will never download
+// supabase-js at all (Lighthouse "Reduce unused JavaScript").
+async function getSupabase() {
+  const mod = await import("@/integrations/supabase/client");
+  return mod.supabase;
+}
 
 // Sentry + PostHog are dynamically imported (NOT statically) to keep them
 // out of the initial bundle. Static imports here would pull ~100KB of
@@ -47,6 +56,7 @@ async function flush() {
   flushing = true;
   const batch = queue.splice(0, queue.length);
   try {
+    const supabase = await getSupabase();
     await supabase.from("error_logs" as any).insert(batch);
   } catch {
     // Network failed — drop. We don't want logging to recurse on itself.

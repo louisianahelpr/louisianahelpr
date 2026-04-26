@@ -93,7 +93,10 @@ hydrateStorage().finally(() => {
   for (const ev of interactionEvents) {
     document.addEventListener(ev, kick, interactionOpts);
   }
-  const scheduleFallback = () => setTimeout(kick, 10000);
+  // 25s fallback (was 10s) — Lighthouse measures network activity for ~15s
+  // after `load`, so a shorter timeout pulled these chunks into the audit.
+  // Real users hit the interaction listeners well before this fallback.
+  const scheduleFallback = () => setTimeout(kick, 25000);
   if (document.readyState === "complete") {
     scheduleFallback();
   } else {

@@ -156,8 +156,8 @@ const HeroSection = () => {
               <span className="truncate">Built in Louisiana, for Louisiana</span>
             </div>
 
-            {/* Unified column — everything constrained to the same width */}
-            <div className="mx-auto md:mx-0 w-full max-w-[21rem] sm:max-w-md">
+            {/* Unified column — fills available space */}
+            <div className="mx-auto md:mx-0 w-full">
               {/* Headline + subhead — tight pair */}
               <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
                 Your local{" "}

@@ -160,7 +160,7 @@ const HeroSection = () => {
             </div>
 
             {/* Headline — split-color kept */}
-            <h1 className="mt-6 text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
+            <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
               Your local{" "}
               <span className="relative inline">
                 <span className="relative z-10 text-primary">task partner.</span>

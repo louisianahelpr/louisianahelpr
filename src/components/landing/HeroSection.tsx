@@ -134,11 +134,11 @@ const HeroSection = () => {
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
-          <div className="w-full max-w-2xl mx-auto md:mx-0 flex flex-col gap-6 sm:gap-8">
+          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-6 sm:gap-8">
             {/* TOP cluster — copy + categories */}
             <div className="flex flex-col gap-6 sm:gap-8">
               {/* Eyebrow — Louisiana stamp */}
-              <div className="inline-flex max-w-full self-center md:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
+              <div className="inline-flex max-w-full self-center lg:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="truncate">Made in Louisiana, for Louisiana</span>
               </div>

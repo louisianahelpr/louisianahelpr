@@ -57,18 +57,18 @@ const Footer = () => (
         {/* Connect with us */}
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-3">Connect with us</h3>
-          <ul className="space-y-3 text-sm">
+          <ul className="space-y-2.5 text-sm">
             <li>
               <a
                 href={APP_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-transparent px-4 text-foreground transition-all duration-300 ease-out hover:border-foreground/40 hover:bg-foreground/[0.03]"
+                className="group flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
                 aria-label="App Store — Download Helpr (opens in a new tab)"
               >
                 <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Download on the</span>
+                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
                   <span className="block text-xs font-semibold tracking-tight">App Store</span>
                 </span>
               </a>
@@ -78,12 +78,12 @@ const Footer = () => (
                 href={FACEBOOK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-transparent px-4 text-foreground transition-all duration-300 ease-out hover:border-[hsl(var(--facebook))] hover:text-[hsl(var(--facebook))] hover:bg-[hsl(var(--facebook)/0.04)]"
+                className="group flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[hsl(var(--facebook))] px-4 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
                 aria-label="Facebook — Follow Helpr (opens in a new tab)"
               >
-                <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} />
+                <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
-                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Follow us on</span>
+                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
                   <span className="block text-xs font-semibold tracking-tight">Facebook</span>
                 </span>
               </a>

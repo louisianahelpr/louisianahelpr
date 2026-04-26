@@ -168,11 +168,11 @@ const Index = () => {
       <SocialProofSection />
       <Suspense fallback={<div className="min-h-[200px]" />}>
         <HowItWorksSection />
+        <PublicJobsPreview />
         <FeaturesSection />
+        <CommunityLoveSection />
         <HelperSpotlightSection />
         <JobStoriesSection />
-        <PublicJobsPreview />
-        <CommunityLoveSection />
         <CTASection />
       </Suspense>
       <Footer />

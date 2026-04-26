@@ -279,25 +279,6 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* FULL-WIDTH TRUST BAR */}
-      <div className="relative w-full border-t border-border/50 bg-card/40 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs sm:text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="font-medium text-foreground/80">Escrow protected</span>
-          </span>
-          <span className="hidden sm:inline-block w-px h-4 bg-border" />
-          <span className="inline-flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-primary" />
-            <span className="font-medium text-foreground/80">Verified helprs</span>
-          </span>
-          <span className="hidden sm:inline-block w-px h-4 bg-border" />
-          <span className="inline-flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            <span className="font-medium text-foreground/80">Louisiana-based support</span>
-          </span>
-        </div>
-      </div>
     </section>
   );
 };

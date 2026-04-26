@@ -113,7 +113,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative w-full max-w-full overflow-x-hidden pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-4 sm:px-6 min-h-[100dvh] flex items-start sm:items-center"
+      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-4 sm:px-6 flex items-start sm:items-center"
       style={{
         paddingLeft: "max(1rem, env(safe-area-inset-left))",
         paddingRight: "max(1rem, env(safe-area-inset-right))",
@@ -158,7 +158,7 @@ const HeroSection = () => {
             </p>
 
             {/* Category pills - two rows, horizontally scrollable both directions */}
-            <div className="w-full max-w-full touch-pan-x overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+            <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
               <div className="grid min-w-max grid-rows-2 grid-flow-col auto-cols-max gap-2 pb-1">
                 {categories.map((c) => (
                   <span

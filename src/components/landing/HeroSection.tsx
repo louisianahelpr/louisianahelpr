@@ -243,12 +243,10 @@ const HeroSection = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {mockJobs.map((job, i) => {
               const Icon = job.icon;
-              const floatClass = i === 1 ? "animate-float-slower" : "animate-float-slow";
-              const delay = i === 1 ? "" : i === 2 ? "[animation-delay:1.5s]" : "";
               return (
                 <div
                   key={job.title}
-                  className={`flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all ${floatClass} ${delay}`}
+                  className="flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
                 >
                   <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${job.accent} flex items-center justify-center shrink-0`}>
                     <Icon className="w-5 h-5 text-primary" />

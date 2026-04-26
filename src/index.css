@@ -99,6 +99,10 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --shadow-card-soft: 0 1px 3px hsl(160 10% 12% / 0.04), 0 4px 16px -4px hsl(160 10% 12% / 0.06);
     --shadow-elevated: 0 12px 40px -12px hsl(160 10% 12% / 0.12);
 
+    /* External brand tokens (Facebook official blue) */
+    --facebook: 213 83% 31%;
+    --facebook-hover: 213 83% 24%;
+
     font-family: 'DM Sans', system-ui, sans-serif;
   }
 

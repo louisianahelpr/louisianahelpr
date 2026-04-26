@@ -77,6 +77,24 @@ def import_distribution_certificate_from_p12!(keychain_name:, keychain_password:
   )
 
   UI.success("Imported existing Apple Distribution certificate from IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64")
+
+  # Diagnostic: list what xcodebuild / sigh will actually see in the keychain.
+  # If sigh later says "Could not find a matching code signing identity",
+  # compare the SHA-1 / common name printed here against what's listed on
+  # App Store Connect → Certificates. They MUST match exactly. The most
+  # common cause is uploading an Apple Development cert (or a revoked /
+  # expired Distribution cert) as IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64.
+  begin
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}") unless File.exist?(keychain_path)
+    UI.message("---- Identities visible to xcodebuild in #{keychain_name} ----")
+    sh("security find-identity -v -p codesigning #{keychain_path.shellescape} || true", log: true)
+    UI.message("---- Certificate subject / validity ----")
+    sh("security find-certificate -a -p #{keychain_path.shellescape} | openssl x509 -noout -subject -issuer -dates -fingerprint -sha1 2>/dev/null || true", log: true)
+    UI.message("--------------------------------------------------------------")
+  rescue => diag_err
+    UI.important("Could not enumerate keychain identities for diagnostics: #{diag_err.message}")
+  end
 rescue ArgumentError => e
   UI.user_error!("IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 is not valid base64: #{e.message}")
 ensure

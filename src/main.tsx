@@ -71,13 +71,12 @@ hydrateStorage().finally(() => {
   const interactionEvents: Array<keyof DocumentEventMap> = [
     "pointerdown",
     "keydown",
-    "scroll",
     "touchstart",
   ];
   const interactionOpts: AddEventListenerOptions = {
     once: true,
     passive: true,
-    capture: true,
+    capture: false,
   };
   const removeInteractionListeners = () => {
     for (const ev of interactionEvents) {

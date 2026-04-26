@@ -64,7 +64,7 @@ const Footer = () => (
 
         {/* Link columns — 3 tight columns, balanced */}
         <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-6 lg:gap-10">
-          {/* Company */}
+          {/* Company (with Support back in) */}
           <div>
             <h3 className="text-xs font-semibold text-foreground mb-4 uppercase tracking-wider">Company</h3>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
@@ -72,6 +72,7 @@ const Footer = () => (
               <li><Link to="/community" className="hover:text-primary transition-colors">Community</Link></li>
               <li><Link to="/heroes" className="hover:text-primary transition-colors">Heroes</Link></li>
               <li><Link to="/for-business" className="hover:text-primary transition-colors">Business</Link></li>
+              <li><Link to="/support" className="hover:text-primary transition-colors">Contact / Support</Link></li>
             </ul>
           </div>
 
@@ -86,14 +87,37 @@ const Footer = () => (
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Connect — social buttons */}
           <div>
-            <h3 className="text-xs font-semibold text-foreground mb-4 uppercase tracking-wider">Support</h3>
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
-              <li><Link to="/support" className="hover:text-primary transition-colors">Help Center</Link></li>
-              <li><Link to="/support" className="hover:text-primary transition-colors">Contact Us</Link></li>
-              <li><a href="mailto:admin@louisianahelpr.com" className="hover:text-primary transition-colors">Email Us</a></li>
-            </ul>
+            <h3 className="text-xs font-semibold text-foreground mb-4 uppercase tracking-wider">Connect</h3>
+            <div className="flex flex-col gap-2.5">
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex h-11 items-center gap-2 rounded-lg bg-foreground px-4 text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
+                aria-label="App Store — Download Helpr (opens in a new tab)"
+              >
+                <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <span className="text-left leading-tight">
+                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
+                  <span className="block text-xs font-semibold tracking-tight">App Store</span>
+                </span>
+              </a>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex h-11 items-center gap-2 rounded-lg bg-[hsl(var(--facebook))] px-4 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
+                aria-label="Facebook — Follow Helpr (opens in a new tab)"
+              >
+                <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <span className="text-left leading-tight">
+                  <span className="block text-[8px] font-medium uppercase tracking-[0.18em] opacity-80">Follow us on</span>
+                  <span className="block text-xs font-semibold tracking-tight">Facebook</span>
+                </span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

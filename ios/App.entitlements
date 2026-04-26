@@ -2,23 +2,10 @@
 <!--
   Helpr — iOS entitlements template.
 
-  This file is the source of truth for the App target's entitlements.
-  On `npx cap sync ios` it is NOT auto-copied — copy it once on first setup:
-
-      cp ios/App.entitlements ios/App/App/App.entitlements
-
-  Then in Xcode (one-time, ~30 seconds — Apple does not let CocoaPods
-  or Capacitor write this for you):
-
-    1. Open ios/App/App.xcworkspace
-    2. Select the App target → Build Settings
-    3. Search for "Code Signing Entitlements"
-    4. Set value to:  App/App.entitlements
-    5. Signing & Capabilities → + Capability → Background Modes
-       → check "Remote notifications"
-    6. Build → Xcode regenerates the provisioning profile with the
-       aps-environment entitlement, and TestFlight builds will register
-       for APNs automatically on first launch.
+  This file mirrors ios/App/App/App.entitlements, which is wired into the
+  committed Xcode project via CODE_SIGN_ENTITLEMENTS = App/App.entitlements.
+  Keep both copies aligned so GitHub → Xcode/Fastlane builds populate all
+  capabilities automatically.
 
   Bundle ID: com.Helpr     Team ID: P85MCK558V
 -->

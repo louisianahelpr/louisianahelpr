@@ -1,45 +1,34 @@
 # iOS Native Setup — Helpr
 
-This folder contains iOS-specific config files that get copied into the
-real `ios/` Xcode project on `npx cap sync`. The actual `ios/App/...`
-Xcode project is generated **locally on your Mac** and is gitignored.
+This folder contains the committed iOS Xcode project and native config that
+Fastlane/GitHub/Xcode use directly. The App Store Connect identity is locked
+to `com.Helpr`, SKU `Helpr`, Apple ID `6754470134`, Team `P85MCK558V`.
 
 ## First-time setup (on your Mac)
 
 ```bash
 git pull
 npm install
-npx cap add ios
+npm run build
 npx cap sync ios
 ```
 
-After `npx cap add ios`, copy these files into the Xcode project:
+After each pull, build and sync the native shell:
 
 ```bash
-# Privacy manifest (REQUIRED since iOS 17 — Apple will reject without it)
-cp ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
-
-# Push notifications + Universal Links entitlements
-cp ios/App.entitlements ios/App/App/App.entitlements
-
 # App icon — generate all 18 sizes from the 1024 source
 node scripts/generate-ios-icons.mjs
+
+npm run build
+npx cap sync ios
 ```
 
-Then in Xcode (one-time, ~2 minutes):
+Then in Xcode:
 1. Open `ios/App/App.xcworkspace`
-2. Drag `PrivacyInfo.xcprivacy` into the App target → "Copy items if needed"
-3. Verify it appears under **App target → Build Phases → Copy Bundle Resources**
-4. Drag the generated `AppIcon.appiconset` folder into `Assets.xcassets`,
-   replacing the placeholder
-5. **App target → Build Settings** → search "Code Signing Entitlements"
-   → set to `App/App.entitlements`
-6. **App target → Signing & Capabilities** → `+ Capability` → **Background Modes**
-   → check ☑️ *Remote notifications*
-   (Push Notifications capability is auto-enabled by the entitlements file.)
-7. Bundle ID: confirm `com.Helpr` matches App Store Connect record
-8. Signing & Capabilities: select your team (P85MCK558V — Helpr, LLC)
-9. Build and run on iPhone 15 simulator to verify
+2. Verify Bundle ID is `com.Helpr`
+3. Verify Team is `P85MCK558V — Helpr, LLC`
+4. Verify Signing & Capabilities already lists Push Notifications, Sign in with Apple, Associated Domains, and Background Modes → Remote notifications
+5. Build and run on iPhone 15 simulator to verify
 
 > **Push tokens only register on real devices.** The simulator will
 > never call back into `useNativePushSetup()` — test on a real iPhone
@@ -74,11 +63,9 @@ exactly or signing will fail.
 
 ## Permissions
 
-All `NS*UsageDescription` strings live in `capacitor.config.ts` under
-`ios.content`. They are injected into Info.plist on `npx cap sync`.
-
-Edit them in one place — never edit Info.plist directly, since `cap sync`
-will overwrite changes.
+All `NS*UsageDescription` strings are committed in `ios/App/App/Info.plist`
+and mirrored as a reminder in `capacitor.config.ts`. Keep both aligned so
+GitHub → Xcode/Fastlane builds retain the same permission prompts.
 
 ## Required-reason APIs
 

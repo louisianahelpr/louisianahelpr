@@ -73,30 +73,16 @@ jobs:
       - name: Build web bundle
         run: npm run build
 
-      - name: Generate iOS native project (if missing)
-        # ios/App/ is gitignored (per ios/README.md) — generated locally on
-        # developer Macs. In CI we recreate it from scratch, preserving the
-        # repo stubs (PrivacyInfo.xcprivacy, App.entitlements, README) that
-        # need to land inside the generated native project.
+      - name: Verify committed iOS Xcode project
+        # The Xcode project is committed because it contains the existing
+        # com.Helpr App Store identity and native capabilities.
         run: |
-          if [ ! -d ios/App ]; then
-            echo "ios/App/ missing — preserving repo stubs and generating native project..."
-            mkdir -p /tmp/ios-stubs
-            [ -f ios/App.entitlements ] && mv ios/App.entitlements /tmp/ios-stubs/
-            [ -f ios/PrivacyInfo.xcprivacy ] && mv ios/PrivacyInfo.xcprivacy /tmp/ios-stubs/
-            [ -f ios/README.md ] && mv ios/README.md /tmp/ios-stubs/
-            rm -rf ios
-            npx cap add ios
-            if [ -f /tmp/ios-stubs/PrivacyInfo.xcprivacy ]; then
-              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
-              cp /tmp/ios-stubs/PrivacyInfo.xcprivacy ios/PrivacyInfo.xcprivacy
-            fi
-            if [ -f /tmp/ios-stubs/App.entitlements ]; then
-              cp /tmp/ios-stubs/App.entitlements ios/App/App/App.entitlements
-              cp /tmp/ios-stubs/App.entitlements ios/App.entitlements
-            fi
-            [ -f /tmp/ios-stubs/README.md ] && cp /tmp/ios-stubs/README.md ios/README.md || true
-          fi
+          test -d ios/App/App.xcodeproj || (echo "❌ Missing committed ios/App/App.xcodeproj" && exit 1)
+          test -f ios/App/App/Info.plist || (echo "❌ Missing committed Info.plist" && exit 1)
+          test -f ios/App/App/App.entitlements || (echo "❌ Missing committed App.entitlements" && exit 1)
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.Helpr;" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "DEVELOPMENT_TEAM = P85MCK558V;" ios/App/App.xcodeproj/project.pbxproj
+          echo "✓ Committed iOS project matches com.Helpr / P85MCK558V"
 
       - name: Sync Capacitor → iOS
         # Refreshes the web bundle in ios/App/App/public and runs pod install

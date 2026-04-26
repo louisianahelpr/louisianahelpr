@@ -7,8 +7,8 @@ const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 const Footer = () => (
   <footer className="border-t border-border py-16 md:py-20 px-4">
     <div className="container mx-auto">
-      {/* Top: brand + service description + link columns */}
-      <div className="grid gap-8 md:grid-cols-4">
+      {/* Main grid: brand (2 cols) + Company + Legal & Pricing + Connect */}
+      <div className="grid gap-8 md:grid-cols-5">
         <div className="md:col-span-2 space-y-4">
           <Link to="/" className="text-xl font-display font-bold text-primary">
             Helpr
@@ -53,46 +53,36 @@ const Footer = () => (
             <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
           </ul>
         </div>
-      </div>
 
-      {/* Sub-footer: Download (left) + Connect (right) — ghost-button styling */}
-      <div className="mt-20 grid gap-10 md:grid-cols-2 md:gap-8">
-        <div className="flex flex-col items-center md:items-start gap-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Download
-          </span>
-          <a
-            href={APP_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-transparent px-4 text-foreground transition-all duration-300 ease-out hover:border-foreground/40 hover:bg-foreground/[0.03]"
-            aria-label="App Store — Download Helpr (opens in a new tab)"
-          >
-            <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
-            <span className="text-left leading-tight">
-              <span className="block text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Download on the</span>
-              <span className="block text-xs font-semibold tracking-tight">App Store</span>
-            </span>
-          </a>
-        </div>
-
-        <div className="flex flex-col items-center md:items-end gap-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Connect with us
-          </span>
-          <a
-            href={FACEBOOK_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-transparent px-4 text-foreground transition-all duration-300 ease-out hover:border-[hsl(var(--facebook))] hover:text-[hsl(var(--facebook))] hover:bg-[hsl(var(--facebook)/0.04)]"
-            aria-label="Facebook — Follow Helpr (opens in a new tab)"
-          >
-            <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} />
-            <span className="text-left leading-tight">
-              <span className="block text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Follow us on</span>
-              <span className="block text-xs font-semibold tracking-tight">Facebook</span>
-            </span>
-          </a>
+        {/* Connect with us */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">Connect with us</h3>
+          <ul className="space-y-2.5 text-sm">
+            <li>
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Download Helpr on the App Store (opens in a new tab)"
+              >
+                <Apple className="h-3.5 w-3.5" strokeWidth={1.5} fill="currentColor" />
+                App Store
+              </a>
+            </li>
+            <li>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 text-muted-foreground hover:text-[hsl(var(--facebook))] transition-colors"
+                aria-label="Follow Helpr on Facebook (opens in a new tab)"
+              >
+                <Facebook className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Facebook
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 

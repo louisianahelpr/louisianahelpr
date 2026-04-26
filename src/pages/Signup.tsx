@@ -479,9 +479,9 @@ const Signup = () => {
               </p>
             </div>
 
-        {/* Step 1: Account basics */}
+        {/* Step 1: Account basics — organized top-down: Profile → Account → Personal → ID → Policies */}
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-6">
 
             {isBusinessSignup && (
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
@@ -503,112 +503,8 @@ const Signup = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
-                <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required autoComplete="given-name" className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className={labelCls}>Last name <span className="text-destructive">*</span></Label>
-                <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required autoComplete="family-name" className={inputCls} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
-              <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required className={inputCls} />
-              {confirmEmail && (
-                <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
-                  {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {confirmPassword && (
-                <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
-                  {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
-              <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
-              <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                placeholder="(555) 123-4567"
-                value={phone}
-                onChange={(e) => setPhone(formatPhone(e.target.value))}
-                required
-                autoComplete="tel"
-                maxLength={14}
-                className={inputCls}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="referral" className={`${labelCls} flex items-center gap-1.5`}>
-                <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
-              </Label>
-              <Input
-                id="referral"
-                placeholder="Enter referral code for $5 credit"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                maxLength={10}
-                className={`${inputCls} uppercase`}
-              />
-              {referralCode && (
-                <p className="text-xs text-primary flex items-center gap-1">
-                  <Gift className="w-3 h-3" /> You'll earn $5 when you complete your first job — as poster or crew!
-                </p>
-              )}
-            </div>
-            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
-              <Checkbox
-                id="policies"
-                checked={acceptedPolicies}
-                onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
-                className="mt-0.5"
-              />
-              <label htmlFor="policies" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-                I agree to the{" "}
-                <Link to="/rules" target="_blank" className="text-primary hover:underline font-medium">Platform Rules</Link>,{" "}
-                <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">Terms of Service</Link>, and{" "}
-                <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
-                I understand the cancellation, no-show, and dispute policies.
-              </label>
-            </div>
-            {/* Required profile section — moved into Step 1 so everyone fills it out */}
-            <div className="pt-2 border-t border-border/60 space-y-4">
-              <div className="space-y-1">
-                <h2 className="text-base font-display font-semibold text-foreground">A bit about you</h2>
-                <p className="text-xs text-muted-foreground">Required for everyone — posters and helprs alike.</p>
-              </div>
-
+            {/* ── Section 1: Your photo (top of page — most personal first) ── */}
+            <section className="space-y-4">
               <div className="flex flex-col items-center gap-2">
                 <Label className="text-sm font-medium">Profile picture <span className="text-destructive text-xs">*</span></Label>
                 <label className="cursor-pointer group relative inline-block">
@@ -628,7 +524,100 @@ const Signup = () => {
                   A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
                 </p>
               </div>
+            </section>
 
+            {/* ── Section 2: Your name ── */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <UserRound className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Your name</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
+                  <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required autoComplete="given-name" className={inputCls} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className={labelCls}>Last name <span className="text-destructive">*</span></Label>
+                  <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required autoComplete="family-name" className={inputCls} />
+                </div>
+              </div>
+            </section>
+
+            {/* ── Section 3: Account credentials ── */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Account login</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
+                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required className={inputCls} />
+                {confirmEmail && (
+                  <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
+                    {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {confirmPassword && (
+                  <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+                    {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+                  </p>
+                )}
+              </div>
+            </section>
+
+            {/* ── Section 4: Personal details ── */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Personal details</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
+                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
+                <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(555) 123-4567"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  required
+                  autoComplete="tel"
+                  maxLength={14}
+                  className={inputCls}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
+                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
                 <Textarea
@@ -645,13 +634,14 @@ const Signup = () => {
                   {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
                 </p>
               </div>
+            </section>
 
-              <div className="space-y-2">
-                <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
+            {/* ── Section 5: Identity verification ── */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Identity verification</h2>
               </div>
-
-              {/* Government-issued ID — required for everyone (re-verified by Stripe later) */}
               <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
                 <div className="text-center space-y-2">
                   <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -702,7 +692,26 @@ const Signup = () => {
                   </label>
                 )}
               </div>
-            </div>
+            </section>
+
+            {/* ── Section 6: Agreements ── */}
+            <section className="space-y-3">
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                <Checkbox
+                  id="policies"
+                  checked={acceptedPolicies}
+                  onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="policies" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                  I agree to the{" "}
+                  <Link to="/rules" target="_blank" className="text-primary hover:underline font-medium">Platform Rules</Link>,{" "}
+                  <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">Terms of Service</Link>, and{" "}
+                  <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+                  I understand the cancellation, no-show, and dispute policies.
+                </label>
+              </div>
+            </section>
 
             <Button
               className="w-full"

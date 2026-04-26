@@ -68,12 +68,20 @@ def assert_ios_identity!
     "INFOPLIST_KEY_LSApplicationCategoryType = \"#{APP_CATEGORY_TYPE}\";" => "Xcode App Category must be committed",
     "PRODUCT_NAME = \"#{APP_PRODUCT_NAME}\";" => "Built product name must be #{APP_PRODUCT_NAME}",
     "MARKETING_VERSION = #{APP_MARKETING_VERSION};" => "Marketing version must be #{APP_MARKETING_VERSION}",
-    "CURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};" => "Build number must be #{APP_BUILD_VERSION}",
     "IPHONEOS_DEPLOYMENT_TARGET = #{APP_DEPLOYMENT_TARGET};" => "Deployment target must be #{APP_DEPLOYMENT_TARGET}"
   }
 
   required_project_values.each do |needle, message|
     UI.user_error!("#{message}. Missing project setting: #{needle}") unless project_text.include?(needle)
+  end
+
+  # CURRENT_PROJECT_VERSION is a floor, not an exact match — `set_next_build_number!`
+  # bumps it past TestFlight's latest on every archive, and `persist_build_number!`
+  # writes the bumped value back into ios_app_metadata.yml. Anything below the floor
+  # means a stale project.pbxproj that would get rejected by App Store Connect.
+  project_text.scan(/CURRENT_PROJECT_VERSION = (\d+);/).flatten.map(&:to_i).each do |actual|
+    next if actual >= APP_BUILD_VERSION.to_i
+    UI.user_error!("CURRENT_PROJECT_VERSION #{actual} in project.pbxproj is below the YAML floor #{APP_BUILD_VERSION}. Run `bundle exec fastlane ios sync_xcode_metadata`.")
   end
 
   info_plist = File.read(File.join(REPO_ROOT, "ios/App/App/Info.plist"))
@@ -93,7 +101,17 @@ def sync_metadata_to_xcode!
   # Every build setting we manage is rewritten across BOTH Debug and
   # Release configurations so Xcode "General" + Signing tabs stay
   # consistent regardless of which scheme a developer opens locally.
+  #
+  # CURRENT_PROJECT_VERSION is special: we treat the YAML value as a
+  # FLOOR. If a previous `fastlane ios beta` run already bumped the
+  # project past it (e.g. project=42, yaml=17), we keep the higher value
+  # so Apple never sees a regressed build number.
   project_text = File.read(project_path)
+  effective_build_version = [
+    APP_BUILD_VERSION.to_i,
+    *project_text.scan(/CURRENT_PROJECT_VERSION = (\d+);/).flatten.map(&:to_i)
+  ].max.to_s
+
   pbxproj_replacements = {
     /INFOPLIST_KEY_CFBundleDisplayName = .*?;/      => "INFOPLIST_KEY_CFBundleDisplayName = #{APP_DISPLAY_NAME.inspect};",
     /INFOPLIST_KEY_LSApplicationCategoryType = .*?;/ => "INFOPLIST_KEY_LSApplicationCategoryType = #{APP_CATEGORY_TYPE.inspect};",
@@ -101,7 +119,7 @@ def sync_metadata_to_xcode!
     /PRODUCT_BUNDLE_IDENTIFIER = .*?;/               => "PRODUCT_BUNDLE_IDENTIFIER = #{APP_ID};",
     /DEVELOPMENT_TEAM = .*?;/                        => "DEVELOPMENT_TEAM = #{APP_TEAM_ID};",
     /MARKETING_VERSION = .*?;/                       => "MARKETING_VERSION = #{APP_MARKETING_VERSION};",
-    /CURRENT_PROJECT_VERSION = .*?;/                 => "CURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};",
+    /CURRENT_PROJECT_VERSION = .*?;/                 => "CURRENT_PROJECT_VERSION = #{effective_build_version};",
     /IPHONEOS_DEPLOYMENT_TARGET = .*?;/              => "IPHONEOS_DEPLOYMENT_TARGET = #{APP_DEPLOYMENT_TARGET};"
   }
   pbxproj_replacements.each { |pattern, replacement| project_text.gsub!(pattern, replacement) }
@@ -303,7 +321,24 @@ def set_next_build_number!(api_key)
     build_number: build_number,
     xcodeproj: PROJECT
   )
+  persist_build_number!(build_number)
   UI.success("Using build number #{build_number}")
+end
+
+# After bumping the build number, write it back into ios_app_metadata.yml so the
+# YAML stays the source of truth and `assert_ios_identity!` keeps passing on the
+# next run. Idempotent — never writes a value lower than what's already there.
+def persist_build_number!(build_number)
+  contents = File.read(IOS_METADATA_PATH)
+  current_yaml_floor = contents[/current_project_version:\s*"?(\d+)"?/, 1].to_i
+  return if build_number.to_i <= current_yaml_floor
+
+  updated = contents.sub(
+    /current_project_version:\s*"?\d+"?/,
+    %(current_project_version: "#{build_number}")
+  )
+  File.write(IOS_METADATA_PATH, updated)
+  UI.message("Persisted build number #{build_number} into fastlane/ios_app_metadata.yml")
 end
 
 def extract_key_payload(raw_value)

@@ -44,5 +44,15 @@
         <string>applinks:louisianahelpr.com</string>
         <string>applinks:www.louisianahelpr.com</string>
     </array>
+
+    <!--
+      Sign in with Apple — required because the app exposes an
+      "Log in with Apple" button. Without this entitlement Apple will
+      reject the build (App Store Review Guideline 4.8).
+    -->
+    <key>com.apple.developer.applesignin</key>
+    <array>
+        <string>Default</string>
+    </array>
 </dict>
 </plist>

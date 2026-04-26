@@ -66,6 +66,11 @@
 	<key>UIRequiresFullScreen</key>
 	<false/>
 
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>

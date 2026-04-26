@@ -234,6 +234,7 @@ const HeroSection = () => {
                 Free to join · No subscription · Pay only when you post
               </p>
             </div>
+            </div>
           </div>
 
           {/* RIGHT: image */}

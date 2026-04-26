@@ -588,53 +588,7 @@ const Signup = () => {
               </div>
             </section>
 
-            {/* ── Section 4: Personal details ── */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Personal details</h2>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
-                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
-                <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="(555) 123-4567"
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  required
-                  autoComplete="tel"
-                  maxLength={14}
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
-                <Textarea
-                  id="bio"
-                  placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  rows={4}
-                  required
-                  minLength={20}
-                  className="rounded-xl"
-                />
-                <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
-                  {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
-                </p>
-              </div>
-            </section>
+
 
             {/* ── Section 5: Identity verification ── */}
             <section className="space-y-3">

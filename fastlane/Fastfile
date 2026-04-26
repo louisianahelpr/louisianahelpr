@@ -604,6 +604,7 @@ platform :ios do
     api_key = asc_api_key
 
     source_metadata_dir = File.join(REPO_ROOT, "fastlane/metadata")
+    source_screenshots_dir = File.join(REPO_ROOT, "fastlane/screenshots")
     allowed_metadata_entries = %w[
       en-US
       review_information
@@ -614,35 +615,36 @@ platform :ios do
       secondary_category.txt
     ]
 
-    Dir.mktmpdir("helpr-deliver-metadata") do |staged_metadata_dir|
+    Dir.mktmpdir("helpr-deliver-") do |staging_root|
+      staged_metadata_dir = File.join(staging_root, "metadata")
+      FileUtils.mkdir_p(staged_metadata_dir)
+
       allowed_metadata_entries.each do |entry|
         source = File.join(source_metadata_dir, entry)
         next unless File.exist?(source)
 
-        destination = File.join(staged_metadata_dir, entry)
-        FileUtils.cp_r(source, destination)
+        FileUtils.cp_r(source, File.join(staged_metadata_dir, entry))
       end
+
+      staged_screenshots_dir = File.join(staging_root, "screenshots")
+      screenshots_present = Dir.exist?(source_screenshots_dir) &&
+                            !Dir.glob(File.join(source_screenshots_dir, "**/*.{png,jpg,jpeg}")).empty?
+      FileUtils.cp_r(source_screenshots_dir, staged_screenshots_dir) if screenshots_present
+
+      UI.message("Uploading staged metadata from #{staged_metadata_dir}")
 
       upload_to_app_store(
         api_key:                           api_key,
         app_identifier:                    APP_ID,
-        # Metadata only — no binary involved.
         skip_binary_upload:                true,
-        # Don't submit for review; just save the listing fields.
         submit_for_review:                 false,
         automatic_release:                 false,
-        # Overwrite whatever is currently in the editable version on ASC.
         force:                             true,
-        # Don't run precheck on IAPs (we have none and it errors).
         precheck_include_in_app_purchases: false,
-        # Push only deliver-supported metadata; custom_product_pages/ and
-        # ppo_tests/ are intentionally excluded from this generic lane.
         skip_metadata:                     false,
         metadata_path:                     staged_metadata_dir,
-        # Push screenshots too if any exist; harmless when the dir is empty.
-        skip_screenshots:                  !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
-                                           Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
-        screenshots_path:                  "fastlane/screenshots",
+        skip_screenshots:                  !screenshots_present,
+        screenshots_path:                  staged_screenshots_dir,
         ignore_language_directory_validation: true
       )
     end

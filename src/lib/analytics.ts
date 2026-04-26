@@ -122,8 +122,8 @@ export function track(event: EventName, props: Record<string, any> = {}) {
     platform: (window as any).Capacitor?.getPlatform?.() ?? "web",
   });
   schedule();
-  // Fan out to PostHog. No-op until initPostHog() runs in main.tsx.
-  captureEvent(event, props);
+  // Fan out to PostHog (lazy-loaded). No-op until initPostHog() runs.
+  void fanOutToPostHog(event, props);
 }
 
 /** Flush immediately. Call before navigating away or closing the app. */

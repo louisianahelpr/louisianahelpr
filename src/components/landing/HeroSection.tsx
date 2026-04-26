@@ -216,8 +216,8 @@ const HeroSection = () => {
         </div>
 
         {/* Live job cards row — under buttons + image */}
-        <div className="mt-10 sm:mt-14">
-          <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4">
+        <div className="mt-16 sm:mt-20 pt-4">
+          <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4 px-4">
             Recently posted in Louisiana
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">

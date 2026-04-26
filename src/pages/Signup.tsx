@@ -760,24 +760,21 @@ const Signup = () => {
               </p>
             </div>
 
-            {/* Path A: Posters — quick skip card, now SECOND */}
-            <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
-              <div className="space-y-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Only here to post jobs?</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  You're done — nothing below is required. Skip and start posting in seconds.
-                </p>
-              </div>
+            {/* Path A: Posters — compact skip card */}
+            <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground leading-snug min-w-0">
+                Just posting jobs? Nothing below is required.
+              </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="h-8 px-3 text-xs shrink-0"
                 disabled={loading}
                 onClick={createAccountAndFinish}
               >
                 {loading
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
-                  : <>Skip & finish signup <ArrowRight className="w-4 h-4 ml-1" /></>}
+                  ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Creating…</>
+                  : <>Skip <ArrowRight className="w-3.5 h-3.5 ml-1" /></>}
               </Button>
             </div>
 

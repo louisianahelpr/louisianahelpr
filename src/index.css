@@ -6,9 +6,9 @@
 
 html {
   scroll-behavior: smooth;
-  overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Native app feel for iOS wrapper */
@@ -17,8 +17,9 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  overscroll-behavior-y: none;
   overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100%;
 }
 
 /* Allow text selection in inputs and textareas */

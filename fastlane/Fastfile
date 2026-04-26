@@ -434,12 +434,14 @@ platform :ios do
     # 1) Fetch (or create) the App Store distribution provisioning profile
     #    via the ASC API key. This drops a .mobileprovision into build/profiles
     #    and exports SIGH_* lane context vars we use below.
+    # NOTE: Do NOT pass both `adhoc:` and `development:` to sigh — even when
+    # both are false, fastlane's option-conflict check raises
+    # "You can't enable both :development and :adhoc". Omitting both defaults
+    # to an App Store distribution profile, which is what TestFlight needs.
     sigh(
       api_key:          api_key,
       app_identifier:   APP_ID,
       team_id:          team_id,
-      adhoc:            false,
-      development:      false,
       force:            true,
       readonly:         false,
       output_path:      File.join(REPO_ROOT, "build", "profiles")

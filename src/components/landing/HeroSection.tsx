@@ -246,7 +246,7 @@ const HeroSection = () => {
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
               className="absolute inset-0 w-full h-full object-cover object-[30%_center] sm:object-[30%_center] lg:object-[30%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
               loading="eager"
-              fetchpriority="high"
+              {...({ fetchpriority: "high" } as React.ImgHTMLAttributes<HTMLImageElement>)}
               decoding="async"
               width={1000}
               height={1000}

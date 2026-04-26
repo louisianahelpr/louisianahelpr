@@ -208,7 +208,7 @@ const HeroSection = () => {
                 <span>Browse jobs</span>
               </Button>
             </div>
-            <p className="text-[9px] sm:text-xs text-muted-foreground/80 pt-1">
+            <p className="text-[9px] sm:text-xs text-muted-foreground/80 -mt-2 sm:-mt-3">
               Free to join · No subscription · Pay only when you post
             </p>
           </div>

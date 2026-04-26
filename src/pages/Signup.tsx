@@ -594,16 +594,16 @@ const Signup = () => {
             </div>
             <div className="flex flex-col items-center gap-2">
               <Label className="text-sm font-medium">Profile picture <span className="text-destructive text-xs">*</span></Label>
-              <label className="cursor-pointer group">
+              <label className="cursor-pointer group relative inline-block">
                 <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
                   )}
-                  <div className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-card">
-                    <Camera className="w-5 h-5" strokeWidth={2.25} />
-                  </div>
+                </div>
+                <div className="pointer-events-none absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-card z-10">
+                  <Camera className="w-5 h-5" strokeWidth={2.25} />
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </label>

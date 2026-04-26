@@ -9,13 +9,17 @@ name: Security Audit
 # - Manually via workflow_dispatch
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "package.json"
-      - "package-lock.json"
-  schedule:
-    - cron: "0 8 * * 1" # Monday 08:00 UTC
+  # DISABLED automatic triggers — was burning Actions minutes weekly + on PRs.
+  # Dependabot already alerts on CVEs. Run manually before major releases.
+  # To re-enable, uncomment the pull_request / schedule blocks.
+  #
+  # pull_request:
+  #   branches: [main]
+  #   paths:
+  #     - "package.json"
+  #     - "package-lock.json"
+  # schedule:
+  #   - cron: "0 8 * * 1" # Monday 08:00 UTC
   workflow_dispatch:
 
 concurrency:

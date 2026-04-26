@@ -470,7 +470,8 @@ platform :ios do
   lane :release do
     api_key = asc_api_key
 
-    configure_signing!
+    configure_signing!(api_key)
+    ENV["HELPR_PROFILE_NAME"] = lane_context[SharedValues::SIGH_NAME].to_s
     set_next_build_number!(api_key)
 
     build_ipa_with_xcodebuild(output_name: "Helpr.ipa")

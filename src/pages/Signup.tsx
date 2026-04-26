@@ -647,16 +647,21 @@ const Signup = () => {
               </div>
             </section>
 
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={async () => {
-                if (!(await validateStep1())) return;
-                setStep(2);
-              }}
-            >
-              Continue <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={async () => {
+                  if (!(await validateStep1())) return;
+                  setStep(3);
+                }}
+              >
+                Continue <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </div>
         )}
 

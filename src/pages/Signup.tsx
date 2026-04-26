@@ -761,7 +761,35 @@ const Signup = () => {
         {/* Step 3: Optional helpr-quality details (everyone can skip) */}
         {step === 3 && (
           <div className="space-y-4">
-            {/* Path A: Posters — quick skip card */}
+            {/* Path B: Helprs — strongly emphasized, now FIRST */}
+            <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-5 space-y-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <p className="text-base font-bold text-foreground leading-tight">
+                    Planning to apply for jobs?
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-primary text-primary-foreground shrink-0">
+                  Recommended
+                </span>
+              </div>
+
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                Posters hire helprs with complete profiles.{" "}
+                <span className="font-semibold text-foreground">Empty profiles rarely get picked.</span>{" "}
+                Take 2 minutes to fill out the fields below — stand out, get more offers, start earning faster.
+              </p>
+
+              <div className="flex items-center gap-2 text-xs text-primary font-medium border-t border-primary/20 pt-3">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                Skills, photos, and a bio can <span className="font-bold">3× your chances</span> of being hired
+              </div>
+            </div>
+
+            {/* Path A: Posters — quick skip card, now SECOND */}
             <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
@@ -785,30 +813,6 @@ const Signup = () => {
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
                   : <>Skip & finish signup <ArrowRight className="w-4 h-4 ml-1" /></>}
               </Button>
-            </div>
-
-            {/* Path B: Helprs — strongly emphasized completion card */}
-            <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-4 space-y-3 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-bold text-foreground">Planning to apply for jobs?</p>
-                    <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
-                      Recommended
-                    </span>
-                  </div>
-                  <p className="text-xs text-foreground/80 leading-relaxed">
-                    Posters hire helprs with complete profiles. <span className="font-semibold text-foreground">Empty profiles rarely get picked.</span> Take 2 minutes now — fill out the fields below to stand out, get more offers, and start earning faster.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-primary font-medium pl-12">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary" />
-                Skills, photos, and a bio can <span className="font-bold">3× your chances</span> of being hired
-              </div>
             </div>
 
             {/* Referral code — moved from Step 1 to Optional */}

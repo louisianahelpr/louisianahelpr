@@ -126,7 +126,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-12 md:pb-16 px-4 sm:px-6 flex items-center min-h-screen min-h-[100dvh]"
+      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 md:pb-20 lg:pb-24 px-4 sm:px-6 flex items-start sm:items-center min-h-[80vh] sm:min-h-screen md:min-h-screen lg:min-h-screen"
       style={{
         paddingLeft: "max(1rem, env(safe-area-inset-left))",
         paddingRight: "max(1rem, env(safe-area-inset-right))",
@@ -150,14 +150,14 @@ const HeroSection = () => {
         <div className="grid min-w-0 md:grid-cols-2 gap-8 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
           <div className="min-w-0 max-w-full animate-fade-in">
+            {/* Eyebrow badge */}
+            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="truncate">Built in Louisiana, for Louisiana</span>
+            </div>
+
             {/* Unified column — everything constrained to the same width */}
             <div className="mx-auto md:mx-0 w-full max-w-[21rem] sm:max-w-md">
-              {/* Eyebrow badge */}
-              <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="truncate">Built in Louisiana, for Louisiana</span>
-              </div>
-
               {/* Headline + subhead — tight pair */}
               <h1 className="mt-5 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08] text-balance break-words">
                 Your local{" "}

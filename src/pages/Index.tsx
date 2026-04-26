@@ -12,6 +12,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const FeaturesSection = lazy(() => import("@/components/landing/FeaturesSection"));
 const HelperSpotlightSection = lazy(() => import("@/components/landing/HelperSpotlightSection"));
+const JobStoriesSection = lazy(() => import("@/components/landing/JobStoriesSection"));
 const PublicJobsPreview = lazy(() => import("@/components/landing/PublicJobsPreview"));
 const CTASection = lazy(() => import("@/components/landing/CTASection"));
 const CommunityLoveSection = lazy(() => import("@/components/landing/CommunityLoveSection"));
@@ -165,12 +166,13 @@ const Index = () => {
       <Navbar />
       <HeroSection />
       <SocialProofSection />
-      <Suspense fallback={null}>
+      <Suspense fallback={<div className="min-h-[200px]" />}>
         <HowItWorksSection />
         <PublicJobsPreview />
         <FeaturesSection />
         <CommunityLoveSection />
         <HelperSpotlightSection />
+        <JobStoriesSection />
         <CTASection />
       </Suspense>
       <Footer />

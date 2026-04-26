@@ -56,7 +56,7 @@ const SocialProofSection = () => {
   ];
 
   return (
-    <section className="py-10 px-4 border-t border-border">
+    <section className="py-16 px-4 border-t border-border">
       <div className="container mx-auto">
         <div className="grid grid-cols-3 gap-6 max-w-3xl mx-auto">
           {items.map((item, i) => (

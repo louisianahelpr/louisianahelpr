@@ -873,30 +873,6 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Availability <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <div className="flex flex-wrap gap-1.5">
-                {["Weekday mornings", "Weekday afternoons", "Weekday evenings", "Weekends", "Flexible / Anytime"].map((slot) => {
-                  const isActive = availability.includes(slot);
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => {
-                        setAvailability(isActive ? availability.filter(a => a !== slot) : [...availability, slot]);
-                      }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {isActive ? "✓ " : "+ "}{slot}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5">
                 {["Word of mouth", "Social media", "Google search", "Flyer / poster", "Friend / family", "Other"].map((opt) => {

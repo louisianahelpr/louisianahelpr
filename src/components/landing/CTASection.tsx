@@ -41,13 +41,29 @@ const CTASection = () => {
                 href={APP_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-foreground px-7 py-3.5 text-background shadow-[0_10px_30px_-10px_hsl(var(--foreground)/0.6)] ring-1 ring-foreground/10 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-12px_hsl(var(--foreground)/0.7)] sm:w-auto"
+                className="group relative inline-flex min-h-14 w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-b from-foreground to-foreground/85 px-7 py-3.5 text-background shadow-[0_14px_36px_-10px_hsl(var(--foreground)/0.7),inset_0_1px_0_0_hsl(var(--background)/0.18)] ring-1 ring-foreground/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-12px_hsl(var(--foreground)/0.8),inset_0_1px_0_0_hsl(var(--background)/0.25)] sm:w-auto"
                 aria-label="Download Helpr on the App Store"
               >
-                <Apple className="h-7 w-7 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
-                <span className="text-left leading-tight">
+                {/* Glossy top highlight */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl bg-gradient-to-b from-background/15 to-transparent"
+                />
+                {/* Shimmer sweep on hover */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/20 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
+                />
+                <Apple className="relative h-7 w-7 drop-shadow-[0_1px_2px_hsl(var(--background)/0.3)] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+                <span className="relative text-left leading-tight">
                   <span className="block text-[10px] font-medium uppercase tracking-[0.18em] opacity-70">Download on the</span>
                   <span className="block text-lg font-semibold tracking-tight">App Store</span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="relative ml-1 hidden rounded-md bg-background/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-background ring-1 ring-background/20 sm:inline-block"
+                >
+                  iOS
                 </span>
               </a>
 

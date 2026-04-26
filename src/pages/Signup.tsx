@@ -590,10 +590,6 @@ const Signup = () => {
 
             {/* ── Section 4: Personal details ── */}
             <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Personal details</h2>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
                 <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} autoComplete="bday" className={inputCls} />

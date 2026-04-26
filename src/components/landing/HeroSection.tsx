@@ -137,9 +137,9 @@ const HeroSection = () => {
         <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
           <div className="space-y-5 sm:space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Built in Louisiana, for Louisiana
+            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[10px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+              <span className="truncate">Built in Louisiana, for Louisiana</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance break-words">

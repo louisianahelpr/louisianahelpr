@@ -55,9 +55,9 @@ const Footer = () => (
         </div>
 
         {/* Connect with us */}
-        <div>
+        <div className="md:col-span-3 md:text-left">
           <h3 className="text-sm font-semibold text-foreground mb-3">Connect with us</h3>
-          <ul className="space-y-2.5 text-sm">
+          <ul className="space-y-2.5 text-sm flex flex-col md:items-end text-left">
             <li>
               <a
                 href={APP_STORE_URL}

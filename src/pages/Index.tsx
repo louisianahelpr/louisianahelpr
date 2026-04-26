@@ -168,7 +168,6 @@ const Index = () => {
         <PublicJobsPreview />
         <HelperSpotlightSection />
         <JobStoriesSection />
-        <CTASection />
       </Suspense>
       <Footer />
     </div>

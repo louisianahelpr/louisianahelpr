@@ -747,31 +747,21 @@ const Signup = () => {
         {step === 3 && (
           <div className="space-y-4">
             {/* Path B: Helprs — strongly emphasized, now FIRST */}
-            <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-5 space-y-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
+            <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-4 space-y-2 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
                   <p className="text-base font-bold text-foreground leading-tight">
-                    Planning to apply for jobs?
+                    Applying for jobs?
                   </p>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-primary text-primary-foreground shrink-0">
                   Recommended
                 </span>
               </div>
-
               <p className="text-sm text-foreground/80 leading-relaxed">
-                Posters hire helprs with complete profiles.{" "}
-                <span className="font-semibold text-foreground">Empty profiles rarely get picked.</span>{" "}
-                Take 2 minutes to fill out the fields below — stand out, get more offers, start earning faster.
+                Complete profiles get <span className="font-semibold">3× more offers</span>. Takes 2 minutes.
               </p>
-
-              <div className="flex items-center gap-2 text-xs text-primary font-medium border-t border-primary/20 pt-3">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                Skills, photos, and a bio can <span className="font-bold">3× your chances</span> of being hired
-              </div>
             </div>
 
             {/* Path A: Posters — quick skip card, now SECOND */}

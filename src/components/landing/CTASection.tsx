@@ -31,9 +31,6 @@ const CTASection = () => {
             <h2 className="mx-auto mt-4 max-w-xl text-2xl font-display font-bold leading-tight text-primary-foreground sm:text-3xl">
               Ready to get help or start earning?
             </h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-primary-foreground/80">
-              Join Louisiana neighbors posting local tasks, finding trusted helprs, and getting work done — all from your phone.
-            </p>
 
             {/* Action buttons */}
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-3">

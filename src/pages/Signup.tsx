@@ -925,28 +925,6 @@ const Signup = () => {
               <p className="text-xs text-muted-foreground">Type your own or tap common options above.</p>
             </div>
 
-            <div className="space-y-2">
-              <Label>Preferred job radius <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <div className="flex flex-wrap gap-1.5">
-                {["5 miles", "10 miles", "25 miles", "50+ miles", "Anywhere"].map((opt) => {
-                  const isActive = jobRadius === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setJobRadius(isActive ? "" : opt)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {isActive ? "✓ " : ""}{opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
               <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>

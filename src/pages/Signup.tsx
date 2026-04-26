@@ -544,54 +544,7 @@ const Signup = () => {
               </div>
             </section>
 
-            {/* ── Personal details (moved under name) ── */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Personal details</h2>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
-                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} className={inputCls} />
-                <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="(555) 123-4567"
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  required
-                  autoComplete="tel"
-                  maxLength={14}
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
-                <Textarea
-                  id="bio"
-                  placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  rows={4}
-                  required
-                  minLength={20}
-                  className="rounded-xl"
-                />
-                <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
-                  {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
-                </p>
-              </div>
-            </section>
-
+            {/* ── Section 3: Account credentials ── */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-primary" />
@@ -603,7 +556,7 @@ const Signup = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
-                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required className={inputCls} />
+                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
                 {confirmEmail && (
                   <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
                     {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
@@ -635,7 +588,53 @@ const Signup = () => {
               </div>
             </section>
 
-
+            {/* ── Section 4: Personal details ── */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Personal details</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
+                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} autoComplete="bday" className={inputCls} />
+                <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(555) 123-4567"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  required
+                  autoComplete="tel"
+                  maxLength={14}
+                  className={inputCls}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
+                <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required autoComplete="address-level2" className={inputCls} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  rows={4}
+                  required
+                  minLength={20}
+                  className="rounded-xl"
+                />
+                <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
+                  {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
+                </p>
+              </div>
+            </section>
 
             {/* ── Section 5: Identity verification ── */}
             <section className="space-y-3">
@@ -874,6 +873,30 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
+              <Label>Availability <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Weekday mornings", "Weekday afternoons", "Weekday evenings", "Weekends", "Flexible / Anytime"].map((slot) => {
+                  const isActive = availability.includes(slot);
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => {
+                        setAvailability(isActive ? availability.filter(a => a !== slot) : [...availability, slot]);
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : "+ "}{slot}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5">
                 {["Word of mouth", "Social media", "Google search", "Flyer / poster", "Friend / family", "Other"].map((opt) => {
@@ -896,6 +919,28 @@ const Signup = () => {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Experience level <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Beginner", "Some experience", "Experienced", "Professional"].map((opt) => {
+                  const isActive = experienceLevel === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setExperienceLevel(isActive ? "" : opt)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : ""}{opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label>Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>
@@ -926,12 +971,34 @@ const Signup = () => {
               <p className="text-xs text-muted-foreground">Type your own or tap common options above.</p>
             </div>
 
+            <div className="space-y-2">
+              <Label>Preferred job radius <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {["5 miles", "10 miles", "25 miles", "50+ miles", "Anywhere"].map((opt) => {
+                  const isActive = jobRadius === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setJobRadius(isActive ? "" : opt)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {isActive ? "✓ " : ""}{opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
               <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} />
-                <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} />
+                <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
+                <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
               </div>
             </div>
 

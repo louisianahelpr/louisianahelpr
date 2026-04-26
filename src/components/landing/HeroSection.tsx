@@ -180,7 +180,7 @@ const HeroSection = () => {
             </div>
 
             {/* BOTTOM: CTAs grouped tightly under the content stack — centered on mobile/iPad */}
-            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch justify-center gap-3 lg:gap-4 w-full max-w-md sm:max-w-none lg:max-w-xl mx-auto lg:mx-0">
+            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch justify-center gap-3 lg:gap-4 w-full max-w-md sm:max-w-2xl lg:max-w-xl mx-auto lg:mx-0">
               <Button
                 size="xl"
                 className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"

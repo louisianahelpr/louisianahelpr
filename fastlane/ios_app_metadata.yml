@@ -1,0 +1,60 @@
+# Single source of truth for everything Xcode and the App Store need to
+# know about the iOS app. Edit values here — `bundle exec fastlane ios
+# sync_xcode_metadata` then writes them into ios/App/App.xcodeproj and
+# ios/App/App/Info.plist so neither Xcode nor App Store Connect needs to
+# be touched manually. The CI ios-metadata workflow runs this lane on
+# every dispatch.
+#
+# Anything you can set in Xcode's General / Info / Signing tabs that we
+# care about for the App Store record belongs in this file.
+
+identity:
+  # Locked to the existing App Store Connect record. Changing either of
+  # these breaks signing and TestFlight uploads.
+  bundle_id: com.Helpr
+  team_id: P85MCK558V
+
+display:
+  # Shown under the icon on the home screen + on the App Store listing.
+  # Mirrors fastlane/metadata/en-US/name.txt so deliver and Xcode agree.
+  name: Louisiana Helpr
+  # Built product / Xcode "PRODUCT_NAME". Keep equal to display.name unless
+  # you know exactly why you want them to differ (you don't).
+  product_name: Louisiana Helpr
+  # Apple primary category. Mirrors fastlane/metadata/primary_category.txt.
+  category_uti: public.app-category.lifestyle
+
+versioning:
+  # Marketing version (CFBundleShortVersionString) — what users see.
+  marketing_version: "1.0.4"
+  # Build number floor. CI bumps past this automatically; only set higher
+  # when App Store Connect's API lags and rejects a duplicate build.
+  current_project_version: "17"
+
+build:
+  ios_deployment_target: "15.0"
+  # ITSAppUsesNonExemptEncryption — false because we only use Apple's
+  # standard HTTPS / system crypto (no custom encryption). Keeps
+  # TestFlight uploads from prompting for an annual export-compliance
+  # questionnaire.
+  uses_non_exempt_encryption: false
+
+# All NSUsageDescription strings the binary advertises. App Store review
+# rejects builds whose runtime prompts don't match these. Edit copy here
+# and the sync lane will rewrite Info.plist verbatim.
+permission_strings:
+  NSCameraUsageDescription: >-
+    Helpr needs camera access so you can take before and after job photos
+    and upload verification documents.
+  NSContactsUsageDescription: >-
+    Helpr can access contacts only if you choose to invite a friend by
+    phone or email.
+  NSLocationWhenInUseUsageDescription: >-
+    Helpr uses your location to show nearby jobs and confirm helpr
+    arrival.
+  NSPhotoLibraryAddUsageDescription: >-
+    Helpr can save downloaded receipts and shared images to your photo
+    library.
+  NSPhotoLibraryUsageDescription: >-
+    Helpr needs photo library access so you can upload job details,
+    progress photos, and verification documents.

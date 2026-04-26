@@ -26,7 +26,7 @@ const CommunityLoveSection = () => (
           <Heart className="w-4 h-4 fill-primary" /> Community Love
         </div>
         <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-          Thank You for Being Part of Helpr
+          Thank you for being part of Helpr
         </h2>
         <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
           This platform exists because of people like you. Every task, every connection, every helping hand — it all starts with you.

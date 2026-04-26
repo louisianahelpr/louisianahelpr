@@ -594,7 +594,12 @@ platform :ios do
       # Push screenshots too if any exist; harmless when the dir is empty.
       skip_screenshots:                  !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
                                          Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
-      screenshots_path:                  "fastlane/screenshots"
+      screenshots_path:                  "fastlane/screenshots",
+      # `fastlane/metadata/` contains sibling folders that aren't language
+      # codes (custom_product_pages/, ppo_tests/) — those are managed by
+      # separate flows, not by `deliver`. Tell deliver to ignore the
+      # validation so it only picks up real locale folders like en-US/.
+      ignore_language_directory_validation: true
     )
 
     UI.success("App Store metadata synced from fastlane/metadata/ → App Store Connect")

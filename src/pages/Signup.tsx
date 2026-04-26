@@ -391,8 +391,8 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <div className="flex items-start sm:items-center justify-center px-5 py-8 sm:py-12">
-        <div className="w-full max-w-md pb-12">
+      <div className="flex items-start sm:items-center justify-center px-5 py-8 sm:px-8 sm:py-12">
+        <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl pb-12">
           <div className="mb-4">
             <Link
               to="/"

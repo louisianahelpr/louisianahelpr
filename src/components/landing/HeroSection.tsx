@@ -225,9 +225,9 @@ const HeroSection = () => {
         <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[12rem]">
           <div className="relative w-full h-full lg:h-full lg:min-h-[36rem]">
             <img
-              src={heroImg400}
+              src={heroImg500}
               srcSet={heroSrcSet}
-              sizes="(max-width: 1023px) 100vw, 50vw"
+              sizes={heroSizes}
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
               className="absolute inset-0 w-full h-full object-cover object-[70%_center] sm:object-center lg:object-[70%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
               loading="eager"

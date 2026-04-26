@@ -66,7 +66,7 @@ const Footer = () => (
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex h-11 items-center gap-2 rounded-lg bg-foreground px-4 text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
-                aria-label="App Store — Download Helpr (opens in a new tab)"
+                aria-label="Download on the App Store (opens in a new tab)"
               >
                 <Apple className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">
@@ -79,7 +79,7 @@ const Footer = () => (
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex h-11 items-center gap-2 rounded-lg bg-[hsl(var(--facebook))] px-4 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
-                aria-label="Facebook — Follow Helpr (opens in a new tab)"
+                aria-label="Follow us on Facebook (opens in a new tab)"
               >
                 <Facebook className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
                 <span className="text-left leading-tight">

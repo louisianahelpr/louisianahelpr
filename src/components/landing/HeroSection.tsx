@@ -240,9 +240,11 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop */}
-        <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[12rem]">
-          <div className="relative w-full h-full lg:h-full lg:min-h-[36rem]">
+        {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop.
+            Min-heights at every breakpoint reserve the actual rendered slot so the
+            page doesn't jolt when the image swaps in (avoids CLS). */}
+        <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:min-h-[36rem]">
+          <div className="relative w-full h-full min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:h-full lg:min-h-[36rem]">
             <img
               src={heroImg500}
               srcSet={heroSrcSet}

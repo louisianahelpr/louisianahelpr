@@ -13,6 +13,8 @@ identity:
   # these breaks signing and TestFlight uploads.
   bundle_id: com.Helpr
   team_id: P85MCK558V
+  apple_id: "6754470134"
+  sku: Helpr
 
 display:
   # Shown under the icon on the home screen + on the App Store listing.
@@ -38,6 +40,11 @@ build:
   # TestFlight uploads from prompting for an annual export-compliance
   # questionnaire.
   uses_non_exempt_encryption: false
+
+app_store:
+  marketing_url: https://www.louisianahelpr.com
+  privacy_url: https://www.louisianahelpr.com/privacy
+  support_url: https://louisianahelpr.com/support
 
 # All NSUsageDescription strings the binary advertises. App Store review
 # rejects builds whose runtime prompts don't match these. Edit copy here

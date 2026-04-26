@@ -125,16 +125,6 @@ const HeroSection = () => {
     <section
       className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-[80vh] sm:min-h-screen overflow-hidden"
     >
-      {/* Clean background — flows seamlessly into next section */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-background"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-primary/10 blur-3xl -z-10"
-      />
-
       {/* MAIN: split-screen, image locked to right edge */}
       <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-stretch pb-10 sm:pb-14">
         {/* LEFT: copy + CTAs — top content aligns to image top, CTAs align to image bottom */}

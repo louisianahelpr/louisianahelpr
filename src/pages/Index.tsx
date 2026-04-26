@@ -148,7 +148,7 @@ const Index = () => {
 
 
   return (
-    <div className="min-h-screen bg-premium-page">
+    <div className="min-h-screen bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}

@@ -8,8 +8,26 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { captureException as sentryCapture } from "@/lib/sentry";
-import { captureException as posthogCapture } from "@/lib/posthog";
+
+// Sentry + PostHog are dynamically imported (NOT statically) to keep them
+// out of the initial bundle. Static imports here would pull ~100KB of
+// vendor code into the entry chunk via main.tsx → errorLogger → sentry/
+// posthog, defeating the deferred init in main.tsx and triggering
+// Lighthouse's "Reduce unused JavaScript" audit. The fan-out below
+// resolves to no-ops if Sentry/PostHog haven't initialized yet.
+async function fanOutToObservability(
+  err: unknown,
+  extra: Record<string, unknown>,
+) {
+  try {
+    const [{ captureException: sentryCapture }, { captureException: posthogCapture }] =
+      await Promise.all([import("@/lib/sentry"), import("@/lib/posthog")]);
+    sentryCapture(err, extra);
+    posthogCapture(err, extra);
+  } catch {
+    /* observability must never break the app */
+  }
+}
 
 type Severity = "info" | "warning" | "error" | "fatal";
 
@@ -63,11 +81,10 @@ export function report(err: unknown, opts: ReportOptions = {}) {
     context: opts.context ?? {},
   });
 
-  // Fan out to Sentry. No-op until initSentry() runs in main.tsx.
-  sentryCapture(err, { ...opts.context, ...opts.tags });
-
-  // Fan out to PostHog Error Tracking. No-op until initPostHog() runs.
-  posthogCapture(err, { ...opts.context, ...opts.tags });
+  // Fan out to Sentry + PostHog Error Tracking. No-op until their init
+  // runs in main.tsx (and the SDKs themselves are lazy-loaded here so
+  // they don't bloat the initial bundle).
+  void fanOutToObservability(err, { ...opts.context, ...opts.tags });
 
   // Debounced flush — never block the caller.
   setTimeout(flush, 250);

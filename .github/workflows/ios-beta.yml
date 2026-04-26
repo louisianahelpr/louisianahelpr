@@ -47,6 +47,9 @@ jobs:
       FASTLANE_SKIP_UPDATE_CHECK: "1"
       LC_ALL: en_US.UTF-8
       LANG: en_US.UTF-8
+      # Operator-supplied floor to bypass App Store Connect's "Redundant Binary
+      # Upload" 409 when its API lags behind a previously-uploaded build.
+      BUILD_NUMBER_FLOOR: ${{ inputs.build_number_floor }}
 
     steps:
       - name: Checkout

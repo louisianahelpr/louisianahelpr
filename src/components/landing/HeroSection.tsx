@@ -257,44 +257,43 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Live job cards row — under buttons + image */}
-        <div className="mt-28 sm:mt-20 pt-4">
-          <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4 px-4">
-            Recently posted in Louisiana
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {mockJobs.map((job, i) => {
-              const Icon = job.icon;
-              return (
-                <div
-                  key={job.title}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
-                >
-                  <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${job.accent} flex items-center justify-center shrink-0`}>
-                    <Icon className="w-5 h-5 text-primary" />
+        {/* Live job cards row — only shown when we actually have ≥3 real open jobs */}
+        {liveJobs.length >= 3 && (
+          <div className="mt-28 sm:mt-20 pt-4">
+            <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-4 px-4">
+              Recently posted in Louisiana
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              {liveJobs.map((job, i) => {
+                const Icon = CATEGORY_ICONS[job.category] ?? MoreHorizontal;
+                const accent = CATEGORY_ACCENTS[i % CATEGORY_ACCENTS.length];
+                return (
+                  <div
+                    key={job.id}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card/95 backdrop-blur border border-border/60 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
+                  >
+                    <div className={`w-11 h-11 rounded-lg bg-gradient-to-br ${accent} flex items-center justify-center shrink-0`}>
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-semibold text-foreground truncate">{job.title}</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        {job.location}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-primary flex items-center justify-end">
+                        <DollarSign className="w-3 h-3" />
+                        {Math.round(Number(job.budget))}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-sm font-semibold text-foreground truncate">{job.title}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                      <MapPin className="w-3 h-3 shrink-0" />
-                      {job.location}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary flex items-center justify-end">
-                      <DollarSign className="w-3 h-3" />
-                      {job.price.replace("$", "")}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 justify-end">
-                      <Star className="w-2.5 h-2.5 fill-primary text-primary" />
-                      {job.rating}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

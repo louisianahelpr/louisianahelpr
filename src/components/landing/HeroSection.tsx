@@ -149,13 +149,13 @@ const HeroSection = () => {
           }}
         >
           <div className="w-full max-w-2xl mx-auto md:mx-0">
-            {/* Eyebrow — Louisiana stamp */}
-            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-6 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
+            {/* Eyebrow — Louisiana stamp (sits above the image's top edge) */}
+            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-12 sm:mb-16 md:mb-20 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="truncate">Made in Louisiana, for Louisiana</span>
             </div>
 
-            {/* Headline — split-color kept */}
+            {/* Headline — aligned with the top of the hero image */}
             <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
               Your local{" "}
               <span className="relative inline">

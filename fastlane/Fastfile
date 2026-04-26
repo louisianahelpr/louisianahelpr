@@ -63,10 +63,13 @@ def assert_ios_identity!
   project_text = File.read(File.join(PROJECT, "project.pbxproj"))
   required_project_values = {
     "PRODUCT_BUNDLE_IDENTIFIER = #{APP_ID};" => "Bundle ID must stay locked to #{APP_ID}",
-    "DEVELOPMENT_TEAM = P85MCK558V;" => "Apple Developer Team must stay locked to P85MCK558V",
+    "DEVELOPMENT_TEAM = #{APP_TEAM_ID};" => "Apple Developer Team must stay locked to #{APP_TEAM_ID}",
     "INFOPLIST_KEY_CFBundleDisplayName = \"#{APP_DISPLAY_NAME}\";" => "Xcode Display Name must be committed",
     "INFOPLIST_KEY_LSApplicationCategoryType = \"#{APP_CATEGORY_TYPE}\";" => "Xcode App Category must be committed",
-    "PRODUCT_NAME = \"#{APP_DISPLAY_NAME}\";" => "Built product name must be #{APP_DISPLAY_NAME}"
+    "PRODUCT_NAME = \"#{APP_PRODUCT_NAME}\";" => "Built product name must be #{APP_PRODUCT_NAME}",
+    "MARKETING_VERSION = #{APP_MARKETING_VERSION};" => "Marketing version must be #{APP_MARKETING_VERSION}",
+    "CURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};" => "Build number must be #{APP_BUILD_VERSION}",
+    "IPHONEOS_DEPLOYMENT_TARGET = #{APP_DEPLOYMENT_TARGET};" => "Deployment target must be #{APP_DEPLOYMENT_TARGET}"
   }
 
   required_project_values.each do |needle, message|
@@ -81,51 +84,86 @@ def assert_ios_identity!
 end
 
 def sync_metadata_to_xcode!
-  UI.user_error!("Missing #{APP_NAME_METADATA_PATH}") unless File.exist?(APP_NAME_METADATA_PATH)
-  UI.user_error!("Missing #{APP_PRIMARY_CATEGORY_PATH}") unless File.exist?(APP_PRIMARY_CATEGORY_PATH)
+  UI.user_error!("Missing #{IOS_METADATA_PATH}") unless File.exist?(IOS_METADATA_PATH)
 
-  app_name = APP_DISPLAY_NAME
-  category_type = APP_CATEGORY_TYPE
-  plist_path = File.join(REPO_ROOT, "ios/App/App/Info.plist")
+  plist_path   = File.join(REPO_ROOT, "ios/App/App/Info.plist")
   project_path = File.join(PROJECT, "project.pbxproj")
 
+  # ── 1. Xcode project (project.pbxproj) ──────────────────────────────
+  # Every build setting we manage is rewritten across BOTH Debug and
+  # Release configurations so Xcode "General" + Signing tabs stay
+  # consistent regardless of which scheme a developer opens locally.
   project_text = File.read(project_path)
-  project_text.gsub!(/INFOPLIST_KEY_CFBundleDisplayName = .*?;/, "INFOPLIST_KEY_CFBundleDisplayName = #{app_name.inspect};")
-  project_text.gsub!(/INFOPLIST_KEY_LSApplicationCategoryType = .*?;/, "INFOPLIST_KEY_LSApplicationCategoryType = #{category_type.inspect};")
-  project_text.gsub!(/PRODUCT_NAME = .*?;/, "PRODUCT_NAME = #{app_name.inspect};")
+  pbxproj_replacements = {
+    /INFOPLIST_KEY_CFBundleDisplayName = .*?;/      => "INFOPLIST_KEY_CFBundleDisplayName = #{APP_DISPLAY_NAME.inspect};",
+    /INFOPLIST_KEY_LSApplicationCategoryType = .*?;/ => "INFOPLIST_KEY_LSApplicationCategoryType = #{APP_CATEGORY_TYPE.inspect};",
+    /PRODUCT_NAME = .*?;/                            => "PRODUCT_NAME = #{APP_PRODUCT_NAME.inspect};",
+    /PRODUCT_BUNDLE_IDENTIFIER = .*?;/               => "PRODUCT_BUNDLE_IDENTIFIER = #{APP_ID};",
+    /DEVELOPMENT_TEAM = .*?;/                        => "DEVELOPMENT_TEAM = #{APP_TEAM_ID};",
+    /MARKETING_VERSION = .*?;/                       => "MARKETING_VERSION = #{APP_MARKETING_VERSION};",
+    /CURRENT_PROJECT_VERSION = .*?;/                 => "CURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};",
+    /IPHONEOS_DEPLOYMENT_TARGET = .*?;/              => "IPHONEOS_DEPLOYMENT_TARGET = #{APP_DEPLOYMENT_TARGET};"
+  }
+  pbxproj_replacements.each { |pattern, replacement| project_text.gsub!(pattern, replacement) }
   File.write(project_path, project_text)
 
-  require "rexml/document"
-  require "rexml/formatters/default"
-  plist = REXML::Document.new(File.read(plist_path))
-  dict = plist.root.elements["dict"]
+  # ── 2. Info.plist ───────────────────────────────────────────────────
+  # We can't safely round-trip Info.plist through REXML — Xcode emits a
+  # specific DOCTYPE + indentation that REXML mangles, and `plutil` is
+  # not available on the Linux runner. A precise line-anchored substitution
+  # keeps the file byte-identical except for the values we own.
+  plist_text = File.read(plist_path)
 
-  set_plist_value = lambda do |key, value|
-    elements = dict.elements.to_a
-    key_element = elements.find { |element| element.name == "key" && element.text == key }
-    value_element = key_element && elements[elements.index(key_element) + 1]
-
-    if key_element && value_element&.name == "string"
-      value_element.text = value
+  upsert_plist_string = lambda do |key, value|
+    pattern = /(<key>#{Regexp.escape(key)}<\/key>\s*\n\s*<string>)[^<]*(<\/string>)/m
+    if plist_text =~ pattern
+      plist_text.sub!(pattern, "\\1#{value}\\2")
     else
-      new_key = REXML::Element.new("key")
-      new_key.text = key
-      new_value = REXML::Element.new("string")
-      new_value.text = value
-      dict.add_element(new_key)
-      dict.add_element(new_value)
+      # Append before closing </dict> if the key isn't there yet.
+      insertion = "\t<key>#{key}</key>\n\t<string>#{value}</string>\n"
+      plist_text.sub!(/<\/dict>\s*<\/plist>/, "#{insertion}</dict>\n</plist>")
     end
   end
 
-  set_plist_value.call("CFBundleDisplayName", app_name)
-  set_plist_value.call("LSApplicationCategoryType", category_type)
+  upsert_plist_bool = lambda do |key, value|
+    bool_xml = value ? "<true/>" : "<false/>"
+    pattern = /(<key>#{Regexp.escape(key)}<\/key>\s*\n\s*)<(?:true|false)\/>/m
+    if plist_text =~ pattern
+      plist_text.sub!(pattern, "\\1#{bool_xml}")
+    else
+      insertion = "\t<key>#{key}</key>\n\t#{bool_xml}\n"
+      plist_text.sub!(/<\/dict>\s*<\/plist>/, "#{insertion}</dict>\n</plist>")
+    end
+  end
 
-  formatter = REXML::Formatters::Default.new
-  output = ""
-  formatter.write(plist, output)
-  File.write(plist_path, output)
+  upsert_plist_string.call("CFBundleDisplayName", APP_DISPLAY_NAME)
+  upsert_plist_string.call("LSApplicationCategoryType", APP_CATEGORY_TYPE)
+  upsert_plist_bool.call("ITSAppUsesNonExemptEncryption", APP_USES_NON_EXEMPT_ENCRYPTION)
+  APP_PERMISSION_STRINGS.each { |key, value| upsert_plist_string.call(key, value) }
 
-  UI.success("Synced fastlane metadata into Xcode — #{app_name} / #{category_type}")
+  File.write(plist_path, plist_text)
+
+  # ── 3. Mirror the App Store-facing fastlane/metadata files so deliver
+  #      and Xcode never disagree on display name / category. ──────────
+  FileUtils.mkdir_p(File.join(REPO_ROOT, "fastlane/metadata/en-US"))
+  File.write(File.join(REPO_ROOT, "fastlane/metadata/en-US/name.txt"), "#{APP_DISPLAY_NAME}\n")
+  category_token = APP_CATEGORY_TYPE.split(".").last.upcase.tr("-", "_")
+  category_token = "PHOTO_AND_VIDEO" if category_token == "PHOTOGRAPHY"
+  category_token = "HEALTH_AND_FITNESS" if category_token == "HEALTHCARE_FITNESS"
+  category_token = "GRAPHICS_AND_DESIGN" if category_token == "GRAPHICS_DESIGN"
+  File.write(File.join(REPO_ROOT, "fastlane/metadata/primary_category.txt"), "#{category_token}\n")
+
+  UI.success(
+    "Synced fastlane/ios_app_metadata.yml → Xcode\n" \
+    "  display name           : #{APP_DISPLAY_NAME}\n" \
+    "  product name           : #{APP_PRODUCT_NAME}\n" \
+    "  bundle id / team       : #{APP_ID} / #{APP_TEAM_ID}\n" \
+    "  marketing / build      : #{APP_MARKETING_VERSION} (#{APP_BUILD_VERSION})\n" \
+    "  iOS deployment target  : #{APP_DEPLOYMENT_TARGET}\n" \
+    "  category               : #{APP_CATEGORY_TYPE}\n" \
+    "  non-exempt encryption  : #{APP_USES_NON_EXEMPT_ENCRYPTION}\n" \
+    "  permission strings     : #{APP_PERMISSION_STRINGS.keys.join(', ')}"
+  )
 end
 
 def ci_fallback_build_number

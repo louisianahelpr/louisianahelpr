@@ -140,23 +140,23 @@ const HeroSection = () => {
       />
 
       {/* MAIN: split-screen, image locked to right edge */}
-      <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-center pb-10 sm:pb-14">
+      <div className="flex-1 w-full min-w-0 grid md:grid-cols-2 items-start pb-10 sm:pb-14">
         {/* LEFT: copy + CTAs */}
         <div
-          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left"
+          className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 md:pl-16 lg:pl-24 xl:pl-32 md:pr-8 text-center md:text-left md:pt-0"
           style={{
             paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
           }}
         >
           <div className="w-full max-w-2xl mx-auto md:mx-0">
             {/* Eyebrow — Louisiana stamp */}
-            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-10 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
+            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 mb-6 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-xs sm:text-sm font-bold tracking-wider uppercase shadow-sm">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="truncate">Made in Louisiana</span>
+              <span className="truncate">Made in Louisiana, for Louisiana</span>
             </div>
 
             {/* Headline — split-color kept */}
-            <h1 className="mt-6 text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
+            <h1 className="text-[2.75rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
               Your local{" "}
               <span className="relative inline">
                 <span className="relative z-10 text-primary">task partner.</span>

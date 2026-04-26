@@ -160,7 +160,7 @@ const UserProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-premium-page pb-20">
         <DashboardHeader />
         <main className="container mx-auto px-4 py-6">
           <div className="max-w-lg mx-auto space-y-5">
@@ -187,7 +187,7 @@ const UserProfile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-premium-page">
         <div className="text-center space-y-3">
           <p className="text-muted-foreground">User not found</p>
           <Button onClick={() => navigate(-1)}>Go back</Button>
@@ -202,7 +202,7 @@ const UserProfile = () => {
   const isOwnProfile = currentUserId === userId;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-premium-page pb-20">
       <PageHeader
         title="Profile Review"
         rightSlot={

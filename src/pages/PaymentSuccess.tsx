@@ -8,7 +8,7 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-premium-page px-4">
       <div className="text-center space-y-6 max-w-md">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
           <CheckCircle className="w-8 h-8 text-primary" />

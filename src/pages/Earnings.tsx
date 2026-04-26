@@ -62,7 +62,7 @@ const Earnings = () => {
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-premium-page pb-20">
       <PageHeader title="My Earnings" />
 
       <main className="container mx-auto px-4 py-8">

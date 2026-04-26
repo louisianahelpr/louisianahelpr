@@ -104,7 +104,7 @@ const SavedHelpers = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-premium-page pb-20">
       <PageHeader title="Saved Helprs" onBack={() => navigate(-1)} />
 
       <main className="container mx-auto px-4 py-6">

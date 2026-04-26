@@ -524,10 +524,6 @@ const Signup = () => {
 
             {/* ── Section 2: Your name + personal details ── */}
             <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <UserRound className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">About you</h2>
-              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>

@@ -240,7 +240,7 @@ const HeroSection = () => {
         <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[12rem]">
           <div className="relative w-full h-full lg:h-full lg:min-h-[36rem]">
             <img
-              src={heroImg500}
+              src={heroImg1000}
               srcSet={heroSrcSet}
               sizes={heroSizes}
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"

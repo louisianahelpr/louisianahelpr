@@ -633,20 +633,22 @@ platform :ios do
 
       UI.message("Uploading staged metadata from #{staged_metadata_dir}")
 
-      upload_to_app_store(
-        api_key:                           api_key,
-        app_identifier:                    APP_ID,
-        skip_binary_upload:                true,
-        submit_for_review:                 false,
-        automatic_release:                 false,
-        force:                             true,
-        precheck_include_in_app_purchases: false,
-        skip_metadata:                     false,
-        metadata_path:                     staged_metadata_dir,
-        skip_screenshots:                  !screenshots_present,
-        screenshots_path:                  staged_screenshots_dir,
+      upload_args = {
+        api_key:                              api_key,
+        app_identifier:                       APP_ID,
+        skip_binary_upload:                   true,
+        submit_for_review:                    false,
+        automatic_release:                    false,
+        force:                                true,
+        precheck_include_in_app_purchases:    false,
+        skip_metadata:                        false,
+        metadata_path:                        staged_metadata_dir,
+        skip_screenshots:                     !screenshots_present,
         ignore_language_directory_validation: true
-      )
+      }
+      upload_args[:screenshots_path] = staged_screenshots_dir if screenshots_present
+
+      upload_to_app_store(**upload_args)
     end
 
     UI.success("App Store metadata synced from fastlane/metadata/ → App Store Connect")
@@ -665,24 +667,54 @@ platform :ios do
 
     build_ipa_with_xcodebuild(output_name: "Helpr.ipa")
 
-    upload_to_app_store(
-      api_key:                           api_key,
-      ipa:                               "build/Helpr.ipa",
-      app_identifier:                    APP_ID,
-      submit_for_review:                 true,
-      automatic_release:                 true,
-      force:                             true,
-      precheck_include_in_app_purchases: false,
-      submission_information: {
-        add_id_info_uses_idfa:               false,
-        export_compliance_uses_encryption:   false
-      },
-      release_notes: { "en-US" => changelog_text },
-      skip_screenshots: !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
-                        Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
-      screenshots_path: "fastlane/screenshots",
-      skip_metadata:    false,
-      metadata_path:    "fastlane/metadata"
-    )
+    # Stage a clean metadata directory containing only App Store-valid entries.
+    # The raw fastlane/metadata folder also holds custom_product_pages/ and
+    # ppo_tests/ subfolders, which `deliver` rejects as "unsupported language
+    # directory names". We copy only the allowed entries into a temp dir.
+    source_metadata_dir = File.join(REPO_ROOT, "fastlane/metadata")
+    source_screenshots_dir = File.join(REPO_ROOT, "fastlane/screenshots")
+    allowed_metadata_entries = %w[
+      en-US
+      review_information
+      copyright.txt
+      primary_category.txt
+      primary_first_sub_category.txt
+      primary_second_sub_category.txt
+      secondary_category.txt
+    ]
+
+    Dir.mktmpdir("helpr-deliver-release-") do |staging_root|
+      staged_metadata_dir = File.join(staging_root, "metadata")
+      FileUtils.mkdir_p(staged_metadata_dir)
+
+      allowed_metadata_entries.each do |entry|
+        source = File.join(source_metadata_dir, entry)
+        next unless File.exist?(source)
+        FileUtils.cp_r(source, File.join(staged_metadata_dir, entry))
+      end
+
+      screenshots_present = Dir.exist?(source_screenshots_dir) &&
+                            !Dir.glob(File.join(source_screenshots_dir, "**/*.{png,jpg,jpeg}")).empty?
+
+      upload_to_app_store(
+        api_key:                              api_key,
+        ipa:                                  "build/Helpr.ipa",
+        app_identifier:                       APP_ID,
+        submit_for_review:                    true,
+        automatic_release:                    true,
+        force:                                true,
+        precheck_include_in_app_purchases:    false,
+        submission_information: {
+          add_id_info_uses_idfa:               false,
+          export_compliance_uses_encryption:   false
+        },
+        release_notes:                        { "en-US" => changelog_text },
+        skip_screenshots:                     !screenshots_present,
+        screenshots_path:                     source_screenshots_dir,
+        skip_metadata:                        false,
+        metadata_path:                        staged_metadata_dir,
+        ignore_language_directory_validation: true
+      )
+    end
   end
 end

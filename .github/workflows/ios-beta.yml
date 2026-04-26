@@ -91,6 +91,23 @@ jobs:
           sudo xcode-select -s "$XCODE_PATH"
           echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
           xcodebuild -version
+
+      - name: Verify iOS 26 SDK before upload
+        run: |
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
+          XCODE_VER=$(xcodebuild -version | head -1 | awk '{print $2}')
+          echo "▶ Active Xcode: $XCODE_VER"
+          MAJOR=$(echo "$XCODE_VER" | cut -d. -f1)
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "❌ Xcode $XCODE_VER is too old. This build would trigger App Store Connect warning 90725."
+            exit 1
+          fi
+          if ! xcodebuild -showsdks | grep -E "iphoneos26|iOS 26"; then
+            echo "❌ iOS 26 SDK is not available in the selected Xcode."
+            exit 1
+          fi
+          echo "✓ Xcode $XCODE_VER with iOS 26 SDK is active"
+
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund --legacy-peer-deps
 

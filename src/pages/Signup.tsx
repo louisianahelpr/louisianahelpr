@@ -895,28 +895,6 @@ const Signup = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Experience level <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <div className="flex flex-wrap gap-1.5">
-                {["Beginner", "Some experience", "Experienced", "Professional"].map((opt) => {
-                  const isActive = experienceLevel === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setExperienceLevel(isActive ? "" : opt)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {isActive ? "✓ " : ""}{opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             <div className="space-y-2">
               <Label>Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>

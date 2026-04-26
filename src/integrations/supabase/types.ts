@@ -2891,7 +2891,7 @@ export type Database = {
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           is_urgent?: boolean | null
-          location?: string | null
+          location?: never
           offered_to_helper_id?: string | null
           parent_job_id?: string | null
           payment_status?: string | null
@@ -2924,7 +2924,7 @@ export type Database = {
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           is_urgent?: boolean | null
-          location?: string | null
+          location?: never
           offered_to_helper_id?: string | null
           parent_job_id?: string | null
           payment_status?: string | null
@@ -3326,6 +3326,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mask_job_location: { Args: { loc: string }; Returns: string }
       move_to_dlq: {
         Args: {
           dlq_name: string

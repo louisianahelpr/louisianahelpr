@@ -422,15 +422,12 @@ platform :ios do
       ENV["MATCH_KEYCHAIN_NAME"]     = keychain_name
       ENV["MATCH_KEYCHAIN_PASSWORD"] = keychain_password
 
-      # Fetch (or create) a Distribution certificate via the ASC API key and
-      # import it into the ephemeral keychain.
-      cert(
-        api_key:        api_key,
-        team_id:        team_id,
-        development:    false,
-        keychain_path:  File.expand_path("~/Library/Keychains/#{keychain_name}-db"),
-        keychain_password: keychain_password,
-        output_path:    File.join(REPO_ROOT, "build", "certs")
+      # Import an existing Apple Distribution certificate from CI secrets.
+      # This avoids Fastlane creating a new certificate and hitting Apple's
+      # "maximum number of Distribution certificates" limit.
+      import_distribution_certificate_from_p12!(
+        keychain_name: keychain_name,
+        keychain_password: keychain_password
       )
     end
 

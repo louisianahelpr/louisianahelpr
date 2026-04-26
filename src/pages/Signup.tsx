@@ -733,56 +733,36 @@ const Signup = () => {
           </div>
         )}
 
-        {/* Step 2: Profile details */}
+        {/* Step 2: Optional helpr-quality details (everyone can skip) */}
         {step === 2 && (
           <div className="space-y-4">
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
-              <p className="text-sm font-medium text-primary">💡 The more you share, the better your chances!</p>
-              <p className="text-xs text-muted-foreground mt-1">Completed profiles get up to 3x more job offers. Fill in as much as you can.</p>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <Label className="text-sm font-medium">Profile picture <span className="text-destructive text-xs">*</span></Label>
-              <label className="cursor-pointer group relative inline-block">
-                <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
-                  )}
-                </div>
-                <div className="pointer-events-none absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-card z-10">
-                  <Camera className="w-5 h-5" strokeWidth={2.25} />
-                </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-              </label>
-              <p className="text-[11px] text-muted-foreground text-center max-w-[260px]">
-                A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
+            {/* Top intent banner + Skip CTA */}
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Just here to post jobs?</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  You're already done — none of the fields below are required. Skip and start posting in seconds.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-primary/40 text-primary hover:bg-primary/10"
+                disabled={loading}
+                onClick={createAccountAndFinish}
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
+                  : <>Skip & finish signup <ArrowRight className="w-4 h-4 ml-1" /></>}
+              </Button>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                Planning to apply to jobs? Filling these out makes your profile look complete to posters — empty profiles rarely get hired.
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
-              <Textarea
-                id="bio"
-                placeholder="Hey! I'm someone who loves helping out around the neighborhood. I've got a knack for…"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={4}
-                required
-                minLength={20}
-                className="rounded-xl"
-              />
-              <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
-                {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-              <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required className={inputCls} />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="skill-search" className={labelCls}>
-                Skills <span className="text-muted-foreground text-xs">(optional — recommended for helprs)</span>
+                Skills <span className="text-muted-foreground text-xs">(optional)</span>
               </Label>
               <Input
                 id="skill-search"
@@ -861,7 +841,6 @@ const Signup = () => {
                   </>
                 );
               })()}
-              <p className="text-xs text-muted-foreground">Only posting tasks? You can skip this and add skills later.</p>
             </div>
 
             <div className="space-y-2">
@@ -1028,81 +1007,6 @@ const Signup = () => {
                 rows={3}
               />
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </Button>
-              <Button className="flex-1" onClick={() => validateStep2() && setStep(3)}>
-                Continue <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Portfolio & Documents */}
-        {step === 3 && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex gap-3">
-              <div className="text-2xl">💡</div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Show off your past work</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  A few photos of jobs you've done before — finished lawns, clean driveways, repairs — help posters trust you instantly. Helprs with past work pictured get hired up to <span className="font-semibold text-foreground">3x faster</span>.
-                </p>
-              </div>
-            </div>
-
-            {/* ID Document — required, stored securely, not manually reviewed */}
-            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
-              <div className="text-center space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                  <ShieldCheck className="w-7 h-7 text-primary" strokeWidth={1.75} />
-                </div>
-                <h3 className="text-base font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Driver's license, state ID, or passport. Stored encrypted and used only for safety, fraud prevention, and compliance.
-                </p>
-                <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
-                  <Lock className="w-3 h-3" /> Encrypted at rest · Never shared publicly
-                </div>
-              </div>
-              {idFile ? (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {idPreview ? (
-                      <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-lg border border-border flex items-center justify-center bg-muted/40 shrink-0">
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{idFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB · uploaded</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => { setIdFile(null); setIdPreview(null); }}
-                    className="text-xs text-destructive hover:underline shrink-0 font-medium"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all">
-                  <Camera className="w-7 h-7 text-primary/70" strokeWidth={1.75} />
-                  <span className="text-sm font-semibold text-foreground">Upload your ID</span>
-                  <span className="text-xs text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    className="hidden"
-                    onChange={handleIdChange}
-                  />
-                </label>
-              )}
-            </div>
 
             {/* Professional Credentials — optional, with hard requirement when toggled */}
             <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
@@ -1237,12 +1141,13 @@ const Signup = () => {
               </p>
             </div>
 
+            {/* Portfolio — optional */}
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
-                <h3 className="font-semibold text-foreground">Portfolio & Documents</h3>
+                <h3 className="font-semibold text-foreground">Portfolio (optional)</h3>
                 <p className="text-sm text-muted-foreground">
-                  Want to help others with tasks? Upload work photos, certifications, or a resume to stand out. <span className="font-medium text-foreground">Only posting tasks? This step is optional.</span>
+                  A few photos of past work — finished lawns, clean driveways, repairs — help posters trust you instantly.
                 </p>
                 <p className="text-xs text-primary font-medium mt-1">💎 Portfolio Showcase is a Pro+ subscriber perk — you can upload now, but only Pro/Elite subscribers' portfolios will be visible on their profiles.</p>
               </div>
@@ -1284,23 +1189,22 @@ const Signup = () => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Up to 10 files · Images, PDFs, or documents · Optional
+                Up to 10 files · Images, PDFs, or documents
               </p>
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <Button
                 className="flex-1"
                 onClick={() => {
-                  if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return; }
                   if (isLicensed && !licenseFile) { toast.error("Please upload your license or turn off the Licensed toggle"); return; }
                   if (isInsured && !insuranceFile) { toast.error("Please upload your insurance document or turn off the Insured toggle"); return; }
                   createAccountAndFinish();
                 }}
-                disabled={loading || !idFile || (isLicensed && !licenseFile) || (isInsured && !insuranceFile)}
+                disabled={loading || (isLicensed && !licenseFile) || (isInsured && !insuranceFile)}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>

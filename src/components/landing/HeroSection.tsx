@@ -184,10 +184,7 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* Spacer pushes CTAs to bottom of left column (= bottom of image) */}
-            <div className="flex-1 min-h-[2rem]" />
-
-            {/* BOTTOM: Bold pill CTAs aligned with bottom of hero image */}
+            {/* BOTTOM: CTAs grouped tightly under the content stack */}
             <div className="mt-8 md:mt-0 flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
                 size="xl"

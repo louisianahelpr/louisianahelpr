@@ -60,9 +60,9 @@ const Footer = () => (
         </div>
 
         {/* Connect with us */}
-        <div className="md:col-span-3 md:text-right">
+        <div className="md:col-span-3">
           <h3 className="text-sm font-semibold text-foreground mb-3">Connect with us</h3>
-          <ul className="space-y-2.5 text-sm flex flex-col md:items-end">
+          <ul className="space-y-2.5 text-sm flex flex-col md:items-start">
             <li>
               <a
                 href={APP_STORE_URL}

@@ -896,30 +896,6 @@ const Signup = () => {
                 })}
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label>Do you have reliable transportation? <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <div className="flex gap-2">
-                {["Yes", "No"].map((opt) => {
-                  const isActive = transportation === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setTransportation(isActive ? "" : opt)}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5">

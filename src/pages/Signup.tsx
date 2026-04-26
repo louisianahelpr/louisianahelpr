@@ -165,16 +165,12 @@ const Signup = () => {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   };
 
+  // Step 1 = About you + ID
   const validateStep1 = async () => {
     if (isBusinessSignup && !companyName.trim()) { toast.error("Company name is required"); return false; }
+    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!firstName.trim()) { toast.error("First name is required"); return false; }
     if (!lastName.trim()) { toast.error("Last name is required"); return false; }
-    if (!email.trim()) { toast.error("Email is required"); return false; }
-    if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
-    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
     if (!phone.trim()) { toast.error("Phone number is required"); return false; }
     if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
     const dob = new Date(dateOfBirth);
@@ -183,7 +179,9 @@ const Signup = () => {
     const monthDiff = today.getMonth() - dob.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
     if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
-    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
+    if (!location.trim()) { toast.error("City is required"); return false; }
+    if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
+    if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
 
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (normalizedPhone.length === 10) {
@@ -201,12 +199,15 @@ const Signup = () => {
     return true;
   };
 
-  // Required-profile validation now happens at the end of Step 1
-  const validateRequiredProfile = () => {
-    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
-    if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
-    if (!location.trim()) { toast.error("City is required"); return false; }
-    if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
+  // Step 2 = Account credentials + agreements
+  const validateStep2 = async () => {
+    if (!email.trim()) { toast.error("Email is required"); return false; }
+    if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
+    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
+    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
+    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
+    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
+    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
     return true;
   };
 
@@ -383,8 +384,8 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 2;
-  const stepLabels = ["Required", "Optional"];
+  const totalSteps = 3;
+  const stepLabels = ["About you", "Account", "Optional"];
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 
@@ -448,7 +449,7 @@ const Signup = () => {
               <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-xs">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
-                {[1, 2].map((n) => (
+                {[1, 2, 3].map((n) => (
                   <button
                     key={n}
                     type="button"
@@ -470,12 +471,14 @@ const Signup = () => {
 
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">
-                {step === 1 ? "Create your account" : "Make your profile stand out"}
+                {step === 1 ? "Tell us about you" : step === 2 ? "Create your account" : "Make your profile stand out"}
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {step === 1
-                  ? `Step 1 of ${totalSteps} — required to join Helpr`
-                  : `Step 2 of ${totalSteps} — optional, but recommended if you'll apply to jobs`}
+                  ? `Step 1 of ${totalSteps} — your basic info & ID`
+                  : step === 2
+                  ? `Step 2 of ${totalSteps} — email, password, and agreements`
+                  : `Step 3 of ${totalSteps} — optional, but recommended if you'll apply to jobs`}
               </p>
             </div>
 
@@ -584,49 +587,6 @@ const Signup = () => {
               </div>
             </section>
 
-            {/* ── Section 3: Account credentials ── */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Account login</h2>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
-                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-                {confirmEmail && (
-                  <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
-                    {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
-                <div className="relative">
-                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {confirmPassword && (
-                  <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
-                    {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
-                  </p>
-                )}
-              </div>
-            </section>
 
 
             {/* ── Section 5: Identity verification ── */}
@@ -687,7 +647,65 @@ const Signup = () => {
               </div>
             </section>
 
-            {/* ── Section 6: Agreements ── */}
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={async () => {
+                if (!(await validateStep1())) return;
+                setStep(2);
+              }}
+            >
+              Continue <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        )}
+
+        {/* Step 2: Account credentials + agreements */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-semibold text-foreground uppercase tracking-wide">Account login</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
+                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+                {confirmEmail && (
+                  <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
+                    {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {confirmPassword && (
+                  <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+                    {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+                  </p>
+                )}
+              </div>
+            </section>
+
             <section className="space-y-3">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
                 <Checkbox
@@ -706,18 +724,22 @@ const Signup = () => {
               </div>
             </section>
 
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={async () => {
-                if (!(await validateStep1())) return;
-                if (!validateRequiredProfile()) return;
-                setStep(2);
-              }}
-              disabled={!acceptedPolicies}
-            >
-              Continue <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={async () => {
+                  if (!(await validateStep2())) return;
+                  setStep(3);
+                }}
+                disabled={!acceptedPolicies}
+              >
+                Continue <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -735,8 +757,9 @@ const Signup = () => {
           </div>
         )}
 
-        {/* Step 2: Optional helpr-quality details (everyone can skip) */}
-        {step === 2 && (
+
+        {/* Step 3: Optional helpr-quality details (everyone can skip) */}
+        {step === 3 && (
           <div className="space-y-4">
             {/* Path A: Posters — quick skip card */}
             <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
@@ -1218,7 +1241,7 @@ const Signup = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <Button

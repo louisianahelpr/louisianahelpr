@@ -45,17 +45,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
-  # DISABLED tag-push auto-trigger — Apple/Fastlane secrets aren't configured
-  # yet, so every tag push was failing. Run manually from the Actions tab once
-  # the 8 required secrets (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_BASE64,
-  # DEVELOPER_TEAM_ID, FASTLANE_APPLE_ID, FASTLANE_PASSWORD, ASC_TEAM_ID,
-  # KEYCHAIN_PASSWORD) are added under Settings → Secrets → Actions.
-  #
-  # To re-enable tag-triggered releases, uncomment the `push:` block below.
-  #
-  # push:
-  #   tags:
-  #     - "v*.*.*"   # e.g. v1.0.5 → triggers `release` lane
   workflow_dispatch:
     inputs:
       lane:
@@ -70,12 +59,60 @@ on:
         description: "Marketing version (e.g. 1.0.5). Leave empty to keep current."
         required: false
         type: string
+  push:
+    tags:
+      - "v*.*.*"   # e.g. v1.0.5 → triggers `release` lane
 
 concurrency:
   group: ios-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Stage 0: Preflight — verify all required Apple/Fastlane secrets exist.
+  # Fails fast with a clear list of what's missing so we don't burn macOS
+  # minutes on a build that can't possibly sign or upload.
+  # ───────────────────────────────────────────────────────────────────────────
+  preflight:
+    name: Preflight — check required secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify required secrets
+        env:
+          ASC_KEY_ID:        ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:     ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64:    ${{ secrets.ASC_KEY_BASE64 }}
+          ASC_KEY_CONTENT:   ${{ secrets.ASC_KEY_CONTENT }}
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -e
+          MISSING=()
+          [ -z "$ASC_KEY_ID"         ] && MISSING+=("ASC_KEY_ID")
+          [ -z "$ASC_ISSUER_ID"      ] && MISSING+=("ASC_ISSUER_ID")
+          # Either ASC_KEY_BASE64 or ASC_KEY_CONTENT is acceptable.
+          if [ -z "$ASC_KEY_BASE64" ] && [ -z "$ASC_KEY_CONTENT" ]; then
+            MISSING+=("ASC_KEY_BASE64 (or ASC_KEY_CONTENT)")
+          fi
+          [ -z "$DEVELOPER_TEAM_ID"  ] && MISSING+=("DEVELOPER_TEAM_ID")
+          [ -z "$FASTLANE_APPLE_ID"  ] && MISSING+=("FASTLANE_APPLE_ID")
+          [ -z "$FASTLANE_PASSWORD"  ] && MISSING+=("FASTLANE_PASSWORD")
+          [ -z "$KEYCHAIN_PASSWORD"  ] && MISSING+=("KEYCHAIN_PASSWORD")
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "❌ Missing required GitHub secrets for iOS deploy:"
+            for s in "${MISSING[@]}"; do echo "   • $s"; done
+            echo ""
+            echo "Add them under: Settings → Secrets and variables → Actions"
+            echo "See the header comment in .github/workflows/deploy.yml for"
+            echo "details on where to obtain each value."
+            exit 1
+          fi
+          echo "✅ All required secrets are present — proceeding to build."
+
   # ───────────────────────────────────────────────────────────────────────────
   # Stage 1: Code quality gates (fail fast before burning macOS minutes)
   # ───────────────────────────────────────────────────────────────────────────

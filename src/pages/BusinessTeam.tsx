@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail } from "lucide-react";
+import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail, Sparkles, CreditCard } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useMyBusiness } from "@/hooks/useMyBusiness";
+import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 
@@ -26,15 +26,58 @@ interface Member {
   email?: string;
 }
 
+const TIERS: Array<{ id: SeatTier; name: string; seats: number; price: string; priceCents: number }> = [
+  { id: "starter", name: "Starter", seats: 2, price: "Free", priceCents: 0 },
+  { id: "crew", name: "Crew", seats: 5, price: "$10/mo", priceCents: 1000 },
+  { id: "team", name: "Team", seats: 10, price: "$20/mo", priceCents: 2000 },
+  { id: "enterprise", name: "Enterprise", seats: 25, price: "$40/mo", priceCents: 4000 },
+];
+
+const TIER_RANK: Record<SeatTier, number> = { starter: 0, crew: 1, team: 2, enterprise: 3 };
+
 const BusinessTeam = () => {
   usePageTitle("Manage Team — Helpr Business");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { business, isLoading: businessLoading } = useMyBusiness();
   const { user } = useCurrentUser();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [upgrading, setUpgrading] = useState<SeatTier | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+
+  // Sync seat subscription on mount + after Stripe checkout return
+  useEffect(() => {
+    if (!business?.is_owner) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await supabase.functions.invoke("check-business-seat-subscription");
+        if (!cancelled) {
+          queryClient.invalidateQueries({ queryKey: ["myBusiness"] });
+        }
+      } catch (err) {
+        console.warn("Seat subscription sync failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [business?.is_owner, business?.business_id, queryClient]);
+
+  // Toast on Stripe return
+  useEffect(() => {
+    const seats = searchParams.get("seats");
+    if (seats === "success") {
+      toast.success("Plan upgraded! Your new seats are ready.");
+      searchParams.delete("seats");
+      setSearchParams(searchParams, { replace: true });
+    } else if (seats === "cancel") {
+      toast.info("Upgrade cancelled.");
+      searchParams.delete("seats");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ["businessMembers", business?.business_id],
@@ -91,9 +134,11 @@ const BusinessTeam = () => {
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
   const pendingMembers = members?.filter((m) => m.status === "pending") ?? [];
-  const SEAT_LIMIT = 2;
+  const SEAT_LIMIT = business.seat_limit;
+  const currentTier = business.seat_tier;
   const totalSlots = activeMembers.length + pendingMembers.length;
   const remainingSlots = Math.max(0, SEAT_LIMIT - totalSlots);
+  const currentTierMeta = TIERS.find((t) => t.id === currentTier) ?? TIERS[0];
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +149,7 @@ const BusinessTeam = () => {
       return;
     }
     if (remainingSlots <= 0) {
-      toast.error("Team is full (5 members). Upgrade required for more.");
+      toast.error(`Team is full (${SEAT_LIMIT} seats). Upgrade your plan to add more.`);
       return;
     }
 
@@ -143,6 +188,38 @@ const BusinessTeam = () => {
     }
   };
 
+  const handleUpgrade = async (tier: SeatTier) => {
+    if (tier === "starter") {
+      // Downgrades happen via the customer portal
+      return handleManageBilling();
+    }
+    setUpgrading(tier);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-business-seat-checkout", {
+        body: { tier },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("No checkout URL returned");
+      window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+      setUpgrading(null);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("business-seat-portal");
+      if (error) throw error;
+      if (!data?.url) throw new Error("No portal URL returned");
+      window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to open billing portal");
+      setOpeningPortal(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container mx-auto px-5 py-6 max-w-3xl">
@@ -157,8 +234,13 @@ const BusinessTeam = () => {
           <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Building2 className="w-6 h-6" />
           </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold">{business.business_name}</h1>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-display font-bold">{business.business_name}</h1>
+              <Badge variant="secondary" className="text-xs gap-1">
+                <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">
               {totalSlots} of {SEAT_LIMIT} seats used · {remainingSlots} remaining
             </p>
@@ -195,9 +277,84 @@ const BusinessTeam = () => {
             </form>
             {remainingSlots <= 0 && (
               <p className="text-xs text-destructive mt-2">
-                You've reached the {SEAT_LIMIT}-seat free limit. Contact support to upgrade to 5, 10, or 25 seats.
+                You've reached your {SEAT_LIMIT}-seat limit. Upgrade your plan below to add more members.
               </p>
             )}
+          </Card>
+        )}
+
+        {business.is_owner && (
+          <Card className="p-5 mb-5">
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div>
+                <h2 className="font-semibold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Seat plan
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upgrade or downgrade anytime. Changes apply to your next billing cycle.
+                </p>
+              </div>
+              {currentTier !== "starter" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManageBilling}
+                  disabled={openingPortal}
+                  className="shrink-0"
+                >
+                  {openingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (<><CreditCard className="w-3.5 h-3.5 mr-1.5" /> Manage</>)}
+                </Button>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-2">
+              {TIERS.map((tier) => {
+                const isCurrent = tier.id === currentTier;
+                const isUpgrade = TIER_RANK[tier.id] > TIER_RANK[currentTier];
+                const isDowngrade = TIER_RANK[tier.id] < TIER_RANK[currentTier];
+                const wouldFitCurrent = tier.seats >= totalSlots;
+
+                return (
+                  <div
+                    key={tier.id}
+                    className={`rounded-lg border p-3 ${isCurrent ? "border-primary/50 bg-primary/5" : "border-border/60 bg-background/50"}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-medium text-sm">{tier.name}</p>
+                        <p className="text-xs text-muted-foreground">{tier.seats} seats · {tier.price}</p>
+                      </div>
+                      {isCurrent && (
+                        <Badge className="text-[10px] h-5">Current</Badge>
+                      )}
+                    </div>
+                    {!isCurrent && (
+                      <Button
+                        variant={isUpgrade ? "default" : "outline"}
+                        size="sm"
+                        className="w-full h-8 text-xs"
+                        onClick={() => handleUpgrade(tier.id)}
+                        disabled={
+                          upgrading !== null ||
+                          openingPortal ||
+                          (isDowngrade && !wouldFitCurrent)
+                        }
+                      >
+                        {upgrading === tier.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : isUpgrade ? (
+                          "Upgrade"
+                        ) : isDowngrade && !wouldFitCurrent ? (
+                          `Remove ${totalSlots - tier.seats} seat${totalSlots - tier.seats === 1 ? "" : "s"} first`
+                        ) : (
+                          "Switch via portal"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </Card>
         )}
 

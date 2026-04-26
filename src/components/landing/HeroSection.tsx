@@ -167,7 +167,7 @@ const HeroSection = () => {
             </h1>
 
             <p className="mx-auto max-w-[21rem] sm:max-w-lg md:mx-0 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              The marketplace for everyday help. Post a job in minutes and connect with neighbors who are ready to work.
+              Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
             </p>
 
             {/* Category pills - single row, horizontally scrollable */}

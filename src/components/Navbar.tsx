@@ -47,14 +47,14 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             How it works
           </Link>
+          <Link to="/#open-jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Jobs
+          </Link>
           <Link to="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Features
           </Link>
           <Link to="/#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Community
-          </Link>
-          <Link to="/#open-jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Jobs
           </Link>
           <Link to="/for-business" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             For Business
@@ -100,14 +100,14 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/#how-it-works" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             How it works
           </Link>
+          <Link to="/#open-jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Jobs
+          </Link>
           <Link to="/#features" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Features
           </Link>
           <Link to="/#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Community
-          </Link>
-          <Link to="/#open-jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Jobs
           </Link>
           <Link to="/for-business" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             For Business

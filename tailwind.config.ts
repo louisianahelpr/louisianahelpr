@@ -94,6 +94,11 @@ export default {
         "ds-8": "32px",
         "ds-10": "40px",
         "ds-12": "48px",
+        // iOS / Android safe-area insets (no-op on web where env() = 0)
+        "safe-top": "env(safe-area-inset-top)",
+        "safe-bottom": "env(safe-area-inset-bottom)",
+        "safe-left": "env(safe-area-inset-left)",
+        "safe-right": "env(safe-area-inset-right)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

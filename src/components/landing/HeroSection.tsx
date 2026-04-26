@@ -237,7 +237,7 @@ const HeroSection = () => {
         </div>
 
         {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop */}
-        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[12rem]">
+        <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[12rem]">
           <div className="relative w-full h-full lg:h-full lg:min-h-[36rem]">
             <img
               src={heroImg1000}

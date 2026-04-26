@@ -56,6 +56,7 @@ async function flush() {
   flushing = true;
   const batch = queue.splice(0, queue.length);
   try {
+    const supabase = await getSupabase();
     await supabase.from("error_logs" as any).insert(batch);
   } catch {
     // Network failed — drop. We don't want logging to recurse on itself.

@@ -56,9 +56,7 @@ const ForBusiness = () => {
             </h1>
 
             <p className="text-base lg:text-lg text-muted-foreground leading-relaxed max-w-xl">
-              Property managers, realtors, and small business owners — give your
-              team shared access to vetted local helprs without the agency
-              markup.
+              The simplest way to find, hire, and pay local pros for your business tasks.
             </p>
 
             {/* Feature grid */}

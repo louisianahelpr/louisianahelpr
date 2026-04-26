@@ -12,6 +12,13 @@ import {
   Star,
   MapPin,
   DollarSign,
+  Wrench,
+  Paintbrush,
+  Package,
+  PawPrint,
+  Hammer,
+  ShoppingBag,
+  MoreHorizontal,
 } from "lucide-react";
 import heroImg from "@/assets/hero-illustration-v5-1000.webp";
 import heroImg400 from "@/assets/hero-illustration-v5-400.webp";

@@ -438,12 +438,15 @@ platform :ios do
     # both are false, fastlane's option-conflict check raises
     # "You can't enable both :development and :adhoc". Omitting both defaults
     # to an App Store distribution profile, which is what TestFlight needs.
+    # Don't pass `readonly:` alongside `force:` — fastlane raises
+    # "You can't enable both :force and :readonly" even when one is false.
+    # `force: true` re-creates the provisioning profile each run so it
+    # always includes the cert we just imported.
     sigh(
       api_key:          api_key,
       app_identifier:   APP_ID,
       team_id:          team_id,
       force:            true,
-      readonly:         false,
       output_path:      File.join(REPO_ROOT, "build", "profiles")
     )
 

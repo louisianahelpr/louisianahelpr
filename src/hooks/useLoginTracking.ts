@@ -27,7 +27,7 @@ export const useLoginTracking = () => {
         tracked.current = true;
 
         // Identify user in PostHog so funnels stitch sessions to people
-        identifyUser(session.user.id, {
+        void identifyInPostHog(session.user.id, {
           email: session.user.email,
           email_verified: !!session.user.email_confirmed_at,
         });

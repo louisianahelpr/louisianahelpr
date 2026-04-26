@@ -126,7 +126,7 @@ const HeroSection = () => {
       className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
     >
       {/* MAIN: split-screen, image locked to right edge */}
-      <div className="flex-1 w-full min-w-0 grid lg:grid-cols-2 items-stretch pb-10 sm:pb-14">
+      <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-6 sm:pb-8 lg:pb-14">
         {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
         <div
           className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center"
@@ -221,8 +221,8 @@ const HeroSection = () => {
         </div>
 
         {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop */}
-        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-10 lg:mt-0 self-stretch flex items-center lg:items-stretch px-6 sm:px-10 lg:px-0">
-          <div className="relative w-full h-72 sm:h-[28rem] md:h-[32rem] lg:h-full lg:min-h-[36rem]">
+        <div className="relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms] mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch px-6 sm:px-10 lg:px-0 min-h-[16rem]">
+          <div className="relative w-full h-full lg:min-h-[36rem]">
             <img
               src={heroImg400}
               srcSet={heroSrcSet}

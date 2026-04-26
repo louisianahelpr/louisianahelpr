@@ -319,7 +319,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         setStartJobLoading(null); return;
       }
     }
-    await supabase.from("job_checkins").insert({ job_id: jobId, user_id: user.id, type: "start_request", note: "Helper started the job" });
+    await supabase.from("job_checkins").insert({ job_id: jobId, user_id: user.id, type: "start_request", note: "Helpr started the job" });
     await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
     if (job) {
       await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });

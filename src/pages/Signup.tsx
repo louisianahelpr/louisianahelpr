@@ -342,8 +342,8 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 4;
-  const stepLabels = ["Basics", "Profile", "Documents", "Payouts"];
+  const totalSteps = 3;
+  const stepLabels = ["Basics", "Profile", "Documents"];
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 
@@ -407,7 +407,7 @@ const Signup = () => {
               <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-xs">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
-                {[1, 2, 3, 4].map((n) => (
+                {[1, 2, 3].map((n) => (
                   <button
                     key={n}
                     type="button"

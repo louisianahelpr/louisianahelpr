@@ -23,6 +23,9 @@ import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import BroadcastBanner from "@/components/BroadcastBanner";
+import PayoutSetupBanner from "@/components/PayoutSetupBanner";
+import PayoutSetupDialog from "@/components/PayoutSetupDialog";
+import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { VirtualList } from "@/components/VirtualList";
 
 import BirthdayPopup from "@/components/BirthdayPopup";
@@ -108,6 +111,8 @@ const Dashboard = () => {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  const [payoutSetupDialogOpen, setPayoutSetupDialogOpen] = useState(false);
+  const { checkHelperStripeConnect } = useStripeConnectCheck();
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
@@ -141,13 +146,22 @@ const Dashboard = () => {
       return next;
     });
   }, []);
-  const handleApplyRequest = useCallback((jobId: string) => {
+  const handleApplyRequest = useCallback(async (jobId: string) => {
     hapticMedium(); // confirm tap on Apply
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
+    // Hard gate: helprs must have a Stripe Connect payout account before applying.
+    // Surfaces a friendly popup instead of a silent toast.
+    if (profile?.role === "helper") {
+      const stripeCheck = await checkHelperStripeConnect();
+      if (!stripeCheck.ok) {
+        setPayoutSetupDialogOpen(true);
+        return;
+      }
+    }
     setConfirmApplyJobId(jobId);
-  }, [user, allJobs, navigate]);
+  }, [user, allJobs, navigate, profile?.role, checkHelperStripeConnect]);
 
   const handleApplyConfirm = useCallback(async () => {
     if (!user || !confirmApplyJobId || applyLoading) return;
@@ -309,6 +323,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />
+          <PayoutSetupBanner role={profile?.role} userId={user?.id} />
           {/* Welcome section */}
           {showGreeting && (
           <motion.div
@@ -750,6 +765,7 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
     </div>
     </PullToRefreshWrapper>
   );

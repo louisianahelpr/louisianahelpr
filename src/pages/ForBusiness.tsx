@@ -46,11 +46,19 @@ const ForBusiness = () => {
             </div>
 
             <div className="rounded-xl border border-border/60 bg-card p-5 mt-6">
-              <p className="text-sm font-semibold mb-1">Who it's for</p>
-              <p className="text-sm text-muted-foreground">
-                Apartment turnovers · post-event cleanup · realtor staging · small office maintenance ·
-                event setup · move-in/out cleans across all 64 parishes.
+              <p className="text-sm font-semibold mb-2">Who it's for</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Built for Louisiana businesses that need reliable on-demand help without
+                hiring full-time staff or chasing down contractors.
               </p>
+              <ul className="text-sm text-muted-foreground space-y-1.5">
+                <li>• <span className="text-foreground font-medium">Property managers</span> — apartment turnovers, move-in/out cleans, unit prep</li>
+                <li>• <span className="text-foreground font-medium">Realtors</span> — staging, photo prep, open-house setup &amp; cleanup</li>
+                <li>• <span className="text-foreground font-medium">Event venues &amp; planners</span> — setup, breakdown, post-event cleanup</li>
+                <li>• <span className="text-foreground font-medium">Small offices &amp; retail</span> — recurring cleaning, errands, light maintenance</li>
+                <li>• <span className="text-foreground font-medium">Restaurants &amp; cafés</span> — deep cleans, deliveries, overflow staffing</li>
+                <li>• <span className="text-foreground font-medium">Airbnb &amp; short-term rental hosts</span> — same-day turnovers across all 64 parishes</li>
+              </ul>
             </div>
           </div>
 

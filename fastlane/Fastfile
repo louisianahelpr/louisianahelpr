@@ -576,31 +576,49 @@ platform :ios do
   lane :metadata do
     api_key = asc_api_key
 
-    upload_to_app_store(
-      api_key:                           api_key,
-      app_identifier:                    APP_ID,
-      # Metadata only — no binary involved.
-      skip_binary_upload:                true,
-      # Don't submit for review; just save the listing fields.
-      submit_for_review:                 false,
-      automatic_release:                 false,
-      # Overwrite whatever is currently in the editable version on ASC.
-      force:                             true,
-      # Don't run precheck on IAPs (we have none and it errors).
-      precheck_include_in_app_purchases: false,
-      # Push everything that lives in fastlane/metadata/.
-      skip_metadata:                     false,
-      metadata_path:                     "fastlane/metadata",
-      # Push screenshots too if any exist; harmless when the dir is empty.
-      skip_screenshots:                  !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
-                                         Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
-      screenshots_path:                  "fastlane/screenshots",
-      # `fastlane/metadata/` contains sibling folders that aren't language
-      # codes (custom_product_pages/, ppo_tests/) — those are managed by
-      # separate flows, not by `deliver`. Tell deliver to ignore the
-      # validation so it only picks up real locale folders like en-US/.
-      ignore_language_directory_validation: true
-    )
+    source_metadata_dir = File.join(REPO_ROOT, "fastlane/metadata")
+    allowed_metadata_entries = %w[
+      en-US
+      review_information
+      copyright.txt
+      primary_category.txt
+      primary_first_sub_category.txt
+      primary_second_sub_category.txt
+      secondary_category.txt
+    ]
+
+    Dir.mktmpdir("helpr-deliver-metadata") do |staged_metadata_dir|
+      allowed_metadata_entries.each do |entry|
+        source = File.join(source_metadata_dir, entry)
+        next unless File.exist?(source)
+
+        destination = File.join(staged_metadata_dir, entry)
+        FileUtils.cp_r(source, destination)
+      end
+
+      upload_to_app_store(
+        api_key:                           api_key,
+        app_identifier:                    APP_ID,
+        # Metadata only — no binary involved.
+        skip_binary_upload:                true,
+        # Don't submit for review; just save the listing fields.
+        submit_for_review:                 false,
+        automatic_release:                 false,
+        # Overwrite whatever is currently in the editable version on ASC.
+        force:                             true,
+        # Don't run precheck on IAPs (we have none and it errors).
+        precheck_include_in_app_purchases: false,
+        # Push only deliver-supported metadata; custom_product_pages/ and
+        # ppo_tests/ are intentionally excluded from this generic lane.
+        skip_metadata:                     false,
+        metadata_path:                     staged_metadata_dir,
+        # Push screenshots too if any exist; harmless when the dir is empty.
+        skip_screenshots:                  !Dir.exist?(File.join(REPO_ROOT, "fastlane/screenshots")) ||
+                                           Dir.glob(File.join(REPO_ROOT, "fastlane/screenshots/**/*.{png,jpg,jpeg}")).empty?,
+        screenshots_path:                  "fastlane/screenshots",
+        ignore_language_directory_validation: true
+      )
+    end
 
     UI.success("App Store metadata synced from fastlane/metadata/ → App Store Connect")
   end

@@ -126,8 +126,21 @@ export const PostedJobsTab = ({
 
   if (jobs.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">No tasks match this filter.</p>
+      <div className="text-center py-16 px-6 space-y-4">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
+          <Wrench className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-base font-display font-semibold text-foreground">
+            No posts yet in this view
+          </p>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+            Post your first task and we'll match you with vetted Louisiana helprs nearby.
+          </p>
+        </div>
+        <Button onClick={() => navigate("/post-job")} className="rounded-xl btn-press">
+          <Wrench className="w-4 h-4 mr-1.5" /> Post a job
+        </Button>
       </div>
     );
   }

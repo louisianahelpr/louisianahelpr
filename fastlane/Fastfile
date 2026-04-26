@@ -540,14 +540,21 @@ platform :ios do
 
     build_ipa_with_xcodebuild(output_name: "Helpr.ipa")
 
+    # Internal testers get the build automatically once processed.
+    # We deliberately do NOT pass `groups` or `distribute_external` here:
+    # passing those triggers an external-beta-review submission, which Apple
+    # rejects with "Another build is in review" while a previous build is
+    # still in review on the same train (e.g. 2001 pending → 2002 fails).
+    # Run the `beta_external` lane manually once 2001 finishes review if you
+    # want to push a build to external testers.
     upload_to_testflight(
       api_key:                           api_key,
       ipa:                               "build/Helpr.ipa",
       skip_waiting_for_build_processing: false,
       changelog:                         changelog_text,
       distribute_external:               false,
-      notify_external_testers:           true,   # ping internal testers on new build
-      groups:                            ["Internal Testers"]
+      skip_submission:                   true,
+      reject_build_waiting_for_review:   false
     )
   end
 

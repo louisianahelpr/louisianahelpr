@@ -113,10 +113,10 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-6 min-h-[100dvh] flex items-center overflow-hidden"
+      className="relative pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-16 px-4 sm:px-6 min-h-[100dvh] flex items-center overflow-hidden"
       style={{
-        paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
-        paddingRight: "max(1.5rem, env(safe-area-inset-right))",
+        paddingLeft: "max(1rem, env(safe-area-inset-left))",
+        paddingRight: "max(1rem, env(safe-area-inset-right))",
       }}
     >
       {/* Soft brand gradient backdrop */}
@@ -133,33 +133,27 @@ const HeroSection = () => {
         className="pointer-events-none absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full bg-accent/20 blur-3xl -z-10"
       />
 
-      <div className="container mx-auto w-full">
-        <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center md:min-h-[calc(100dvh-10rem)] text-center md:text-left">
+      <div className="container mx-auto w-full max-w-full">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center text-center md:text-left">
           {/* LEFT: copy + CTAs */}
           <div className="space-y-5 sm:space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Built in Louisiana, for Louisiana
+            <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[10px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+              <span className="truncate">Built in Louisiana, for Louisiana</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight text-balance break-words">
               Where Louisiana neighbors{" "}
-              <span className="relative inline-block">
-                <span className="relative z-10 text-primary">help neighbors.</span>
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
-                />
-              </span>
+              <span className="text-primary">help neighbors.</span>
             </h1>
 
             <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto md:mx-0 leading-relaxed">
               Louisiana's marketplace for everyday help — yard work, cleaning, errands, and more.
             </p>
 
-            {/* Category pills - two rows, horizontally scrollable both directions */}
-            <div className="-mx-5 sm:mx-0 overflow-x-auto scrollbar-hide">
-              <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 px-5 sm:px-0">
+            {/* Category pills - two rows, horizontally scrollable */}
+            <div className="-mx-4 sm:mx-0 overflow-x-auto scrollbar-hide">
+              <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 px-4 sm:px-0 w-max">
                 {categories.map((c) => (
                   <span
                     key={c.label}

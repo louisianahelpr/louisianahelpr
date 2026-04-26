@@ -50,17 +50,8 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/#open-jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Jobs
           </Link>
-          <Link to="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Features
-          </Link>
-          <Link to="/#community" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Community
-          </Link>
           <Link to="/for-business" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Business
-          </Link>
-          <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Support
           </Link>
           <div className="flex items-center gap-1">
             <ThemeToggle />
@@ -103,17 +94,8 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <Link to="/#open-jobs" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Jobs
           </Link>
-          <Link to="/#features" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Features
-          </Link>
-          <Link to="/#community" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Community
-          </Link>
           <Link to="/for-business" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             For Business
-          </Link>
-          <Link to="/support" className="block text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Support
           </Link>
           <Button variant="ghost" size="sm" className="w-full rounded-xl" onClick={() => { navigate("/login"); setMobileOpen(false); }}>
             Log in

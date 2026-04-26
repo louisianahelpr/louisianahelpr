@@ -191,7 +191,7 @@ const HeroSection = () => {
             <div className="mt-8 md:mt-0 flex flex-col items-stretch gap-4 w-full max-w-xl">
               <Button
                 size="xl"
-                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-xl text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
               >
                 <Sparkles className="mr-2 w-5 h-5" />
@@ -201,7 +201,7 @@ const HeroSection = () => {
               <Button
                 variant="outline"
                 size="xl"
-                className="group w-full h-16 px-8 rounded-full text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
+                className="group w-full h-16 px-8 rounded-xl text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => {
                   if (loggedIn) {
                     navigate("/dashboard");

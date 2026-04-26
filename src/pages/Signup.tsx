@@ -897,9 +897,9 @@ const Signup = () => {
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex gap-3">
               <div className="text-2xl">💡</div>
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Why this matters</p>
+                <p className="text-sm font-semibold text-foreground">Show off your past work</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Photos of your tools, equipment, or past work help posters trust you instantly — verified portfolios get hired up to <span className="font-semibold text-foreground">3x faster</span>.
+                  A few photos of jobs you've done before — finished lawns, clean driveways, repairs — help posters trust you instantly. Helprs with past work pictured get hired up to <span className="font-semibold text-foreground">3x faster</span>.
                 </p>
               </div>
             </div>

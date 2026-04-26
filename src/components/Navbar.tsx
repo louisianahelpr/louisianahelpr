@@ -57,7 +57,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             Community
           </Link>
           <Link to="/for-business" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            For Business
+            Business
           </Link>
           <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Support

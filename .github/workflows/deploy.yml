@@ -118,6 +118,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   quality:
     name: Lint, Type-check, Build
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

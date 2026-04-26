@@ -158,7 +158,7 @@ const HeroSection = () => {
             </p>
 
             {/* Category pills - two rows, horizontally scrollable both directions */}
-            <div className="w-full max-w-full overflow-x-auto overscroll-x-contain scrollbar-hide">
+            <div className="w-full max-w-full touch-pan-x overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
               <div className="grid min-w-max grid-rows-2 grid-flow-col auto-cols-max gap-2 pb-1">
                 {categories.map((c) => (
                   <span

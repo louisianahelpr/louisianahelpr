@@ -342,8 +342,8 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 4;
-  const stepLabels = ["Basics", "Profile", "Documents", "Payouts"];
+  const totalSteps = 3;
+  const stepLabels = ["Basics", "Profile", "Documents"];
   const inputCls = "rounded-xl";
   const labelCls = "text-base font-medium";
 

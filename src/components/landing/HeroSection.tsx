@@ -170,19 +170,25 @@ const HeroSection = () => {
               Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
             </p>
 
-            {/* Category pills - single row, horizontally scrollable */}
-            <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
-              <div className="flex min-w-max gap-2 pb-1">
-                {categories.map((c) => (
-                  <span
-                    key={c.label}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
-                  >
-                    <c.icon className="w-3.5 h-3.5 text-primary" />
-                    {c.label}
-                  </span>
-                ))}
+            {/* Category pills - single row, horizontally scrollable, with edge fade so chips never appear sliced */}
+            <div className="relative w-full max-w-full">
+              <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+                <div className="flex min-w-max gap-2 pb-1 pr-8">
+                  {categories.map((c) => (
+                    <span
+                      key={c.label}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
+                    >
+                      <c.icon className="w-3.5 h-3.5 text-primary" />
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
               </div>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
+              />
             </div>
 
             {/* Social proof — fixed reserved space so CTAs never jump while stats load or wrap */}

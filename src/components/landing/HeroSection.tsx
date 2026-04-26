@@ -23,8 +23,8 @@ import {
   Search,
   Shield,
 } from "lucide-react";
-import heroImg from "@/assets/hero-photo-v1-tall.jpg";
-import heroImg400 from "@/assets/hero-photo-v1-tall.jpg";
+import heroImg from "@/assets/hero-porch-sharp.jpg";
+import heroImg400 from "@/assets/hero-porch-sharp.jpg";
 
 // Single high-quality source — sized to fill the taller right column.
 const heroSrcSet = `${heroImg} 1024w`;

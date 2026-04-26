@@ -13,7 +13,6 @@ const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSect
 const HelperSpotlightSection = lazy(() => import("@/components/landing/HelperSpotlightSection"));
 const JobStoriesSection = lazy(() => import("@/components/landing/JobStoriesSection"));
 const PublicJobsPreview = lazy(() => import("@/components/landing/PublicJobsPreview"));
-const CTASection = lazy(() => import("@/components/landing/CTASection"));
 
 const SITE_URL = "https://louisianahelpr.com";
 
@@ -169,7 +168,6 @@ const Index = () => {
         <PublicJobsPreview />
         <HelperSpotlightSection />
         <JobStoriesSection />
-        <CTASection />
       </Suspense>
       <Footer />
     </div>

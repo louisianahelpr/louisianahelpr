@@ -147,177 +147,161 @@ const HeroSection = () => {
         className="pointer-events-none absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full bg-accent/20 blur-3xl -z-10"
       />
 
-      <div className="mx-auto w-full max-w-6xl min-w-0">
-        <div className="grid min-w-0 md:grid-cols-12 gap-8 lg:gap-10 items-center text-center md:text-left">
-          {/* LEFT: copy + CTAs (7 cols on desktop for editorial feel) */}
-          <div className="md:col-span-7 min-w-0 max-w-full animate-fade-in">
-            <div className="w-full max-w-[34rem] mx-auto md:mx-0">
-              {/* Eyebrow badge */}
-              <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="truncate">Built in Louisiana, for Louisiana</span>
-              </div>
+      <div className="mx-auto w-full max-w-3xl min-w-0">
+        <div className="flex flex-col items-center text-center animate-fade-in">
+          {/* Eyebrow badge */}
+          <div className="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] sm:text-xs font-medium tracking-wide uppercase shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="truncate">Built in Louisiana, for Louisiana</span>
+          </div>
 
-              {/* Headline + subhead */}
-              <h1 className="mt-7 sm:mt-8 text-[2rem] sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.15] text-balance break-words">
-                Your local{" "}
-                <span className="relative inline">
-                  <span className="relative z-10 text-primary">task partner.</span>
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
-                  />
-                </span>
-              </h1>
+          {/* Hero image — centered, magazine cover style */}
+          <div className="relative mt-6 sm:mt-8 w-full max-w-[18rem] sm:max-w-[22rem] mx-auto">
+            <div
+              aria-hidden
+              className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 blur-sm"
+            />
+            <img
+              src={heroImg400}
+              srcSet={heroSrcSet}
+              sizes="(max-width: 1023px) 288px, 352px"
+              alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
+              className="relative w-full h-auto rounded-2xl shadow-2xl object-contain ring-1 ring-border/50"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              width={1000}
+              height={1000}
+            />
 
-              <p className="mt-5 sm:mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed">
-                Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
-              </p>
-
-              {/* 3-step How it works */}
-              <div className="mt-8 sm:mt-10 grid grid-cols-3 gap-3 sm:gap-4 max-w-md mx-auto md:mx-0">
-                {[
-                  { n: "1", label: "Post" },
-                  { n: "2", label: "Match" },
-                  { n: "3", label: "Done" },
-                ].map((s, i) => (
-                  <div key={s.n} className="relative flex flex-col items-center md:items-start gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-                        {s.n}
-                      </span>
-                    </div>
-                    <span className="text-sm font-semibold text-foreground">{s.label}</span>
-                    {i < 2 && (
-                      <span
-                        aria-hidden
-                        className="hidden md:block absolute top-3.5 left-9 w-[calc(100%-2.25rem)] h-px bg-gradient-to-r from-primary/30 to-transparent"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Category pills */}
-              <div className="relative w-full mt-8 sm:mt-10">
-                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
-                  <div className="flex min-w-max gap-2 pb-1 pr-8">
-                    {categories.map((c) => (
-                      <span
-                        key={c.label}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
-                      >
-                        <c.icon className="w-3.5 h-3.5 text-primary" />
-                        {c.label}
-                      </span>
-                    ))}
-                  </div>
+            {/* Floating live-job card (bottom-left of image) */}
+            {liveJobs[0] && (
+              <div className="hidden sm:flex absolute -bottom-5 -left-8 lg:-left-16 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:600ms] opacity-0 max-w-[14rem]">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                  {(() => {
+                    const Icon = CATEGORY_ICONS[liveJobs[0].category] ?? MoreHorizontal;
+                    return <Icon className="w-4 h-4 text-primary" />;
+                  })()}
                 </div>
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
-                />
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                    {liveJobs[0].title}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate mt-0.5">
+                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                    {liveJobs[0].location}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-primary tabular-nums">
+                    ${Math.round(Number(liveJobs[0].budget))}
+                  </p>
+                </div>
               </div>
+            )}
+          </div>
 
-              {/* CTAs */}
-              <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 w-full max-w-md mx-auto md:mx-0">
-                <Button
-                  variant="hero"
-                  size="xl"
-                  className="group flex-1 px-3"
-                  onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
-                >
-                  <span className="relative z-10">Post a job</span>
-                  <ArrowRight className="relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
-                </Button>
-                <Button
-                  variant="hero-outline"
-                  size="xl"
-                  className="group flex-1 px-3"
-                  onClick={() => {
-                    if (loggedIn) {
-                      navigate("/dashboard");
-                      return;
-                    }
-                    const el = document.getElementById("open-jobs");
-                    if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "start" });
-                    } else {
-                      navigate("/#open-jobs");
-                    }
-                  }}
-                >
-                  <Search className="transition-transform duration-300 group-hover:scale-110" />
-                  <span>Browse jobs</span>
-                </Button>
+          {/* Headline */}
+          <h1 className="mt-10 sm:mt-12 text-[2.25rem] sm:text-5xl lg:text-6xl font-display font-bold text-foreground leading-[1.1] tracking-tight text-balance break-words">
+            Your local{" "}
+            <span className="relative inline">
+              <span className="relative z-10 text-primary">task partner.</span>
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-1 h-3 sm:h-4 bg-primary/20 -z-0 rounded"
+              />
+            </span>
+          </h1>
+
+          <p className="mt-5 sm:mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl">
+            Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
+          </p>
+
+          {/* 3-step How it works */}
+          <div className="mt-8 sm:mt-10 flex items-center justify-center gap-4 sm:gap-8 flex-wrap">
+            {[
+              { n: "1", label: "Post" },
+              { n: "2", label: "Match" },
+              { n: "3", label: "Done" },
+            ].map((s, i) => (
+              <div key={s.n} className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold border border-primary/20">
+                    {s.n}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">{s.label}</span>
+                </div>
+                {i < 2 && (
+                  <span aria-hidden className="hidden sm:block w-8 h-px bg-border" />
+                )}
               </div>
+            ))}
+          </div>
 
-              {/* Trust strip */}
-              <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-primary" />
-                  Escrow protected
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle className="w-3.5 h-3.5 text-primary" />
-                  Verified helprs
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-primary" />
-                  Louisiana-based support
-                </span>
+          {/* Category pills */}
+          <div className="relative w-full mt-8 sm:mt-10">
+            <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+              <div className="flex min-w-max gap-2 pb-1 px-4 justify-center">
+                {categories.map((c) => (
+                  <span
+                    key={c.label}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/70 backdrop-blur border border-border/60 text-xs sm:text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card transition-colors whitespace-nowrap shrink-0"
+                  >
+                    <c.icon className="w-3.5 h-3.5 text-primary" />
+                    {c.label}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* RIGHT: image with floating cards (5 cols) */}
-          <div className="md:col-span-5 relative min-w-0 max-w-full animate-fade-in [animation-delay:200ms]">
-            <div className="relative w-full max-w-[22rem] sm:max-w-md mx-auto md:ml-auto md:mr-0">
-              {/* Decorative offset gradient behind image */}
-              <div
-                aria-hidden
-                className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 blur-sm"
-              />
-              <img
-                src={heroImg400}
-                srcSet={heroSrcSet}
-                sizes="(max-width: 1023px) 400px, 500px"
-                alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-                className="relative w-full h-auto rounded-2xl shadow-2xl object-contain ring-1 ring-border/50"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                width={1000}
-                height={1000}
-              />
+          {/* CTAs */}
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 w-full max-w-md">
+            <Button
+              variant="hero"
+              size="xl"
+              className="group flex-1 px-3"
+              onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+            >
+              <span className="relative z-10">Post a job</span>
+              <ArrowRight className="relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+            </Button>
+            <Button
+              variant="hero-outline"
+              size="xl"
+              className="group flex-1 px-3"
+              onClick={() => {
+                if (loggedIn) {
+                  navigate("/dashboard");
+                  return;
+                }
+                const el = document.getElementById("open-jobs");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                } else {
+                  navigate("/#open-jobs");
+                }
+              }}
+            >
+              <Search className="transition-transform duration-300 group-hover:scale-110" />
+              <span>Browse jobs</span>
+            </Button>
+          </div>
 
-              {/* Floating live-job card (top-left) */}
-              {liveJobs[0] && (
-                <div className="hidden sm:flex absolute -top-4 -left-6 lg:-left-10 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:600ms] opacity-0 max-w-[14rem]">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                    {(() => {
-                      const Icon = CATEGORY_ICONS[liveJobs[0].category] ?? MoreHorizontal;
-                      return <Icon className="w-4 h-4 text-primary" />;
-                    })()}
-                  </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-xs font-semibold text-foreground truncate leading-tight">
-                      {liveJobs[0].title}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate mt-0.5">
-                      <MapPin className="w-2.5 h-2.5 shrink-0" />
-                      {liveJobs[0].location}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary tabular-nums">
-                      ${Math.round(Number(liveJobs[0].budget))}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-            </div>
+          {/* Trust strip */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-primary" />
+              Escrow protected
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5 text-primary" />
+              Verified helprs
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              Louisiana-based support
+            </span>
           </div>
         </div>
       </div>

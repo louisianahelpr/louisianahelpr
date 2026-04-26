@@ -44,10 +44,11 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - name: Verify metadata directory exists
+      - name: Prepare Fastlane metadata directory
         run: |
           set -e
           test -d fastlane/metadata || (echo "::error::fastlane/metadata directory missing" && exit 1)
+          rm -rf fastlane/metadata/custom_product_pages fastlane/metadata/ppo_tests
           echo "Files that will be uploaded:"
           find fastlane/metadata -type f | sort
 

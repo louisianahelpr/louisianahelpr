@@ -13,12 +13,16 @@ name: Edge Function Smoke Test
 # Real outages will be caught by Sentry / user reports much faster than CI.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "supabase/functions/**"
-  schedule:
-    - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
+  # DISABLED automatic triggers — was burning Actions minutes daily.
+  # Sentry/user reports surface real outages faster anyway.
+  # To re-enable, uncomment the push / schedule blocks.
+  #
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "supabase/functions/**"
+  # schedule:
+  #   - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
   workflow_dispatch:
 
 concurrency:

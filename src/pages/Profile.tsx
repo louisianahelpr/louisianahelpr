@@ -574,10 +574,26 @@ const ProfilePage = () => {
                 ))}
               </div>
 
-              {/* Logout */}
-              <Button variant="outline" className="w-full" onClick={() => setShowLogoutDialog(true)}>
-                <LogOut className="w-4 h-4 mr-2" /> Sign out
-              </Button>
+              {/* Account actions — Sign out + Delete grouped at the very
+                  bottom. Extra `pb-8` plus the page-level `pb-safe-nav`
+                  guarantees both buttons sit comfortably above the floating
+                  bottom nav AND the iOS home-indicator safe-area. */}
+              <div className="space-y-3 pt-2 pb-8">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowLogoutDialog(true)}
+                >
+                  <LogOut className="w-4 h-4 mr-2" /> Sign out
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setShowDeleteAccountDialog(true)}
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" /> Delete account
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1018,24 +1034,9 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* Delete Account */}
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-4">
-                <h2 className="font-display font-semibold text-destructive flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" /> Delete Account
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-                <div className="flex justify-center">
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteAccountDialog(true)}
-                    className="w-full sm:w-auto sm:min-w-[280px]"
-                  >
-                    Delete My Account
-                  </Button>
-                </div>
-              </div>
+              {/* Delete Account moved to the landing tab, directly under
+                  Sign out — keeps all destructive account actions grouped at
+                  the bottom of the profile rather than buried in Security. */}
             </div>
           )}
 

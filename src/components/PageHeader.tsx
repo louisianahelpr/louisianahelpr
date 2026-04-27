@@ -50,7 +50,7 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle }: PageHeaderProps) => 
           on every sub-page so navigation transitions are seamless. Honors
           the device top safe-area (notch / Dynamic Island). */}
       <header
-        className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+        className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="mx-auto flex h-11 max-w-5xl items-center justify-between gap-2 px-5">

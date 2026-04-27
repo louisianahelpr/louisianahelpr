@@ -58,42 +58,12 @@ const Login = () => {
       return;
     }
 
-    // Check approval + ban status before redirecting
-    const userId = sessionUser?.id;
-    if (userId) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("approval_status, ban_status")
-        .eq("user_id", userId)
-        .single();
-
-      // Block banned users — keep the session so the dedicated /account-banned
-      // page can read profile context (e.g. suspension expiry). Sign-out is
-      // available from that page.
-      if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
-        setLoading(false);
-        navigate("/account-banned", { replace: true });
-        return;
-      }
-
-      // Invalidate cache without awaiting - don't block navigation
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-
-      setLoading(false);
-      toast.success("Welcome back!");
-
-      if (profile?.approval_status === "pending") {
-        navigate("/account-pending", { replace: true });
-      } else if (profile?.approval_status === "denied") {
-        navigate("/account-denied", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
-    } else {
-      setLoading(false);
-      toast.success("Welcome back!");
-      navigate("/dashboard");
-    }
+    // Fire-and-forget cache invalidation; don't await — ProtectedRoute will
+    // refetch the profile and route to the correct gate (pending/denied/banned).
+    void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    setLoading(false);
+    toast.success("Welcome back!");
+    navigate("/dashboard", { replace: true });
   };
 
   return (

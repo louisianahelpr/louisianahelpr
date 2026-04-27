@@ -206,12 +206,6 @@ const SavedHelpers = () => {
                           {formatName(h.full_name)}
                         </Link>
                         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
-                          {h.parish && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {h.parish}
-                            </span>
-                          )}
                           {h.completed_jobs_together > 0 && (
                             <span className="flex items-center gap-1 text-primary">
                               <Star className="w-3 h-3 fill-primary" />

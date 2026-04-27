@@ -179,8 +179,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       )}
 
       {(!currentTier || isExpired) && (
-        <p className="text-sm text-muted-foreground">
-          {isExpired ? "Your subscription has expired. Renew to continue accessing premium features." : "You're on the free plan. Upgrade to unlock premium features and get more jobs."}
+        <p className="text-sm leading-relaxed text-muted-foreground max-w-prose">
+          {isExpired
+            ? "Your subscription has expired. Renew to continue accessing premium features."
+            : "You're on the free plan. Upgrade to unlock premium features and get more jobs."}
         </p>
       )}
 

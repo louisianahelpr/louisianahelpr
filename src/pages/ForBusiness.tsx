@@ -63,7 +63,7 @@ const ForBusiness = () => {
                 { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
                 { icon: Users, text: "2 team seats free, upgrade anytime" },
                 { icon: CreditCard, text: "Owner's card billed for all jobs" },
-                { icon: Sparkles, text: "Recurring jobs, all 64 parishes" },
+                { icon: Sparkles, text: "Recurring jobs, statewide coverage" },
                 { icon: CheckCircle2, text: "Flat platform fee, no contracts" },
               ].map((row, i) => (
                 <div

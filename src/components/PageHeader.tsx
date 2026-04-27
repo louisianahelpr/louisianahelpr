@@ -46,13 +46,14 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle }: PageHeaderProps) => 
 
   return (
     <>
-      {/* Sticky top bar — back chevron only, no title. Identical on every
-          sub-page so navigation transitions are seamless. */}
+      {/* Sticky top bar — back chevron only, no title. Identical 44pt height
+          on every sub-page so navigation transitions are seamless. Honors
+          the device top safe-area (notch / Dynamic Island). */}
       <header
         className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="container mx-auto flex h-11 items-center justify-between gap-2">
+        <div className="mx-auto flex h-11 max-w-5xl items-center justify-between gap-2 px-5">
           <Button
             variant="ghost"
             size="icon"
@@ -68,13 +69,16 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle }: PageHeaderProps) => 
         </div>
       </header>
 
-      {/* iOS-style Large Title in the page body */}
-      <div className="container mx-auto pt-6 pb-4">
+      {/* iOS-style Large Title in the page body — uniform 20px (px-5) gutter
+          across every sub-page. */}
+      <div className="mx-auto max-w-5xl px-5 pt-6 pb-4">
         <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">
           {title}
         </h1>
         {subtitle ? (
-          <div className="mt-3 text-sm text-muted-foreground">{subtitle}</div>
+          <div className="mt-3 text-[15px] leading-relaxed text-muted-foreground max-w-prose">
+            {subtitle}
+          </div>
         ) : null}
       </div>
     </>

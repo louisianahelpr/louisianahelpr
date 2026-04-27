@@ -198,68 +198,102 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
 
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-display font-bold text-foreground flex-1">My Earnings</h1>
-        <EarningsExport helperId={helperId} helperName={helperName} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Earnings settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs">Earnings tools</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setExportDialogOpen(true)}>
+              <FileText className="w-4 h-4 mr-2" /> Export for Taxes (PDF)
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleExportCSV}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Payouts CSV
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate("/profile?tab=payment")}>
+              <ExternalLink className="w-4 h-4 mr-2" /> Stripe Dashboard Access
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {/* Hidden controlled export dialog (PDF + CSV by date range) */}
+        <EarningsExport
+          helperId={helperId}
+          helperName={helperName}
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          hideTrigger
+        />
       </div>
 
-      {/* ─── LIVE STRIPE WALLET ─── */}
+      {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-display font-semibold text-foreground">Wallet</h2>
-            {stripeData?.connected && (
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide">Live · Stripe</span>
-            )}
-          </div>
-          {stripeData?.connected && (
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-              aria-label="Refresh"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-            </button>
-          )}
-        </div>
-
+        {/* Wallet card (Available + Pending side-by-side) */}
         {stripeLoading ? (
-          <div className="rounded-xl border border-border bg-card p-5 flex items-center gap-3">
+          <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Loading live payout data…</p>
           </div>
         ) : !stripeData?.connected ? (
-          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Connect your payout account to see your live Stripe balance, pending funds, and payout history.
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">Wallet</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Connect your payout account to see your live balance.
             </p>
             <Button size="sm" onClick={() => navigate("/profile?tab=payment")}>Set up payouts</Button>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Available</span>
-                  <Banknote className="w-4 h-4 text-primary" />
-                </div>
-                <p className="text-xl font-bold text-foreground">{formatCents(availableTotal)}</p>
-                <p className="text-xs text-muted-foreground mt-1">ready to pay out</p>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Wallet</h2>
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide">Live</span>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Pending</span>
-                  <Loader2 className="w-4 h-4 text-muted-foreground" />
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-1 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                aria-label="Refresh"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Banknote className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Available</span>
                 </div>
-                <p className="text-xl font-bold text-foreground">{formatCents(pendingTotal)}</p>
-                <p className="text-xs text-muted-foreground mt-1">clearing soon</p>
+                <p className="text-2xl font-bold text-foreground">{formatCents(availableTotal)}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">ready to pay out</p>
+              </div>
+              <div className="border-l border-border pl-4">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Loader2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Pending</span>
+                </div>
+                <p className="text-2xl font-bold text-foreground">{formatCents(pendingTotal)}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">clearing soon</p>
               </div>
             </div>
 
@@ -267,119 +301,108 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
               if (instantAvailable <= 0) return null;
               return (
-                <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex items-center justify-between gap-3">
+                <div className="mt-3 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Zap className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">Instant cash out available</span>
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-foreground">Instant cash out</span>
                     </div>
-                    <p className="text-xl font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">To your debit card in ~30 min · 3% + $1 fee</p>
+                    <p className="text-base font-bold text-foreground">{formatCents(instantAvailable)}</p>
+                    <p className="text-[10px] text-muted-foreground">~30 min · 3% + $1 fee</p>
                   </div>
-                  <Button onClick={() => setPayoutDialogOpen(true)} className="gap-2 shrink-0">
-                    <Zap className="w-4 h-4" /> Cash out
+                  <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-xs gap-1.5 shrink-0">
+                    <Zap className="w-3.5 h-3.5" /> Cash out
                   </Button>
                 </div>
               );
             })()}
 
             {!stripeData.payouts_enabled && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                <p className="text-xs text-destructive">
-                  Payouts are not yet enabled on your account. Finish payout setup to start receiving funds.
-                </p>
-              </div>
+              <p className="mt-2 text-[11px] text-destructive">
+                Payouts not yet enabled — finish setup to start receiving funds.
+              </p>
             )}
+          </div>
+        )}
 
-            <div>
-              <div className="flex items-center justify-between mb-2 mt-4 gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-foreground">Payout History</h3>
-                <div className="flex items-center gap-2">
-                  <Select value={exportYear} onValueChange={setExportYear}>
-                    <SelectTrigger className="h-8 w-[100px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {payoutYears.map((y) => (
-                        <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportCSV}
-                    className="h-8 text-xs gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download for Taxes
-                  </Button>
-                </div>
+        {/* Compact secondary stats — 3-up tiny tiles */}
+        {!loading && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
+              <div className="flex items-center gap-1 mb-0.5">
+                <TrendingUp className="w-3 h-3 text-primary" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</span>
               </div>
-              {stripeData.payouts.length === 0 ? (
-                <div className="rounded-xl border border-border bg-card p-4 text-center">
-                  <p className="text-sm text-muted-foreground">No payouts yet — your first one will land here automatically.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {stripeData.payouts.map((p) => (
-                    <div key={p.id} className="rounded-xl border border-border bg-card p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-foreground text-sm">{formatCents(p.amount, p.currency)}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
-                              {p.status.replace("_", " ")}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
-                          </p>
+              <p className="text-base font-bold text-foreground leading-tight">${totalEarnings.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground">{completedJobs.length} jobs</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Gift className="w-3 h-3 text-primary" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Tips</span>
+              </div>
+              <p className="text-base font-bold text-foreground leading-tight">${totalTips.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground">{tips.length} tips</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Briefcase className="w-3 h-3 text-primary" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Active</span>
+              </div>
+              <p className="text-base font-bold text-foreground leading-tight">{inProgressJobs.length}</p>
+              <p className="text-[10px] text-muted-foreground">in progress</p>
+            </div>
+          </div>
+        )}
+
+        {/* Payout history — inline year picker, no big empty box */}
+        {stripeData?.connected && (
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h3 className="text-sm font-semibold text-foreground">Payout History</h3>
+              <Select value={exportYear} onValueChange={setExportYear}>
+                <SelectTrigger className="h-7 w-[88px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {payoutYears.map((y) => (
+                    <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {stripeData.payouts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No payouts recorded for {exportYear}.</p>
+            ) : (
+              <div className="space-y-2">
+                {stripeData.payouts.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-border bg-card p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-foreground text-sm">{formatCents(p.amount, p.currency)}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
+                            {p.status.replace("_", " ")}
+                          </span>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </section>
 
-      {/* ─── JOB-LEVEL EARNINGS ─── */}
+      {/* ─── EARNING HISTORY ─── */}
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Total</span>
-                <TrendingUp className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-xl font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground mt-1">{completedJobs.length} jobs</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Tips</span>
-                <Gift className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-xl font-bold text-foreground">${totalTips.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground mt-1">{tips.length} tips</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Active</span>
-                <Briefcase className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-xl font-bold text-foreground">{inProgressJobs.length}</p>
-              <p className="text-xs text-muted-foreground mt-1">in progress</p>
-            </div>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-            <strong className="text-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed <strong>$20,000 in gross payments</strong> and <strong>200 transactions</strong> in a calendar year. Stripe issues these automatically — no action needed on your part.
-          </div>
 
           <div>
             <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>

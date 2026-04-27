@@ -119,9 +119,27 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: msg }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("[check-pro-subscription] error:", msg);
+    // Return 200 with fallback so frontend doesn't crash/blank-screen
+    return new Response(
+      JSON.stringify({
+        subscribed: false,
+        tier: null,
+        fallback: true,
+        error: msg,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
   }
+});
+
+// Top-level safety net: never let the runtime return 503/blank screens
+addEventListener("error", (e) => {
+  console.error("[check-pro-subscription] uncaught error:", e.message);
+});
+addEventListener("unhandledrejection", (e) => {
+  console.error("[check-pro-subscription] unhandled rejection:", e.reason);
 });

@@ -12,7 +12,7 @@ const PlatformRules = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Platform Rules" />
-      <div className="container mx-auto max-w-3xl px-4 py-8">
+      <div className="container mx-auto max-w-3xl px-5 py-8">
         <div className="space-y-2 mb-12">
           <p className="text-muted-foreground">
             These rules keep Helpr safe, fair, and reliable for everyone. By using Helpr, you agree to follow these policies.

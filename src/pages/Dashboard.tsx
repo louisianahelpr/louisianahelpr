@@ -256,7 +256,7 @@ const Dashboard = () => {
             <span className="text-2xl font-display font-bold text-primary">Helpr</span>
           </div>
         </header>
-        <main className="container mx-auto px-4 py-4">
+        <main className="container mx-auto px-5 py-4">
           <div className="max-w-3xl mx-auto"><DashboardSkeleton /></div>
         </main>
       </div>
@@ -292,7 +292,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-premium-page">
         <DashboardHeader />
-        <main className="container mx-auto px-4 py-12">
+        <main className="container mx-auto px-5 py-12">
           <div className="max-w-lg mx-auto text-center space-y-6">
             {approvalStatus === "pending" ? (
               <>
@@ -321,7 +321,7 @@ const Dashboard = () => {
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 
-      <main className="container mx-auto px-4 py-5">
+      <main className="container mx-auto px-5 py-5">
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />

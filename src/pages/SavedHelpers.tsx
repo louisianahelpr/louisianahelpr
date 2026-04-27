@@ -111,7 +111,7 @@ const SavedHelpers = () => {
         subtitle="Your favorite helprs. Send a job offer directly — they get a 24-hour window before your task opens to everyone."
       />
 
-      <main className="container mx-auto px-4 pb-6 pt-2">
+      <main className="mx-auto max-w-5xl px-5 pb-6 pt-2">
         <div className="max-w-lg mx-auto space-y-4">
 
           {helpers.length > 0 && (

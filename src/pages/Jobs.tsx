@@ -94,7 +94,7 @@ const Jobs = () => {
 
       {/* pt-20 sits flush under the fixed Navbar (h-14 + safe-area). pb-32
           leaves room for the floating glass MobileNav on native + mobile web. */}
-      <main className="pt-20 pb-32 md:pb-safe-nav px-4">
+      <main className="pt-20 pb-32 md:pb-safe-nav px-5">
         <div className="container mx-auto max-w-5xl">
           {/* Header — tighter on mobile so it doesn't push the job cards
               below the fold on a 6.1" iPhone screen. */}
@@ -123,7 +123,7 @@ const Jobs = () => {
               />
             </div>
 
-            <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide overscroll-x-contain">
+            <div className="-mx-5 px-5 overflow-x-auto scrollbar-hide overscroll-x-contain">
               <div className="flex gap-2 w-max mx-auto">
                 <Badge
                   variant={selectedCategory === null ? "default" : "outline"}

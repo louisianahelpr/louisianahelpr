@@ -79,7 +79,7 @@ const Heroes = () => {
     <div className="min-h-screen bg-premium-page">
       <PageHeader title="Community Heroes" />
 
-      <main className="container mx-auto px-4 py-8 max-w-5xl">
+      <main className="container mx-auto px-5 py-8 max-w-5xl">
 
         <header className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary mb-4">

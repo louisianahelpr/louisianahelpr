@@ -472,7 +472,7 @@ const PostJob = () => {
         onBack={handlePostJobBack}
       />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-6">
 
           {/* STEP 1: FORM */}

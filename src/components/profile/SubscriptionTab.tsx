@@ -132,12 +132,20 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 pt-2">
-        <button onClick={onBack} className="h-11 w-11 -ml-2 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Go back">
+    <div className="space-y-5">
+      {/* Large Title — matches PageHeader spacing/typography exactly so the
+          Subscription screen reads identically to Saved Helprs et al. */}
+      <div className="flex items-center gap-3 pt-6 pb-1">
+        <button
+          onClick={onBack}
+          className="h-11 w-11 -ml-2 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          aria-label="Go back"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">Subscription</h1>
+        <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">
+          Subscription
+        </h1>
       </div>
 
       {currentTier && !isExpired && (
@@ -179,7 +187,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       )}
 
       {(!currentTier || isExpired) && (
-        <p className="text-sm leading-relaxed text-muted-foreground max-w-prose">
+        <p className="text-[15px] leading-relaxed text-muted-foreground max-w-prose">
           {isExpired
             ? "Your subscription has expired. Renew to continue accessing premium features."
             : "You're on the free plan. Upgrade to unlock premium features and get more jobs."}

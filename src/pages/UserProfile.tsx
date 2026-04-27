@@ -162,7 +162,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <DashboardHeader />
-        <main className="container mx-auto px-4 py-6">
+        <main className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
             <div className="h-9 w-32 rounded-xl bg-muted animate-pulse" />
             <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
@@ -236,7 +236,7 @@ const UserProfile = () => {
         }
       />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-5">
           {/* Profile Card */}
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">

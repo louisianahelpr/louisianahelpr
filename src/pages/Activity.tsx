@@ -524,7 +524,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <DashboardHeader />
-        <main className="container mx-auto px-4 py-4">
+        <main className="container mx-auto px-5 py-4">
           <div className="max-w-3xl mx-auto space-y-3">
             {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
           </div>
@@ -539,7 +539,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <DashboardHeader />
-      <main className="container mx-auto px-4 py-4">
+      <main className="container mx-auto px-5 py-4">
         <div className="max-w-3xl mx-auto space-y-4 overflow-hidden">
           <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
 

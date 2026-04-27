@@ -168,7 +168,7 @@ const DashboardGuest = () => {
       </header>
 
       {/* pb-32 leaves room for the floating MobileNav on native + mobile web. */}
-      <main className="container mx-auto px-4 pt-4 pb-32 max-w-3xl">
+      <main className="container mx-auto px-5 pt-4 pb-32 max-w-3xl">
         {/* Greeting band — same compact style as DashboardHeader's greeting */}
         <section className="mt-2 mb-4 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm p-4">
           <div className="flex items-start gap-3">

@@ -466,7 +466,7 @@ const PostJob = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-surface pb-32 sm:pb-20">
+    <div className="min-h-screen bg-premium-surface pb-32 sm:pb-safe-nav">
       <PageHeader
         title={step === "checkout" ? "Order Summary" : "Post a task"}
         onBack={handlePostJobBack}

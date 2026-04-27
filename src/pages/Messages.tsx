@@ -432,7 +432,7 @@ const Messages = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-premium-surface ${activeConvo ? '' : 'pb-20'}`}>
+    <div className={`min-h-screen bg-premium-surface ${activeConvo ? '' : 'pb-safe-nav'}`}>
       <DashboardHeader />
 
       <main className={`container mx-auto px-4 ${activeConvo ? 'pt-0' : 'py-6'}`}>

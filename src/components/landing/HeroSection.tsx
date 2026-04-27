@@ -30,19 +30,18 @@ import heroImg600 from "@/assets/hero-porch-garden-600.webp";
 import heroImg800 from "@/assets/hero-porch-garden-800.webp";
 import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
 import heroImg1500 from "@/assets/hero-porch-garden-1500.webp";
+import heroImg2000 from "@/assets/hero-porch-garden-2000.webp";
 
 // Real responsive set — the browser picks the smallest variant that fits
-// display × DPR. We cap at 1500w (~190 KB) instead of 2000w; the previous
-// 2000w file was 2 MB and dominated the page-load critical path on retina
-// laptops, which is why the hero "loaded after everything else".
-const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg800} 800w, ${heroImg1000} 1000w, ${heroImg1500} 1500w`;
-// Tightened sizes: on tablets the image renders ~695 CSS px, not 1000.
-// Telling the browser the true display width lets srcset pick the 800w
-// variant (~91 KB) instead of the 1000w (~121 KB).
-// Hero displays at ~772px on desktop (≥1024px). The 800w variant covers that
-// at 1x DPR with negligible visual difference vs. 1000w on standard displays,
-// and saves ~38 KiB of LCP-blocking transfer per Lighthouse.
-const heroSizes = "(max-width: 640px) 360px, (max-width: 1023px) 600px, 800px";
+// display × DPR. The 2000w variant (~163 KB, re-encoded) is included so
+// retina (2x/3x) phones, tablets, and laptops can resolve crisp pixels
+// instead of upscaling the 800w/1000w file (which read as blurry).
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg800} 800w, ${heroImg1000} 1000w, ${heroImg1500} 1500w, ${heroImg2000} 2000w`;
+// `sizes` must describe the CSS slot width — the browser then multiplies
+// by devicePixelRatio to choose a srcset entry. Previous values capped at
+// 800px which forced 2x/3x displays to upscale (the reported blurriness).
+// Slot is roughly full viewport on phones/tablets and ~50vw on desktop.
+const heroSizes = "(max-width: 640px) 100vw, (max-width: 1023px) 90vw, 50vw";
 
 // NOTE: We intentionally do NOT inject a JS-side <link rel="preload"> here.
 // That code only runs after React's bundle parses, which is the very thing
@@ -249,16 +248,16 @@ const HeroSection = () => {
         <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:min-h-[36rem]">
           <div className="relative w-full h-full min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:h-full lg:min-h-[36rem]">
             <img
-              src={heroImg500}
+              src={heroImg1000}
               srcSet={heroSrcSet}
               sizes={heroSizes}
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover object-[82%_center] sm:object-[82%_center] lg:object-[82%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
+              className="absolute inset-0 w-full h-full object-cover object-[82%_center] sm:object-[82%_center] lg:object-[82%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30 [image-rendering:-webkit-optimize-contrast]"
               loading="eager"
               {...({ fetchpriority: "high" } as React.ImgHTMLAttributes<HTMLImageElement>)}
               decoding="async"
-              width={1000}
-              height={1000}
+              width={2000}
+              height={2000}
             />
             {/* Subtle left-edge fade so image meets text section softly */}
             <div

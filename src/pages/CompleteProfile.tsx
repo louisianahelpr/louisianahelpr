@@ -164,7 +164,16 @@ const CompleteProfile = () => {
       if (uploads.length) await Promise.all(uploads);
 
       // Single, lightweight DB update — no large JSON over the wire
-      const updates: Record<string, unknown> = {
+      const updates: {
+        full_name: string;
+        phone: string;
+        bio: string;
+        location: string;
+        date_of_birth: string;
+        approval_status: string;
+        avatar_url?: string;
+        id_document_url?: string;
+      } = {
         full_name: fullName,
         phone,
         bio,

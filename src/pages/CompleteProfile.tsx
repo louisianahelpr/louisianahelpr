@@ -161,11 +161,11 @@ const CompleteProfile = () => {
 
       if (idFile) {
         const ext = sanitizeExt(idFile.name);
-        const path = `${user.id}/id-document.${ext}`;
+        const path = `${user.id}/id-document-${Date.now()}.${ext}`;
         uploads.push(
           supabase.storage
             .from("id-documents")
-            .upload(path, idFile, { upsert: true, contentType: idFile.type })
+            .upload(path, idFile, { contentType: idFile.type })
             .then(({ error }) => {
               if (error) throw error;
               idDocumentPath = path;

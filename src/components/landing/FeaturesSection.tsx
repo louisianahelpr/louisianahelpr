@@ -7,7 +7,7 @@ const features = [
   { icon: Star, title: "Honest reviews", desc: "Reviews unlock only after payment releases — so ratings reflect real, finished work." },
   { icon: CalendarDays, title: "Flexible scheduling", desc: "Lock in a date or stay flexible. Helprs confirm before they show up." },
   { icon: Bell, title: "Live job updates", desc: "Know exactly when your helpr applies, accepts, is on the way, and finishes." },
-  { icon: MapPin, title: "Parish-local", desc: "We match you with helprs in your parish first. Support neighbors, not strangers." },
+  { icon: MapPin, title: "Louisiana-local", desc: "We match you with helprs in your area first. Support neighbors, not strangers." },
 ];
 
 const FeaturesSection = forwardRef<HTMLElement>((_props, ref) => {

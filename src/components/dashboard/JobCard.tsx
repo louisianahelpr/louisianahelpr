@@ -258,9 +258,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
             <span className="text-muted-foreground">({job.posterReviewCount ?? 0})</span>
           </a>
         </span>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
-          {categoryLabels[job.category] || job.category}
-        </span>
       </div>
     </motion.div>
   );

@@ -166,13 +166,12 @@ const HeroSection = () => {
               <h1 className="text-4xl sm:text-5xl md:text-[3.25rem] lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
                 Your local{" "}
                 <span className="relative inline-block align-baseline">
-                  <span className="relative z-10 text-primary">task</span>
+                  <span className="relative z-10 text-primary">task partner.</span>
                   <span
                     aria-hidden
                     className="absolute left-0 right-0 bottom-1 h-3 sm:h-4 lg:h-6 bg-primary/20 -z-0 rounded"
                   />
                 </span>
-                <span className="text-primary"> partner.</span>
               </h1>
 
               {/* Subhead */}

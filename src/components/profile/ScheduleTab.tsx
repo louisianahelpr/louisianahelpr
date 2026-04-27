@@ -148,12 +148,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack 
         </>
       )}
 
-      {/* Preferred parishes — instant alerts */}
-      <div className="border-t border-border pt-6">
-        <h2 className="text-lg font-display font-bold text-foreground mb-1">Home Parishes</h2>
-        <p className="text-muted-foreground text-xs mb-4">Get instant alerts when jobs drop in your preferred territory</p>
-        <PreferredParishes helperId={userId} />
-      </div>
 
       {/* Availability section */}
       <div className="border-t border-border pt-6">

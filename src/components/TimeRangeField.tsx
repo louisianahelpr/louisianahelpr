@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Clock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
-import { formatTime12Hour } from "@/components/TimePickerSelect";
+import { formatTime12 } from "@/components/TimePickerSelect";
 import { cn } from "@/lib/utils";
 
 interface TimeRangeFieldProps {
@@ -25,7 +25,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
   const [tab, setTab] = useState<"start" | "end">("start");
 
   const display =
-    start && end ? `${formatTime12Hour(start)} – ${formatTime12Hour(end)}` : "Set hours";
+    start && end ? `${formatTime12(start)} – ${formatTime12(end)}` : "Set hours";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -64,7 +64,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
             >
               {t === "start" ? "Start" : "End"}
               <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">
-                {formatTime12Hour(t === "start" ? start : end)}
+                {formatTime12(t === "start" ? start : end)}
               </span>
             </button>
           ))}

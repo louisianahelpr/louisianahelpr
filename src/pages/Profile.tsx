@@ -604,8 +604,8 @@ const ProfilePage = () => {
                   <LogOut className="w-4 h-4 mr-2" /> Sign out
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  variant="outline"
+                  className="w-full bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/15 hover:text-destructive hover:border-destructive/50"
                   onClick={() => setShowDeleteAccountDialog(true)}
                 >
                   <AlertTriangle className="w-4 h-4 mr-2" /> Delete account

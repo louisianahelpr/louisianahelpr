@@ -95,22 +95,7 @@ const Heroes = () => {
           </p>
         </header>
 
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-center mb-8">
-          <label className="text-sm font-medium text-foreground">Filter by area:</label>
-          <Select value={selectedParish} onValueChange={setSelectedParish}>
-            <SelectTrigger className="w-[260px] bg-card">
-              <SelectValue placeholder="All areas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All areas ({heroes.length} heroes)</SelectItem>
-              {parishes.map((p) => (
-                <SelectItem key={p.parish} value={p.parish}>
-                  {p.parish} ({p.hero_count})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Parish filter removed — heroes list is now statewide. */}
 
         {loading ? (
           <div className="space-y-3">

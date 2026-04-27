@@ -133,9 +133,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
 
   return (
     <div className="space-y-5">
-      {/* Large Title — matches PageHeader spacing/typography exactly so the
-          Subscription screen reads identically to Saved Helprs et al. */}
-      <div className="flex items-center gap-3 pt-6 pb-1">
+      {/* iOS-HIG: back chevron on a thin top row, then a Large Title.
+          Matches PageHeader so every sub-screen reads identically. */}
+      <div className="pt-2">
         <button
           onClick={onBack}
           className="h-11 w-11 -ml-2 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
@@ -143,10 +143,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">
-          Subscription
-        </h1>
       </div>
+      <h1 className="font-display text-[30px] sm:text-[34px] font-bold leading-tight tracking-tight text-foreground -mt-2">
+        Subscription
+      </h1>
 
       {currentTier && !isExpired && (
         <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">

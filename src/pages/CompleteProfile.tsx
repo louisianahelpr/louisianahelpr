@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
+import { isProfileComplete } from "@/components/ProtectedRoute";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -278,6 +279,14 @@ const CompleteProfile = () => {
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Don't trap users who don't actually need this gate. Legacy accounts
+  // bypass entirely, and anyone whose profile already satisfies the Big 7
+  // gets bounced straight to the dashboard instead of staring at a 0/8
+  // checklist they can't dismiss.
+  if (profile && (profile.is_legacy_user === true || isProfileComplete(profile))) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

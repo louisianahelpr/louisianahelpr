@@ -38,7 +38,7 @@ export const QuickReplies = ({ onSelect }: QuickRepliesProps) => {
             key={m}
             size="sm"
             className="shrink-0 text-xs h-7 px-3 rounded-full"
-            onClick={() => sendEnRoute(m)}
+            onClick={() => pickEnRoute(m)}
           >
             {m} min
           </Button>

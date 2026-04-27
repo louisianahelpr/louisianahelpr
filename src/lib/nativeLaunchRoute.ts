@@ -63,14 +63,14 @@ export async function resolveNativeLaunchRoute(
   try {
     const { data } = await supabase.auth.getSession();
     const session = data.session;
-    if (!session?.user) return null; // guest → stay on landing
 
-    // Signed-in: send to dashboard. ProtectedRoute will re-route to
+    // Guests → /browse (dashboard-style preview of open jobs).
+    // Signed-in → /dashboard. ProtectedRoute will re-route to
     // /account-pending, /account-denied, /account-banned, or
-    // /complete-profile if the profile state requires it. Admins can still
-    // reach /admin via the in-app nav.
-    return "/dashboard";
+    // /complete-profile if the profile state requires it. Admins can
+    // still reach /admin via the in-app nav.
+    return session?.user ? "/dashboard" : "/browse";
   } catch {
-    return null;
+    return "/browse";
   }
 }

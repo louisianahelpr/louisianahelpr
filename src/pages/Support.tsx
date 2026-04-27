@@ -1,26 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, Send, CheckCircle2,
-  Mail, Clock, FileText, Shield,
+  Mail, Clock, FileText, Shield, ArrowLeft, Search, Upload, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import PageHeader from "@/components/PageHeader";
 
 type Category = "message" | "suggestion" | "report" | "help";
 
-const categories: { key: Category; label: string; icon: React.ReactNode; description: string }[] = [
-  { key: "message", label: "Message Admin", icon: <MessageSquarePlus className="w-5 h-5" />, description: "Send a direct message to the admin team" },
-  { key: "suggestion", label: "Suggestion", icon: <Lightbulb className="w-5 h-5" />, description: "Share an idea to improve the platform" },
-  { key: "report", label: "Report Issue", icon: <AlertTriangle className="w-5 h-5" />, description: "Report a bug, problem, or concern" },
-  { key: "help", label: "Get Help", icon: <HelpCircle className="w-5 h-5" />, description: "Ask a question or request assistance" },
+const categories: { key: Category; label: string; icon: React.ReactNode; description: string; accent: string }[] = [
+  { key: "message", label: "Message Admin", icon: <MessageSquarePlus className="w-4 h-4" />, description: "Direct message", accent: "from-primary/15 to-primary/5 text-primary" },
+  { key: "suggestion", label: "Suggestion", icon: <Lightbulb className="w-4 h-4" />, description: "Share an idea", accent: "from-amber-400/20 to-amber-500/5 text-amber-600" },
+  { key: "report", label: "Report Issue", icon: <AlertTriangle className="w-4 h-4" />, description: "Bug or concern", accent: "from-destructive/20 to-destructive/5 text-destructive" },
+  { key: "help", label: "Get Help", icon: <HelpCircle className="w-4 h-4" />, description: "Ask a question", accent: "from-sky-400/20 to-sky-500/5 text-sky-600" },
 ];
 
 const faqItems = [
@@ -36,11 +37,14 @@ const SupportPage = () => {
   usePageTitle("Support — Helpr");
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [category, setCategory] = useState<Category | null>(null);
+  const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [suggestionType, setSuggestionType] = useState<string>("ui-ux");
+  const [issueType, setIssueType] = useState<string>("bug");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [helpQuery, setHelpQuery] = useState("");
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,16 +52,36 @@ const SupportPage = () => {
     });
   }, []);
 
+  const resetForm = () => {
+    setSubject("");
+    setMessage("");
+    setSuggestionType("ui-ux");
+    setIssueType("bug");
+    setScreenshot(null);
+    setHelpQuery("");
+  };
+
+  const closeSheet = () => {
+    setOpenCategory(null);
+    resetForm();
+  };
+
+  const filteredFaqs = useMemo(() => {
+    const q = helpQuery.trim().toLowerCase();
+    if (!q) return faqItems.slice(0, 3);
+    return faqItems.filter(f => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q));
+  }, [helpQuery]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !category || !message.trim()) return;
+    if (!user || !openCategory || !message.trim()) return;
 
     setSending(true);
 
-    const categoryLabels: Record<Category, string> = {
+    const labels: Record<Category, string> = {
       message: "Admin Message",
-      suggestion: "Suggestion",
-      report: "Issue Report",
+      suggestion: `Suggestion (${suggestionType})`,
+      report: `Issue Report (${issueType})`,
       help: "Help Request",
     };
 
@@ -65,7 +89,7 @@ const SupportPage = () => {
       reporter_id: user.id,
       reported_type: "support",
       reported_id: user.id,
-      reason: `[${categoryLabels[category]}] ${subject.trim() || "No subject"}`,
+      reason: `[${labels[openCategory]}] ${subject.trim() || "No subject"}`,
       description: message.trim(),
     });
 
@@ -74,77 +98,98 @@ const SupportPage = () => {
     if (error) {
       toast.error("Failed to send. Please try again.");
     } else {
-      setSent(true);
       toast.success("Message sent to admin!");
+      closeSheet();
     }
   };
 
-  const reset = () => {
-    setCategory(null);
-    setSubject("");
-    setMessage("");
-    setSent(false);
-  };
+  const activeCategory = categories.find(c => c.key === openCategory);
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Support & Help Center" />
+      <main className="container mx-auto px-5 pt-6 pb-6">
+        <div className="max-w-2xl mx-auto space-y-5">
 
-      <main className="container mx-auto px-5 py-6">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <p className="text-sm text-muted-foreground">
+          {/* Inline back + title */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="h-9 w-9 shrink-0 rounded-xl -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
+              Support & Help Center
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground -mt-2">
             Find answers, get help, or contact our team
           </p>
 
-          {/* Contact info — always visible, no login required */}
-          <section className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Contact Us</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm text-foreground">Email</p>
-                  <a href="mailto:admin@louisianahelpr.com" className="text-sm text-primary hover:underline">
-                    admin@louisianahelpr.com
-                  </a>
+          {/* Contact Us — compact */}
+          <section className="rounded-2xl border border-border bg-card px-4 py-3">
+            <h2 className="text-sm font-semibold text-foreground mb-2">Contact Us</h2>
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2.5">
+              <div className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-primary shrink-0" />
+                <a href="mailto:admin@louisianahelpr.com" className="text-xs text-primary hover:underline truncate">
+                  admin@louisianahelpr.com
+                </a>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground">Reply within 24–48h</p>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <FileText className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex gap-1.5 text-xs">
+                  <Link to="/terms" className="text-primary hover:underline">Terms</Link>
+                  <span className="text-muted-foreground">·</span>
+                  <Link to="/privacy" className="text-primary hover:underline">Privacy</Link>
+                  <span className="text-muted-foreground">·</span>
+                  <Link to="/rules" className="text-primary hover:underline">Rules</Link>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm text-foreground">Response Time</p>
-                  <p className="text-sm text-muted-foreground">Within 24–48 hours</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm text-foreground">Policies</p>
-                  <div className="flex gap-2">
-                    <Link to="/terms" className="text-sm text-primary hover:underline">Terms</Link>
-                    <span className="text-muted-foreground">·</span>
-                    <Link to="/privacy" className="text-sm text-primary hover:underline">Privacy</Link>
-                    <span className="text-muted-foreground">·</span>
-                    <Link to="/rules" className="text-sm text-primary hover:underline">Rules</Link>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm text-foreground">Safety</p>
-                  <p className="text-sm text-muted-foreground">All helprs are reviewed before approval</p>
-                </div>
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-4 h-4 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground">All helprs reviewed</p>
               </div>
             </div>
           </section>
 
-          {/* FAQ — always visible */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-foreground">Frequently Asked Questions</h2>
+          {/* Send Us a Message — compact action chips */}
+          {user && (
+            <section className="space-y-2.5">
+              <h2 className="text-sm font-semibold text-foreground">Send Us a Message</h2>
+              <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible">
+                {categories.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => setOpenCategory(c.key)}
+                    className="shrink-0 sm:shrink rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5 min-w-[140px] sm:min-w-0"
+                  >
+                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${c.accent} flex items-center justify-center shrink-0`}>
+                      {c.icon}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-xs text-foreground leading-tight">{c.label}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{c.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* FAQ */}
+          <section className="space-y-2.5">
+            <h2 className="text-sm font-semibold text-foreground">Frequently Asked Questions</h2>
             <div className="space-y-2">
               {faqItems.map((item, i) => (
-                <details key={i} className="rounded-xl border border-border bg-card group">
+                <details key={i} className="rounded-2xl border border-border bg-card group">
                   <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-foreground hover:text-primary transition-colors list-none flex items-center justify-between">
                     {item.q}
                     <span className="text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
@@ -155,80 +200,10 @@ const SupportPage = () => {
             </div>
           </section>
 
-          {/* Authenticated support form */}
-          {user ? (
-            sent ? (
-              <section className="text-center space-y-4 py-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-xl font-display font-bold text-foreground">Message Sent!</h2>
-                <p className="text-muted-foreground">Our team will review your message and get back to you soon.</p>
-                <div className="flex gap-3 justify-center pt-2">
-                  <Button variant="outline" onClick={reset}>Send Another</Button>
-                  <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
-                </div>
-              </section>
-            ) : (
-              <section className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Send Us a Message</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {categories.map((c) => (
-                    <button
-                      key={c.key}
-                      onClick={() => setCategory(c.key)}
-                      className={`rounded-xl border p-4 text-left transition-all ${
-                        category === c.key
-                          ? "border-primary bg-primary/5 ring-1 ring-primary"
-                          : "border-border bg-card hover:border-primary/40"
-                      }`}
-                    >
-                      <div className={`mb-2 ${category === c.key ? "text-primary" : "text-muted-foreground"}`}>
-                        {c.icon}
-                      </div>
-                      <p className="font-medium text-sm text-foreground">{c.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
-                    </button>
-                  ))}
-                </div>
-
-                {category && (
-                  <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-5 space-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="subject" className="text-xs">Subject (optional)</Label>
-                      <Input
-                        id="subject"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        placeholder="Brief summary…"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="message" className="text-xs">Your message *</Label>
-                      <Textarea
-                        id="message"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Describe in detail…"
-                        rows={5}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={sending || !message.trim()}>
-                      {sending ? "Sending…" : (
-                        <>
-                          <Send className="w-4 h-4 mr-2" /> Send Message
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                )}
-              </section>
-            )
-          ) : (
-            <section className="rounded-xl border border-border bg-card p-5 text-center space-y-3">
+          {!user && (
+            <section className="rounded-2xl border border-border bg-card p-4 text-center space-y-3">
               <p className="text-sm text-muted-foreground">
-                Sign in to send a message directly to our support team, or email us at{" "}
+                Sign in to send a message directly, or email us at{" "}
                 <a href="mailto:admin@louisianahelpr.com" className="text-primary hover:underline">
                   admin@louisianahelpr.com
                 </a>
@@ -240,6 +215,164 @@ const SupportPage = () => {
           )}
         </div>
       </main>
+
+      {/* Bottom sheet for each action */}
+      <Sheet open={!!openCategory} onOpenChange={(o) => !o && closeSheet()}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-3xl border-t border-border/60 bg-background/95 backdrop-blur-xl max-h-[90vh] overflow-y-auto p-5"
+        >
+          {activeCategory && (
+            <>
+              <SheetHeader className="text-left mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${activeCategory.accent} flex items-center justify-center`}>
+                    {activeCategory.icon}
+                  </div>
+                  <div>
+                    <SheetTitle className="text-lg">{activeCategory.label}</SheetTitle>
+                    <SheetDescription className="text-xs">{activeCategory.description}</SheetDescription>
+                  </div>
+                </div>
+              </SheetHeader>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Help: search-first */}
+                {openCategory === "help" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Search FAQs first</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        value={helpQuery}
+                        onChange={(e) => setHelpQuery(e.target.value)}
+                        placeholder="Try 'how do I post a job'…"
+                        className="pl-9 rounded-xl"
+                      />
+                    </div>
+                    {filteredFaqs.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Suggested</p>
+                        {filteredFaqs.slice(0, 3).map((f, i) => (
+                          <details key={i} className="rounded-xl border border-border bg-muted/30">
+                            <summary className="px-3 py-2 text-xs font-medium cursor-pointer list-none flex items-center justify-between">
+                              {f.q}
+                              <span className="text-muted-foreground text-[10px]">▾</span>
+                            </summary>
+                            <p className="px-3 pb-2 text-xs text-muted-foreground">{f.a}</p>
+                          </details>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Suggestion: category dropdown */}
+                {openCategory === "suggestion" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Category</Label>
+                    <Select value={suggestionType} onValueChange={setSuggestionType}>
+                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ui-ux">UI / UX</SelectItem>
+                        <SelectItem value="new-features">New Features</SelectItem>
+                        <SelectItem value="general">General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Report: issue type + screenshot */}
+                {openCategory === "report" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Type of Issue</Label>
+                      <Select value={issueType} onValueChange={setIssueType}>
+                        <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bug">Bug / Crash</SelectItem>
+                          <SelectItem value="payment">Payment Issue</SelectItem>
+                          <SelectItem value="user">User Behavior</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Screenshot (optional)</Label>
+                      <label className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition">
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground truncate flex-1">
+                          {screenshot ? screenshot.name : "Tap to upload an image"}
+                        </span>
+                        {screenshot && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setScreenshot(null); }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {openCategory !== "help" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subject" className="text-xs">Subject (optional)</Label>
+                    <Input
+                      id="subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Brief summary…"
+                      className="rounded-xl"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="message" className="text-xs">
+                    {openCategory === "suggestion" ? "Share your idea *" : "Your message *"}
+                  </Label>
+                  <Textarea
+                    id="message"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder={
+                      openCategory === "suggestion" ? "What would make Helpr better?" :
+                      openCategory === "report" ? "Describe what happened…" :
+                      openCategory === "help" ? "Still need help? Send us your question…" :
+                      "Type your message…"
+                    }
+                    rows={4}
+                    required
+                    className="rounded-xl resize-none"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full rounded-xl bg-gradient-to-r from-primary to-primary/85 shadow-md"
+                  disabled={sending || !message.trim()}
+                >
+                  {sending ? "Sending…" : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" /> Send Message
+                    </>
+                  )}
+                </Button>
+              </form>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

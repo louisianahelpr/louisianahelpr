@@ -184,6 +184,9 @@ const CompleteProfile = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              All fields marked <span className="text-destructive">*</span> are required.
+            </p>
           </div>
 
           <form

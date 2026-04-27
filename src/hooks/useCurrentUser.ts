@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -25,8 +23,10 @@ interface CurrentUser {
 
 const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | null; isAdmin: boolean }> => {
   const profileRes = await withTimeout(
-    Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()),
-    { data: null } as Awaited<ReturnType<typeof supabase.from<"profiles">>["select"]>,
+    Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(({ data }) => ({
+      data: data ?? null,
+    })),
+    { data: null as Profile | null },
   );
 
   if (window.location.pathname !== "/admin") {
@@ -34,8 +34,10 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
   }
 
   const rolesRes = await withTimeout(
-    Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()),
-    { data: null } as Awaited<ReturnType<typeof supabase.from<"user_roles">>["select"]>,
+    Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data }) => ({
+      data: data ?? null,
+    })),
+    { data: null as { role: string } | null },
   );
 
   return {
@@ -45,7 +47,6 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
 };
 
 export const useCurrentUser = (): CurrentUser => {
-  const queryClient = useQueryClient();
   const { user, isReady } = useAuthReady();
 
   const { data, isLoading } = useQuery({
@@ -55,13 +56,6 @@ export const useCurrentUser = (): CurrentUser => {
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
-
-  // Auth state changes are handled by useAuthReady; just invalidate the profile query when user changes
-  useEffect(() => {
-    if (user) {
-      void queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
-    }
-  }, [user?.id, queryClient]);
 
   return {
     user,

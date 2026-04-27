@@ -611,17 +611,17 @@ const PostJob = () => {
                     {detailsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
                     <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
                     <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label>Category <span className="text-destructive">*</span></Label>
                     <Select value={category} onValueChange={setCategory}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -634,7 +634,7 @@ const PostJob = () => {
                   </div>
 
                   {/* Image Upload */}
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label>Photos (optional, max 5)</Label>
                     <div className="flex flex-wrap gap-3">
                       {imagePreviews.map((src, i) => (
@@ -699,11 +699,11 @@ const PostJob = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
                       <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} min={new Date().toISOString().split("T")[0]} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
                       <TimePickerSelect value={startTime} onChange={setStartTime} />
                     </div>
@@ -719,12 +719,12 @@ const PostJob = () => {
                     </label>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
                     <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label htmlFor="requirements">Special requirements</Label>
                     <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
                   </div>
@@ -740,7 +740,7 @@ const PostJob = () => {
                     </div>
                     {isRecurring && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           <Label>Frequency</Label>
                           <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -752,7 +752,7 @@ const PostJob = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           <Label>Until</Label>
                           <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
                         </div>
@@ -800,7 +800,7 @@ const PostJob = () => {
                     {budgetComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Label htmlFor="budget">Budget ($) <span className="text-destructive">*</span></Label>
                     <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
                     {suggested && (

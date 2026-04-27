@@ -140,7 +140,7 @@ const LocationBudgetContent = ({
       </div>
     </div>
     <div>
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Max budget</p>
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5"><br /></p>
       <div className="relative">
         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
         <Input

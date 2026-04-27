@@ -225,20 +225,20 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
             </div>
           ) : null}
 
-          {/* Action bar */}
+          {/* Action bar — HIG: all buttons ≥44pt tap target */}
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-            <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 px-2" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
-              <Flag className="w-3.5 h-3.5 mr-1" /> Report
+            <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-11 px-3" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
+              <Flag className="w-4 h-4 mr-1.5" /> Report
             </Button>
             <div className="flex items-center gap-2">
               {!isOwnJob && (
-                <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={`h-8 ${isSaved ? "border-primary text-primary" : ""}`}>
-                  <Bookmark className={`w-3.5 h-3.5 mr-1 ${isSaved ? "fill-primary" : ""}`} /> {isSaved ? "Saved" : "Save"}
+                <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={`h-11 px-3 ${isSaved ? "border-primary text-primary" : ""}`}>
+                  <Bookmark className={`w-4 h-4 mr-1.5 ${isSaved ? "fill-primary" : ""}`} /> {isSaved ? "Saved" : "Save"}
                 </Button>
               )}
               {!isOwnJob && (
-                <Button size="sm" className="h-8 bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
-                  <Send className="w-3.5 h-3.5 mr-1" /> Apply
+                <Button size="sm" className="h-11 px-4 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
+                  <Send className="w-4 h-4 mr-1.5" /> Apply
                 </Button>
               )}
             </div>

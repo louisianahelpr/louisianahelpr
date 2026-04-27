@@ -162,7 +162,7 @@ const MyJobs = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-20">
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="My posted tasks" />
 
       <main className="container mx-auto px-4 py-8">

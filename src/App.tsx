@@ -13,6 +13,7 @@ import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
+import ScrollToTop from "@/components/ScrollToTop";
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
 // @radix-ui/react-tooltip + @floating-ui + next-themes (~14 KB gzipped of

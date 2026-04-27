@@ -17,19 +17,22 @@ const PROFILE_GATE_ALLOWED = new Set<string>([
   "/data-rights",
 ]);
 
+/**
+ * Hard requirements for using the app. Helpers + customers are unified
+ * and auto-approved via Stripe Express verification (see
+ * mem://features/auto-approval-flow), so we no longer require ID upload,
+ * bio length, avatar, etc. — those are optional profile-completeness items
+ * surfaced as inline CTAs on the Profile screen.
+ *
+ * The ONLY hard gate is having a non-empty full_name, which is captured
+ * on signup. If a legacy/OAuth account is missing that, route them to
+ * /complete-profile once; otherwise let them into the app.
+ */
 const isProfileComplete = (
-  profile: { date_of_birth?: string | null; phone?: string | null; location?: string | null; bio?: string | null; avatar_url?: string | null; id_document_url?: string | null } | null,
+  profile: { full_name?: string | null } | null,
 ): boolean => {
   if (!profile) return false;
-  return Boolean(
-    profile.date_of_birth &&
-      profile.phone &&
-      profile.location &&
-      profile.bio &&
-      profile.bio.trim().length >= 20 &&
-      profile.avatar_url &&
-      profile.id_document_url,
-  );
+  return Boolean(profile.full_name && profile.full_name.trim().length > 0);
 };
 
 const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRouteProps) => {

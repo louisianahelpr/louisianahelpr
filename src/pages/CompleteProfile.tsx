@@ -56,6 +56,9 @@ const CompleteProfile = () => {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  // Hydrated from profile.accepted_terms_at on mount so users who already
+  // accepted (and were bounced back here for some other missing field, or who
+  // simply refreshed the page) don't have to re-tick the box.
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -77,6 +80,9 @@ const CompleteProfile = () => {
     if (profile.bio && !bio) setBio(profile.bio);
     if (profile.avatar_url && !avatarPreview) setAvatarPreview(profile.avatar_url);
     if (profile.id_document_url && !idPreview) setIdPreview(profile.id_document_url);
+    // Persisted terms acceptance — read straight from the row so refresh / re-entry
+    // doesn't reset the user's previous "yes I agree".
+    if ((profile as any).accepted_terms_at) setAcceptedPolicies(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.user_id]);
 
@@ -219,6 +225,7 @@ const CompleteProfile = () => {
         location: string;
         date_of_birth: string;
         approval_status: string;
+        accepted_terms_at: string;
         avatar_url?: string;
         id_document_url?: string;
       } = {
@@ -228,6 +235,9 @@ const CompleteProfile = () => {
         location: location.trim(),
         date_of_birth: dateOfBirth,
         approval_status: "pending",
+        // Stamp the moment the user accepted the rules / terms / privacy.
+        // Persisting this means the checklist won't ask again on refresh.
+        accepted_terms_at: new Date().toISOString(),
       };
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;

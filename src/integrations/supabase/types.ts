@@ -1813,6 +1813,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_terms_at: string | null
           application_count: number
           approval_email_count: number
           approval_status: string
@@ -1880,6 +1881,7 @@ export type Database = {
           zip_code: string | null
         }
         Insert: {
+          accepted_terms_at?: string | null
           application_count?: number
           approval_email_count?: number
           approval_status?: string
@@ -1947,6 +1949,7 @@ export type Database = {
           zip_code?: string | null
         }
         Update: {
+          accepted_terms_at?: string | null
           application_count?: number
           approval_email_count?: number
           approval_status?: string

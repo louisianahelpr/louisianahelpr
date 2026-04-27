@@ -17,7 +17,7 @@ import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
-import { ParishBadges } from "@/components/ParishBadges";
+
 import { RetainerAgreement } from "@/components/RetainerAgreement";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";

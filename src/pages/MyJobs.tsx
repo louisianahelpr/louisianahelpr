@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createNotification } from "@/lib/notifications";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
+import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, RefreshCw, Briefcase, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
@@ -17,6 +17,8 @@ import { JobMilestones } from "@/components/JobMilestones";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];

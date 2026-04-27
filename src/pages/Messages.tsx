@@ -79,9 +79,11 @@ const Messages = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [deleteConvoConfirm, setDeleteConvoConfirm] = useState<Conversation | null>(null);
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const deepLinkHandled = useRef(false);
+  const keyboardInset = useKeyboardInset();
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({

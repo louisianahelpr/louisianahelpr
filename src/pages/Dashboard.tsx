@@ -325,7 +325,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />
-          <OnboardingChecklist userId={user?.id} profile={profile} />
+          
           {/* Welcome section */}
           {showGreeting && (
           <motion.div

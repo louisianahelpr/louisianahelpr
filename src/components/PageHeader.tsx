@@ -11,19 +11,33 @@ interface PageHeaderProps {
    */
   onBack?: () => void;
   /**
-   * Optional slot for trailing actions on the right side of the header
-   * (e.g. a notifications bell). Kept minimal so the bar stays stable.
+   * Optional slot for trailing actions on the right side of the sticky
+   * top bar (e.g. a notifications bell). Kept minimal so the bar stays
+   * stable across screens.
    */
   rightSlot?: React.ReactNode;
+  /**
+   * Optional supporting copy rendered directly under the large title.
+   * Keep it short — one or two sentences max.
+   */
+  subtitle?: React.ReactNode;
 }
 
 /**
  * Standardized sub-page header used across every screen that is NOT a
- * bottom-nav tab root. Layout is locked: fixed height, identical padding,
- * identical background — back arrow on the far left, title immediately
- * to its right (left-aligned, never centered). No progress bars.
+ * bottom-nav tab root.
+ *
+ * iOS Large Title pattern (HIG):
+ *   • Sticky top bar: fixed 44pt height, blurred background, back chevron
+ *     on the left, optional trailing actions on the right. NO title text —
+ *     the bar looks identical on every screen so transitions feel seamless.
+ *   • Large title: rendered in the page body, below the sticky bar, as
+ *     a big H1 (the iOS-native treatment).
+ *
+ * Background + blur tokens match the Home/Browse screens exactly so users
+ * never see a color jump when navigating between pages.
  */
-const PageHeader = ({ title, onBack, rightSlot }: PageHeaderProps) => {
+const PageHeader = ({ title, onBack, rightSlot, subtitle }: PageHeaderProps) => {
   const navigate = useNavigate();
   const handleBack = () => {
     if (onBack) onBack();
@@ -31,12 +45,14 @@ const PageHeader = ({ title, onBack, rightSlot }: PageHeaderProps) => {
   };
 
   return (
-    <header
-      className="sticky top-0 z-40 h-14 border-b border-border bg-background/80 backdrop-blur-md"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-    >
-      <div className="container mx-auto flex h-14 items-center justify-between gap-2 px-4">
-        <div className="flex items-center gap-2 min-w-0">
+    <>
+      {/* Sticky top bar — back chevron only, no title. Identical on every
+          sub-page so navigation transitions are seamless. */}
+      <header
+        className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="container mx-auto flex h-11 items-center justify-between gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -46,13 +62,22 @@ const PageHeader = ({ title, onBack, rightSlot }: PageHeaderProps) => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="truncate text-lg font-display font-semibold text-foreground">
-            {title}
-          </h1>
+          {rightSlot ? (
+            <div className="flex items-center gap-1 shrink-0 -mr-2">{rightSlot}</div>
+          ) : null}
         </div>
-        {rightSlot ? <div className="flex items-center gap-1 shrink-0">{rightSlot}</div> : null}
+      </header>
+
+      {/* iOS-style Large Title in the page body */}
+      <div className="container mx-auto pt-3 pb-2">
+        <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">
+          {title}
+        </h1>
+        {subtitle ? (
+          <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
+        ) : null}
       </div>
-    </header>
+    </>
   );
 };
 

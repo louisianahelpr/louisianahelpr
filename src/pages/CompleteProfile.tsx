@@ -198,7 +198,7 @@ const CompleteProfile = () => {
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
       const { error: updateErr } = await withTimeout(
-        supabase.from("profiles").update(updates).eq("user_id", user.id),
+        Promise.resolve(supabase.from("profiles").update(updates).eq("user_id", user.id)),
         "Profile save",
       );
       if (updateErr) throw updateErr;

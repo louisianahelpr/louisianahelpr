@@ -82,7 +82,7 @@ serve(async (req) => {
         }
       } catch (e: any) {
         console.error(`Failed to verify payment for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "verify_failed", error: e.message });
+        results.push({ job_id: job.id, status: "verify_failed", error: (e as Error).message });
         continue;
       }
 
@@ -123,7 +123,7 @@ serve(async (req) => {
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

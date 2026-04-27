@@ -23,8 +23,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       ref={ref}
       className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30 bg-background/80"
       style={{
+        // On native iOS the WebView already sits below the status bar
+        // (overlaysWebView: false + contentInset: 'always'), so we add
+        // ZERO extra top padding — anything more creates a visible gap
+        // between the status bar and the Helpr logo.
         paddingTop: isNative
-          ? "env(safe-area-inset-top, 0px)"
+          ? "0px"
           : "max(env(safe-area-inset-top), 1rem)",
       }}
     >

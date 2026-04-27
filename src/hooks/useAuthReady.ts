@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-const AUTH_BOOTSTRAP_TIMEOUT_MS = 4000;
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
+
+type AuthSnapshot = { user: User | null; isReady: boolean };
+
+let authSnapshot: AuthSnapshot = { user: null, isReady: false };
+let authBootstrapStarted = false;
+const authListeners = new Set<(snapshot: AuthSnapshot) => void>();
+
+const emitAuthSnapshot = (snapshot: AuthSnapshot) => {
+  authSnapshot = snapshot;
+  authListeners.forEach((listener) => listener(snapshot));
+};
 
 const getSessionWithTimeout = async (): Promise<Session | null> => {
   try {
@@ -21,44 +32,38 @@ const getSessionWithTimeout = async (): Promise<Session | null> => {
 };
 
 export const useAuthReady = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [snapshot, setSnapshot] = useState<AuthSnapshot>(authSnapshot);
 
   useEffect(() => {
-    let mounted = true;
-    let initialized = false;
+    authListeners.add(setSnapshot);
 
-    const markReady = (session: Session | null) => {
-      if (!mounted) return;
-      initialized = true;
-      setUser(session?.user ?? null);
-      setIsReady(true);
-    };
+    if (!authBootstrapStarted) {
+      authBootstrapStarted = true;
+      let initialized = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      setUser(session?.user ?? null);
-      setIsReady(true);
-      initialized = true;
-    });
+      const markReady = (session: Session | null) => {
+        initialized = true;
+        emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
+      };
 
-    void getSessionWithTimeout().then((session) => {
-      if (!mounted || initialized) return;
-      markReady(session);
-    });
+      supabase.auth.onAuthStateChange((_event, session) => {
+        initialized = true;
+        emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
+      });
 
-    const fallbackTimer = window.setTimeout(() => {
-      if (!mounted || initialized) return;
-      initialized = true;
-      setIsReady(true);
-    }, AUTH_BOOTSTRAP_TIMEOUT_MS + 250);
+      void getSessionWithTimeout().then((session) => {
+        if (!initialized) markReady(session);
+      });
+
+      window.setTimeout(() => {
+        if (!initialized) emitAuthSnapshot({ user: authSnapshot.user, isReady: true });
+      }, AUTH_BOOTSTRAP_TIMEOUT_MS + 250);
+    }
 
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
-      window.clearTimeout(fallbackTimer);
+      authListeners.delete(setSnapshot);
     };
   }, []);
 
-  return { user, isReady };
+  return snapshot;
 };

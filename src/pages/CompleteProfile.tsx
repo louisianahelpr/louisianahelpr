@@ -196,17 +196,26 @@ const CompleteProfile = () => {
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
-      const { error: updateErr } = await withTimeout(
+      const { data: savedProfile, error: updateErr } = await withTimeout(
         Promise.resolve(
           supabase
             .from("profiles")
             .update(updates)
             .eq("user_id", user.id)
+            .select("*")
+            .maybeSingle()
         ),
         "Profile save",
       );
       if (updateErr) throw updateErr;
 
+      if (savedProfile) {
+        queryClient.setQueryData(["currentUser", user.id], (current: any) => ({
+          ...(current ?? {}),
+          profile: savedProfile,
+          isAdmin: current?.isAdmin ?? false,
+        }));
+      }
       await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });

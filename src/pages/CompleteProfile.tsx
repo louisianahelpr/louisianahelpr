@@ -118,6 +118,39 @@ const CompleteProfile = () => {
     return age >= 18;
   }, [dateOfBirth]);
 
+  // Live "Big 7" checklist — mirrors ProtectedRoute's gate so the user can
+  // see exactly which fields still need attention. Each item is satisfied
+  // either by the local form state OR by an existing value already on
+  // the profile row (e.g. an avatar uploaded previously).
+  const checklist = useMemo(() => {
+    const phoneDigits = phone.replace(/\D/g, "");
+    return [
+      { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
+      { label: "Profile picture", done: Boolean(avatarFile || profile?.avatar_url) },
+      { label: "About you (20+ characters)", done: bio.trim().length >= 20 },
+      { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
+      { label: "Phone number", done: phoneDigits.length === 10 },
+      { label: "City", done: location.trim().length > 0 },
+      { label: "Government-issued ID", done: Boolean(idFile || profile?.id_document_url) },
+      { label: "Accept platform rules, terms & privacy", done: acceptedPolicies },
+    ];
+  }, [
+    firstName,
+    lastName,
+    avatarFile,
+    profile?.avatar_url,
+    bio,
+    dateOfBirth,
+    ageOk,
+    phone,
+    location,
+    idFile,
+    profile?.id_document_url,
+    acceptedPolicies,
+  ]);
+
+  const allComplete = checklist.every((c) => c.done);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;

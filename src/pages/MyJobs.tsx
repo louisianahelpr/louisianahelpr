@@ -386,6 +386,7 @@ const MyJobs = () => {
           )}
         </div>
       </main>
+      </PullToRefreshWrapper>
 
       {reviewJob && reviewJob.helper_id && (
         <ReviewForm

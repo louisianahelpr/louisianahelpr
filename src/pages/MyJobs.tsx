@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createNotification } from "@/lib/notifications";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare } from "lucide-react";
+import { Users, CheckCircle2, Gift, XCircle, RotateCcw, Star, MessageSquare, RefreshCw, Briefcase, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import { ReviewForm } from "@/components/ReviewPanel";
@@ -17,6 +17,8 @@ import { JobMilestones } from "@/components/JobMilestones";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -39,6 +41,7 @@ const MyJobs = () => {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [tipJobId, setTipJobId] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");
@@ -53,21 +56,50 @@ const MyJobs = () => {
       toast.success("Tip sent successfully! Your helpr will appreciate it.");
     }
     loadJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadJobs = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-    if (!user) { navigate("/login"); return; }
-    setCurrentUserId(user.id);
-    const { data } = await supabase
-      .from("jobs")
-      .select("*")
-      .eq("customer_id", user.id)
-      .order("created_at", { ascending: false });
-    if (data) setJobs(data);
-    setLoading(false);
-  };
+  const loadJobs = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      // 10-second timeout so the skeleton never spins forever on a flaky network
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10_000),
+      );
+
+      const sessionRes = await Promise.race([
+        supabase.auth.getSession(),
+        timeoutPromise,
+      ]);
+      const user = sessionRes.data.session?.user;
+      if (!user) { navigate("/login"); return; }
+      setCurrentUserId(user.id);
+
+      const queryPromise = supabase
+        .from("jobs")
+        .select("*")
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false });
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (err: any) {
+      console.error("[MyJobs] loadJobs failed:", err);
+      setLoadError(
+        err?.message === "timeout"
+          ? "Could not load jobs. Please check your connection."
+          : err?.message || "Could not load jobs. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+    onRefresh: loadJobs,
+  });
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
@@ -165,17 +197,56 @@ const MyJobs = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="My posted tasks" />
 
-      <main className="container mx-auto px-5 py-8">
-        <div className="max-w-3xl mx-auto space-y-8">
+      <PullToRefreshWrapper
+        ref={containerRef}
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+        isPulling={isPulling}
+      >
+        <main className="container mx-auto px-5 py-8">
+          <div className="max-w-3xl mx-auto space-y-8">
 
-          {loading ? (
-            <p className="text-muted-foreground">Loading…</p>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground mb-4">You haven't posted any tasks yet.</p>
-              <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
-            </div>
-          ) : (
+            {loading ? (
+              <div className="space-y-4" aria-label="Loading your tasks">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-card p-5 h-28 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : loadError ? (
+              <div className="text-center py-16 space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-7 h-7 text-destructive" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-display font-semibold text-foreground">Something went wrong</p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">{loadError}</p>
+                </div>
+                <Button onClick={loadJobs} variant="outline" className="gap-2">
+                  <RefreshCw className="w-4 h-4" /> Try again
+                </Button>
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className="text-center py-16 space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Briefcase className="w-7 h-7 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-display font-semibold text-foreground">No jobs available</p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    You haven't posted any tasks yet. Post one to get matched with helprs nearby.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+                  <Button variant="outline" onClick={loadJobs} className="gap-2">
+                    <RefreshCw className="w-4 h-4" /> Refresh
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <div className="space-y-4">
               {jobs.map((job) => (
                 <div key={job.id} className="rounded-xl border border-border bg-card p-5 space-y-3">
@@ -315,6 +386,7 @@ const MyJobs = () => {
           )}
         </div>
       </main>
+      </PullToRefreshWrapper>
 
       {reviewJob && reviewJob.helper_id && (
         <ReviewForm

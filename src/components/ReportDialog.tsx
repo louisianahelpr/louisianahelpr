@@ -85,9 +85,9 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             <p className="text-xs text-destructive">At least 10 characters required</p>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !reason || description.trim().length < 10}>
+        <DialogFooter className="flex-row justify-end gap-2 sm:gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={handleSubmit} disabled={submitting || !reason || description.trim().length < 10}>
             {submitting ? "Submitting…" : "Submit report"}
           </Button>
         </DialogFooter>

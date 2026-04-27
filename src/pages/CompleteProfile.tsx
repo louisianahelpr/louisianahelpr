@@ -274,7 +274,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
               <Input
                 id="city"
                 autoComplete="address-level2"

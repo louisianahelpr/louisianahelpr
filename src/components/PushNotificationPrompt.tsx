@@ -49,29 +49,27 @@ export const PushNotificationPrompt = () => {
   if (!show) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm mb-6 relative animate-in fade-in duration-300">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 mb-3 relative animate-in fade-in duration-300">
       <button
         onClick={handleDismiss}
-        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute top-1.5 right-1.5 text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Dismiss"
       >
-        <X className="w-4 h-4" />
+        <X className="w-3 h-3" />
       </button>
-      <div className="flex flex-col items-center text-center gap-3 pt-2">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Bell className="w-6 h-6 text-primary" />
+      <div className="flex items-center gap-2 pr-5">
+        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Bell className="w-3.5 h-3.5 text-primary" />
         </div>
-        <div>
-          <p className="font-display font-semibold text-foreground text-base">Enable notifications?</p>
-          <p className="text-sm text-muted-foreground mt-1 max-w-md">
-            Get instant alerts for new job matches, messages, and status updates.
-          </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-foreground leading-tight">Enable notifications</p>
+          <p className="text-[11px] text-muted-foreground leading-tight">Job matches, messages & updates</p>
         </div>
-        <div className="flex gap-2 mt-1">
-          <Button size="sm" onClick={handleEnable}>
-            <Bell className="w-4 h-4 mr-1" /> Enable
+        <div className="flex gap-1 flex-shrink-0">
+          <Button size="sm" onClick={handleEnable} className="h-7 px-2 text-xs">
+            Enable
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleDismiss} className="text-muted-foreground">
+          <Button size="sm" variant="ghost" onClick={handleDismiss} className="h-7 px-2 text-xs text-muted-foreground">
             Not now
           </Button>
         </div>

@@ -248,16 +248,16 @@ const HeroSection = () => {
         <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:min-h-[36rem]">
           <div className="relative w-full h-full min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:h-full lg:min-h-[36rem]">
             <img
-              src={heroImg500}
+              src={heroImg1000}
               srcSet={heroSrcSet}
               sizes={heroSizes}
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover object-[82%_center] sm:object-[82%_center] lg:object-[82%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30"
+              className="absolute inset-0 w-full h-full object-cover object-[82%_center] sm:object-[82%_center] lg:object-[82%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30 [image-rendering:-webkit-optimize-contrast]"
               loading="eager"
               {...({ fetchpriority: "high" } as React.ImgHTMLAttributes<HTMLImageElement>)}
               decoding="async"
-              width={1000}
-              height={1000}
+              width={2000}
+              height={2000}
             />
             {/* Subtle left-edge fade so image meets text section softly */}
             <div

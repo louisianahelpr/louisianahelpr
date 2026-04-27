@@ -16,13 +16,10 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+const sanitizeExt = (name: string) => {
+  const ext = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  return ext.slice(0, 5);
+};
 
 const formatPhone = (raw: string) => {
   const digits = raw.replace(/\D/g, "").slice(0, 10);

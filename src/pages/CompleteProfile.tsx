@@ -225,6 +225,7 @@ const CompleteProfile = () => {
         location: string;
         date_of_birth: string;
         approval_status: string;
+        accepted_terms_at: string;
         avatar_url?: string;
         id_document_url?: string;
       } = {
@@ -234,6 +235,9 @@ const CompleteProfile = () => {
         location: location.trim(),
         date_of_birth: dateOfBirth,
         approval_status: "pending",
+        // Stamp the moment the user accepted the rules / terms / privacy.
+        // Persisting this means the checklist won't ask again on refresh.
+        accepted_terms_at: new Date().toISOString(),
       };
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;

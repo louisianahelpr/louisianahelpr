@@ -306,14 +306,7 @@ const CompleteProfile = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
-              <Input
-                id="dob"
-                type="date"
-                autoComplete="bday"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                className="rounded-xl"
-              />
+              <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
             </div>
 
             <div className="space-y-1.5">

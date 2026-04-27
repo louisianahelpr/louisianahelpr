@@ -431,7 +431,14 @@ const ProfilePage = () => {
   }
 
   const role = profile?.role || "customer";
-  const initials = (profile?.full_name || user?.email || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  const displayName = profile?.full_name?.trim() || (user?.email ? user.email.split("@")[0] : "");
+  const initials = (profile?.full_name?.trim() || user?.email || "?")
+    .split(/[\s@.]/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
   const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
     const fee = j.platform_fee_amount || 0;
     const feeTax = fee * 0.085;
@@ -486,7 +493,9 @@ const ProfilePage = () => {
                   ) : initials}
                 </div>
                 <div>
-                  <h1 className="text-xl font-display font-bold text-foreground">{profile?.full_name || "Set up your profile"}</h1>
+                  <h1 className="text-xl font-display font-bold text-foreground">
+                    {displayName || "Welcome back"}
+                  </h1>
                   <div className="flex items-center justify-center gap-2 mt-1">
                     {role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{role}</span>}
                     {profile?.location && (
@@ -496,6 +505,14 @@ const ProfilePage = () => {
                   <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
                   {profile?.created_at && (
                     <p className="text-xs text-muted-foreground mt-0.5">Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                  )}
+                  {!profile?.full_name?.trim() && (
+                    <button
+                      onClick={() => setTab("profile")}
+                      className="mt-3 text-xs font-semibold text-primary hover:underline"
+                    >
+                      + Add your name
+                    </button>
                   )}
                 </div>
               </div>

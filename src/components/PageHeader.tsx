@@ -69,12 +69,12 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle }: PageHeaderProps) => 
       </header>
 
       {/* iOS-style Large Title in the page body */}
-      <div className="container mx-auto pt-3 pb-2">
+      <div className="container mx-auto pt-6 pb-4">
         <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">
           {title}
         </h1>
         {subtitle ? (
-          <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
+          <div className="mt-3 text-sm text-muted-foreground">{subtitle}</div>
         ) : null}
       </div>
     </>

@@ -928,13 +928,15 @@ const PostJob = () => {
                   Review & Pay
                 </Button>
 
-                {/* Mobile sticky submit */}
+                {/* Mobile sticky submit — lifted above the floating MobileNav. */}
                 <div
-                  className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
-                  style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+                  className="sm:hidden fixed left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
+                  style={{
+                    bottom: "calc(5.25rem + env(safe-area-inset-bottom, 0px))",
+                  }}
                 >
                   <Button type="submit" className="w-full" size="lg">
-                    Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(0)}` : ""}
+                    Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(2)}` : ""}
                   </Button>
                 </div>
               </form>

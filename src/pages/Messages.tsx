@@ -34,6 +34,7 @@ import { ConversationSkeleton } from "@/components/SkeletonLoaders";
 import { VirtualList } from "@/components/VirtualList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
 type Message = {
   id: string;

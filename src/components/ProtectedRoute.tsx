@@ -17,22 +17,49 @@ const PROFILE_GATE_ALLOWED = new Set<string>([
   "/data-rights",
 ]);
 
+type GateProfile = {
+  full_name?: string | null;
+  avatar_url?: string | null;
+  id_document_url?: string | null;
+  bio?: string | null;
+  date_of_birth?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  is_legacy_user?: boolean | null;
+};
+
 /**
- * Hard requirements for using the app. Helpers + customers are unified
- * and auto-approved via Stripe Express verification (see
- * mem://features/auto-approval-flow), so we no longer require ID upload,
- * bio length, avatar, etc. — those are optional profile-completeness items
- * surfaced as inline CTAs on the Profile screen.
- *
- * The ONLY hard gate is having a non-empty full_name, which is captured
- * on signup. If a legacy/OAuth account is missing that, route them to
- * /complete-profile once; otherwise let them into the app.
+ * "Big 7" verification gate enforced for every NEW user (created on/after
+ * the legacy cutoff). Existing users carry `is_legacy_user = true` and
+ * bypass the gate so they don't wake up to a locked app. See
+ * mem://features/auto-approval-flow for the broader signup contract.
  */
-const isProfileComplete = (
-  profile: { full_name?: string | null } | null,
+export const PROFILE_GATE_FIELDS = [
+  { key: "full_name", label: "Full name" },
+  { key: "avatar_url", label: "Profile picture" },
+  { key: "bio", label: "About you (20+ characters)" },
+  { key: "date_of_birth", label: "Date of birth" },
+  { key: "phone", label: "Phone number" },
+  { key: "location", label: "City" },
+  { key: "id_document_url", label: "Government-issued ID" },
+] as const;
+
+export const isFieldComplete = (
+  profile: GateProfile | null,
+  key: (typeof PROFILE_GATE_FIELDS)[number]["key"],
 ): boolean => {
   if (!profile) return false;
-  return Boolean(profile.full_name && profile.full_name.trim().length > 0);
+  const v = profile[key];
+  if (typeof v !== "string") return false;
+  const trimmed = v.trim();
+  if (!trimmed) return false;
+  if (key === "bio") return trimmed.length >= 20;
+  return true;
+};
+
+export const isProfileComplete = (profile: GateProfile | null): boolean => {
+  if (!profile) return false;
+  return PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key));
 };
 
 const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRouteProps) => {
@@ -51,16 +78,16 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     return <Navigate to="/login" replace />;
   }
 
-  // Banned users (temp or permanent) — send to dedicated page that explains
-  // the situation and shows support contact, never back to /login (which would
-  // create a redirect loop the moment they sign in again).
-  if (profile?.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)) {
+  // Banned users — explain the situation, never bounce back to /login.
+  if (
+    profile?.ban_status &&
+    ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)
+  ) {
     return <Navigate to="/account-banned" replace />;
   }
 
   if (!allowUnapproved) {
-    // Email verification gate — must verify email before reaching the dashboard.
-    // The auth user object holds the source of truth (email_confirmed_at).
+    // Stage 1: Email verification (auth user is the source of truth)
     if (user && !user.email_confirmed_at) {
       return <Navigate to="/account-pending" replace />;
     }
@@ -72,10 +99,11 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     }
   }
 
-  // Profile completion gate — catches OAuth signups that bypass the form,
-  // and any legacy account missing required data. Always allowed on the
-  // gate page itself and a small set of legal/support pages.
+  // Stage 2: Universal "Big 7" verification gate.
+  // Legacy users (created before today's cutoff) bypass the gate.
+  const isLegacy = profile?.is_legacy_user === true;
   if (
+    !isLegacy &&
     user.email_confirmed_at &&
     !isProfileComplete(profile) &&
     !PROFILE_GATE_ALLOWED.has(location.pathname)

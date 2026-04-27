@@ -10,8 +10,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
+import { cn } from "@/lib/utils";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -116,6 +117,39 @@ const CompleteProfile = () => {
     if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
     return age >= 18;
   }, [dateOfBirth]);
+
+  // Live "Big 7" checklist — mirrors ProtectedRoute's gate so the user can
+  // see exactly which fields still need attention. Each item is satisfied
+  // either by the local form state OR by an existing value already on
+  // the profile row (e.g. an avatar uploaded previously).
+  const checklist = useMemo(() => {
+    const phoneDigits = phone.replace(/\D/g, "");
+    return [
+      { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
+      { label: "Profile picture", done: Boolean(avatarFile || profile?.avatar_url) },
+      { label: "About you (20+ characters)", done: bio.trim().length >= 20 },
+      { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
+      { label: "Phone number", done: phoneDigits.length === 10 },
+      { label: "City", done: location.trim().length > 0 },
+      { label: "Government-issued ID", done: Boolean(idFile || profile?.id_document_url) },
+      { label: "Accept platform rules, terms & privacy", done: acceptedPolicies },
+    ];
+  }, [
+    firstName,
+    lastName,
+    avatarFile,
+    profile?.avatar_url,
+    bio,
+    dateOfBirth,
+    ageOk,
+    phone,
+    location,
+    idFile,
+    profile?.id_document_url,
+    acceptedPolicies,
+  ]);
+
+  const allComplete = checklist.every((c) => c.done);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,6 +277,36 @@ const CompleteProfile = () => {
             <p className="mt-2 text-xs text-muted-foreground">
               All fields marked <span className="text-destructive">*</span> are required.
             </p>
+          </div>
+
+          {/* Live "Big 7" checklist — green check when satisfied, red X when missing */}
+          <div className="mb-5 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-foreground">Verification checklist</p>
+              <p className="text-xs text-muted-foreground">
+                {checklist.filter((c) => c.done).length}/{checklist.length}
+              </p>
+            </div>
+            <ul className="space-y-1.5">
+              {checklist.map((item) => (
+                <li key={item.label} className="flex items-center gap-2.5 text-sm">
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                      item.done
+                        ? "bg-emerald-500/15 text-emerald-600"
+                        : "bg-destructive/10 text-destructive",
+                    )}
+                    aria-hidden
+                  >
+                    {item.done ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                  </span>
+                  <span className={cn(item.done ? "text-muted-foreground line-through" : "text-foreground")}>
+                    {item.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <form
@@ -394,10 +458,10 @@ const CompleteProfile = () => {
               type="submit"
               size="lg"
               className="w-full rounded-xl"
-              disabled={submitting}
+              disabled={submitting || !allComplete}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? "Saving…" : "Finish & continue"}
+              {submitting ? "Saving…" : allComplete ? "Enter app" : "Complete all items above"}
             </Button>
 
             <Button

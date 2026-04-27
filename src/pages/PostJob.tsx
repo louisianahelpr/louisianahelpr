@@ -811,26 +811,50 @@ const PostJob = () => {
                     {budgetComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
                   </div>
 
-                  <div className="space-y-2.5">
-                    <Label htmlFor="budget">Budget ($) <span className="text-destructive">*</span></Label>
-                    <Input id="budget" type="number" step="1" min="5" max="5000" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="50" required />
+                  <div className="space-y-3">
+                    <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-muted-foreground">$</span>
+                      <Input
+                        id="budget"
+                        type="text"
+                        inputMode="decimal"
+                        value={budget}
+                        onChange={(e) => {
+                          // Keep digits and a single decimal point only — store as plain number string
+                          const cleaned = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
+                          setBudget(cleaned);
+                        }}
+                        onBlur={(e) => {
+                          const n = parseFloat(e.target.value);
+                          if (!Number.isNaN(n) && n > 0) setBudget(n.toFixed(2));
+                        }}
+                        placeholder="50.00"
+                        className="pl-8 text-[15px] font-medium tabular-nums"
+                        required
+                      />
+                    </div>
                     {suggested && (
-                      <p className="text-xs text-muted-foreground">
-                        💡 Suggested: <span className="font-medium text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
-                      </p>
+                      <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
+                        <span className="text-base leading-none">💡</span>
+                        <p className="text-xs text-muted-foreground">
+                          Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
+                        </p>
+                      </div>
                     )}
                     {/* Quick-tap budget presets */}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {budgetPresets.map((amt) => {
-                        const isActive = budget === String(amt);
+                        const isActive = parseFloat(budget) === amt;
                         return (
                           <button
                             key={amt}
                             type="button"
-                            onClick={() => setBudget(String(amt))}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            onClick={() => setBudget(amt.toFixed(2))}
+                            aria-pressed={isActive}
+                            className={`min-h-11 px-4 py-2 rounded-full text-sm font-semibold tabular-nums transition-all ${
                               isActive
-                                ? "bg-primary text-primary-foreground"
+                                ? "bg-primary text-primary-foreground shadow-sm scale-[1.02]"
                                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                             }`}
                           >

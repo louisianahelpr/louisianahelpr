@@ -259,4 +259,55 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     border-radius: 14px;
     padding: 16px;
   }
+
+  /* ---------------------------------------------------------------------
+     iOS HIG safe-area utilities
+     Apply on any full-bleed container so content never touches the notch,
+     Dynamic Island, home indicator, or landscape rounded-corner cutouts.
+     --------------------------------------------------------------------- */
+  .safe-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-px {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+  /* Clear the floating bottom nav (h-14 + 8px margin + safe inset). */
+  .pb-safe-nav {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .mb-safe-nav {
+    margin-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---------------------------------------------------------------------
+   HIG: minimum 44×44pt touch targets for primary interactive elements
+   on coarse-pointer (touch) devices. Excludes elements explicitly opted
+   out via data-no-min-tap (e.g. compact inline link chips, badges).
+   --------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  button:not([data-no-min-tap]):not(.no-min-tap),
+  a[role="button"]:not([data-no-min-tap]):not(.no-min-tap),
+  [role="button"]:not([data-no-min-tap]):not(.no-min-tap),
+  input[type="button"],
+  input[type="submit"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Container respects horizontal safe-area on landscape iOS so the
+   `container mx-auto px-4` pattern used app-wide automatically gains
+   left/right notch insets. */
+@supports (padding: max(0px)) {
+  .container {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }

@@ -132,7 +132,7 @@ const LocationBudgetContent = ({
       <div className="relative">
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
         <Input
-          placeholder="City or parish"
+          placeholder="City"
           value={locationFilter}
           onChange={(e) => setLocationFilter(e.target.value)}
           className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"

@@ -684,9 +684,7 @@ const ProfilePage = () => {
                         inputMode="numeric"
                         maxLength={5}
                       />
-                      {parish && (
-                        <p className="text-xs text-primary">Parish: <span className="font-medium">{parish}</span></p>
-                      )}
+                      {/* Parish silently looked up from zip for Louisiana sales tax (admin-only). */}
                     </div>
                   </div>
                 </div>

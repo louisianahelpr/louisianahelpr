@@ -687,12 +687,7 @@ const PostJob = () => {
                       <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} className="px-3 text-[14px]" />
                       <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} className="px-3 text-[14px]" />
                     </div>
-                    {parish && (
-                      <p className="text-xs text-primary flex items-center gap-1.5 pt-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Parish detected: <span className="font-medium">{parish}</span> · used for Louisiana sales tax
-                      </p>
-                    )}
+                    {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Shield className="w-3 h-3 shrink-0" />
                       Only the city will be visible to applicants until you select a helper.

@@ -7,7 +7,7 @@ const Features = () => {
   usePageMeta({
     title: "Features — Why Louisiana trusts Helpr",
     description:
-      "Vetted helprs, escrow payments, honest reviews, and parish-local matching. Six reasons Louisiana neighbors choose Helpr.",
+      "Vetted helprs, escrow payments, honest reviews, and Louisiana-local matching. Six reasons Louisiana neighbors choose Helpr.",
     canonical: "https://louisianahelpr.com/features",
   });
 

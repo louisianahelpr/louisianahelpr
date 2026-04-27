@@ -17,7 +17,7 @@ import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
-import { ParishBadges } from "@/components/ParishBadges";
+
 import { RetainerAgreement } from "@/components/RetainerAgreement";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -300,9 +300,6 @@ const UserProfile = () => {
               <div className="pt-1 flex flex-wrap justify-center gap-1.5">
                 <CredentialBadge credentials={profile as any} size="md" />
                 <BusinessBadge userId={userId!} size="md" />
-              </div>
-              <div className="pt-1">
-                <ParishBadges userId={userId!} />
               </div>
             </div>
           </div>

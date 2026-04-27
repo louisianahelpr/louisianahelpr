@@ -98,7 +98,6 @@ const SavedHelpers = () => {
     const q = search.toLowerCase();
     return (
       (h.full_name || "").toLowerCase().includes(q) ||
-      (h.parish || "").toLowerCase().includes(q) ||
       (h.skills || "").toLowerCase().includes(q)
     );
   });
@@ -118,7 +117,7 @@ const SavedHelpers = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, parish or skills…"
+                placeholder="Search by name or skills…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 rounded-xl"
@@ -207,12 +206,6 @@ const SavedHelpers = () => {
                           {formatName(h.full_name)}
                         </Link>
                         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
-                          {h.parish && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {h.parish}
-                            </span>
-                          )}
                           {h.completed_jobs_together > 0 && (
                             <span className="flex items-center gap-1 text-primary">
                               <Star className="w-3 h-3 fill-primary" />

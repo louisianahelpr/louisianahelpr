@@ -40,7 +40,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
   location: {
     icon: "📍",
     title: "Location",
-    body: "We use your location to show jobs in your parish and confirm helper arrival. Location is only checked while you're using the app.",
+    body: "We use your location to show jobs near you and confirm helper arrival. Location is only checked while you're using the app.",
     cta: "Share location",
   },
   contacts: {

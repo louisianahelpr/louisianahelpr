@@ -1026,13 +1026,15 @@ const ProfilePage = () => {
                 <p className="text-sm text-muted-foreground">
                   Permanently delete your account and all associated data. This action cannot be undone.
                 </p>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setShowDeleteAccountDialog(true)}
-                >
-                  Delete My Account
-                </Button>
+                <div className="flex justify-center">
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteAccountDialog(true)}
+                    className="w-full sm:w-auto sm:min-w-[280px]"
+                  >
+                    Delete My Account
+                  </Button>
+                </div>
               </div>
             </div>
           )}

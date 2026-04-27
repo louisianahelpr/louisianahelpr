@@ -325,6 +325,7 @@ const Dashboard = () => {
         <div className="max-w-3xl mx-auto space-y-5">
 
           <BroadcastBanner />
+          <PushNotificationPrompt />
           
           {/* Welcome section */}
           {showGreeting && (
@@ -665,7 +666,7 @@ const Dashboard = () => {
 
       <OnboardingTour profileCreatedAt={profile?.created_at} />
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
-      <PushNotificationPrompt />
+
 
       <AlertDialog open={!!confirmApplyJobId} onOpenChange={(open) => { if (!open) setConfirmApplyJobId(null); }}>
         <AlertDialogContent>

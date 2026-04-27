@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { TimePickerSelect } from "@/components/TimePickerSelect";
+import { TimeRangeField } from "@/components/TimeRangeField";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

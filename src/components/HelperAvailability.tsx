@@ -105,33 +105,60 @@ export function HelperAvailability({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
+      <div className="space-y-3">
         {DAYS.map((day, i) => {
           const slot = slots[i];
+          const off = !slot.is_available;
           return (
             <div
               key={day}
-              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
-            >
-              <Switch
-                checked={slot.is_available}
-                onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
-              />
-              <span className={`text-sm font-medium w-24 ${slot.is_available ? "text-foreground" : "text-muted-foreground line-through"}`}>
-                {day.slice(0, 3)}
-              </span>
-              {slot.is_available && (
-                <div className="flex items-center gap-2 text-sm">
-                  <TimePickerSelect value={slot.start_time} onChange={(v) => updateSlot(i, "start_time", v)} />
-                  <span className="text-muted-foreground">to</span>
-                  <TimePickerSelect value={slot.end_time} onChange={(v) => updateSlot(i, "end_time", v)} />
-                </div>
+              className={cn(
+                "rounded-2xl border p-4 transition-all",
+                off
+                  ? "border-border/60 bg-muted/30"
+                  : "border-border bg-card shadow-sm",
               )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Switch
+                    checked={slot.is_available}
+                    onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
+                    aria-label={`Toggle ${day}`}
+                  />
+                  <span
+                    className={cn(
+                      "font-display text-[15px] font-bold tracking-tight w-10",
+                      off ? "text-muted-foreground" : "text-foreground",
+                    )}
+                  >
+                    {day.slice(0, 3)}
+                  </span>
+                </div>
+
+                {slot.is_available ? (
+                  <TimeRangeField
+                    start={slot.start_time}
+                    end={slot.end_time}
+                    onChange={({ start, end }) => {
+                      updateSlot(i, "start_time", start);
+                      updateSlot(i, "end_time", end);
+                    }}
+                  />
+                ) : (
+                  <span className="text-sm font-medium text-muted-foreground">Unavailable</span>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
-      <Button onClick={handleSave} disabled={saving} className="w-full">
+      <Button
+        onClick={handleSave}
+        disabled={saving}
+        size="lg"
+        className="w-full h-12 rounded-2xl text-[15px] font-semibold"
+      >
         {saving ? "Saving..." : "Save Availability"}
       </Button>
     </div>

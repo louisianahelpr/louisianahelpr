@@ -12,13 +12,14 @@ const quickReplies = [
 const ETA_PRESETS = [5, 10, 15, 20, 30] as const;
 
 interface QuickRepliesProps {
+  /** Called when the user taps a quick reply chip — populates the message input. */
   onSelect: (message: string) => void;
 }
 
 export const QuickReplies = ({ onSelect }: QuickRepliesProps) => {
   const [showEta, setShowEta] = useState(false);
 
-  const sendEnRoute = (minutes: number) => {
+  const pickEnRoute = (minutes: number) => {
     const arrives = new Date(Date.now() + minutes * 60_000).toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",

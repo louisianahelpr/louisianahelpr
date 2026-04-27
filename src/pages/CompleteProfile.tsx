@@ -281,6 +281,14 @@ const CompleteProfile = () => {
     );
   }
 
+  // Don't trap users who don't actually need this gate. Legacy accounts
+  // bypass entirely, and anyone whose profile already satisfies the Big 7
+  // gets bounced straight to the dashboard instead of staring at a 0/8
+  // checklist they can't dismiss.
+  if (profile && (profile.is_legacy_user === true || isProfileComplete(profile))) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="flex items-start justify-center px-5 py-8 sm:py-12">

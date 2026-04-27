@@ -250,7 +250,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-premium-page pb-20">
+      <div className="min-h-screen bg-premium-page pb-safe-nav">
         <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="container mx-auto flex items-center justify-between h-16 px-4">
             <span className="text-2xl font-display font-bold text-primary">Helpr</span>
@@ -317,7 +317,7 @@ const Dashboard = () => {
 
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
-    <div className="min-h-screen bg-premium-page pb-20">
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 

@@ -21,7 +21,7 @@ const sanitizeExt = (name: string) => {
   return ext.slice(0, 5);
 };
 
-const withTimeout = async <T,>(promise: Promise<T>, label: string, ms = 20000): Promise<T> => {
+const withTimeout = async <T,>(promise: Promise<T>, label: string, ms = 60000): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(`${label} timed out. Please check your connection and try again.`)), ms);
@@ -197,27 +197,22 @@ const CompleteProfile = () => {
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
-      const { data: savedProfile, error: updateErr } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("profiles")
-            .update(updates)
-            .eq("user_id", user.id)
-            .select("*")
-            .maybeSingle()
-        ),
+      const { error: updateErr } = await withTimeout(
+        supabase.from("profiles").update(updates).eq("user_id", user.id),
         "Profile save",
       );
       if (updateErr) throw updateErr;
 
-      if (savedProfile) {
-        queryClient.setQueryData(["currentUser", user.id], (current: any) => ({
-          ...(current ?? {}),
-          profile: savedProfile,
-          isAdmin: current?.isAdmin ?? false,
-        }));
-      }
-      await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+      queryClient.setQueryData(["currentUser", user.id], (current: any) => ({
+        ...(current ?? {}),
+        profile: {
+          ...(current?.profile ?? profile ?? {}),
+          ...updates,
+          user_id: user.id,
+        },
+        isAdmin: current?.isAdmin ?? false,
+      }));
+      void queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {

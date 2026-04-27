@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -19,6 +20,8 @@ interface CurrentUser {
   profile: Profile | null;
   isAdmin: boolean;
   isLoading: boolean;
+  /** Force a re-fetch of the current user's profile (bypasses cache). */
+  refresh: () => Promise<void>;
 }
 
 const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | null; isAdmin: boolean }> => {
@@ -48,19 +51,55 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
 
 export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["currentUser", user?.id],
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
-    staleTime: 5 * 60 * 1000,
+    // Short staleTime so approval-status changes (made by an admin) get picked
+    // up quickly even if realtime is unavailable.
+    staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
+
+  // Realtime: when the current user's profile row is updated (e.g. admin
+  // flips approval_status from "pending" → "approved"), invalidate the cache
+  // so the UI reflects the new status without a manual reload.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`profile-self-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
+
+  const refresh = async () => {
+    if (!user?.id) return;
+    await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+  };
 
   return {
     user,
     profile: data?.profile ?? null,
     isAdmin: data?.isAdmin ?? false,
     isLoading: !isReady || (!!user && isLoading),
+    refresh,
   };
 };

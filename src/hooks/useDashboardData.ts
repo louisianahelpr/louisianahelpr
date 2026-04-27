@@ -19,12 +19,13 @@ interface JobsPage {
 export function useDashboardData() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, profile, isAdmin, isLoading: userLoading } = useCurrentUser();
+  const { user, profile, isAdmin, isLoading: userLoading, refresh: refreshCurrentUser } = useCurrentUser();
 
-  // Redirect denied/pending users (non-admin) — in an effect, not during render
+  // Redirect denied users (non-admin). Pending users stay on the dashboard so
+  // they see the in-page "Profile under review" state with a Check Status
+  // button and realtime updates from useCurrentUser.
   useEffect(() => {
     if (userLoading || isAdmin || !profile) return;
-    if (profile.approval_status === "pending") navigate("/account-pending");
     if (profile.approval_status === "denied") navigate("/account-denied");
   }, [profile, isAdmin, userLoading, navigate]);
 
@@ -216,10 +217,11 @@ export function useDashboardData() {
 
   const refresh = useCallback(async () => {
     await Promise.all([
+      refreshCurrentUser(),
       queryClient.invalidateQueries({ queryKey: ["dashboardContext", user?.id] }),
       queryClient.invalidateQueries({ queryKey: ["dashboardJobs", user?.id] }),
     ]);
-  }, [user, queryClient]);
+  }, [user, queryClient, refreshCurrentUser]);
 
   const loading = userLoading || ctxLoading || (jobsLoading && allJobs.length === 0);
 

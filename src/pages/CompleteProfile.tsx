@@ -16,13 +16,10 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+const sanitizeExt = (name: string) => {
+  const ext = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  return ext.slice(0, 5);
+};
 
 const formatPhone = (raw: string) => {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -129,33 +126,69 @@ const CompleteProfile = () => {
         await supabase.auth.updateUser({ data: { full_name: fullName } });
       } catch { /* non-fatal */ }
 
-      const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
-      const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
-      const idBase64 = idFile ? await fileToBase64(idFile) : null;
-      const idExt = idFile ? idFile.name.split(".").pop() : null;
+      // Upload files directly to Storage in parallel (much faster than base64-through-edge-function)
+      let avatarUrl: string | null = null;
+      let idDocumentPath: string | null = null;
 
-      const { error: fnError } = await supabase.functions.invoke("complete-signup", {
-        body: {
-          userId: user.id,
-          avatarBase64,
-          avatarExt,
-          avatarContentType: avatarFile?.type,
-          idBase64,
-          idExt,
-          idContentType: idFile?.type,
-          phone,
-          bio,
-          location,
-          dateOfBirth,
-        },
-      });
-      if (fnError) throw fnError;
+      const uploads: Promise<void>[] = [];
 
-      // Make sure the name is stored (edge function may not update it)
-      await supabase
+      if (avatarFile) {
+        const ext = sanitizeExt(avatarFile.name);
+        const path = `${user.id}/avatar.${ext}`;
+        uploads.push(
+          supabase.storage
+            .from("job-photos")
+            .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type })
+            .then(({ error }) => {
+              if (error) throw error;
+              const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
+              avatarUrl = data.publicUrl;
+            })
+        );
+      }
+
+      if (idFile) {
+        const ext = sanitizeExt(idFile.name);
+        const path = `${user.id}/id-document.${ext}`;
+        uploads.push(
+          supabase.storage
+            .from("id-documents")
+            .upload(path, idFile, { upsert: true, contentType: idFile.type })
+            .then(({ error }) => {
+              if (error) throw error;
+              idDocumentPath = path;
+            })
+        );
+      }
+
+      if (uploads.length) await Promise.all(uploads);
+
+      // Single, lightweight DB update — no large JSON over the wire
+      const updates: {
+        full_name: string;
+        phone: string;
+        bio: string;
+        location: string;
+        date_of_birth: string;
+        approval_status: string;
+        avatar_url?: string;
+        id_document_url?: string;
+      } = {
+        full_name: fullName,
+        phone,
+        bio,
+        location,
+        date_of_birth: dateOfBirth,
+        approval_status: "pending",
+      };
+      if (avatarUrl) updates.avatar_url = avatarUrl;
+      if (idDocumentPath) updates.id_document_url = idDocumentPath;
+
+      const { error: updateErr } = await supabase
         .from("profiles")
-        .update({ full_name: fullName })
+        .update(updates)
         .eq("user_id", user.id);
+      if (updateErr) throw updateErr;
 
       await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
       toast.success("Profile complete — welcome to Helpr!");

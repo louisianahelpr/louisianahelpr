@@ -190,6 +190,36 @@ const CompleteProfile = () => {
             onSubmit={handleSubmit}
             className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5"
           >
+            {/* Circular profile picture uploader — top of form */}
+            <div className="flex flex-col items-center gap-2 -mt-1">
+              <label
+                htmlFor="avatar"
+                className="group relative cursor-pointer"
+                aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
+              >
+                <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-7 h-7 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md ring-2 ring-card">
+                  <Camera className="w-3.5 h-3.5" />
+                </div>
+                <input
+                  id="avatar"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                {avatarPreview ? "Tap to change · JPG, PNG, WebP (5MB max)" : "Tap to add a profile photo"}
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name</Label>

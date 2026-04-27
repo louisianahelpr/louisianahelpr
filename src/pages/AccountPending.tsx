@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { Bell, LogOut, MailCheck, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,6 @@ const AccountPending = () => {
 
     check();
 
-    // Real-time profile updates: redirect instantly when status flips
     let channel: ReturnType<typeof supabase.channel> | null = null;
     const subscribeRealtime = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -62,7 +61,6 @@ const AccountPending = () => {
     };
     subscribeRealtime();
 
-    // Polling fallback (also re-checks email verification)
     const interval = setInterval(check, 10000);
     return () => {
       clearInterval(interval);
@@ -74,221 +72,147 @@ const AccountPending = () => {
     if (resending) return;
     setResending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: userEmail,
-      });
-      if (error) {
-        toast.error("Failed to resend verification email. Please try again.");
-      } else {
-        toast.success("Verification email sent! Check your inbox.");
-      }
+      const { error } = await supabase.auth.resend({ type: "signup", email: userEmail });
+      if (error) toast.error("Couldn't send. Try again in a moment.");
+      else toast.success("Sent! Check your inbox.");
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Something went wrong.");
     } finally {
       setResending(false);
     }
   };
 
-  return (
-    <div className="relative min-h-dvh flex items-center justify-center bg-premium-page px-4 py-10 pb-24 sm:pb-10 overflow-hidden">
-      {/* Ambient gradient halo */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[640px] h-[640px] rounded-full opacity-40 blur-3xl"
-        style={{
-          background:
-            "radial-gradient(closest-side, hsl(var(--primary) / 0.35), transparent 70%)",
-        }}
-      />
+  const handleContinue = async () => {
+    if (continuing) return;
+    setContinuing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("approval_status, role")
+          .eq("user_id", session.user.id)
+          .single();
+        if (profile?.role === "customer" && profile.approval_status === "pending") {
+          await supabase
+            .from("profiles")
+            .update({ approval_status: "approved" })
+            .eq("user_id", session.user.id);
+        }
+        if (profile?.approval_status === "denied") {
+          navigate("/account-denied", { replace: true });
+          return;
+        }
+      }
+      await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      navigate("/dashboard", { replace: true });
+    } catch {
+      navigate("/dashboard", { replace: true });
+    } finally {
+      setContinuing(false);
+    }
+  };
 
-      <div className="relative w-full max-w-md text-center space-y-6">
-        <Link to="/" className="text-3xl font-display font-bold text-primary inline-block">
+  return (
+    <div className="min-h-dvh flex flex-col bg-background">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-5 pt-6 pb-4">
+        <Link to="/" className="text-xl font-display font-bold text-primary">
           Helpr
         </Link>
-
-        <div className="rounded-3xl border border-border/60 bg-card/80 backdrop-blur-xl shadow-xl shadow-primary/5 p-8 space-y-6">
-          {/* Hero icon — changes based on verification state */}
-          <div className="relative mx-auto w-20 h-20">
-            <div
-              className={`absolute inset-0 rounded-full blur-xl opacity-60 ${
-                emailVerified ? "bg-primary/30" : "bg-amber-500/30"
-              }`}
-            />
-            <div
-              className={`relative w-20 h-20 rounded-full flex items-center justify-center ring-1 ring-inset ${
-                emailVerified
-                  ? "bg-primary/10 ring-primary/20"
-                  : "bg-amber-500/10 ring-amber-500/20"
-              }`}
-            >
-              {emailVerified ? (
-                <CheckCircle2 className="w-9 h-9 text-primary" />
-              ) : (
-                <MailCheck className="w-9 h-9 text-amber-500" />
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              {!emailVerified
-                ? "Verify your email to continue"
-                : fullName
-                ? `You're in, ${fullName.split(" ")[0]}!`
-                : "You're all set!"}
-            </h1>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {!emailVerified ? (
-                <>
-                  We sent a verification link to{" "}
-                  <span className="font-medium text-foreground">{userEmail}</span>.
-                  Click the link in your inbox to unlock your account.
-                </>
-              ) : (
-                "Your email is verified. You can browse the app, post jobs, and message helprs."
-              )}
-            </p>
-          </div>
-
-          {/* Email verification action — only when NOT verified */}
-          {!emailVerified && (
-            <div className="space-y-3">
-              <Button
-                onClick={handleResendVerification}
-                disabled={resending}
-                size="lg"
-                className="w-full gap-2 rounded-xl"
-              >
-                {resending ? (
-                  <><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>
-                ) : (
-                  <><MailCheck className="w-4 h-4" /> Resend verification email</>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Didn't get it? Check your spam folder, then tap above to resend.
-              </p>
-            </div>
-          )}
-
-          {/* Verified — let them continue immediately */}
-          {emailVerified && (
-            <Button
-              onClick={async () => {
-                if (continuing) return;
-                setContinuing(true);
-                try {
-                  const { data: { session } } = await supabase.auth.getSession();
-                  if (session?.user) {
-                    // Self-heal: ensure customer accounts are flipped to approved
-                    // before navigating, so ProtectedRoute doesn't bounce us back.
-                    const { data: profile } = await supabase
-                      .from("profiles")
-                      .select("approval_status, role")
-                      .eq("user_id", session.user.id)
-                      .single();
-                    if (
-                      profile?.role === "customer" &&
-                      profile.approval_status === "pending"
-                    ) {
-                      await supabase
-                        .from("profiles")
-                        .update({ approval_status: "approved" })
-                        .eq("user_id", session.user.id);
-                    }
-                    if (profile?.approval_status === "denied") {
-                      navigate("/account-denied", { replace: true });
-                      return;
-                    }
-                  }
-                  await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-                  navigate("/dashboard", { replace: true });
-                } catch {
-                  // Even if self-heal fails, still try to navigate.
-                  navigate("/dashboard", { replace: true });
-                } finally {
-                  setContinuing(false);
-                }
-              }}
-              disabled={continuing}
-              size="lg"
-              className="w-full gap-2 rounded-xl shadow-lg shadow-primary/20"
-            >
-              {continuing ? (
-                <><RefreshCw className="w-4 h-4 animate-spin" /> Loading…</>
-              ) : (
-                <><Sparkles className="w-4 h-4" /> Continue to dashboard</>
-              )}
-            </Button>
-          )}
-
-          {/* Heads-up about Stripe — only relevant when applying to jobs */}
-          {emailVerified && (
-            <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 text-left">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <CreditCard className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Want to earn as a helpr?
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    When you apply to your first job, we'll walk you through connecting a Stripe payout account so you can get paid. No setup needed until then.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Trust copy — varies by state */}
-          <div className="border-t border-border/60 pt-5 space-y-3 text-left">
-            {!emailVerified && (
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">Why verify your email?</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    It keeps your account secure and lets us send job updates, payment receipts, and password resets.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                {emailVerified ? (
-                  <Clock className="w-4 h-4 text-primary" />
-                ) : (
-                  <Bell className="w-4 h-4 text-primary" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {emailVerified ? "Real-time updates" : "Auto-unlock"}
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {emailVerified
-                    ? "We'll notify you the moment new helprs apply or your jobs get activity — no need to refresh."
-                    : "Once you click the verification link, this page redirects you to your dashboard automatically."}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <Button
           variant="ghost"
           size="sm"
           onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
-          className="text-muted-foreground"
+          className="text-muted-foreground h-8 px-2"
         >
           <LogOut className="w-4 h-4 mr-1" /> Sign out
         </Button>
-      </div>
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
+        <div className="w-full max-w-sm flex flex-col items-center text-center">
+          {/* Icon */}
+          <div
+            className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${
+              emailVerified ? "bg-primary/10" : "bg-amber-500/10"
+            }`}
+          >
+            {emailVerified ? (
+              <CheckCircle2 className="w-8 h-8 text-primary" />
+            ) : (
+              <MailCheck className="w-8 h-8 text-amber-500" />
+            )}
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+            {!emailVerified
+              ? "Check your email"
+              : fullName
+              ? `Welcome, ${fullName.split(" ")[0]}!`
+              : "You're all set!"}
+          </h1>
+
+          {/* Subhead */}
+          <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+            {!emailVerified ? (
+              <>
+                We sent a verification link to{" "}
+                <span className="font-medium text-foreground break-all">{userEmail}</span>
+              </>
+            ) : (
+              "Your email is verified. Tap below to jump in."
+            )}
+          </p>
+
+          {/* Primary action */}
+          {!emailVerified ? (
+            <div className="w-full space-y-3">
+              <Button
+                onClick={handleResendVerification}
+                disabled={resending}
+                size="lg"
+                variant="outline"
+                className="w-full gap-2"
+              >
+                {resending ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>
+                ) : (
+                  <>Resend email</>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Didn't get it? Check your spam folder.
+              </p>
+            </div>
+          ) : (
+            <Button
+              onClick={handleContinue}
+              disabled={continuing}
+              size="lg"
+              className="w-full gap-2"
+            >
+              {continuing ? (
+                <><RefreshCw className="w-4 h-4 animate-spin" /> Loading…</>
+              ) : (
+                <>Continue <ArrowRight className="w-4 h-4" /></>
+              )}
+            </Button>
+          )}
+
+          {/* Footnote */}
+          <div className="mt-10 flex items-start gap-2 text-left">
+            <Bell className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {emailVerified
+                ? "We'll keep you posted on job activity in real time."
+                : "This page unlocks automatically once you click the link."}
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

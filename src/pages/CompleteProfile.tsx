@@ -401,16 +401,18 @@ const CompleteProfile = () => {
               {submitting ? "Saving…" : "Finish & continue"}
             </Button>
 
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="lg"
               onClick={async () => {
                 await supabase.auth.signOut();
                 navigate("/login", { replace: true });
               }}
-              className="w-full text-xs text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1"
+              className="w-full rounded-xl"
             >
-              <X className="w-3 h-3" /> Sign out
-            </button>
+              <X className="w-4 h-4 mr-2" /> Sign out
+            </Button>
           </form>
         </div>
       </div>

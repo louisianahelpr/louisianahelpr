@@ -261,7 +261,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
               <Input
                 id="phone"
                 type="tel"

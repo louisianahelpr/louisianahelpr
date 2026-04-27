@@ -253,12 +253,14 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
-          <Receipt className="w-3.5 h-3.5" />
-          Tax Export
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
+            <Receipt className="w-3.5 h-3.5" />
+            Tax Export
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

@@ -219,7 +219,9 @@ const CompleteProfile = () => {
                 />
               </label>
               <p className="text-xs text-muted-foreground">
-                {avatarPreview ? "Tap to change · JPG, PNG, WebP (5MB max)" : "Tap to add a profile photo"}
+                {avatarPreview
+                  ? "Tap to change · JPG, PNG, WebP (5MB max)"
+                  : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
               </p>
             </div>
 

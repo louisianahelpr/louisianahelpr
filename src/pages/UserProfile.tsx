@@ -301,9 +301,6 @@ const UserProfile = () => {
                 <CredentialBadge credentials={profile as any} size="md" />
                 <BusinessBadge userId={userId!} size="md" />
               </div>
-              <div className="pt-1">
-                <ParishBadges userId={userId!} />
-              </div>
             </div>
           </div>
 

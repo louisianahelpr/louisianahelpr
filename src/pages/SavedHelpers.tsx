@@ -98,7 +98,6 @@ const SavedHelpers = () => {
     const q = search.toLowerCase();
     return (
       (h.full_name || "").toLowerCase().includes(q) ||
-      (h.parish || "").toLowerCase().includes(q) ||
       (h.skills || "").toLowerCase().includes(q)
     );
   });

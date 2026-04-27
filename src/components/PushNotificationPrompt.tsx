@@ -12,15 +12,9 @@ export const PushNotificationPrompt = () => {
   const requestNativePush = useRequestPushPermission();
 
   useEffect(() => {
-    // On native iOS/Android, always show our pre-prompt (the OS prompt only
-    // fires if the user taps Enable). On web, only show if Notification API
-    // is available and permission is undecided.
     if (isNativePlatform) {
       const dismissed = safeStorage.getItem("push-prompt-dismissed");
-      if (!dismissed) {
-        const timer = setTimeout(() => setShow(true), 3000);
-        return () => clearTimeout(timer);
-      }
+      if (!dismissed) setShow(true);
       return;
     }
 
@@ -30,10 +24,7 @@ export const PushNotificationPrompt = () => {
 
     if (currentPermission === "default") {
       const dismissed = safeStorage.getItem("push-prompt-dismissed");
-      if (!dismissed) {
-        const timer = setTimeout(() => setShow(true), 3000);
-        return () => clearTimeout(timer);
-      }
+      if (!dismissed) setShow(true);
     }
   }, []);
 

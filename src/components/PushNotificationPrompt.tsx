@@ -78,14 +78,9 @@ export const PushNotificationPrompt = () => {
           <p className="text-xs font-medium text-foreground leading-tight">Enable notifications</p>
           <p className="text-[11px] text-muted-foreground leading-tight">Job matches, messages & updates</p>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
-          <Button size="sm" onClick={handleEnable} className="h-7 px-2 text-xs">
-            Enable
-          </Button>
-          <Button size="sm" variant="ghost" onClick={handleDismiss} className="h-7 px-2 text-xs text-muted-foreground">
-            Not now
-          </Button>
-        </div>
+        <Button size="sm" onClick={handleEnable} className="h-7 px-2 text-xs flex-shrink-0">
+          Enable
+        </Button>
       </div>
     </div>
   );

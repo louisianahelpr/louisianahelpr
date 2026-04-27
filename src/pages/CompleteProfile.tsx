@@ -387,7 +387,7 @@ const CompleteProfile = () => {
                 I agree to the{" "}
                 <a href="/rules" target="_blank" rel="noreferrer" className="text-primary underline">platform rules</a>,{" "}
                 <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">terms</a>, and{" "}
-                <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">privacy policy</a>.
+                <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">privacy policy</a>. <span className="text-destructive">*</span>
               </span>
             </label>
 

@@ -43,11 +43,18 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border/30 bg-background" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="container mx-auto flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-2">
+      {/* Pinned top nav — sticky so iOS rubber-band scrolling can never
+          detach it from the viewport edge (a fixed bar would briefly drift
+          on overscroll). High z-index so all page content + cards scroll
+          underneath. Frosted-glass surface matches PageHeader exactly. */}
+      <header
+        className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-5">
+          <div className="flex items-center gap-2 min-w-0">
             {title ? (
-              <span className="text-lg font-display font-bold text-foreground">{title}</span>
+              <span className="text-lg font-display font-bold text-foreground truncate">{title}</span>
             ) : (
               <Link to="/dashboard" className="flex items-center gap-2 group">
                 <img
@@ -55,21 +62,18 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
                   alt="Helpr"
                   className="w-8 h-8 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
                 />
-                <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                <span className="text-lg font-display font-bold text-primary leading-none">
                   Helpr
                 </span>
               </Link>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 -mr-1">
             {isAdmin && (
               <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-xl h-9 w-9" aria-label="Admin panel">
                 <Shield className="w-4 h-4 text-destructive" />
               </Button>
             )}
-            
-            
-            
             <ThemeToggle />
             <NotificationPanel />
             {onMenuClick && (

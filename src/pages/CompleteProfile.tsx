@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Camera, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];

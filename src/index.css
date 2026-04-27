@@ -74,7 +74,7 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     --input: 150 12% 88%;
     --ring: 158 67% 37%;
 
-    --radius: 0.75rem;
+    --radius: 1.25rem;
 
     --sidebar-background: 150 15% 97%;
     --sidebar-foreground: 160 10% 20%;

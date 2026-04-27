@@ -237,7 +237,7 @@ const CompleteProfile = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last name</Label>
+                <Label htmlFor="lastName">Last name <span className="text-destructive">*</span></Label>
                 <Input
                   id="lastName"
                   autoComplete="family-name"

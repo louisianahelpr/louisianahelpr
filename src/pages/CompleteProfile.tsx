@@ -286,7 +286,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="bio">About you</Label>
+              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
                 rows={3}

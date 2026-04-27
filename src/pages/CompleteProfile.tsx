@@ -279,6 +279,36 @@ const CompleteProfile = () => {
             </p>
           </div>
 
+          {/* Live "Big 7" checklist — green check when satisfied, red X when missing */}
+          <div className="mb-5 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-foreground">Verification checklist</p>
+              <p className="text-xs text-muted-foreground">
+                {checklist.filter((c) => c.done).length}/{checklist.length}
+              </p>
+            </div>
+            <ul className="space-y-1.5">
+              {checklist.map((item) => (
+                <li key={item.label} className="flex items-center gap-2.5 text-sm">
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                      item.done
+                        ? "bg-emerald-500/15 text-emerald-600"
+                        : "bg-destructive/10 text-destructive",
+                    )}
+                    aria-hidden
+                  >
+                    {item.done ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                  </span>
+                  <span className={cn(item.done ? "text-muted-foreground line-through" : "text-foreground")}>
+                    {item.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <form
             onSubmit={handleSubmit}
             className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5"

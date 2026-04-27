@@ -8,10 +8,12 @@ import { toast } from "sonner";
 
 const AccountPending = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [resending, setResending] = useState(false);
+  const [continuing, setContinuing] = useState(false);
 
   useEffect(() => {
     const check = async () => {

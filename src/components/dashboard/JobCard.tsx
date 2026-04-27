@@ -110,96 +110,103 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
       onClick={() => onToggleExpand?.(job.id)}
     >
       {/* Header: title + price */}
-      <div className="w-full px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <h3 className={`font-bold text-[15px] leading-snug min-w-0 ${catStyle.title} ${isExpanded ? "" : "truncate"}`}>
+      <div className="w-full px-4 pt-3 pb-2.5 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {job.is_urgent && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider">
+                <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
+              </span>
+            )}
+            {job.isBoosted && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-wider">
+                <Rocket className="w-2.5 h-2.5" /> Boosted
+              </span>
+            )}
+            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${catStyle.badge}`}>
+              {categoryLabels[job.category] || job.category}
+            </span>
+          </div>
+          <h3 className={`font-bold text-[15px] leading-snug ${catStyle.title} ${isExpanded ? "" : "line-clamp-2"}`}>
             {job.title}
           </h3>
-          {job.is_urgent && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider shrink-0">
-              <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-            </span>
-          )}
-          {job.isBoosted && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-wider shrink-0">
-              <Rocket className="w-2.5 h-2.5" /> Boosted
-            </span>
-          )}
         </div>
-        <span className="flex items-center gap-0.5 font-bold text-primary text-sm shrink-0">
-          <DollarSign className="w-3.5 h-3.5" />{earnings}{urgentTip > 0 && <span className="text-accent ml-0.5">+${Number(urgentTip).toFixed(0)}</span>}
-        </span>
+        <div className="flex flex-col items-end shrink-0">
+          <span className="flex items-center font-bold text-primary text-base leading-none">
+            <DollarSign className="w-3.5 h-3.5" />{earnings}
+          </span>
+          {urgentTip > 0 && (
+            <span className="text-[10px] text-accent font-semibold mt-0.5">+${Number(urgentTip).toFixed(0)} tip</span>
+          )}
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wider mt-0.5">You earn</span>
+        </div>
       </div>
 
-      {/* Always-visible summary: date, time, city/state, expiry */}
-      <div className="px-4 py-3 space-y-2">
-        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-          {/* Date & Time */}
-          {!job.start_time && !job.date_needed ? (
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 shrink-0" /> Flexible date & time
-            </span>
-          ) : (
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 shrink-0" />
-              {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-              {!job.start_time ? " · Flexible time" : formattedTime ? ` · ${formattedTime}` : ""}
-            </span>
-          )}
-          {/* City, State */}
-          <a
-            onClick={(e) => e.stopPropagation()}
-            href={job.latitude && job.longitude
-              ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
-              : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-primary transition-colors"
-          >
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate max-w-[140px]">{cityState}</span>
-          </a>
-          {/* Expiry */}
-          {expiryText && (
-            <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
-              <Timer className="w-3 h-3 shrink-0" /> {expiryText}
-            </span>
-          )}
-          {/* Est. Hours */}
-          {job.estimated_hours && (
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h
-            </span>
-          )}
-          {job.is_recurring && (
-            <span className="flex items-center gap-1">
-              <Repeat className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}
-            </span>
-          )}
-          {job.is_group_job && (
-            <span className="flex items-center gap-1">
-              <Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group task"}
-            </span>
-          )}
-        </div>
+      {/* Meta row: date · location · expiry */}
+      <div className="px-4 pb-3 flex items-center gap-x-3 gap-y-1.5 flex-wrap text-xs text-muted-foreground">
+        {/* Date & Time */}
+        {!job.start_time && !job.date_needed ? (
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3 shrink-0" /> Flexible
+          </span>
+        ) : (
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3 shrink-0" />
+            {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            {!job.start_time ? " · Flexible" : formattedTime ? ` · ${formattedTime}` : ""}
+          </span>
+        )}
+        {/* City, State */}
+        <a
+          onClick={(e) => e.stopPropagation()}
+          href={job.latitude && job.longitude
+            ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
+            : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 hover:text-primary transition-colors"
+        >
+          <MapPin className="w-3 h-3 shrink-0" />
+          <span className="truncate max-w-[140px]">{cityState}</span>
+        </a>
+        {job.estimated_hours && (
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h
+          </span>
+        )}
+        {expiryText && (
+          <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+            <Timer className="w-3 h-3 shrink-0" /> {expiryText}
+          </span>
+        )}
+        {job.is_recurring && (
+          <span className="flex items-center gap-1">
+            <Repeat className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}
+          </span>
+        )}
+        {job.is_group_job && (
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group"}
+          </span>
+        )}
       </div>
 
 
       {/* Expandable section */}
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
-        <div className="px-4 pb-4 space-y-3 border-t border-border/40">
+        <div className="px-4 pb-4 pt-3 space-y-4 border-t border-border/40 bg-muted/10">
           {/* Description */}
           {job.description && (
-            <div className="pt-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-              <p className="text-sm text-foreground leading-relaxed">{job.description}</p>
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Description</p>
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{job.description}</p>
             </div>
           )}
 
           {/* Photos */}
           {photos.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Photos</p>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {photos.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
@@ -210,36 +217,32 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
             </div>
           )}
 
-
           {/* Special requirements */}
           {job.special_requirements?.trim() ? (
-              <div className="rounded-lg bg-secondary/30 p-2.5">
-                <p className="text-[10px] text-muted-foreground mb-1">Special Requirements</p>
-                <p className="text-sm text-foreground">{job.special_requirements}</p>
-              </div>
+            <div className="rounded-lg bg-secondary/40 border border-border/40 p-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Special Requirements</p>
+              <p className="text-sm text-foreground">{job.special_requirements}</p>
+            </div>
           ) : null}
 
-
-
-
-
-          {/* Apply + Save + Flag */}
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
-              <Flag className="w-4 h-4" />
+          {/* Action bar */}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+            <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 px-2" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
+              <Flag className="w-3.5 h-3.5 mr-1" /> Report
             </Button>
-            {!isOwnJob && (
-              <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={isSaved ? "border-primary text-primary" : ""}>
-                <Bookmark className={`w-4 h-4 ${isSaved ? "fill-primary" : ""}`} />
-              </Button>
-            )}
-            {!isOwnJob && (
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
-                <Send className="w-4 h-4 mr-1" /> Apply
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!isOwnJob && (
+                <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={`h-8 ${isSaved ? "border-primary text-primary" : ""}`}>
+                  <Bookmark className={`w-3.5 h-3.5 mr-1 ${isSaved ? "fill-primary" : ""}`} /> {isSaved ? "Saved" : "Save"}
+                </Button>
+              )}
+              {!isOwnJob && (
+                <Button size="sm" className="h-8 bg-primary text-primary-foreground hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
+                  <Send className="w-3.5 h-3.5 mr-1" /> Apply
+                </Button>
+              )}
+            </div>
           </div>
-
         </div>
       </div>
 
@@ -254,9 +257,6 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
             </span>
             <span className="text-muted-foreground">({job.posterReviewCount ?? 0})</span>
           </a>
-        </span>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${catStyle.badge}`}>
-          {categoryLabels[job.category] || job.category}
         </span>
       </div>
     </motion.div>

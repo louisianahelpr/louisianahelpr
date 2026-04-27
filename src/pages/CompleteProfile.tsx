@@ -184,6 +184,9 @@ const CompleteProfile = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              All fields marked <span className="text-destructive">*</span> are required.
+            </p>
           </div>
 
           <form
@@ -216,13 +219,15 @@ const CompleteProfile = () => {
                 />
               </label>
               <p className="text-xs text-muted-foreground">
-                {avatarPreview ? "Tap to change · JPG, PNG, WebP (5MB max)" : "Tap to add a profile photo"}
+                {avatarPreview
+                  ? "Tap to change · JPG, PNG, WebP (5MB max)"
+                  : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">First name</Label>
+                <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
                 <Input
                   id="firstName"
                   autoComplete="given-name"
@@ -232,7 +237,7 @@ const CompleteProfile = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last name</Label>
+                <Label htmlFor="lastName">Last name <span className="text-destructive">*</span></Label>
                 <Input
                   id="lastName"
                   autoComplete="family-name"
@@ -244,7 +249,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="dob">Date of birth (must be 18+)</Label>
+              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
               <Input
                 id="dob"
                 type="date"
@@ -256,7 +261,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
               <Input
                 id="phone"
                 type="tel"
@@ -269,7 +274,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
               <Input
                 id="city"
                 autoComplete="address-level2"
@@ -281,7 +286,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="bio">About you</Label>
+              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
               <Textarea
                 id="bio"
                 rows={3}
@@ -294,7 +299,7 @@ const CompleteProfile = () => {
 
             {/* ID */}
             <div className="space-y-1.5">
-              <Label>Government-issued ID</Label>
+              <Label>Government-issued ID <span className="text-destructive">*</span></Label>
               <label
                 htmlFor="id-doc"
                 className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"

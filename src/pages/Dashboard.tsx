@@ -127,7 +127,7 @@ const Dashboard = () => {
   });
   const [showGreeting, setShowGreeting] = useState(() => {
     const dismissed = safeStorage.getItem("greeting_dismissed_at");
-    if (dismissed && Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000) return false;
+    if (dismissed && Date.now() - parseInt(dismissed, 10) < 30 * 24 * 60 * 60 * 1000) return false;
     return true;
   });
 

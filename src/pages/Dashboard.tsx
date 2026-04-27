@@ -612,28 +612,52 @@ const Dashboard = () => {
 
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
-              <div className="text-center py-16 px-6 space-y-4">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
-                  <Briefcase className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
+              <div className="glass-card squircle rounded-[24px] py-12 px-6 text-center space-y-6">
+                {/* Isometric "Discovery" tile — layered green squircles
+                    with a magnifying lens motif. Pure CSS so it's crisp at any DPI. */}
+                <div className="relative w-28 h-28 mx-auto" aria-hidden>
+                  <div
+                    className="absolute inset-0 squircle rounded-[28px] bg-gradient-to-br from-primary/25 via-primary/15 to-primary/5 shadow-[0_20px_50px_-15px_hsl(158_67%_37%/0.35)]"
+                    style={{ transform: "perspective(600px) rotateX(18deg) rotateZ(-8deg)" }}
+                  />
+                  <div
+                    className="absolute inset-3 squircle rounded-[24px] bg-gradient-to-br from-white/90 to-white/60 backdrop-blur flex items-center justify-center"
+                    style={{ transform: "perspective(600px) rotateX(18deg) rotateZ(-8deg)" }}
+                  >
+                    <Search className="w-12 h-12 text-primary" strokeWidth={2.25} />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-base font-display font-semibold text-foreground">
-                    {filters.hasFilters ? "No jobs match your filters" : "No open jobs yet — check back soon"}
+                <div className="space-y-2">
+                  <p className="text-xl font-display font-bold text-foreground">
+                    {filters.hasFilters ? "No jobs match your filters" : "Nothing nearby just yet"}
                   </p>
-                  <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                     {filters.hasFilters
                       ? "Try widening your search or clearing a filter to see more jobs."
-                      : "New jobs are posted every day. Pull down to refresh, or post your own."}
+                      : "New jobs are posted every day across Louisiana. Pick a path below to get moving."}
                   </p>
                 </div>
                 {filters.hasFilters ? (
-                  <Button variant="outline" onClick={filters.clearFilters} className="rounded-xl btn-press">
+                  <Button variant="outline" onClick={filters.clearFilters} className="squircle rounded-2xl">
                     Clear filters
                   </Button>
                 ) : (
-                  <Button onClick={() => navigate("/post-job")} className="rounded-xl btn-press">
-                    <Briefcase className="w-4 h-4 mr-1.5" /> Post a job
-                  </Button>
+                  <div className="grid sm:grid-cols-2 gap-3 max-w-md mx-auto pt-2">
+                    <button
+                      onClick={() => navigate("/post-job")}
+                      className="squircle rounded-[20px] bg-primary text-primary-foreground px-5 py-4 text-left shadow-[0_10px_30px_-10px_hsl(158_67%_37%/0.55)] hover:shadow-[0_14px_36px_-10px_hsl(158_67%_37%/0.65)] transition-all active:scale-[0.98]"
+                    >
+                      <div className="text-xs font-semibold opacity-80 mb-0.5">Need help?</div>
+                      <div className="text-base font-display font-bold leading-tight">Post a task →</div>
+                    </button>
+                    <button
+                      onClick={() => filters.setSearchQuery("")}
+                      className="squircle rounded-[20px] border-2 border-primary/30 bg-white/40 backdrop-blur px-5 py-4 text-left text-foreground hover:border-primary/60 hover:bg-white/60 transition-all active:scale-[0.98]"
+                    >
+                      <div className="text-xs font-semibold text-muted-foreground mb-0.5">Looking for work?</div>
+                      <div className="text-base font-display font-bold text-primary leading-tight">Browse nearby →</div>
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (() => {

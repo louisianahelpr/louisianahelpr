@@ -185,6 +185,7 @@ const App = () => (
             Skip to content
           </a>
           <BrowserRouter>
+            <ScrollToTop />
             <SessionManager />
             <NativeLaunchRouter />
             <OfflineBanner />

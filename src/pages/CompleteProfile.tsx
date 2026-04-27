@@ -247,7 +247,12 @@ const CompleteProfile = () => {
         },
         isAdmin: current?.isAdmin ?? false,
       }));
-      void queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+      // Force a fresh DB read so ProtectedRoute re-evaluates against the
+      // *persisted* row, not just our optimistic cache. The small delay
+      // gives Postgres + the realtime channel a beat to settle so the
+      // very next route render reads the new values.
+      await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+      await new Promise((r) => setTimeout(r, 800));
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {

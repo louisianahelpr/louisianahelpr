@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Bell, LogOut, MailCheck, RefreshCw, CreditCard, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -88,22 +88,47 @@ const AccountPending = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-premium-page px-4 py-8">
-      <div className="w-full max-w-md text-center space-y-6">
+    <div className="relative min-h-screen flex items-center justify-center bg-premium-page px-4 py-10 overflow-hidden">
+      {/* Ambient gradient halo */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[640px] h-[640px] rounded-full opacity-40 blur-3xl"
+        style={{
+          background:
+            "radial-gradient(closest-side, hsl(var(--primary) / 0.35), transparent 70%)",
+        }}
+      />
+
+      <div className="relative w-full max-w-md text-center space-y-6">
         <Link to="/" className="text-3xl font-display font-bold text-primary inline-block">
           Helpr
         </Link>
 
-        <div className="rounded-2xl border border-border bg-card p-8 space-y-6">
+        <div className="rounded-3xl border border-border/60 bg-card/80 backdrop-blur-xl shadow-xl shadow-primary/5 p-8 space-y-6">
           {/* Hero icon — changes based on verification state */}
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${emailVerified ? "bg-primary/10" : "bg-amber-500/10"}`}>
-            {emailVerified
-              ? <CheckCircle2 className="w-8 h-8 text-primary" />
-              : <MailCheck className="w-8 h-8 text-amber-500" />}
+          <div className="relative mx-auto w-20 h-20">
+            <div
+              className={`absolute inset-0 rounded-full blur-xl opacity-60 ${
+                emailVerified ? "bg-primary/30" : "bg-amber-500/30"
+              }`}
+            />
+            <div
+              className={`relative w-20 h-20 rounded-full flex items-center justify-center ring-1 ring-inset ${
+                emailVerified
+                  ? "bg-primary/10 ring-primary/20"
+                  : "bg-amber-500/10 ring-amber-500/20"
+              }`}
+            >
+              {emailVerified ? (
+                <CheckCircle2 className="w-9 h-9 text-primary" />
+              ) : (
+                <MailCheck className="w-9 h-9 text-amber-500" />
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
               {!emailVerified
                 ? "Verify your email to continue"
                 : fullName
@@ -118,7 +143,7 @@ const AccountPending = () => {
                   Click the link in your inbox to unlock your account.
                 </>
               ) : (
-                "Your email is verified. You can now browse the app, post jobs, and message helprs."
+                "Your email is verified. You can browse the app, post jobs, and message helprs."
               )}
             </p>
           </div>
@@ -130,7 +155,7 @@ const AccountPending = () => {
                 onClick={handleResendVerification}
                 disabled={resending}
                 size="lg"
-                className="w-full gap-2"
+                className="w-full gap-2 rounded-xl"
               >
                 {resending ? (
                   <><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>
@@ -149,24 +174,24 @@ const AccountPending = () => {
             <Button
               onClick={() => navigate("/dashboard")}
               size="lg"
-              className="w-full gap-2"
+              className="w-full gap-2 rounded-xl shadow-lg shadow-primary/20"
             >
-              <CheckCircle2 className="w-4 h-4" /> Continue to dashboard
+              <Sparkles className="w-4 h-4" /> Continue to dashboard
             </Button>
           )}
 
           {/* Heads-up about Stripe — only relevant when applying to jobs */}
           {emailVerified && (
-            <div className="rounded-xl border border-border bg-muted/30 p-4 text-left">
+            <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 text-left">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <CreditCard className="w-4 h-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">
                     Want to earn as a helpr?
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                     When you apply to your first job, we'll walk you through connecting a Stripe payout account so you can get paid. No setup needed until then.
                   </p>
                 </div>
@@ -174,28 +199,38 @@ const AccountPending = () => {
             </div>
           )}
 
-          {/* Trust copy */}
-          <div className="border-t border-border pt-5 space-y-3 text-left">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <ShieldCheck className="w-4 h-4 text-primary" />
+          {/* Trust copy — varies by state */}
+          <div className="border-t border-border/60 pt-5 space-y-3 text-left">
+            {!emailVerified && (
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Why verify your email?</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    It keeps your account secure and lets us send job updates, payment receipts, and password resets.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Why verify your email?</p>
-                <p className="text-xs text-muted-foreground">
-                  It keeps your account secure and lets us send job updates, payment receipts, and password resets.
-                </p>
-              </div>
-            </div>
+            )}
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Bell className="w-4 h-4 text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                {emailVerified ? (
+                  <Clock className="w-4 h-4 text-primary" />
+                ) : (
+                  <Bell className="w-4 h-4 text-primary" />
+                )}
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Auto-unlock</p>
-                <p className="text-xs text-muted-foreground">
-                  Once you click the verification link, this page redirects you to your dashboard automatically.
+                <p className="text-sm font-medium text-foreground">
+                  {emailVerified ? "Real-time updates" : "Auto-unlock"}
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {emailVerified
+                    ? "We'll notify you the moment new helprs apply or your jobs get activity — no need to refresh."
+                    : "Once you click the verification link, this page redirects you to your dashboard automatically."}
                 </p>
               </div>
             </div>

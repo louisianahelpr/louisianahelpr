@@ -249,7 +249,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="dob">Date of birth (must be 18+)</Label>
+              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
               <Input
                 id="dob"
                 type="date"

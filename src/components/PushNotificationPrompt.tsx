@@ -58,29 +58,31 @@ export const PushNotificationPrompt = () => {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="rounded-xl border border-border bg-card p-4 shadow-lg">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Bell className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-foreground text-sm">Enable notifications?</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Get instant alerts for new job matches, messages, and status updates.
-            </p>
-            <div className="flex gap-2 mt-3">
-              <Button size="sm" onClick={handleEnable} className="text-xs">
-                <Bell className="w-3 h-3 mr-1" /> Enable
-              </Button>
-              <Button size="sm" variant="ghost" onClick={handleDismiss} className="text-xs text-muted-foreground">
-                Not now
-              </Button>
-            </div>
-          </div>
-          <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm mb-6 relative animate-in fade-in duration-300">
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Dismiss"
+      >
+        <X className="w-4 h-4" />
+      </button>
+      <div className="flex flex-col items-center text-center gap-3 pt-2">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Bell className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <p className="font-display font-semibold text-foreground text-base">Enable notifications?</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md">
+            Get instant alerts for new job matches, messages, and status updates.
+          </p>
+        </div>
+        <div className="flex gap-2 mt-1">
+          <Button size="sm" onClick={handleEnable}>
+            <Bell className="w-4 h-4 mr-1" /> Enable
+          </Button>
+          <Button size="sm" variant="ghost" onClick={handleDismiss} className="text-muted-foreground">
+            Not now
+          </Button>
         </div>
       </div>
     </div>

@@ -65,7 +65,7 @@ const Earnings = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="My Earnings" />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-5 py-8">
         <div className="max-w-3xl mx-auto space-y-8">
 
           {loading ? (

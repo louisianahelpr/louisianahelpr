@@ -90,7 +90,7 @@ const SupportPage = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Support & Help Center" />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-5 py-6">
         <div className="max-w-2xl mx-auto space-y-8">
           <p className="text-sm text-muted-foreground">
             Find answers, get help, or contact our team

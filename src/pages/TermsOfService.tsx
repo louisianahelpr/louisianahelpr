@@ -10,7 +10,7 @@ const TermsOfService = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Terms & Policies" />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-5 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
           <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 

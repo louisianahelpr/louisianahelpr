@@ -64,8 +64,16 @@ export const isProfileComplete = (profile: GateProfile | null): boolean => {
 };
 
 const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRouteProps) => {
-  const { user, profile, isLoading } = useCurrentUser();
+  const { user, profile, isLoading, refresh } = useCurrentUser();
   const location = useLocation();
+
+  // Force a fresh DB fetch on every mount so a user who just completed
+  // their profile (or had an admin update them) sees the new state
+  // immediately instead of hitting a stale-cache redirect loop.
+  useEffect(() => {
+    if (user?.id) void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, location.pathname]);
 
   if (isLoading) {
     return (

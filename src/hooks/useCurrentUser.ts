@@ -70,8 +70,12 @@ export const useCurrentUser = (): CurrentUser => {
   // so the UI reflects the new status without a manual reload.
   useEffect(() => {
     if (!user?.id) return;
+    const channelNonce =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
     const channel = supabase
-      .channel(`profile-self-${user.id}`)
+      .channel(`profile-self-${user.id}-${channelNonce}`)
       .on(
         "postgres_changes",
         {

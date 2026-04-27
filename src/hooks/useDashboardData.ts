@@ -217,10 +217,11 @@ export function useDashboardData() {
 
   const refresh = useCallback(async () => {
     await Promise.all([
+      refreshCurrentUser(),
       queryClient.invalidateQueries({ queryKey: ["dashboardContext", user?.id] }),
       queryClient.invalidateQueries({ queryKey: ["dashboardJobs", user?.id] }),
     ]);
-  }, [user, queryClient]);
+  }, [user, queryClient, refreshCurrentUser]);
 
   const loading = userLoading || ctxLoading || (jobsLoading && allJobs.length === 0);
 

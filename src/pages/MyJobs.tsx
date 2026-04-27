@@ -197,17 +197,56 @@ const MyJobs = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="My posted tasks" />
 
-      <main className="container mx-auto px-5 py-8">
-        <div className="max-w-3xl mx-auto space-y-8">
+      <PullToRefreshWrapper
+        ref={containerRef}
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+        isPulling={isPulling}
+      >
+        <main className="container mx-auto px-5 py-8">
+          <div className="max-w-3xl mx-auto space-y-8">
 
-          {loading ? (
-            <p className="text-muted-foreground">Loading…</p>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground mb-4">You haven't posted any tasks yet.</p>
-              <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
-            </div>
-          ) : (
+            {loading ? (
+              <div className="space-y-4" aria-label="Loading your tasks">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-card p-5 h-28 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : loadError ? (
+              <div className="text-center py-16 space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-7 h-7 text-destructive" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-display font-semibold text-foreground">Something went wrong</p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">{loadError}</p>
+                </div>
+                <Button onClick={loadJobs} variant="outline" className="gap-2">
+                  <RefreshCw className="w-4 h-4" /> Try again
+                </Button>
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className="text-center py-16 space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Briefcase className="w-7 h-7 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-display font-semibold text-foreground">No jobs available</p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    You haven't posted any tasks yet. Post one to get matched with helprs nearby.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+                  <Button variant="outline" onClick={loadJobs} className="gap-2">
+                    <RefreshCw className="w-4 h-4" /> Refresh
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <div className="space-y-4">
               {jobs.map((job) => (
                 <div key={job.id} className="rounded-xl border border-border bg-card p-5 space-y-3">

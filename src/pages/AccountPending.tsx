@@ -88,7 +88,7 @@ const AccountPending = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-premium-page px-4 py-10 overflow-hidden">
+    <div className="relative min-h-dvh flex items-center justify-center bg-premium-page px-4 py-10 pb-24 sm:pb-10 overflow-hidden">
       {/* Ambient gradient halo */}
       <div
         aria-hidden

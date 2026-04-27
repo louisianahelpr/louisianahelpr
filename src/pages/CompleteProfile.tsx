@@ -227,7 +227,7 @@ const CompleteProfile = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">First name</Label>
+                <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
                 <Input
                   id="firstName"
                   autoComplete="given-name"

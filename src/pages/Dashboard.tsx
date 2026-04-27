@@ -768,18 +768,18 @@ const Dashboard = () => {
       </AlertDialog>
 
       <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-lg p-4 sm:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle>Not Interested?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-base sm:text-lg">Not Interested?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
               {confirmDismissJob
-                ? <>Are you sure you want to remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see this job again.</>
-                : "Are you sure you want to remove this job from your feed?"}
+                ? <>Remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see it again.</>
+                : "Remove this job from your feed?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep It</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDismissConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, Remove</AlertDialogAction>
+          <AlertDialogFooter className="flex-row justify-end gap-2 sm:gap-2">
+            <AlertDialogCancel className="mt-0 h-9 px-3 text-sm">Keep It</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDismissConfirm} className="h-9 px-3 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

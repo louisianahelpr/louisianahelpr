@@ -134,9 +134,10 @@ const CompleteProfile = () => {
     try {
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-      // Persist the user's name on auth metadata so OAuth-derived names get updated too.
-      // Do not block profile completion on this optional metadata write.
-      void supabase.auth.updateUser({ data: { full_name: fullName } });
+      // Note: full_name is persisted to the profiles table below. We intentionally
+      // skip supabase.auth.updateUser() here because it grabs the auth lock and can
+      // collide with the session's autoRefreshToken loop, producing
+      // "Acquiring an exclusive Navigator LockManager lock ... lock stolen" errors.
 
       // Upload files directly to Storage in parallel (much faster than base64-through-edge-function)
       let avatarUrl: string | null = null;

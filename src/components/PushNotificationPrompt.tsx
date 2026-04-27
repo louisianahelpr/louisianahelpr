@@ -6,6 +6,21 @@ import { safeStorage } from "@/lib/safeStorage";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useRequestPushPermission } from "@/lib/nativePush";
 
+const SNOOZE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const STORAGE_KEY = "push-prompt-dismissed-at";
+
+const isSnoozed = () => {
+  const ts = safeStorage.getItem(STORAGE_KEY);
+  if (!ts) return false;
+  const parsed = parseInt(ts, 10);
+  if (Number.isNaN(parsed)) return true; // legacy "true" value — treat as dismissed
+  return Date.now() - parsed < SNOOZE_MS;
+};
+
+const snooze = () => {
+  safeStorage.setItem(STORAGE_KEY, Date.now().toString());
+};
+
 export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);
   const [, setPermission] = useState<string>("default");
@@ -13,8 +28,7 @@ export const PushNotificationPrompt = () => {
 
   useEffect(() => {
     if (isNativePlatform) {
-      const dismissed = safeStorage.getItem("push-prompt-dismissed");
-      if (!dismissed) setShow(true);
+      if (!isSnoozed()) setShow(true);
       return;
     }
 
@@ -22,15 +36,13 @@ export const PushNotificationPrompt = () => {
     const currentPermission = Notification.permission;
     setPermission(currentPermission);
 
-    if (currentPermission === "default") {
-      const dismissed = safeStorage.getItem("push-prompt-dismissed");
-      if (!dismissed) setShow(true);
+    if (currentPermission === "default" && !isSnoozed()) {
+      setShow(true);
     }
   }, []);
 
   const handleEnable = async () => {
     if (isNativePlatform) {
-      // Native flow: rationale dialog → OS prompt → register device token.
       const granted = await requestNativePush();
       setPermission(granted ? "granted" : "denied");
     } else {
@@ -38,11 +50,12 @@ export const PushNotificationPrompt = () => {
       const granted = await requestPushPermission();
       setPermission(granted ? "granted" : "denied");
     }
+    snooze();
     setShow(false);
   };
 
   const handleDismiss = () => {
-    safeStorage.setItem("push-prompt-dismissed", "true");
+    snooze();
     setShow(false);
   };
 

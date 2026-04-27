@@ -402,49 +402,54 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : (
-        <>
-
-          <div>
-            <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
-            {earningsJobs.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">No jobs yet.</p>
-                <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {earningsJobs.map((job) => {
-                  const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-                  const perHelper = job.budget / helpers;
-                  const commissionPercent = (job as any).helper_fee_percent ?? 10;
-                  const commission = (perHelper * commissionPercent) / 100;
-                  const payout = job.status === "completed" ? perHelper - commission + (job.urgent_fee ?? 0) : null;
-                  const jobTips = tips.filter((t) => t.job_id === job.id);
-                  const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
-                  return (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{job.location} · {new Date(job.date_needed).toLocaleDateString()}</p>
+        <div>
+          <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
+          {earningsJobs.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No jobs yet.</p>
+              <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {earningsJobs.map((job) => {
+                const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+                const perHelper = job.budget / helpers;
+                const commissionPercent = (job as any).helper_fee_percent ?? 10;
+                const commission = (perHelper * commissionPercent) / 100;
+                const payout = job.status === "completed" ? perHelper - commission + (job.urgent_fee ?? 0) : null;
+                const jobTips = tips.filter((t) => t.job_id === job.id);
+                const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
+                return (
+                  <div key={job.id} className="rounded-xl border border-border bg-card p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
                         </div>
-                        <div className="text-right">
-                          {payout !== null && <p className="font-bold text-foreground text-sm">${payout.toFixed(2)}</p>}
-                          {tipTotal > 0 && <p className="text-xs text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
-                          {job.status === "in_progress" && <p className="text-xs text-muted-foreground">${job.budget} budget</p>}
-                        </div>
+                        <p className="text-xs text-muted-foreground">{job.location} · {new Date(job.date_needed).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        {payout !== null && <p className="font-bold text-foreground text-sm">${payout.toFixed(2)}</p>}
+                        {tipTotal > 0 && <p className="text-xs text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
+                        {job.status === "in_progress" && <p className="text-xs text-muted-foreground">${job.budget} budget</p>}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
+
+      {/* Muted legal/tax disclosure — bottom of page */}
+      <p className="text-[11px] text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
+        <Info className="w-3 h-3 mt-0.5 shrink-0" />
+        <span>
+          <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.
+        </span>
+      </p>
 
       <InstantPayoutDialog
         open={payoutDialogOpen}

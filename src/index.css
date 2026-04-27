@@ -322,3 +322,12 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     padding-right: max(1.25rem, env(safe-area-inset-right));
   }
 }
+
+/* Hide scrollbar for wheel-style pickers while keeping native scroll/snap. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

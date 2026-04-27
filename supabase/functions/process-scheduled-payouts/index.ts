@@ -139,7 +139,7 @@ serve(async (req) => {
         }
       } catch (e: any) {
         console.error(`Failed to verify payment for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "verify_error", error: e.message });
+        results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
         continue;
       }
 
@@ -203,7 +203,7 @@ serve(async (req) => {
         results.push({ job_id: job.id, status: "transferred", amount: helperPayout, onboarding_fee_deducted: onboardingFeeDollars });
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "transfer_failed", error: e.message });
+        results.push({ job_id: job.id, status: "transfer_failed", error: (e as Error).message });
 
         postSlackOpsAlert({
           kind: "payout_failed",
@@ -225,7 +225,7 @@ serve(async (req) => {
             await supabaseAdmin.from("notifications").insert({
               user_id: admin.user_id,
               title: "⚠️ Scheduled payout failed",
-              message: `Failed to pay $${helperPayout.toFixed(2)} to helpr for job ${job.id}. Error: ${e.message}`,
+              message: `Failed to pay $${helperPayout.toFixed(2)} to helpr for job ${job.id}. Error: ${(e as Error).message}`,
               type: "warning", link: "/admin",
             });
           }
@@ -239,7 +239,7 @@ serve(async (req) => {
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

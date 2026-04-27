@@ -275,7 +275,7 @@ serve(async (req) => {
         try {
           await stripe.accounts.del(profile.stripe_account_id);
         } catch (e) {
-          console.log("Could not delete old account:", e.message);
+          console.log("Could not delete old account:", (e as Error).message);
         }
       }
 
@@ -333,7 +333,7 @@ serve(async (req) => {
 
     throw new Error("Invalid action");
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

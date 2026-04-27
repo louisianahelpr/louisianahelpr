@@ -590,7 +590,7 @@ serve(async (req) => {
 
     throw new Error("Invalid action");
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
   }
@@ -651,7 +651,7 @@ async function transferToHelper(
         await supabaseAdmin.from("notifications").insert({
           user_id: admin.user_id,
           title: "⚠️ Transfer failed",
-          message: `Failed to transfer $${amount.toFixed(2)} to helper for job ${jobId}. Error: ${e.message}`,
+          message: `Failed to transfer $${amount.toFixed(2)} to helper for job ${jobId}. Error: ${(e as Error).message}`,
           type: "warning",
           link: "/admin",
         });

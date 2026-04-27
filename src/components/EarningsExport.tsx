@@ -17,6 +17,9 @@ import type jsPDFType from "jspdf";
 interface EarningsExportProps {
   helperId: string;
   helperName: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 interface ExportRow {

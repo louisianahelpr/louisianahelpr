@@ -1848,6 +1848,7 @@ export type Database = {
           insurance_status: string
           insurance_url: string | null
           is_insured: boolean
+          is_legacy_user: boolean
           is_licensed: boolean
           job_radius: string | null
           last_approval_email_at: string | null
@@ -1914,6 +1915,7 @@ export type Database = {
           insurance_status?: string
           insurance_url?: string | null
           is_insured?: boolean
+          is_legacy_user?: boolean
           is_licensed?: boolean
           job_radius?: string | null
           last_approval_email_at?: string | null
@@ -1980,6 +1982,7 @@ export type Database = {
           insurance_status?: string
           insurance_url?: string | null
           is_insured?: boolean
+          is_legacy_user?: boolean
           is_licensed?: boolean
           job_radius?: string | null
           last_approval_email_at?: string | null

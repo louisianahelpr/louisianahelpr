@@ -458,10 +458,10 @@ const CompleteProfile = () => {
               type="submit"
               size="lg"
               className="w-full rounded-xl"
-              disabled={submitting}
+              disabled={submitting || !allComplete}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? "Saving…" : "Finish & continue"}
+              {submitting ? "Saving…" : allComplete ? "Enter app" : "Complete all items above"}
             </Button>
 
             <Button

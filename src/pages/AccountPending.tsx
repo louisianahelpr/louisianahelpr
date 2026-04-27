@@ -175,11 +175,51 @@ const AccountPending = () => {
           {/* Verified — let them continue immediately */}
           {emailVerified && (
             <Button
-              onClick={() => navigate("/dashboard")}
+              onClick={async () => {
+                if (continuing) return;
+                setContinuing(true);
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session?.user) {
+                    // Self-heal: ensure customer accounts are flipped to approved
+                    // before navigating, so ProtectedRoute doesn't bounce us back.
+                    const { data: profile } = await supabase
+                      .from("profiles")
+                      .select("approval_status, role")
+                      .eq("user_id", session.user.id)
+                      .single();
+                    if (
+                      profile?.role === "customer" &&
+                      profile.approval_status === "pending"
+                    ) {
+                      await supabase
+                        .from("profiles")
+                        .update({ approval_status: "approved" })
+                        .eq("user_id", session.user.id);
+                    }
+                    if (profile?.approval_status === "denied") {
+                      navigate("/account-denied", { replace: true });
+                      return;
+                    }
+                  }
+                  await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+                  navigate("/dashboard", { replace: true });
+                } catch {
+                  // Even if self-heal fails, still try to navigate.
+                  navigate("/dashboard", { replace: true });
+                } finally {
+                  setContinuing(false);
+                }
+              }}
+              disabled={continuing}
               size="lg"
               className="w-full gap-2 rounded-xl shadow-lg shadow-primary/20"
             >
-              <Sparkles className="w-4 h-4" /> Continue to dashboard
+              {continuing ? (
+                <><RefreshCw className="w-4 h-4 animate-spin" /> Loading…</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Continue to dashboard</>
+              )}
             </Button>
           )}
 

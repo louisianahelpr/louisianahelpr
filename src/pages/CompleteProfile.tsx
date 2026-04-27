@@ -292,34 +292,6 @@ const CompleteProfile = () => {
               />
             </div>
 
-            {/* Profile picture */}
-            <div className="space-y-1.5">
-              <Label>Profile picture</Label>
-              <label
-                htmlFor="avatar"
-                className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"
-              >
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar preview" className="w-14 h-14 rounded-full object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
-                    <Camera className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="text-sm">
-                  <div className="font-medium">{avatarPreview ? "Change photo" : "Upload a photo"}</div>
-                  <div className="text-muted-foreground text-xs">JPG, PNG, or WebP. Max 5MB.</div>
-                </div>
-                <input
-                  id="avatar"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </label>
-            </div>
-
             {/* ID */}
             <div className="space-y-1.5">
               <Label>Government-issued ID</Label>

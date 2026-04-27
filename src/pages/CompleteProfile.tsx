@@ -56,6 +56,9 @@ const CompleteProfile = () => {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  // Hydrated from profile.accepted_terms_at on mount so users who already
+  // accepted (and were bounced back here for some other missing field, or who
+  // simply refreshed the page) don't have to re-tick the box.
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);

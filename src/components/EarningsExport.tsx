@@ -17,6 +17,9 @@ import type jsPDFType from "jspdf";
 interface EarningsExportProps {
   helperId: string;
   helperName: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 interface ExportRow {
@@ -40,8 +43,13 @@ type JsPDFWithAutoTable = jsPDFType & { lastAutoTable?: { finalY?: number } };
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Export failed";
 
-export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) => {
-  const [open, setOpen] = useState(false);
+export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onOpenChange, hideTrigger }: EarningsExportProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    if (onOpenChange) onOpenChange(v);
+    else setInternalOpen(v);
+  };
   const [mode, setMode] = useState<RangeMode>("ytd");
   const [month, setMonth] = useState<string>(() => {
     const d = new Date();
@@ -245,12 +253,14 @@ export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) =>
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
-          <Receipt className="w-3.5 h-3.5" />
-          Tax Export
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
+            <Receipt className="w-3.5 h-3.5" />
+            Tax Export
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

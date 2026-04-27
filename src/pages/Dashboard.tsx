@@ -263,7 +263,15 @@ const Dashboard = () => {
     );
   }
 
-  const firstName = (profile?.full_name || user?.user_metadata?.full_name || "User").split(" ")[0];
+  // Prefer the profile's stored full name, then auth metadata, then the email
+  // local-part — never fall back to the literal word "User" in greetings.
+  const rawName =
+    (profile?.full_name && profile.full_name.trim()) ||
+    (user?.user_metadata?.full_name && String(user.user_metadata.full_name).trim()) ||
+    (user?.user_metadata?.name && String(user.user_metadata.name).trim()) ||
+    "";
+  const emailLocal = user?.email ? user.email.split("@")[0] : "";
+  const firstName = (rawName || emailLocal || "there").split(" ")[0];
   const approvalStatus = profile?.approval_status || "pending";
   const banStatus = profile?.ban_status || "active";
 
@@ -289,6 +297,14 @@ const Dashboard = () => {
   }
 
   if (!isAdmin && approvalStatus !== "approved") {
+    const handleCheckStatus = async () => {
+      await refresh();
+      toast.success("Status refreshed");
+    };
+    const handleSignOut = async () => {
+      await supabase.auth.signOut();
+      navigate("/login", { replace: true });
+    };
     return (
       <div className="min-h-screen bg-premium-page">
         <DashboardHeader />
@@ -299,12 +315,28 @@ const Dashboard = () => {
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Clock className="w-8 h-8 text-primary" /></div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Profile under review</h1>
                 <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed.</p>
+                <p className="text-xs text-muted-foreground">
+                  We'll let you know as soon as you're approved. This screen updates automatically.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                  <Button onClick={handleCheckStatus} className="rounded-xl btn-press">
+                    Check status
+                  </Button>
+                  <Button variant="outline" onClick={handleSignOut} className="rounded-xl">
+                    Sign out
+                  </Button>
+                </div>
               </>
             ) : (
               <>
                 <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Profile not approved</h1>
                 <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <Button variant="outline" onClick={handleSignOut} className="rounded-xl">
+                    Sign out
+                  </Button>
+                </div>
               </>
             )}
           </div>

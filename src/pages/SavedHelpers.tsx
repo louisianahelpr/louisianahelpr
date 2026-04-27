@@ -105,14 +105,14 @@ const SavedHelpers = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Saved Helprs" onBack={() => navigate(-1)} />
+      <PageHeader
+        title="Saved Helprs"
+        onBack={() => navigate(-1)}
+        subtitle="Your favorite helprs. Send a job offer directly — they get a 24-hour window before your task opens to everyone."
+      />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 pb-6 pt-2">
         <div className="max-w-lg mx-auto space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Your favorite helprs. Send a job offer directly — they get a 24-hour
-            window before your task opens to everyone.
-          </p>
 
           {helpers.length > 0 && (
             <div className="relative">

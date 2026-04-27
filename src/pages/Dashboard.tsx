@@ -366,28 +366,30 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3 }}
-            className="rounded-xl bg-gradient-to-r from-primary/8 to-primary/4 px-4 py-2.5 border border-primary/10 relative flex items-center justify-between gap-2"
+            className="glass-card squircle rounded-[24px] px-5 py-4 relative flex items-start justify-between gap-3"
           >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-base font-display font-bold text-foreground whitespace-nowrap">
+            <div className="flex flex-col gap-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight text-foreground leading-tight">
                 {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
-              </span>
-              <span className="text-xs text-muted-foreground truncate hidden xs:inline">Browse jobs or post your own</span>
+              </h1>
+              <p className="text-sm text-muted-foreground leading-snug">
+                Your profile is 100% verified. You're ready to go.
+              </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 onClick={() => navigate("/post-job")}
                 size="sm"
-                className="sm:hidden h-7 text-xs px-2.5 bg-gradient-to-r from-primary to-primary/80 shadow-sm gap-1"
+                className="sm:hidden h-8 text-xs px-3 squircle rounded-2xl bg-gradient-to-r from-primary to-primary/85 shadow-md gap-1"
               >
                 <Briefcase className="w-3.5 h-3.5" /> Post
               </Button>
               <button
                 onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1 -m-1"
                 aria-label="Dismiss greeting"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           </motion.div>

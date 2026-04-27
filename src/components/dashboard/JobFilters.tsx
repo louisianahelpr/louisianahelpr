@@ -1,8 +1,12 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
 import {
   X, MapPin, DollarSign, Clock,
+  Sparkles, Leaf, Truck, ShoppingBag, Wrench, Paintbrush,
+  Package, PawPrint, Hammer, MoreHorizontal, ArrowUpRight,
+  type LucideIcon,
 } from "lucide-react";
 
 const categoryLabels: Record<string, string> = {
@@ -11,10 +15,12 @@ const categoryLabels: Record<string, string> = {
   assembly: "Assembly", other: "Other",
 };
 
-const categoryIcons: Record<string, string> = {
-  cleaning: "🧹", yard_work: "🌿", moving: "📦", errands: "🏃",
-  handyman: "🔧", painting: "🎨", delivery: "🚗", pet_care: "🐾",
-  assembly: "🪛", other: "📋",
+// Unified Lucide icon set — replaces emoji for consistent stroke weight
+// and visual harmony with the rest of the app.
+const categoryIcons: Record<string, LucideIcon> = {
+  cleaning: Sparkles, yard_work: Leaf, moving: Truck, errands: ShoppingBag,
+  handyman: Wrench, painting: Paintbrush, delivery: Package, pet_care: PawPrint,
+  assembly: Hammer, other: MoreHorizontal,
 };
 
 export { categoryLabels };
@@ -39,6 +45,14 @@ interface JobFiltersProps {
   hasAvailability: boolean;
 }
 
+// Shared chip styles — ensures Sort, Category, and Expires chips look identical.
+const chipBase =
+  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border";
+const chipActive =
+  "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]";
+const chipIdle =
+  "bg-white/60 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90";
+
 const JobFilters = ({
   searchQuery: _searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
   maxBudget, setMaxBudget, locationFilter, setLocationFilter,
@@ -46,6 +60,7 @@ const JobFilters = ({
   expiresWithin, setExpiresWithin,
   matchAvailability, setMatchAvailability, hasAvailability,
 }: JobFiltersProps) => {
+  const navigate = useNavigate();
   const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
@@ -60,7 +75,7 @@ const JobFilters = ({
 
   return (
     <div className="overflow-hidden">
-      <div className="space-y-4 px-4 py-3">
+      <div className="space-y-5 px-4 py-4">
         {/* Sort */}
         <div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
@@ -74,11 +89,7 @@ const JobFilters = ({
               <button
                 key={opt.value}
                 onClick={() => setSortBy(opt.value)}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-200 btn-press ${
-                  sortBy === opt.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary/70 text-secondary-foreground hover:bg-secondary"
-                }`}
+                className={`${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
               >
                 {opt.label}
               </button>
@@ -90,20 +101,20 @@ const JobFilters = ({
         <div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
           <div className="flex flex-wrap gap-1.5">
-            {Object.entries(categoryLabels).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-200 btn-press ${
-                  selectedCategory === key
-                    ? "bg-primary text-primary-foreground shadow-sm scale-[1.02]"
-                    : "bg-secondary/70 text-secondary-foreground hover:bg-secondary"
-                }`}
-              >
-                <span className="text-xs">{categoryIcons[key]}</span>
-                {label}
-              </button>
-            ))}
+            {Object.entries(categoryLabels).map(([key, label]) => {
+              const Icon = categoryIcons[key] ?? MoreHorizontal;
+              const isActive = selectedCategory === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedCategory(isActive ? null : key)}
+                  className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? "" : "text-primary"}`} strokeWidth={2.25} />
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -112,15 +123,27 @@ const JobFilters = ({
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Location</p>
             <div className="relative">
-              <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input placeholder="Any location" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="pl-8 text-xs h-9 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
+              <Input
+                placeholder="City or parish"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
+              />
             </div>
           </div>
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Max budget</p>
             <div className="relative">
-              <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input type="number" placeholder="No limit" value={maxBudget} onChange={(e) => setMaxBudget(e.target.value)} className="pl-8 text-xs h-9 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors" />
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="No limit"
+                value={maxBudget}
+                onChange={(e) => setMaxBudget(e.target.value)}
+                className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
+              />
             </div>
           </div>
         </div>
@@ -138,11 +161,7 @@ const JobFilters = ({
               <button
                 key={opt.value}
                 onClick={() => setExpiresWithin(expiresWithin === opt.value ? "" : opt.value)}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-200 btn-press ${
-                  expiresWithin === opt.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary/70 text-secondary-foreground hover:bg-secondary"
-                }`}
+                className={`${chipBase} ${expiresWithin === opt.value ? chipActive : chipIdle}`}
               >
                 {opt.label}
               </button>
@@ -150,23 +169,50 @@ const JobFilters = ({
           </div>
         </div>
 
-        {/* Match availability */}
-        <div className={`flex items-center justify-between rounded-xl bg-muted/30 border border-border/50 p-3 ${!hasAvailability ? 'opacity-50' : ''}`}>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-primary" />
-            <div>
-              <p className="text-xs font-medium text-foreground">Match my availability</p>
-              <p className="text-[10px] text-muted-foreground">
-                {hasAvailability ? "Only show jobs on days & times I'm free" : "Set your hours in Schedule to enable"}
-              </p>
+        {/* Match availability — actionable when no schedule is set */}
+        <div
+          className={`squircle rounded-2xl glass-card p-3.5 flex items-center justify-between gap-3 ${
+            !hasAvailability ? "ring-1 ring-primary/20" : ""
+          }`}
+        >
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-primary/12 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground">Match my availability</p>
+              {hasAvailability ? (
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Only show jobs on days &amp; times I'm free
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => navigate("/schedule")}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
+                >
+                  Set your hours in Schedule
+                  <ArrowUpRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
-          <Switch checked={matchAvailability} onCheckedChange={setMatchAvailability} disabled={!hasAvailability} />
+          <Switch
+            checked={matchAvailability}
+            onCheckedChange={setMatchAvailability}
+            disabled={!hasAvailability}
+            aria-label="Match my availability"
+          />
         </div>
 
         {/* Clear all */}
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground text-xs h-8 rounded-xl hover:bg-destructive/10 hover:text-destructive btn-press">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="text-muted-foreground text-xs h-9 rounded-full squircle hover:bg-destructive/10 hover:text-destructive btn-press"
+          >
             <X className="w-3.5 h-3.5 mr-1" /> Clear all filters
           </Button>
         )}

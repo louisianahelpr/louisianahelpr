@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
+import { isProfileComplete } from "@/components/ProtectedRoute";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];

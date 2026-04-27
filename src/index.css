@@ -172,17 +172,32 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
      Uses a layered radial gradient that spans the full page for cohesive
      ambient depth (no section seams), plus a subtle grain overlay for
      premium texture. */
+  /* 2026 brand-green Mint-to-Seafoam canvas — no yellow accents.
+     Layered low-opacity primary-green orbs over a near-white mint base
+     create an airy, on-brand backdrop that lets dark text and vibrant
+     green CTAs pop without competing for attention. */
   .bg-premium-page {
-    background-color: hsl(var(--background));
+    background-color: hsl(150 35% 98%);
     background-image:
-      radial-gradient(ellipse 70% 50% at 85% 0%, hsl(var(--primary) / 0.10), transparent 60%),
-      radial-gradient(ellipse 60% 45% at 15% 25%, hsl(var(--accent) / 0.08), transparent 55%),
-      radial-gradient(ellipse 65% 50% at 90% 55%, hsl(var(--primary) / 0.07), transparent 60%),
-      radial-gradient(ellipse 55% 40% at 10% 80%, hsl(var(--accent) / 0.09), transparent 55%),
-      radial-gradient(ellipse 80% 50% at 50% 100%, hsl(var(--primary) / 0.06), transparent 60%),
-      var(--gradient-page);
+      radial-gradient(ellipse 75% 55% at 88% -5%, hsl(var(--primary) / 0.12), transparent 62%),
+      radial-gradient(ellipse 65% 50% at 12% 22%, hsl(158 60% 55% / 0.08), transparent 58%),
+      radial-gradient(ellipse 70% 50% at 92% 58%, hsl(var(--primary) / 0.09), transparent 62%),
+      radial-gradient(ellipse 60% 45% at 8% 82%, hsl(159 50% 60% / 0.09), transparent 58%),
+      radial-gradient(ellipse 90% 55% at 50% 105%, hsl(var(--primary) / 0.07), transparent 62%),
+      linear-gradient(180deg, hsl(150 40% 99%) 0%, hsl(155 35% 97%) 45%, hsl(160 30% 96%) 100%);
     background-attachment: fixed, fixed, fixed, fixed, fixed, fixed;
     position: relative;
+  }
+  .dark .bg-premium-page {
+    background-color: hsl(160 12% 7%);
+    background-image:
+      radial-gradient(ellipse 75% 55% at 88% -5%, hsl(var(--primary) / 0.18), transparent 62%),
+      radial-gradient(ellipse 65% 50% at 12% 22%, hsl(159 43% 51% / 0.10), transparent 58%),
+      radial-gradient(ellipse 70% 50% at 92% 58%, hsl(var(--primary) / 0.14), transparent 62%),
+      radial-gradient(ellipse 60% 45% at 8% 82%, hsl(159 43% 60% / 0.10), transparent 58%),
+      radial-gradient(ellipse 90% 55% at 50% 105%, hsl(var(--primary) / 0.10), transparent 62%),
+      linear-gradient(180deg, hsl(160 12% 7%) 0%, hsl(160 10% 9%) 50%, hsl(160 10% 8%) 100%);
+    background-attachment: fixed, fixed, fixed, fixed, fixed, fixed;
   }
   /* Subtle grain overlay for premium tactile feel */
   .bg-premium-page::before {
@@ -264,6 +279,27 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     padding: 16px;
   }
 
+  /* 2026 Glassmorphic surface — semi-transparent white with blur and a
+     hairline highlight border. Pairs perfectly with the brand-mint canvas
+     and the .squircle utility for an organic, premium feel. */
+  .glass-card {
+    background: hsl(0 0% 100% / 0.5);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid hsl(0 0% 100% / 0.6);
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.7) inset,
+      0 10px 40px -12px hsl(160 30% 20% / 0.12),
+      0 4px 16px -8px hsl(160 30% 20% / 0.08);
+  }
+  .dark .glass-card {
+    background: hsl(160 10% 14% / 0.55);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.05) inset,
+      0 10px 40px -12px hsl(0 0% 0% / 0.5);
+  }
+
   /* ---------------------------------------------------------------------
      iOS HIG safe-area utilities
      Apply on any full-bleed container so content never touches the notch,
@@ -287,11 +323,13 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
   }
   /* Clear the floating bottom nav (h-14 + 8px margin + safe inset). */
+  /* Clear the floating bottom nav with generous breathing room
+     (nav pill ~56px + 16px margin + 64px buffer + safe inset ≈ 140px). */
   .pb-safe-nav {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
   }
   .mb-safe-nav {
-    margin-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    margin-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

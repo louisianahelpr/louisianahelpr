@@ -188,21 +188,21 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     <>
       <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="mx-3 mb-2 flex items-end gap-2 max-w-lg md:max-w-xl lg:max-w-2xl md:mx-auto">
-          {/* Main nav pill — glassmorphism */}
-          <div className="flex-1 rounded-2xl glass shadow-[0_-4px_30px_-4px_hsl(158_45%_42%/0.1),0_4px_20px_-4px_hsl(0_0%_0%/0.08)]">
+          {/* Main nav pill — heavy glassmorphism, fully pill-shaped */}
+          <div className="flex-1 squircle rounded-full glass shadow-[0_-6px_40px_-8px_hsl(158_45%_42%/0.18),0_8px_28px_-8px_hsl(0_0%_0%/0.12)] border border-white/40">
             <div className="flex items-center justify-around h-14 px-2">
               {leftItems.map(renderItem)}
               {rightItems.map(renderItem)}
             </div>
           </div>
 
-          {/* Post button bubble */}
+          {/* Post FAB — squircle with glowing brand-green halo */}
           <button
             onClick={handlePostClick}
             onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
             onFocus={() => !isGuest && prefetchRoute("/post-job")}
             aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-            className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[0_4px_24px_-2px_hsl(158_45%_42%/0.5)] flex items-center justify-center shrink-0 border border-primary-foreground/15 active:scale-95 transition-transform duration-150"
+            className="relative w-14 h-14 squircle rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_0_0_4px_hsl(158_67%_37%/0.12),0_8px_28px_-4px_hsl(158_67%_37%/0.55),0_2px_8px_-2px_hsl(158_67%_37%/0.4)] flex items-center justify-center shrink-0 border border-white/25 active:scale-95 transition-all duration-200 hover:shadow-[0_0_0_6px_hsl(158_67%_37%/0.15),0_12px_32px_-4px_hsl(158_67%_37%/0.65)]"
           >
             <Plus className="w-7 h-7" strokeWidth={2.5} />
             {isGuest && (

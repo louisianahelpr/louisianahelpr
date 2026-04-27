@@ -10,6 +10,10 @@ html {
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
+  /* Match the sticky-header tint so iOS rubber-band overscroll at the top
+     reveals the same color as the frosted nav — no jarring white/dark flash
+     above the pinned navigation bar. */
+  background-color: hsl(var(--background));
 }
 html::-webkit-scrollbar {
   display: none; /* Chrome/Safari */

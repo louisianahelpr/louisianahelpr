@@ -331,3 +331,25 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ---------------------------------------------------------------------
+   2026 Squircle (superellipse) corners.
+   Progressive enhancement — uses the new CSS `corner-shape` property
+   (Chrome/Safari Tech Preview 2025+). Browsers without support fall
+   back to the element's existing `border-radius` arc, which still
+   looks great. Apply via the `.squircle` utility class.
+   --------------------------------------------------------------------- */
+@supports (corner-shape: squircle) {
+  .squircle {
+    corner-shape: squircle;
+    /* 0.6 corner-smoothing — the iOS-like organic curvature */
+    --corner-smoothing: 0.6;
+    corner-shape: superellipse(1.6);
+  }
+}
+
+/* Tactile press: subtle inset highlight on active for primary surfaces */
+.squircle:active {
+  filter: brightness(0.98);
+}
+

@@ -467,7 +467,7 @@ const PostJob = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-surface pb-32 sm:pb-safe-nav">
+    <div className="min-h-screen bg-premium-surface pb-40 sm:pb-safe-nav" style={{ paddingBottom: "calc(10rem + env(safe-area-inset-bottom, 0px))" }}>
       <PageHeader
         title={step === "checkout" ? "Order Summary" : "Post a task"}
         onBack={handlePostJobBack}

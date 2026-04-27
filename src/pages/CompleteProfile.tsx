@@ -21,6 +21,19 @@ const sanitizeExt = (name: string) => {
   return ext.slice(0, 5);
 };
 
+const withTimeout = async <T,>(promise: Promise<T>, label: string, ms = 20000): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out. Please check your connection and try again.`)), ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 const formatPhone = (raw: string) => {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
   if (digits.length === 0) return "";

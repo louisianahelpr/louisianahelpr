@@ -51,11 +51,11 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 gap-3">
         <DialogHeader>
-          <DialogTitle className="font-display">Report {reportedType}</DialogTitle>
+          <DialogTitle className="font-display text-base sm:text-lg pr-8">Report {reportedType}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">Why are you reporting this?</p>
             <div className="flex flex-wrap gap-2">

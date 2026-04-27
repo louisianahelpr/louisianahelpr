@@ -116,7 +116,7 @@ export const PreferredParishes = ({ helperId }: PreferredParishesProps) => {
           {selected.length < MAX_PARISHES && (
             <div className="flex gap-2">
               <Select value={adding} onValueChange={setAdding}>
-                <SelectTrigger className="flex-1 h-9 text-sm">
+                <SelectTrigger className="flex-1 h-11 rounded-2xl text-[14px] font-medium px-4">
                   <SelectValue placeholder="Add a parish…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -125,7 +125,7 @@ export const PreferredParishes = ({ helperId }: PreferredParishesProps) => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" onClick={add} disabled={!adding || saving} className="h-9">
+              <Button onClick={add} disabled={!adding || saving} className="h-11 rounded-2xl px-5 font-semibold">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
               </Button>
             </div>

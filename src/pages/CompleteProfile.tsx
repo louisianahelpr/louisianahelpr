@@ -247,7 +247,12 @@ const CompleteProfile = () => {
         },
         isAdmin: current?.isAdmin ?? false,
       }));
-      void queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+      // Force a fresh DB read so ProtectedRoute re-evaluates against the
+      // *persisted* row, not just our optimistic cache. The small delay
+      // gives Postgres + the realtime channel a beat to settle so the
+      // very next route render reads the new values.
+      await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+      await new Promise((r) => setTimeout(r, 800));
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
@@ -280,7 +285,7 @@ const CompleteProfile = () => {
           </div>
 
           {/* Live "Big 7" checklist — green check when satisfied, red X when missing */}
-          <div className="mb-5 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
+          <div className="squircle mb-5 rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-foreground">Verification checklist</p>
               <p className="text-xs text-muted-foreground">

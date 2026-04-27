@@ -134,10 +134,9 @@ const CompleteProfile = () => {
     try {
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-      // Persist the user's name on auth metadata so OAuth-derived names get updated too
-      try {
-        await supabase.auth.updateUser({ data: { full_name: fullName } });
-      } catch { /* non-fatal */ }
+      // Persist the user's name on auth metadata so OAuth-derived names get updated too.
+      // Do not block profile completion on this optional metadata write.
+      void supabase.auth.updateUser({ data: { full_name: fullName } });
 
       // Upload files directly to Storage in parallel (much faster than base64-through-edge-function)
       let avatarUrl: string | null = null;
@@ -150,12 +149,12 @@ const CompleteProfile = () => {
         const path = `${user.id}/avatar.${ext}`;
         uploads.push(
           supabase.storage
-            .from("job-photos")
+            .from("user-documents")
             .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type })
             .then(({ error }) => {
               if (error) throw error;
-              const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
-              avatarUrl = data.publicUrl;
+              const { data } = supabase.storage.from("user-documents").getPublicUrl(path);
+              avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
             })
         );
       }
@@ -174,7 +173,7 @@ const CompleteProfile = () => {
         );
       }
 
-      if (uploads.length) await Promise.all(uploads);
+      if (uploads.length) await withTimeout(Promise.all(uploads), "File upload");
 
       // Single, lightweight DB update — no large JSON over the wire
       const updates: {
@@ -188,19 +187,22 @@ const CompleteProfile = () => {
         id_document_url?: string;
       } = {
         full_name: fullName,
-        phone,
-        bio,
-        location,
+        phone: phone.trim(),
+        bio: bio.trim(),
+        location: location.trim(),
         date_of_birth: dateOfBirth,
         approval_status: "pending",
       };
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
-      const { error: updateErr } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("user_id", user.id);
+      const { error: updateErr } = await withTimeout(
+        supabase
+          .from("profiles")
+          .update(updates)
+          .eq("user_id", user.id),
+        "Profile save",
+      );
       if (updateErr) throw updateErr;
 
       await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });

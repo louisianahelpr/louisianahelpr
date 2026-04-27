@@ -420,7 +420,7 @@ const ProfilePage = () => {
             <span className="text-2xl font-display font-bold text-primary">Helpr</span>
           </div>
         </header>
-        <main className="container mx-auto px-4 py-4">
+        <main className="mx-auto max-w-5xl px-5 py-4">
           <div className="max-w-lg mx-auto space-y-4">
             <ProfileCardSkeleton />
             <StatsSkeleton />
@@ -472,7 +472,7 @@ const ProfilePage = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <DashboardHeader />
 
-      <main className="container mx-auto px-4 py-4">
+      <main className="mx-auto max-w-5xl px-5 py-4">
         <div className="max-w-2xl mx-auto space-y-4">
 
           {/* LANDING VIEW */}

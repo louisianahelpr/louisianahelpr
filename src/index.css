@@ -323,11 +323,13 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
   }
   /* Clear the floating bottom nav (h-14 + 8px margin + safe inset). */
+  /* Clear the floating bottom nav with generous breathing room
+     (nav pill ~56px + 16px margin + 64px buffer + safe inset ≈ 140px). */
   .pb-safe-nav {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
   }
   .mb-safe-nav {
-    margin-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    margin-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

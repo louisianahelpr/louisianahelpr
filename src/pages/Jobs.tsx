@@ -96,52 +96,57 @@ const Jobs = () => {
           leaves room for the floating glass MobileNav on native + mobile web. */}
       <main className="pt-20 pb-32 md:pb-safe-nav px-5">
         <div className="container mx-auto max-w-5xl">
-          {/* Header — tighter on mobile so it doesn't push the job cards
-              below the fold on a 6.1" iPhone screen. */}
-          <div className="text-center mb-6 md:mb-10 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide uppercase mb-3">
-              <Briefcase className="w-3 h-3" />
-              Live Jobs
+          {/* Header — title + live count vertically centered with a "Live" pill on the right. */}
+          <div className="flex items-center justify-between gap-4 mb-6 md:mb-8 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-2xl squircle bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <Briefcase className="w-5 h-5 text-primary" strokeWidth={2.25} />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl md:text-3xl font-display font-bold text-foreground leading-tight truncate">
+                  Browse Tasks
+                </h1>
+                <p className="text-xs md:text-sm text-muted-foreground leading-tight mt-0.5">
+                  <span className="font-semibold text-primary tabular-nums">{filtered.length}</span> available right now
+                </p>
+              </div>
             </div>
-            <h1 className="text-2xl md:text-4xl font-display font-bold text-foreground">
-              Browse Open Jobs
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-2 md:mt-3 max-w-xl mx-auto px-2">
-              See what your Louisiana neighbors need help with. Sign up to apply or post your own task.
-            </p>
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-primary/10 text-primary text-[11px] font-bold tracking-wider uppercase border border-primary/15 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Live
+            </div>
           </div>
 
           {/* Search & Filters */}
           <div className="mb-5 md:mb-8 space-y-3 md:space-y-4">
             <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
               <Input
-                placeholder="Search jobs by title or location…"
+                placeholder="Search by title or location…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 rounded-2xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
               />
             </div>
 
             <div className="-mx-5 px-5 overflow-x-auto scrollbar-hide overscroll-x-contain">
               <div className="flex gap-2 w-max mx-auto">
-                <Badge
-                  variant={selectedCategory === null ? "default" : "outline"}
-                  className="cursor-pointer text-xs whitespace-nowrap shrink-0"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  All
-                </Badge>
-                {ALL_CATEGORIES.map((cat) => (
-                  <Badge
-                    key={cat}
-                    variant={selectedCategory === cat ? "default" : "outline"}
-                    className="cursor-pointer text-xs whitespace-nowrap shrink-0"
-                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                  >
-                    {categoryLabels[cat]}
-                  </Badge>
-                ))}
+                {[{ key: null as string | null, label: "All" }, ...ALL_CATEGORIES.map((c) => ({ key: c, label: categoryLabels[c] }))].map(({ key, label }) => {
+                  const isActive = selectedCategory === key;
+                  return (
+                    <button
+                      key={label ?? "all"}
+                      onClick={() => setSelectedCategory(isActive ? null : key)}
+                      className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-200 btn-press squircle border ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+                          : "bg-white/60 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -154,10 +159,28 @@ const Jobs = () => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16 space-y-3">
-              <Briefcase className="w-12 h-12 text-muted-foreground/30 mx-auto" />
-              <p className="text-muted-foreground">No open jobs match your filters right now.</p>
-              <p className="text-sm text-muted-foreground">Check back soon — new tasks are posted daily!</p>
+            <div className="glass-card squircle rounded-[24px] py-14 px-6 text-center space-y-4 max-w-md mx-auto">
+              <div className="w-16 h-16 mx-auto rounded-2xl squircle bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
+                <Search className="w-7 h-7 text-primary" strokeWidth={2.25} />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-base font-display font-bold text-foreground">
+                  No tasks found in your area yet
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day.
+                </p>
+              </div>
+              {(search || selectedCategory) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setSearch(""); setSelectedCategory(null); }}
+                  className="squircle rounded-full"
+                >
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

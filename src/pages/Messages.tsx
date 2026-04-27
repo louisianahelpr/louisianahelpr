@@ -34,6 +34,7 @@ import { ConversationSkeleton } from "@/components/SkeletonLoaders";
 import { VirtualList } from "@/components/VirtualList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
 type Message = {
   id: string;
@@ -78,9 +79,11 @@ const Messages = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [deleteConvoConfirm, setDeleteConvoConfirm] = useState<Conversation | null>(null);
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const deepLinkHandled = useRef(false);
+  const keyboardInset = useKeyboardInset();
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({
@@ -530,26 +533,35 @@ const Messages = () => {
               )}
             </div>
           ) : (
-            <div className="flex flex-col h-[calc(100dvh-4rem)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-              {/* Chat header with back button and user info */}
-              <div className="flex items-center gap-3 p-3 -mx-4 -mt-0 border-b border-border mb-3 bg-card">
-                <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0" onClick={() => { setActiveConvo(null); navigate("/messages", { replace: true }); }}>
+            <div
+              className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"
+              style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
+            >
+              {/* Chat header — compact, vertically centered */}
+              <div className="flex items-center gap-2.5 px-1 py-2 -mx-4 px-4 border-b border-border bg-card">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-9 w-9 shrink-0 self-center"
+                  onClick={() => { setActiveConvo(null); setDraft(""); navigate("/messages", { replace: true }); }}
+                  aria-label="Back to conversations"
+                >
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                  <span className="text-base font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
+                <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0 self-center">
+                  <span className="text-sm font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
                 </div>
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <p className="font-semibold text-foreground text-sm truncate flex items-center gap-2">
+                <div className="min-w-0 flex-1 overflow-hidden self-center">
+                  <p className="font-semibold text-foreground text-[15px] leading-tight truncate flex items-center gap-1.5">
                     <span className="truncate">{activeConvo.otherUserName}</span>
                     <OnlineIndicator isOnline={isOtherOnline} />
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">{activeConvo.jobTitle}</p>
+                  <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">{activeConvo.jobTitle}</p>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+                      className="p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
                       aria-label="Conversation options"
                     >
                       <MoreVertical className="w-5 h-5" />
@@ -565,20 +577,20 @@ const Messages = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {/* Community rules banner */}
+              {/* Community rules banner — compact */}
               {!bannerDismissed && (
-                <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 mb-3 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
-                  <p className="text-xs text-accent-foreground flex-1">
-                    Keep all communication and payments on Helpr. Sharing contact info or taking business off-platform will result in a warning, then a permanent ban.
+                <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
+                  <AlertTriangle className="w-3 h-3 text-accent-foreground mt-[3px] shrink-0" />
+                  <p className="text-[11px] leading-snug text-accent-foreground flex-1">
+                    Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
                   </p>
-                  <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5" aria-label="Dismiss">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto space-y-3 py-4" ref={chatContainerRef}>
+              <div className="flex-1 overflow-y-auto space-y-3 pt-4 pb-2" ref={chatContainerRef}>
                 {hasMoreMessages && (
                   <div className="text-center py-2">
                     <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
@@ -593,59 +605,67 @@ const Messages = () => {
                     <p className="text-sm text-muted-foreground">No messages yet. Say hello!</p>
                   </div>
                 )}
-                {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.sender_id === userId ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative ${
-                        m.sender_id === userId
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-secondary text-secondary-foreground rounded-bl-md"
-                      }`}
-                    >
-                      {renderMessageContent(m.content)}
-                      <div className={`flex items-center gap-1 mt-1 ${m.sender_id === userId ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                        <span className="text-xs">
-                          {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                        <ReadReceipt read={m.read} sentByMe={m.sender_id === userId} />
+                {messages.map((m) => {
+                  const mine = m.sender_id === userId;
+                  return (
+                    <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative ${
+                          mine
+                            ? "bg-primary text-primary-foreground rounded-br-md"
+                            : "bg-secondary text-secondary-foreground rounded-bl-md"
+                        }`}
+                      >
+                        {renderMessageContent(m.content)}
+                        {/* Action buttons on hover */}
+                        <div className={`absolute ${mine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
+                          {!mine && (
+                            <button
+                              onClick={() => setReportTarget({ type: "message", id: m.id })}
+                              className="text-muted-foreground hover:text-destructive p-1"
+                              title="Report"
+                            >
+                              <Flag className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {mine && (
+                            <button
+                              onClick={() => setDeleteMessageConfirm(m.id)}
+                              className="text-muted-foreground hover:text-destructive p-1"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {/* Action buttons on hover */}
-                      <div className={`absolute ${m.sender_id === userId ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
-                        {m.sender_id !== userId && (
-                          <button
-                            onClick={() => setReportTarget({ type: "message", id: m.id })}
-                            className="text-muted-foreground hover:text-destructive p-1"
-                            title="Report"
-                          >
-                            <Flag className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {m.sender_id === userId && (
-                          <button
-                            onClick={() => setDeleteMessageConfirm(m.id)}
-                            className="text-muted-foreground hover:text-destructive p-1"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                      <div className={`flex items-center gap-1 mt-1 px-1 text-[10px] text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
+                        <span>
+                          {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+                        </span>
+                        <ReadReceipt read={m.read} sentByMe={mine} />
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {isOtherTyping && <TypingIndicator />}
                 <div ref={bottomRef} />
               </div>
 
-              {/* Quick replies */}
-              <div className="pt-2">
-                <QuickReplies onSelect={sendMessage} />
+              {/* Quick replies — populate the input instead of sending instantly */}
+              <div className="pt-1">
+                <QuickReplies onSelect={(msg) => setDraft(msg)} />
               </div>
 
               {/* Rich message input */}
-              <div className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
+              <div
+                className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+                style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+              >
                 <RichMessageInput
-                  onSend={sendMessage}
+                  value={draft}
+                  onChange={setDraft}
+                  onSend={(content) => { sendMessage(content); setDraft(""); }}
                   onTyping={broadcastTyping}
                 />
               </div>

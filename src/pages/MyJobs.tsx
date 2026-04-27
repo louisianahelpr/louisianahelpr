@@ -41,6 +41,7 @@ const MyJobs = () => {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [tipJobId, setTipJobId] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");
@@ -55,21 +56,50 @@ const MyJobs = () => {
       toast.success("Tip sent successfully! Your helpr will appreciate it.");
     }
     loadJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadJobs = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-    if (!user) { navigate("/login"); return; }
-    setCurrentUserId(user.id);
-    const { data } = await supabase
-      .from("jobs")
-      .select("*")
-      .eq("customer_id", user.id)
-      .order("created_at", { ascending: false });
-    if (data) setJobs(data);
-    setLoading(false);
-  };
+  const loadJobs = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      // 10-second timeout so the skeleton never spins forever on a flaky network
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10_000),
+      );
+
+      const sessionRes = await Promise.race([
+        supabase.auth.getSession(),
+        timeoutPromise,
+      ]);
+      const user = sessionRes.data.session?.user;
+      if (!user) { navigate("/login"); return; }
+      setCurrentUserId(user.id);
+
+      const queryPromise = supabase
+        .from("jobs")
+        .select("*")
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false });
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (err: any) {
+      console.error("[MyJobs] loadJobs failed:", err);
+      setLoadError(
+        err?.message === "timeout"
+          ? "Could not load jobs. Please check your connection."
+          : err?.message || "Could not load jobs. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+    onRefresh: loadJobs,
+  });
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);

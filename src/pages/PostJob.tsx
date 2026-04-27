@@ -682,45 +682,55 @@ const PostJob = () => {
                   <div className="space-y-3">
                     <Label>Location <span className="text-destructive">*</span></Label>
                     <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
-                    <div className="grid grid-cols-3 gap-3">
-                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} />
-                      <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} />
-                      <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} />
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} className="px-3 text-[14px]" />
+                      <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} className="px-3 text-[14px]" />
+                      <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} className="px-3 text-[14px]" />
                     </div>
                     {parish && (
-                      <p className="text-xs text-primary flex items-center gap-1">
+                      <p className="text-xs text-primary flex items-center gap-1.5 pt-1">
                         <CheckCircle2 className="w-3 h-3" />
                         Parish detected: <span className="font-medium">{parish}</span> · used for Louisiana sales tax
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Shield className="w-3 h-3" />
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Shield className="w-3 h-3 shrink-0" />
                       Only the city will be visible to applicants until you select a helper.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2.5">
-                      <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
-                      <Input id="date" type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} min={new Date().toISOString().split("T")[0]} />
-                    </div>
-                    <div className="space-y-2.5">
-                      <Label htmlFor="time">Start time <span className="text-destructive">*</span></Label>
-                      <TimePickerSelect value={startTime} onChange={setStartTime} />
-                    </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
+                    <DatePickerField
+                      id="date"
+                      value={dateNeeded}
+                      onChange={setDateNeeded}
+                      min={new Date().toISOString().split("T")[0]}
+                      placeholder="Choose a date"
+                    />
                   </div>
-                  <div className="flex items-center gap-3 px-1">
+
+                  <div className="space-y-3">
+                    <Label>Start time <span className="text-destructive">*</span></Label>
+                    <TimePickerWheel value={startTime} onChange={setStartTime} />
+                  </div>
+
+                  <label
+                    htmlFor="flexible"
+                    className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
+                  >
                     <Checkbox
                       id="flexible"
                       checked={isFlexibleSchedule}
                       onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
+                      className="mt-0.5"
                     />
-                    <label htmlFor="flexible" className="text-sm text-muted-foreground cursor-pointer">
+                    <span className="text-sm text-muted-foreground leading-snug">
                       <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
-                    </label>
-                  </div>
+                    </span>
+                  </label>
 
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
                     <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>

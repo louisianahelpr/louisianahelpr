@@ -43,8 +43,13 @@ type JsPDFWithAutoTable = jsPDFType & { lastAutoTable?: { finalY?: number } };
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Export failed";
 
-export const EarningsExport = ({ helperId, helperName }: EarningsExportProps) => {
-  const [open, setOpen] = useState(false);
+export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onOpenChange, hideTrigger }: EarningsExportProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    if (onOpenChange) onOpenChange(v);
+    else setInternalOpen(v);
+  };
   const [mode, setMode] = useState<RangeMode>("ytd");
   const [month, setMonth] = useState<string>(() => {
     const d = new Date();

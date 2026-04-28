@@ -75,10 +75,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/browse", "/job-history"];
-  const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-pending", "/account-denied"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending"];
+  const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
+
+  // Pending-approval lock: user is signed in but profile not yet approved.
+  // They can browse the home dashboard but everything else is gated until
+  // an admin clears them. Detected via route OR profile.approval_status.
+  const isPendingApproval =
+    location.pathname.startsWith("/account-pending");
   // Guest "tease & convert" bottom nav is iOS/Android-app only.
   // On the web, guests should see only the top Navbar (no bottom bar).
   if (isGuest && !Capacitor.isNativePlatform()) return null;

@@ -379,6 +379,22 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
   display: none;
 }
 
+/* App-shell internal scroll container.
+   - On app-shell routes (html.app-shell): the <main> becomes a fixed-height
+     scroll box that fills the viewport. The MobileNav (rendered as a sibling,
+     position:fixed, z-50) floats above it and never moves.
+   - On document-scroll routes (no .app-shell on html): this class is a no-op
+     so marketing/legal pages keep their normal page scroll.
+*/
+html.app-shell main.app-shell-scroll {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
 /* ---------------------------------------------------------------------
    2026 Squircle (superellipse) corners.
    Progressive enhancement — uses the new CSS `corner-shape` property

@@ -486,7 +486,7 @@ const ProfilePage = () => {
 
           {/* LANDING VIEW */}
           {tab === "landing" && (
-            <div className="space-y-4">
+            <div className="space-y-3">
 
 
               {/* Compact Hero — single horizontal row, half-height */}

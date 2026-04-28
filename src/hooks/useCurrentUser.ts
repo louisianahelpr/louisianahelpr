@@ -59,7 +59,7 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
     Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data, error }) => {
       if (error) throw error;
       return { data: data ?? null };
-    })),
+    }),
     "Admin role load",
   );
 

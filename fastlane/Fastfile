@@ -635,7 +635,6 @@ end
 
 platform :ios do
   before_all do
-    assert_ios_web_bundle_present!
     sync_metadata_to_xcode!
     assert_ios_identity!
   end

@@ -578,7 +578,7 @@ const ProfilePage = () => {
                           {idx > 0 && (
                             <span
                               aria-hidden
-                              className="pointer-events-none absolute top-0 left-[68px] right-4 h-px bg-border/50"
+                              className="pointer-events-none absolute top-0 left-[68px] right-[15px] h-px bg-border/60"
                             />
                           )}
                           <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">

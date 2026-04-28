@@ -132,24 +132,23 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   };
 
   return (
-    <div className="space-y-5">
-      {/* iOS-HIG: back chevron on a thin top row, then a Large Title.
-          Matches PageHeader so every sub-screen reads identically. */}
-      <div className="pt-2">
+    <div className="relative -mx-4 sm:-mx-6 px-5 pb-32 min-h-[calc(100vh-4rem)] bg-gradient-to-b from-primary/15 via-primary/5 to-background">
+      {/* Top nav bar: back arrow + title vertically centered */}
+      <div className="flex items-center gap-2 pt-2 pb-5">
         <button
           onClick={onBack}
-          className="h-11 w-11 -ml-2 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          className="h-10 w-10 -ml-2 rounded-xl flex items-center justify-center hover:bg-foreground/5 transition-colors text-foreground"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
+        <h1 className="font-display text-[22px] font-bold leading-none tracking-tight text-foreground">
+          Subscription
+        </h1>
       </div>
-      <h1 className="font-display text-[30px] sm:text-[34px] font-bold leading-tight tracking-tight text-foreground -mt-2">
-        Subscription
-      </h1>
 
       {currentTier && !isExpired && (
-        <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">
+        <div className="rounded-[24px] border border-primary/30 bg-white/80 backdrop-blur-xl p-5 space-y-3 mb-5 shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25),0_4px_12px_-4px_hsl(var(--primary)/0.15)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-primary" />
@@ -187,80 +186,107 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       )}
 
       {(!currentTier || isExpired) && (
-        <p className="text-[15px] leading-relaxed text-muted-foreground max-w-prose">
+        <p className="text-[15px] leading-relaxed text-muted-foreground max-w-prose mb-5">
           {isExpired
             ? "Your subscription has expired. Renew to continue accessing premium features."
             : "You're on the free plan. Upgrade to unlock premium features and get more jobs."}
         </p>
       )}
 
-      {/* Billing Interval Toggle */}
-      <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-muted">
+      {/* Billing Interval Chip Bar */}
+      <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
         {([
-          { key: "one_time" as const, label: "One-Time" },
-          { key: "monthly" as const, label: "Monthly" },
           { key: "annual" as const, label: "Annual" },
-        ]).map((opt) => (
-          <button
-            key={opt.key}
-            onClick={() => setBillingInterval(opt.key)}
-            className={`flex-1 text-sm font-medium py-2 px-3 rounded-lg transition-all ${
-              billingInterval === opt.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+          { key: "monthly" as const, label: "Monthly" },
+          { key: "one_time" as const, label: "One-Time" },
+        ]).map((opt) => {
+          const active = billingInterval === opt.key;
+          return (
+            <button
+              key={opt.key}
+              onClick={() => setBillingInterval(opt.key)}
+              className={`shrink-0 px-4 h-9 rounded-full text-sm font-semibold transition-all border ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-transparent text-foreground/70 border-foreground/15 hover:bg-foreground/5"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
 
-
-      <div className="space-y-3">
+      <div className="space-y-4">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
+          const isPro = tier.id === "pro";
+          const isElite = tier.id === "elite";
           return (
             <div
               key={tier.id}
-              className={`rounded-2xl border p-5 space-y-3 ${isActive ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+              className={`relative rounded-[24px] p-5 transition-all ${
+                isPro
+                  ? "bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-[0_20px_40px_-15px_hsl(var(--primary)/0.5),0_8px_20px_-8px_hsl(var(--primary)/0.35)]"
+                  : isElite
+                  ? "bg-white/90 backdrop-blur-xl shadow-[0_16px_36px_-14px_rgba(15,23,42,0.18),0_6px_16px_-6px_rgba(15,23,42,0.12)] border border-foreground/5"
+                  : "bg-white/90 backdrop-blur-xl shadow-[0_12px_30px_-12px_rgba(15,23,42,0.15),0_4px_12px_-4px_rgba(15,23,42,0.08)] border border-foreground/5"
+              } ${isActive && !isPro ? "ring-2 ring-primary" : ""}`}
             >
-              <div className="flex items-center justify-between">
+              {isPro && (
+                <span className="absolute -top-2.5 right-5 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white text-primary font-bold shadow-md">
+                  Most Popular
+                </span>
+              )}
+              <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-bold text-foreground">{tier.badge} {tier.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-primary">{getPrice(tier)}</p>
+                  <h3 className={`font-display font-bold text-lg ${isPro ? "text-primary-foreground" : "text-foreground"}`}>
+                    {tier.badge} {tier.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className={`text-[15px] font-bold ${isPro ? "text-primary-foreground" : "text-primary"}`}>
+                      {getPrice(tier)}
+                    </p>
                     {saveBadge && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                        isPro ? "bg-white/20 text-primary-foreground" : "bg-primary/10 text-primary"
+                      }`}>
                         {saveBadge}
                       </span>
                     )}
                   </div>
                 </div>
                 {isActive && (
-                  <span className="flex items-center gap-1 text-xs text-primary font-medium">
+                  <span className={`flex items-center gap-1 text-xs font-semibold ${isPro ? "text-primary-foreground" : "text-primary"}`}>
                     <CheckCircle className="w-4 h-4" /> Current
                   </span>
                 )}
               </div>
-              <ul className="space-y-1.5">
+              {/* Features in tight 2-col square grid to minimize height */}
+              <ul className="grid grid-cols-2 gap-x-3 gap-y-2 mb-4">
                 {tier.features.map((f) => (
-                  <li key={f} className="text-xs text-muted-foreground flex items-start gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                    {f}
+                  <li key={f} className={`text-[12px] leading-snug flex items-start gap-1.5 ${
+                    isPro ? "text-primary-foreground/95" : "text-foreground/75"
+                  }`}>
+                    <CheckCircle className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isPro ? "text-primary-foreground" : "text-primary"}`} />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
               {!isActive && (
-                <Button
+                <button
                   onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
-                  className="w-full"
-                  variant="outline"
+                  className={`w-full h-11 rounded-[12px] font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${
+                    isPro
+                      ? "bg-white text-primary hover:bg-white/95 shadow-md"
+                      : "bg-foreground/5 text-foreground hover:bg-foreground/10 border border-foreground/10"
+                  }`}
                 >
-                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-4 h-4 animate-spin" />}
                   {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
-                </Button>
+                </button>
               )}
             </div>
           );

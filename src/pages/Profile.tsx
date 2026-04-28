@@ -488,14 +488,7 @@ const ProfilePage = () => {
           {/* LANDING VIEW */}
           {tab === "landing" && (
             <div className="space-y-4">
-              {/* Logo squircle — centered Helpr 'H' */}
-              <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] aspect-[5/2] flex items-center justify-center p-6">
-                <img
-                  src={helprIcon}
-                  alt="Helpr"
-                  className="h-full w-auto max-h-20 object-contain"
-                />
-              </div>
+
 
               {/* Identity card */}
               <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-6 text-center space-y-3">

@@ -12,6 +12,8 @@ cd "$(dirname "$0")/.."
 
 PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
 PLIST="ios/App/App/Info.plist"
+CAP_JSON="ios/App/App/capacitor.config.json"
+CONFIG_XML="ios/App/App/config.xml"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -62,6 +64,13 @@ check "LSApplicationCategoryType = lifestyle"  "$PLIST" "<string>public.app-cate
 check "ITSAppUsesNonExemptEncryption present"  "$PLIST" "ITSAppUsesNonExemptEncryption"
 
 echo ""
+echo "Generated Capacitor native files:"
+check "Native capacitor appId = com.Helpr"       "$CAP_JSON" '"appId": "com.Helpr"'
+check "Native capacitor appName = Louisiana Helpr" "$CAP_JSON" '"appName": "Louisiana Helpr"'
+check "Native config.xml widget id = com.Helpr" "$CONFIG_XML" 'widget id="com.Helpr"'
+check "Native config.xml name = Louisiana Helpr" "$CONFIG_XML" '<name>Louisiana Helpr</name>'
+
+echo ""
 echo "=== Result ==="
 echo ""
 if [ $fail -eq 0 ]; then
@@ -72,7 +81,7 @@ if [ $fail -eq 0 ]; then
   echo "  2. Delete Xcode's derived data:"
   echo "     rm -rf ~/Library/Developer/Xcode/DerivedData/App-*"
   echo "  3. From the project root run:"
-  echo "     npm run build:ios && npm run sync:ios"
+  echo "     npm run fix:xcode"
   echo "  4. Reopen with:  open ios/App/App.xcodeproj"
   echo "     (this project uses Swift Package Manager; no pod install needed)"
   echo "  5. In Xcode select the BLUE 'App' icon at the very top of the"

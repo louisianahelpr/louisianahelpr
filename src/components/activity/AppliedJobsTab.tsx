@@ -388,18 +388,18 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Pending withdraw */}
+            {/* Pending withdraw — ghost text link, deliberately understated.
+                Tapping opens a confirmation bottom sheet (see end of file). */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive border-destructive/30 hover:bg-destructive/5"
+              <div className="px-4 py-2 border-t border-border/30 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
                   disabled={withdrawingAppId === app.id}
-                  onClick={() => handleWithdraw(app.id, job.title || "Task")}
+                  onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors active:opacity-60 px-2 py-1 disabled:opacity-50"
                 >
-                  <XCircle className="w-4 h-4 mr-1" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
-                </Button>
+                  <XCircle className="w-3.5 h-3.5" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
+                </button>
               </div>
             )}
 

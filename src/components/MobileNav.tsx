@@ -144,39 +144,37 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       if (location.pathname !== effectivePath) navigate(effectivePath);
     };
 
+    const isActive = active || inStack;
     return (
-      const isActive = active || inStack;
-      return (
-        <button
-          key={path}
-          onClick={handleClick}
-          onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
-          onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
-          aria-label={guestLocked ? `${label} — sign up required` : label}
-          className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
-            isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <div className="relative">
-            <Icon
-              className="w-[22px] h-[22px] transition-all duration-200"
-              strokeWidth={isActive ? 2.25 : 2}
-              fill={isActive ? "hsl(var(--primary) / 0.2)" : "none"}
-            />
-            {guestLocked && (
-              <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
-                <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
-              </span>
-            )}
-            {showBadge && (
-              <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
-                {badgeCount > 9 ? "9+" : badgeCount}
-              </span>
-            )}
-          </div>
-          <span className={`font-medium tracking-tight transition-all duration-200 ${isActive ? "font-semibold" : ""}`}>{label}</span>
-        </button>
-      );
+      <button
+        key={path}
+        onClick={handleClick}
+        onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
+        onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
+        aria-label={guestLocked ? `${label} — sign up required` : label}
+        className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
+          isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <div className="relative">
+          <Icon
+            className="w-[22px] h-[22px] transition-all duration-200"
+            strokeWidth={isActive ? 2.25 : 2}
+            fill={isActive ? "hsl(var(--primary) / 0.2)" : "none"}
+          />
+          {guestLocked && (
+            <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
+              <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
+            </span>
+          )}
+          {showBadge && (
+            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
+              {badgeCount > 9 ? "9+" : badgeCount}
+            </span>
+          )}
+        </div>
+        <span className={`font-medium tracking-tight transition-all duration-200 ${isActive ? "font-semibold" : ""}`}>{label}</span>
+      </button>
     );
   };
 

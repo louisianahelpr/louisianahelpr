@@ -144,6 +144,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         triggerGate(label.toLowerCase());
         return;
       }
+      if (pendingLocked) {
+        // Pending users can browse the home dashboard but nothing else.
+        // Send them back to the review screen so they can sync status.
+        navigate("/account-pending");
+        return;
+      }
       // If we're inside this tab's stack but not on its root, pop back to root.
       if (!isGuest && inStack && location.pathname !== path) {
         navigate(path);
@@ -157,9 +163,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <button
         key={path}
         onClick={handleClick}
-        onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
-        onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
-        aria-label={guestLocked ? `${label} — sign up required` : label}
+        onMouseEnter={() => !locked && prefetchRoute(effectivePath)}
+        onFocus={() => !locked && prefetchRoute(effectivePath)}
+        aria-label={locked ? `${label} — locked until your account is approved` : label}
         className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
           isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
@@ -170,7 +176,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             strokeWidth={isActive ? 2.25 : 2}
             fill={isActive ? "hsl(var(--primary) / 0.2)" : "none"}
           />
-          {guestLocked && (
+          {locked && (
             <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
               <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
             </span>

@@ -558,29 +558,40 @@ const ProfilePage = () => {
                 </button>
               </div>
 
-              {/* Grouped vertical menu — each group is a white squircle */}
+              {/* Grouped vertical menu — each group is a white squircle with
+                  inset dividers, muted duo-tone icons, and aligned chevrons. */}
               <div className="space-y-4">
                 {menuGroups.map((group) => (
                   <div key={group.title}>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">{group.title}</p>
-                    <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] overflow-hidden divide-y divide-border/40">
-                      {group.items.map((item) => (
+                    <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] overflow-hidden">
+                      {group.items.map((item, idx) => (
                         <button
                           key={item.label}
                           onClick={() => {
                             if (item.href) navigate(item.href);
                             else setTab(item.key);
                           }}
-                          className="w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors text-left"
+                          className="group/row w-full flex items-center gap-4 pl-5 pr-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          {/* Inset divider — stops short of the card edges */}
+                          {idx > 0 && (
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute top-0 left-[68px] right-4 h-px bg-border/50"
+                            />
+                          )}
+                          <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
                             {item.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                            <p className="text-xs text-muted-foreground">{item.desc}</p>
+                            <p className="text-sm font-semibold text-foreground leading-tight">{item.label}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.desc}</p>
                           </div>
-                          <ChevronRightIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                          {/* Chevron — fixed width keeps every row's arrow on the same vertical axis */}
+                          <span className="w-5 flex items-center justify-center shrink-0">
+                            <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
+                          </span>
                         </button>
                       ))}
                     </div>

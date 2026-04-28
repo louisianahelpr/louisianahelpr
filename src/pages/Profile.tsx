@@ -21,6 +21,8 @@ import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import AppShell from "@/components/AppShell";
+import helprIcon from "@/assets/helpr-icon-96.webp";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -478,17 +480,25 @@ const ProfilePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <DashboardHeader />
-
+    <>
+    <AppShell header={<DashboardHeader />}>
       <main className="mx-auto max-w-5xl px-5 py-4">
         <div className="max-w-2xl mx-auto space-y-4">
 
           {/* LANDING VIEW */}
           {tab === "landing" && (
-            <div className="space-y-5">
-              {/* Profile header card */}
-              <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
+            <div className="space-y-4">
+              {/* Logo squircle — centered Helpr 'H' */}
+              <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] aspect-[5/2] flex items-center justify-center p-6">
+                <img
+                  src={helprIcon}
+                  alt="Helpr"
+                  className="h-full w-auto max-h-20 object-contain"
+                />
+              </div>
+
+              {/* Identity card */}
+              <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-6 text-center space-y-3">
                 <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
@@ -521,7 +531,7 @@ const ProfilePage = () => {
 
               {/* Payout Banner */}
               {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
-                <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                <div className="rounded-[24px] border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div className="flex-1">
@@ -537,38 +547,31 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {/* Quick stats */}
-              <div className="grid grid-cols-4 gap-2">
-                <button onClick={() => setTab("reviews")} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
+              {/* Stats row — three white squircle mini-cards */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <button onClick={() => setTab("reviews")} className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-3.5 text-center hover:shadow-md transition-all">
                   <div className="flex items-center justify-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                    <p className="text-lg font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</p>
+                    <Star className="w-4 h-4 text-primary fill-primary" />
+                    <p className="text-xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
                 </button>
-                <button onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
-                  <p className="text-lg font-bold text-foreground">{postedCount}</p>
-                  <p className="text-[10px] text-muted-foreground">Posted</p>
+                <button onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }} className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-3.5 text-center hover:shadow-md transition-all">
+                  <p className="text-xl font-bold text-foreground">{postedCount}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Jobs Posted</p>
                 </button>
-                <button onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
-                  <p className="text-lg font-bold text-foreground">{completedCount}</p>
-                  <p className="text-[10px] text-muted-foreground">Completed</p>
-                </button>
-                <button onClick={() => { loadEarnings(); setTab("earnings"); }} className="rounded-xl border border-border bg-card p-3 text-center hover:border-primary/30 hover:shadow-sm transition-all">
-                  <div className="flex items-center justify-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-primary" />
-                    <p className="text-lg font-bold text-foreground">{(totalJobEarnings + totalTipEarnings) > 0 ? `$${(totalJobEarnings + totalTipEarnings).toFixed(2)}` : "—"}</p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Earnings</p>
+                <button onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }} className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-3.5 text-center hover:shadow-md transition-all">
+                  <p className="text-xl font-bold text-foreground">{completedCount}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Jobs Completed</p>
                 </button>
               </div>
 
-              {/* Grouped vertical menu */}
+              {/* Grouped vertical menu — each group is a white squircle */}
               <div className="space-y-4">
                 {menuGroups.map((group) => (
                   <div key={group.title}>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">{group.title}</p>
-                    <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                    <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] overflow-hidden divide-y divide-border/40">
                       {group.items.map((item) => (
                         <button
                           key={item.label}
@@ -593,11 +596,8 @@ const ProfilePage = () => {
                 ))}
               </div>
 
-              {/* Account actions — Sign out + Delete grouped at the very
-                  bottom. Extra `pb-8` plus the page-level `pb-safe-nav`
-                  guarantees both buttons sit comfortably above the floating
-                  bottom nav AND the iOS home-indicator safe-area. */}
-              <div className="space-y-3 pt-2 pb-8">
+              {/* Account actions */}
+              <div className="space-y-3 pt-2 pb-4">
                 <Button
                   variant="outline"
                   className="w-full"
@@ -1105,8 +1105,9 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
+    </AppShell>
 
-      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Log out?</AlertDialogTitle>
@@ -1210,7 +1211,7 @@ const ProfilePage = () => {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 };
 

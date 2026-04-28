@@ -489,35 +489,67 @@ const ProfilePage = () => {
             <div className="space-y-4">
 
 
-              {/* Identity card */}
-              <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-6 text-center space-y-3">
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold overflow-hidden">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                  ) : initials}
-                </div>
-                <div>
-                  <h1 className="text-xl font-display font-bold text-foreground">
-                    {displayName || "Welcome back"}
-                  </h1>
-                  <div className="flex items-center justify-center gap-2 mt-1">
-                    {role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{role}</span>}
+              {/* Compact Hero — horizontal identity card with integrated stats */}
+              <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-4 space-y-3.5">
+                {/* Top row: avatar + identity text */}
+                <div className="flex items-center gap-4">
+                  <div className="w-[84px] h-[84px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : initials}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <h1 className="text-lg font-display font-bold text-foreground truncate">
+                      {displayName || "Welcome back"}
+                    </h1>
                     {profile?.location && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{profile.location}</span>
+                      </p>
+                    )}
+                    {profile?.created_at && (
+                      <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                        Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                      </p>
+                    )}
+                    {!profile?.full_name?.trim() && (
+                      <button
+                        onClick={() => setTab("profile")}
+                        className="mt-1.5 text-xs font-semibold text-primary hover:underline"
+                      >
+                        + Add your name
+                      </button>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
-                  {profile?.created_at && (
-                    <p className="text-xs text-muted-foreground mt-0.5">Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
-                  )}
-                  {!profile?.full_name?.trim() && (
-                    <button
-                      onClick={() => setTab("profile")}
-                      className="mt-3 text-xs font-semibold text-primary hover:underline"
-                    >
-                      + Add your name
-                    </button>
-                  )}
+                </div>
+
+                {/* Integrated stats — slim row inside the same card, separated by a hairline */}
+                <div className="grid grid-cols-3 border-t border-border/50 pt-3 -mx-1">
+                  <button
+                    onClick={() => setTab("reviews")}
+                    className="flex flex-col items-center justify-center gap-0.5 px-2 py-0.5 hover:opacity-70 active:opacity-50 transition-opacity border-r border-border/50"
+                  >
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                      <p className="text-base font-bold text-foreground leading-none">{avgRating ? avgRating.toFixed(1) : "5.0"}</p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
+                  </button>
+                  <button
+                    onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }}
+                    className="flex flex-col items-center justify-center gap-0.5 px-2 py-0.5 hover:opacity-70 active:opacity-50 transition-opacity border-r border-border/50"
+                  >
+                    <p className="text-base font-bold text-foreground leading-none">{postedCount}</p>
+                    <p className="text-[10px] text-muted-foreground">Jobs Posted</p>
+                  </button>
+                  <button
+                    onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }}
+                    className="flex flex-col items-center justify-center gap-0.5 px-2 py-0.5 hover:opacity-70 active:opacity-50 transition-opacity"
+                  >
+                    <p className="text-base font-bold text-foreground leading-none">{completedCount}</p>
+                    <p className="text-[10px] text-muted-foreground">Jobs Completed</p>
+                  </button>
                 </div>
               </div>
 
@@ -538,25 +570,6 @@ const ProfilePage = () => {
                   </Button>
                 </div>
               )}
-
-              {/* Stats row — three white squircle mini-cards */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <button onClick={() => setTab("reviews")} className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-3.5 text-center hover:shadow-md transition-all">
-                  <div className="flex items-center justify-center gap-1">
-                    <Star className="w-4 h-4 text-primary fill-primary" />
-                    <p className="text-xl font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
-                </button>
-                <button onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }} className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-3.5 text-center hover:shadow-md transition-all">
-                  <p className="text-xl font-bold text-foreground">{postedCount}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Jobs Posted</p>
-                </button>
-                <button onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }} className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-3.5 text-center hover:shadow-md transition-all">
-                  <p className="text-xl font-bold text-foreground">{completedCount}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Jobs Completed</p>
-                </button>
-              </div>
 
               {/* Grouped vertical menu — each group is a white squircle with
                   inset dividers, muted duo-tone icons, and aligned chevrons. */}

@@ -24,11 +24,11 @@ const ReferralPanel = () => {
           <Gift className="w-4 h-4" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0">
-        <SheetHeader className="p-4 border-b border-border">
+      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full">
+        <SheetHeader className="p-4 border-b border-border shrink-0">
           <SheetTitle className="font-display">Referral Program</SheetTitle>
         </SheetHeader>
-        <div className="overflow-y-auto max-h-[calc(100vh-5rem)] p-4">
+        <div className="flex-1 min-h-0 p-4 overflow-hidden">
           {userId ? (
             <ReferralSection userId={userId} />
           ) : (

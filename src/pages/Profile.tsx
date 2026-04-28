@@ -480,6 +480,7 @@ const ProfilePage = () => {
   ];
 
   return (
+    <>
     <AppShell header={<DashboardHeader />}>
       <main className="mx-auto max-w-5xl px-5 py-4">
         <div className="max-w-2xl mx-auto space-y-4">

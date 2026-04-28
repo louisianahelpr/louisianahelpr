@@ -278,9 +278,20 @@ const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) 
     <PopoverContent
       align="start"
       sideOffset={8}
-      className={`w-[min(92vw,340px)] rounded-2xl squircle border-border/60 shadow-xl ${surfaceGradient} p-3`}
+      collisionPadding={{ bottom: 96, top: 12, left: 12, right: 12 }}
+      className={`w-[min(92vw,340px)] rounded-2xl squircle border border-border/40 ring-1 ring-border/20 shadow-2xl ${surfaceGradient} p-0 overflow-hidden`}
     >
-      {children}
+      <div
+        className="max-h-[min(60vh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain p-3"
+        style={{
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
+          maskImage:
+            "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
+        }}
+      >
+        {children}
+      </div>
     </PopoverContent>
   </Popover>
 );

@@ -48,8 +48,8 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
           on overscroll). High z-index so all page content + cards scroll
           underneath. Frosted-glass surface matches PageHeader exactly. */}
       <header
-        className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)]"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
       >
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-5">
           <div className="flex items-center gap-2 min-w-0">

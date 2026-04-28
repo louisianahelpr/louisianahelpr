@@ -118,7 +118,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     // the whole viewport top-to-bottom.
     <div
       className="fixed inset-0 z-40 flex flex-col overflow-hidden"
-      style={{ background: "linear-gradient(to bottom, #E8F5E9 0%, #F4FBF5 55%, #FFFFFF 100%)" }}
+      style={{ background: "#E8F5E9" }}
     >
       {/* Top nav bar — back arrow + Subscription title */}
       <div

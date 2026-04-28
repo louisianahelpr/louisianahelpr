@@ -58,7 +58,8 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 
 @layer base {
   :root {
-    --background: 150 20% 97%;
+    /* Solid Soft-Mint #E8F5E9 — global brand canvas (no gradient). */
+    --background: 122 38% 93%;
     --foreground: 160 10% 12%;
 
     --card: 0 0% 100%;
@@ -189,37 +190,18 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
      create an airy, on-brand backdrop that lets dark text and vibrant
      green CTAs pop without competing for attention. */
   .bg-premium-page {
-    background-color: hsl(150 35% 98%);
-    background-image:
-      radial-gradient(ellipse 75% 55% at 88% -5%, hsl(var(--primary) / 0.12), transparent 62%),
-      radial-gradient(ellipse 65% 50% at 12% 22%, hsl(158 60% 55% / 0.08), transparent 58%),
-      radial-gradient(ellipse 70% 50% at 92% 58%, hsl(var(--primary) / 0.09), transparent 62%),
-      radial-gradient(ellipse 60% 45% at 8% 82%, hsl(159 50% 60% / 0.09), transparent 58%),
-      radial-gradient(ellipse 90% 55% at 50% 105%, hsl(var(--primary) / 0.07), transparent 62%),
-      linear-gradient(180deg, hsl(150 40% 99%) 0%, hsl(155 35% 97%) 45%, hsl(160 30% 96%) 100%);
-    background-attachment: fixed, fixed, fixed, fixed, fixed, fixed;
+    /* Fixed Soft-Mint Standard: solid #E8F5E9, no gradients or orbs. */
+    background-color: #E8F5E9;
+    background-image: none;
     position: relative;
   }
   .dark .bg-premium-page {
     background-color: hsl(160 12% 7%);
-    background-image:
-      radial-gradient(ellipse 75% 55% at 88% -5%, hsl(var(--primary) / 0.18), transparent 62%),
-      radial-gradient(ellipse 65% 50% at 12% 22%, hsl(159 43% 51% / 0.10), transparent 58%),
-      radial-gradient(ellipse 70% 50% at 92% 58%, hsl(var(--primary) / 0.14), transparent 62%),
-      radial-gradient(ellipse 60% 45% at 8% 82%, hsl(159 43% 60% / 0.10), transparent 58%),
-      radial-gradient(ellipse 90% 55% at 50% 105%, hsl(var(--primary) / 0.10), transparent 62%),
-      linear-gradient(180deg, hsl(160 12% 7%) 0%, hsl(160 10% 9%) 50%, hsl(160 10% 8%) 100%);
-    background-attachment: fixed, fixed, fixed, fixed, fixed, fixed;
+    background-image: none;
   }
-  /* Subtle grain overlay for premium tactile feel */
+  /* Grain overlay removed for the Fixed Soft-Mint Standard. */
   .bg-premium-page::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    content: none;
   }
   /* Ensure page content sits above the overlay */
   .bg-premium-page > * {

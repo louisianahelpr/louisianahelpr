@@ -115,10 +115,10 @@ const PageFallback = () => (
       alt="Helpr"
       className="object-contain rounded-[24px] animate-fade-out"
       style={{
-        width: "504px",
-        height: "504px",
-        maxWidth: "78vmin",
-        maxHeight: "78vmin",
+        width: "580px",
+        height: "580px",
+        maxWidth: "88vmin",
+        maxHeight: "88vmin",
         animationDuration: "600ms",
         animationDelay: "400ms",
         animationFillMode: "forwards",

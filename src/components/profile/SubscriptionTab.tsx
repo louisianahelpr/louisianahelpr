@@ -117,8 +117,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     // but below the bottom nav (which has z-50). The mint gradient background covers
     // the whole viewport top-to-bottom.
     <div
-      className="fixed inset-0 z-40 flex flex-col overflow-hidden"
-      style={{ background: "#E8F5E9" }}
+      className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-background"
     >
       {/* Top nav bar — back arrow + Subscription title */}
       <div

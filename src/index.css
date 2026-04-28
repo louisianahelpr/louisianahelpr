@@ -58,8 +58,9 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 
 @layer base {
   :root {
-    /* Solid Soft-Mint #E8F5E9 — global brand canvas (no gradient). */
-    --background: 122 38% 93%;
+    /* Ultra-light tint of Helpr Green (hsl 158 67% 27%) — barely-there
+       brand wash that pairs with the vibrant green CTAs. */
+    --background: 158 45% 98%;
     --foreground: 160 10% 12%;
 
     --card: 0 0% 100%;
@@ -190,8 +191,8 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
      create an airy, on-brand backdrop that lets dark text and vibrant
      green CTAs pop without competing for attention. */
   .bg-premium-page {
-    /* Fixed Soft-Mint Standard: solid #E8F5E9, no gradients or orbs. */
-    background-color: #E8F5E9;
+    /* Solid ultra-light Helpr-green tint — pairs with vibrant green CTAs. */
+    background-color: hsl(158 45% 98%);
     background-image: none;
     position: relative;
   }

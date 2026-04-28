@@ -12,6 +12,7 @@ const plistPath = path.join(repoRoot, "ios/App/App/Info.plist");
 const capacitorTsPath = path.join(repoRoot, "capacitor.config.ts");
 const capacitorJsonPath = path.join(repoRoot, "ios/App/App/capacitor.config.json");
 const configXmlPath = path.join(repoRoot, "ios/App/App/config.xml");
+const capAppPackagePath = path.join(repoRoot, "ios/App/CapApp-SPM/Package.swift");
 
 const read = (relativeOrAbsolute) => fs.readFileSync(relativeOrAbsolute, "utf8");
 const write = (relativeOrAbsolute, contents) => fs.writeFileSync(relativeOrAbsolute, contents);
@@ -139,5 +140,14 @@ write(path.join(repoRoot, "fastlane/metadata/en-US/marketing_url.txt"), `${metad
 write(path.join(repoRoot, "fastlane/metadata/en-US/privacy_url.txt"), `${metadata.privacyUrl}\n`);
 write(path.join(repoRoot, "fastlane/metadata/en-US/support_url.txt"), `${metadata.supportUrl}\n`);
 write(path.join(repoRoot, "fastlane/metadata/primary_category.txt"), `${metadata.category.split(".").pop().toUpperCase().replaceAll("-", "_")}\n`);
+
+if (fs.existsSync(capAppPackagePath)) {
+  let capAppPackage = read(capAppPackagePath);
+  capAppPackage = capAppPackage.replace(
+    /path: "\.\.\/\.\.\/\.\.\/node_modules\/\.bun\/@capacitor\+([^@]+)@[^\"]+\/node_modules\/@capacitor\/([^\"]+)"/g,
+    'path: "../../../node_modules/@capacitor/$2"',
+  );
+  write(capAppPackagePath, capAppPackage);
+}
 
 console.log(`Synced iOS metadata: ${metadata.displayName} / ${metadata.bundleId} / ${metadata.category} / ${metadata.marketingVersion} (${highestExistingBuild})`);

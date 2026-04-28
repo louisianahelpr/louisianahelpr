@@ -14,7 +14,7 @@ import {
   Star, Edit, CalendarDays, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
-  Briefcase, ShieldCheck, Trash2,
+  ShieldCheck, Trash2,
 } from "lucide-react";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";
@@ -122,6 +122,9 @@ const ProfilePage = () => {
   const [skills, setSkills] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [idUploading, setIdUploading] = useState(false);
 
   // Earnings state
   const [earningsJobs, setEarningsJobs] = useState<Job[]>([]);
@@ -165,6 +168,9 @@ const ProfilePage = () => {
       if (cachedProfile) {
         setProfile(cachedProfile);
         setFullName(cachedProfile.full_name || "");
+        const _parts = (cachedProfile.full_name || "").trim().split(/\s+/);
+        setFirstName(_parts[0] || "");
+        setLastName(_parts.slice(1).join(" ") || "");
         setPhone(cachedProfile.phone || "");
         setLocation(cachedProfile.location || "");
         setZipCode((cachedProfile as any).zip_code || "");
@@ -189,6 +195,9 @@ const ProfilePage = () => {
     if (data) {
       setProfile(data);
       setFullName(data.full_name || "");
+      const _p = (data.full_name || "").trim().split(/\s+/);
+      setFirstName(_p[0] || "");
+      setLastName(_p.slice(1).join(" ") || "");
       setPhone(data.phone || "");
       setLocation(data.location || "");
       setZipCode((data as any).zip_code || "");
@@ -341,9 +350,10 @@ const ProfilePage = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const merged = `${firstName.trim()} ${lastName.trim()}`.trim();
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
-      full_name: fullName.trim(), phone: phone.trim(), location: location.trim(),
+      full_name: merged, phone: phone.trim(), location: location.trim(),
       bio: bio.trim(), skills: skills.trim(),
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
       date_of_birth: dateOfBirth || null,
@@ -352,7 +362,30 @@ const ProfilePage = () => {
     } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
-    else toast.success("Profile updated!");
+    else {
+      setFullName(merged);
+      toast.success("Profile updated!");
+    }
+  };
+
+  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!allowed.includes(file.type)) { toast.error("Use JPG, PNG, WEBP or PDF"); return; }
+    setIdUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/id-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
+    if (upErr) { toast.error("Upload failed: " + upErr.message); setIdUploading(false); return; }
+    const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" } as any).eq("user_id", user.id);
+    if (updErr) toast.error("Failed to save ID");
+    else {
+      setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" } as any) : prev);
+      toast.success("ID submitted for review");
+    }
+    setIdUploading(false);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -664,246 +697,154 @@ const ProfilePage = () => {
           )}
 
           {/* PROFILE TAB */}
-          {tab === "profile" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                  <h1 className="text-2xl font-display font-bold text-foreground">Edit profile</h1>
-                  <p className="text-muted-foreground text-sm">Keep your info up to date</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSave} className="space-y-4">
-                {/* Avatar Upload */}
-                <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center gap-3">
-                  <div className="relative group">
-                    {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-primary/20" />
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold border-2 border-primary/20">
-                        {initials}
-                      </div>
-                    )}
-                    <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      {avatarUploading ? (
-                        <Loader2 className="w-6 h-6 text-white animate-spin" />
-                      ) : (
-                        <Camera className="w-6 h-6 text-white" />
-                      )}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
-                    </label>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Tap to change profile picture</p>
-                </div>
-
-                {/* Personal Info Card */}
-                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-                  <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-primary" /> Personal Information
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="fullName" className="text-xs">Full name</Label>
-                      <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs">Phone</Label>
-                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="dob" className="text-xs">Date of birth</Label>
-                      <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="location" className="text-xs">City</Label>
-                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="zipCode" className="text-xs">ZIP code</Label>
-                      <Input
-                        id="zipCode"
-                        value={zipCode}
-                        onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                        placeholder="70801"
-                        inputMode="numeric"
-                        maxLength={5}
-                      />
-                      {/* Parish silently looked up from zip for Louisiana sales tax (admin-only). */}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Professional Summary Card */}
-                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-                  <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-primary" /> Professional Summary
-                  </h2>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bio" className="text-xs">About your work</Label>
-                    <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Share your experience, what you specialize in, and what makes you reliable…" rows={4} />
-                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">
-                      <p className="text-[11px] font-semibold text-primary uppercase tracking-wide mb-0.5">💡 Pro Tip</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Mention the <span className="font-medium text-foreground">tools and equipment</span> you bring (mower, pressure washer, truck, cleaning supplies). Posters trust helprs who come prepared.
-                      </p>
-                    </div>
-                  </div>
-                  {role === "helper" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="skills" className="text-xs">Skills & services</Label>
-                        <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="Cleaning, yard work, moving…" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="rate" className="text-xs">Hourly rate ($)</Label>
-                        <Input id="rate" type="number" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} placeholder="25" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Safety & Verification Card — helpers only */}
-                {role === "helper" && (() => {
-                  const status = (profile as any)?.idv_status as string | null;
-                  const config = status === "verified"
-                    ? { label: "Verified", desc: "Your identity has been confirmed. Posters can see your verified badge.", color: "text-green-600 dark:text-green-500", bg: "bg-green-500/10", border: "border-green-500/30", dot: "bg-green-500", pulse: false }
-                    : (status === "pending" || status === "processing" || status === "manual_review")
-                    ? { label: "Pending", desc: "We're reviewing your ID. This usually takes under 2 minutes, but may take up to 1–2 business days for manual review.", color: "text-amber-600 dark:text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/30", dot: "bg-amber-500", pulse: true }
-                    : status === "failed"
-                    ? { label: "Action Needed", desc: "We couldn't verify your ID. Please re-submit a clear photo of a valid government-issued ID.", color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/30", dot: "bg-destructive", pulse: false }
-                    : { label: "Not Started", desc: "Verify your identity to unlock job applications and earn the verified badge.", color: "text-muted-foreground", bg: "bg-muted", border: "border-border", dot: "bg-muted-foreground", pulse: false };
-                  return (
-                    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-                      <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-primary" /> Safety & Verification
-                      </h2>
-                      <div className={`rounded-lg ${config.bg} border ${config.border} p-3 flex items-start gap-3`}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${config.dot} mt-1.5 shrink-0 ${config.pulse ? "animate-pulse" : ""}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold flex items-center flex-wrap gap-2">
-                            <span className="text-foreground">ID Verification</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${config.bg} ${config.color} font-medium`}>{config.label}</span>
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{config.desc}</p>
-                        </div>
-                      </div>
-                      <div className="rounded-lg bg-muted/50 border border-border p-3 flex items-start gap-2">
-                        <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          <span className="font-medium text-foreground">Your privacy is protected.</span> Sensitive ID documents are encrypted and processed by <span className="font-medium text-foreground">Stripe Identity</span> — Helpr never stores or sees your raw ID images.
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Portfolio Card — Pro+ only */}
-                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          {tab === "profile" && (() => {
+            const idStatus = (profile as any)?.idv_status as string | null;
+            const hasId = !!(profile as any)?.id_document_url;
+            const idBadge = idStatus === "verified"
+              ? { label: "Verified", cls: "bg-green-500/10 text-green-600 dark:text-green-500" }
+              : (idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" || (hasId && !idStatus))
+              ? { label: "Pending review", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-500" }
+              : idStatus === "failed"
+              ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
+              : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
+            const bioOk = bio.trim().length >= 20;
+            const ageOk = (() => {
+              if (!dateOfBirth) return false;
+              const d = new Date(dateOfBirth);
+              if (isNaN(d.getTime())) return false;
+              const t = new Date();
+              let age = t.getFullYear() - d.getFullYear();
+              const m = t.getMonth() - d.getMonth();
+              if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
+              return age >= 18;
+            })();
+            return (
+              <div className="h-[calc(100dvh-8.5rem)] flex flex-col overflow-hidden">
+                <div className="flex items-center gap-3 shrink-0 mb-2">
+                  <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
                   <div>
-                    <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" /> Portfolio & Documents
-                    </h2>
-                    {(!profile?.subscription_tier || profile.subscription_tier === "basic") ? (
-                      <div className="mt-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                        <p className="text-xs text-primary font-medium">🔒 Pro+ Feature</p>
-                        <p className="text-xs text-muted-foreground mt-1">Upgrade to Pro or Elite to showcase your portfolio and stand out to customers.</p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mt-1">Work samples, certifications, resume — up to 10 files</p>
-                    )}
+                    <h1 className="text-xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
+                    <p className="text-muted-foreground text-[11px]">The Big 7 — keep these current</p>
                   </div>
-                  {(profile?.subscription_tier === "pro" || profile?.subscription_tier === "elite") && (
-                  <div className="flex flex-wrap gap-3">
-                    {(profile?.portfolio_urls as string[] || []).map((url, i) => {
-                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-                      const fileName = url.split("/").pop() || "Document";
-                      return (
-                        <div key={i} className="relative group">
-                          {isImage ? (
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
-                              <img src={url} alt="" className="w-full h-full object-cover" />
-                            </a>
-                          ) : (
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1 hover:border-primary transition-colors">
-                              <FileText className="w-5 h-5 text-muted-foreground" />
-                              <p className="text-[9px] text-muted-foreground text-center mt-1 truncate w-full">{fileName}</p>
-                            </a>
-                          )}
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const currentUrls = (profile?.portfolio_urls as string[] || []).filter((_, idx) => idx !== i);
-                              const { error } = await supabase.from("profiles").update({ portfolio_urls: currentUrls }).eq("user_id", user!.id);
-                              if (error) toast.error("Failed to remove");
-                              else { toast.success("Removed"); loadProfile(user!.id); }
-                            }}
-                            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                    <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                      <Upload className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf,.doc,.docx"
-                        multiple
-                        className="hidden"
-                        onChange={async (e) => {
-                          const files = Array.from(e.target.files || []);
-                          if (!files.length || !user) return;
-                          const currentUrls = (profile?.portfolio_urls as string[] || []);
-                          if (currentUrls.length + files.length > 10) {
-                            toast.error("Maximum 10 files allowed");
-                            return;
-                          }
-                          toast.info("Uploading…");
-                          const newUrls: string[] = [];
-                          for (const file of files) {
-                            const ext = file.name.split(".").pop();
-                            const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-                            const { error } = await supabase.storage.from("user-documents").upload(path, file);
-                            if (!error) {
-                              const { data: urlData } = supabase.storage.from("user-documents").getPublicUrl(path);
-                              newUrls.push(urlData.publicUrl);
-                            }
-                          }
-                          if (newUrls.length > 0) {
-                            const updated = [...currentUrls, ...newUrls];
-                            await supabase.from("profiles").update({ portfolio_urls: updated }).eq("user_id", user.id);
-                            toast.success(`${newUrls.length} file(s) uploaded!`);
-                            loadProfile(user.id);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                  )}
                 </div>
 
+                <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="relative group shrink-0">
+                        {profile?.avatar_url ? (
+                          <img src={profile.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary/20" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-bold border-2 border-primary/20">
+                            {initials}
+                          </div>
+                        )}
+                        <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                          {avatarUploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+                          <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
+                        </label>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{`${firstName} ${lastName}`.trim() || "Your name"}</p>
+                        <p className="text-[11px] text-muted-foreground">Tap photo to change</p>
+                      </div>
+                    </div>
 
-                {/* Spacer so content isn't hidden behind sticky bar */}
-                <div className="h-20" aria-hidden="true" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="firstName" className="text-[11px] mb-1">First name</Label>
+                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-10" />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName" className="text-[11px] mb-1">Last name</Label>
+                        <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-10" />
+                      </div>
+                    </div>
 
-                {/* Sticky Save bar */}
-                <div className="sticky bottom-16 sm:bottom-4 left-0 right-0 -mx-4 sm:mx-0 px-4 sm:px-0 z-30 pointer-events-none">
-                  <div className="pointer-events-auto rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="phone" className="text-[11px] mb-1">Phone</Label>
+                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+                      </div>
+                      <div>
+                        <Label htmlFor="dob" className="text-[11px] mb-1">
+                          Date of birth {dateOfBirth && !ageOk && <span className="text-destructive">(18+)</span>}
+                        </Label>
+                        <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="h-10" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="location" className="text-[11px] mb-1">City</Label>
+                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                      </div>
+                      <div>
+                        <Label htmlFor="zipCode" className="text-[11px] mb-1">ZIP</Label>
+                        <Input
+                          id="zipCode"
+                          value={zipCode}
+                          onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                          placeholder="70801"
+                          inputMode="numeric"
+                          maxLength={5}
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="bio" className="text-[11px] mb-1 flex items-center justify-between">
+                        <span>About your work</span>
+                        <span className={bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}>{bio.trim().length}/20</span>
+                      </Label>
+                      <Textarea
+                        id="bio"
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="What you do, tools you bring, what makes you reliable…"
+                        rows={3}
+                        className="min-h-[72px]"
+                      />
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card/60 p-3 flex items-center gap-3">
+                      <Shield className="w-5 h-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                          ID Verification
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${idBadge.cls}`}>{idBadge.label}</span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-snug">Government ID. Encrypted &amp; reviewed by Helpr.</p>
+                      </div>
+                      <label className="shrink-0">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-3 h-9 rounded-xl bg-primary text-primary-foreground cursor-pointer hover:opacity-90">
+                          {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                          {hasId ? "Replace" : "Upload"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          className="hidden"
+                          onChange={handleIdUpload}
+                          disabled={idUploading}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 pt-2">
                     <Button type="submit" className="w-full" size="lg" disabled={saving}>
                       {saving ? "Saving…" : "Save Changes"}
                     </Button>
                   </div>
-                </div>
-              </form>
-            </div>
-          )}
+                </form>
+              </div>
+            );
+          })()}
+
 
           {/* EXTRACTED TAB COMPONENTS — lazy loaded */}
           {tab === "earnings" && user && (

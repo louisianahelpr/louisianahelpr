@@ -141,145 +141,153 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </h1>
       </div>
 
-      {/* Single-line free plan / status text — compact */}
-      <div className="px-5 shrink-0 flex items-center" style={{ height: "26px" }}>
-        {currentTier && !isExpired ? (
-          <p className="text-[12px] text-foreground/70 truncate">
-            <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
-            {expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}
-          </p>
-        ) : (
-          <p className="text-[12px] text-foreground/70 truncate">
-            {isExpired ? "Your plan expired — pick one to renew." : "Free plan · upgrade to unlock more jobs."}
-          </p>
-        )}
-      </div>
+      {/* Scrollable inner container — sits between fixed header and fixed bottom dock.
+          The PAGE does not scroll; only this box does. Scrollbar is hidden. */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar"
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+        }}
+      >
+        {/* Single-line free plan / status text — compact */}
+        <div className="px-5 pt-2 flex items-center">
+          {currentTier && !isExpired ? (
+            <p className="text-[12px] text-foreground/70 truncate">
+              <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
+              {expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}
+            </p>
+          ) : (
+            <p className="text-[12px] text-foreground/70 truncate">
+              {isExpired ? "Your plan expired — pick one to renew." : "Free plan · upgrade to unlock more jobs."}
+            </p>
+          )}
+        </div>
 
-      {/* Billing chip bar — tight 10px margin */}
-      <div className="px-5 mt-[10px] shrink-0">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {([
-            { key: "annual" as const, label: "Annual" },
-            { key: "monthly" as const, label: "Monthly" },
-            { key: "one_time" as const, label: "One-Time" },
-          ]).map((opt) => {
-            const active = billingInterval === opt.key;
+        {/* Billing chip bar */}
+        <div className="px-5 mt-2.5">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {([
+              { key: "annual" as const, label: "Annual" },
+              { key: "monthly" as const, label: "Monthly" },
+              { key: "one_time" as const, label: "One-Time" },
+            ]).map((opt) => {
+              const active = billingInterval === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setBillingInterval(opt.key)}
+                  className={`shrink-0 px-3.5 h-8 rounded-full text-[13px] font-semibold transition-all border ${
+                    active
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-white/60 text-foreground/70 border-foreground/10 hover:bg-white"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active subscription manage button */}
+        {currentTier && !isExpired && (
+          <div className="px-5 mt-2 flex gap-2">
+            <Button
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+              variant="outline"
+              size="sm"
+              className="flex-1 h-9"
+            >
+              {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Crown className="w-3.5 h-3.5 mr-1.5 text-primary" />}
+              Manage
+            </Button>
+            <Button
+              onClick={refreshSubscription}
+              disabled={refreshing}
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              aria-label="Refresh"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        )}
+
+        {/* Cards stack */}
+        <div className="px-3 pt-3 flex flex-col gap-2.5">
+          {tierConfig.map((tier) => {
+            const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
+            const saveBadge = getSaveBadge(tier);
+            const isPro = tier.id === "pro";
             return (
-              <button
-                key={opt.key}
-                onClick={() => setBillingInterval(opt.key)}
-                className={`shrink-0 px-3.5 h-8 rounded-full text-[13px] font-semibold transition-all border ${
-                  active
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-white/60 text-foreground/70 border-foreground/10 hover:bg-white"
-                }`}
+              <div
+                key={tier.id}
+                className={`relative rounded-[24px] px-4 py-3 flex flex-col bg-white border transition-all ${
+                  isPro
+                    ? "border-primary/25 shadow-[0_0_0_4px_hsl(var(--primary)/0.08),0_22px_44px_-16px_hsl(var(--primary)/0.4),0_8px_18px_-6px_hsl(var(--primary)/0.22)]"
+                    : "border-foreground/8 shadow-[0_8px_22px_-12px_rgba(15,23,42,0.18),0_2px_8px_-3px_rgba(15,23,42,0.08)]"
+                } ${isActive ? "ring-2 ring-primary" : ""}`}
               >
-                {opt.label}
-              </button>
+                {isPro && (
+                  <span className="absolute -top-2 right-4 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
+                    Most Popular
+                  </span>
+                )}
+
+                {/* Header row — title + price */}
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-display font-bold text-[15px] leading-tight text-foreground truncate">
+                      {tier.badge} {tier.name}
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[13px] font-bold text-primary leading-none">{getPrice(tier)}</p>
+                      {saveBadge && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none">
+                          {saveBadge}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {isActive && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-primary shrink-0">
+                      <CheckCircle className="w-3 h-3" /> Current
+                    </span>
+                  )}
+                </div>
+
+                {/* Features */}
+                <ul className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2 mb-2.5 content-start">
+                  {tier.features.map((f) => (
+                    <li key={f} className="text-[11px] leading-snug flex items-start gap-1 text-foreground/75">
+                      <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
+                      <span className="truncate">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {!isActive && (
+                  <button
+                    onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
+                    disabled={loadingCheckout === tier.id || loadingPortal}
+                    className={`w-full h-9 rounded-[12px] font-semibold text-[13px] transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 ${
+                      isPro
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.55)]"
+                        : "bg-foreground/5 text-foreground hover:bg-foreground/10 border border-foreground/10"
+                    }`}
+                  >
+                    {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Active subscription manage button (compact, only if active) */}
-      {currentTier && !isExpired && (
-        <div className="px-5 mt-2 shrink-0 flex gap-2">
-          <Button
-            onClick={handleManageSubscription}
-            disabled={loadingPortal}
-            variant="outline"
-            size="sm"
-            className="flex-1 h-9"
-          >
-            {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Crown className="w-3.5 h-3.5 mr-1.5 text-primary" />}
-            Manage
-          </Button>
-          <Button
-            onClick={refreshSubscription}
-            disabled={refreshing}
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            aria-label="Refresh"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-      )}
-
-      {/* Cards — flex-1 fills remaining space, each card flex-1 to share evenly. */}
-      <div
-        className="flex-1 min-h-0 px-3 pt-[10px] flex flex-col gap-2"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)" }}
-      >
-        {tierConfig.map((tier) => {
-          const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
-          const saveBadge = getSaveBadge(tier);
-          const isPro = tier.id === "pro";
-          return (
-            <div
-              key={tier.id}
-              className={`relative rounded-[20px] px-3.5 py-2 flex-1 min-h-0 flex flex-col bg-white border transition-all ${
-                isPro
-                  ? "border-primary/25 shadow-[0_0_0_4px_hsl(var(--primary)/0.08),0_18px_36px_-14px_hsl(var(--primary)/0.35),0_6px_14px_-6px_hsl(var(--primary)/0.18)]"
-                  : "border-foreground/8 shadow-[0_8px_22px_-12px_rgba(15,23,42,0.18),0_2px_8px_-3px_rgba(15,23,42,0.08)]"
-              } ${isActive ? "ring-2 ring-primary" : ""}`}
-            >
-              {isPro && (
-                <span className="absolute -top-2 right-3.5 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
-                  Most Popular
-                </span>
-              )}
-
-              {/* Header row — title + price */}
-              <div className="flex items-start justify-between shrink-0">
-                <div className="min-w-0">
-                  <h3 className="font-display font-bold text-[14px] leading-tight text-foreground truncate">
-                    {tier.badge} {tier.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <p className="text-[12px] font-bold text-primary leading-none">{getPrice(tier)}</p>
-                    {saveBadge && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none">
-                        {saveBadge}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {isActive && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-primary shrink-0">
-                    <CheckCircle className="w-3 h-3" /> Current
-                  </span>
-                )}
-              </div>
-
-              {/* Features */}
-              <ul className="flex-1 min-h-0 overflow-hidden grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1.5 mb-1.5 content-start">
-                {tier.features.map((f) => (
-                  <li key={f} className="text-[10.5px] leading-snug flex items-start gap-1 text-foreground/75">
-                    <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
-                    <span className="truncate">{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {!isActive && (
-                <button
-                  onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
-                  disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full h-8 rounded-[10px] font-semibold text-[12.5px] transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 shrink-0 ${
-                    isPro
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.55)]"
-                      : "bg-foreground/5 text-foreground hover:bg-foreground/10 border border-foreground/10"
-                  }`}
-                >
-                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
-                </button>
-              )}
-            </div>
-          );
-        })}
       </div>
     </div>
   );

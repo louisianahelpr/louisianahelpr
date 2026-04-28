@@ -212,21 +212,23 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — squircle with glowing brand-green halo */}
-          <button
-            onClick={handlePostClick}
-            onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-            onFocus={() => !isGuest && prefetchRoute("/post-job")}
-            aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-            className="relative w-14 h-14 squircle rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_0_0_4px_hsl(158_67%_37%/0.12),0_8px_28px_-4px_hsl(158_67%_37%/0.55),0_2px_8px_-2px_hsl(158_67%_37%/0.4)] flex items-center justify-center shrink-0 border border-white/25 active:scale-95 transition-all duration-200 hover:shadow-[0_0_0_6px_hsl(158_67%_37%/0.15),0_12px_32px_-4px_hsl(158_67%_37%/0.65)]"
-          >
-            <Plus className="w-7 h-7" strokeWidth={2.5} />
-            {isGuest && (
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-primary/20 flex items-center justify-center">
-                <Lock className="w-2.5 h-2.5 text-primary" strokeWidth={3} />
-              </span>
-            )}
-          </button>
+          {/* Post FAB — hidden entirely while a user is in the pending-approval lock */}
+          {!isPendingApproval && (
+            <button
+              onClick={handlePostClick}
+              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
+              onFocus={() => !isGuest && prefetchRoute("/post-job")}
+              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+              className="relative w-14 h-14 squircle rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_0_0_4px_hsl(158_67%_37%/0.12),0_8px_28px_-4px_hsl(158_67%_37%/0.55),0_2px_8px_-2px_hsl(158_67%_37%/0.4)] flex items-center justify-center shrink-0 border border-white/25 active:scale-95 transition-all duration-200 hover:shadow-[0_0_0_6px_hsl(158_67%_37%/0.15),0_12px_32px_-4px_hsl(158_67%_37%/0.65)]"
+            >
+              <Plus className="w-7 h-7" strokeWidth={2.5} />
+              {isGuest && (
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-primary/20 flex items-center justify-center">
+                  <Lock className="w-2.5 h-2.5 text-primary" strokeWidth={3} />
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </nav>
 

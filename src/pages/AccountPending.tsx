@@ -13,6 +13,7 @@ type ProfileSnapshot = {
   full_name?: string | null;
   id_document_url?: string | null;
   idv_status?: string | null;
+  idv_session_id?: string | null;
   license_status?: string | null;
   insurance_status?: string | null;
   stripe_account_id?: string | null;

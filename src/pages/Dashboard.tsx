@@ -102,6 +102,8 @@ const Dashboard = () => {
   });
 
   useRealtimePush(user?.id ?? null);
+  // Warm Referral / Activity / Jobs caches in the background — makes the next tap feel instant.
+  usePrefetchUserData(user?.id);
 
   const filters = useDashboardFilters({
     allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as any,

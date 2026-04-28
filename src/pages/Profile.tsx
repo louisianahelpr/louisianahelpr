@@ -600,20 +600,22 @@ const ProfilePage = () => {
               </div>
 
               {/* Account actions */}
-              <div className="space-y-3 pt-2 pb-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
+              <div className="pt-2 pb-4">
+                {/* Sign out — white squircle card matching menu group geometry */}
+                <button
+                  type="button"
                   onClick={() => setShowLogoutDialog(true)}
+                  className="w-full rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
                 >
-                  <LogOut className="w-4 h-4 mr-2" /> Sign out
-                </Button>
+                  <LogOut className="w-4 h-4" /> Sign out
+                </button>
+                {/* Delete account — high-contrast red squircle, danger zone */}
                 <button
                   type="button"
                   onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
-                  className="w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-destructive/80 hover:text-destructive transition-colors py-2 active:opacity-60"
+                  className="mt-4 w-full rounded-[24px] bg-destructive/90 hover:bg-destructive py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-white shadow-[0_1px_2px_hsl(0_60%_30%/0.10),0_8px_28px_-12px_hsl(0_60%_30%/0.25)] active:opacity-90 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" /> Delete account
+                  <Trash2 className="w-4 h-4 text-white" /> Delete account
                 </button>
               </div>
             </div>

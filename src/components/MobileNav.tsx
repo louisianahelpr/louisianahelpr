@@ -144,6 +144,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       if (location.pathname !== effectivePath) navigate(effectivePath);
     };
 
+    const isActive = active || inStack;
     return (
       <button
         key={path}
@@ -151,12 +152,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
         onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
         aria-label={guestLocked ? `${label} — sign up required` : label}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full text-xs transition-all duration-200 btn-press ${
-          active || inStack ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
+          isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
         <div className="relative">
-          <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
+          <Icon
+            className="w-[22px] h-[22px] transition-all duration-200"
+            strokeWidth={isActive ? 2.25 : 2}
+            fill={isActive ? "hsl(var(--primary) / 0.2)" : "none"}
+          />
           {guestLocked && (
             <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
               <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
@@ -168,10 +173,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
         </div>
-        <span className="font-medium">{label}</span>
-        {active && (
-          <div className="absolute top-1 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary transition-all duration-200" />
-        )}
+        <span className={`font-medium tracking-tight transition-all duration-200 ${isActive ? "font-semibold" : ""}`}>{label}</span>
       </button>
     );
   };
@@ -188,8 +190,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     <>
       <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="mx-3 mb-2 flex items-end gap-2 max-w-lg md:max-w-xl lg:max-w-2xl md:mx-auto">
-          {/* Main nav pill — heavy glassmorphism, fully pill-shaped */}
-          <div className="flex-1 squircle rounded-full glass shadow-[0_-6px_40px_-8px_hsl(158_45%_42%/0.18),0_8px_28px_-8px_hsl(0_0%_0%/0.12)] border border-white/40">
+          {/* Main nav pill — glassmorphic: blur(12px), white border 20% */}
+          <div className="flex-1 squircle rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 border border-white/20 shadow-[0_8px_28px_-8px_hsl(0_0%_0%/0.12)]" style={{ WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}>
             <div className="flex items-center justify-around h-14 px-2">
               {leftItems.map(renderItem)}
               {rightItems.map(renderItem)}

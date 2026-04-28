@@ -207,11 +207,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
-      {/* Cards — flex-1 fills remaining space, each card flex-1 to share evenly.
-          Reserve bottom space for the floating dock (~80px) so cards never sit under it. */}
+      {/* Cards — flex-1 fills remaining space, each card flex-1 to share evenly. */}
       <div
-        className="flex-1 min-h-0 px-4 pt-3 flex flex-col gap-2.5"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+        className="flex-1 min-h-0 px-3 pt-[10px] flex flex-col gap-2"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)" }}
       >
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
@@ -220,14 +219,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           return (
             <div
               key={tier.id}
-              className={`relative rounded-[20px] px-4 py-3 flex-1 min-h-0 flex flex-col bg-white border transition-all ${
+              className={`relative rounded-[20px] px-3.5 py-2 flex-1 min-h-0 flex flex-col bg-white border transition-all ${
                 isPro
                   ? "border-primary/25 shadow-[0_0_0_4px_hsl(var(--primary)/0.08),0_18px_36px_-14px_hsl(var(--primary)/0.35),0_6px_14px_-6px_hsl(var(--primary)/0.18)]"
                   : "border-foreground/8 shadow-[0_8px_22px_-12px_rgba(15,23,42,0.18),0_2px_8px_-3px_rgba(15,23,42,0.08)]"
               } ${isActive ? "ring-2 ring-primary" : ""}`}
             >
               {isPro && (
-                <span className="absolute -top-2 right-4 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
+                <span className="absolute -top-2 right-3.5 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
                   Most Popular
                 </span>
               )}
@@ -235,11 +234,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               {/* Header row — title + price */}
               <div className="flex items-start justify-between shrink-0">
                 <div className="min-w-0">
-                  <h3 className="font-display font-bold text-[15px] leading-tight text-foreground truncate">
+                  <h3 className="font-display font-bold text-[14px] leading-tight text-foreground truncate">
                     {tier.badge} {tier.name}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <p className="text-[13px] font-bold text-primary leading-none">{getPrice(tier)}</p>
+                    <p className="text-[12px] font-bold text-primary leading-none">{getPrice(tier)}</p>
                     {saveBadge && (
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none">
                         {saveBadge}
@@ -248,17 +247,17 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   </div>
                 </div>
                 {isActive && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-primary shrink-0">
-                    <CheckCircle className="w-3.5 h-3.5" /> Current
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-primary shrink-0">
+                    <CheckCircle className="w-3 h-3" /> Current
                   </span>
                 )}
               </div>
 
-              {/* Features — only this list scrolls if it overflows */}
-              <ul className="flex-1 min-h-0 overflow-y-auto no-scrollbar grid grid-cols-2 gap-x-2 gap-y-1 mt-2 mb-2 content-start">
+              {/* Features */}
+              <ul className="flex-1 min-h-0 overflow-hidden grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1.5 mb-1.5 content-start">
                 {tier.features.map((f) => (
-                  <li key={f} className="text-[11px] leading-snug flex items-start gap-1 text-foreground/75">
-                    <CheckCircle className="w-3 h-3 shrink-0 mt-0.5 text-primary" />
+                  <li key={f} className="text-[10.5px] leading-snug flex items-start gap-1 text-foreground/75">
+                    <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
                     <span className="truncate">{f}</span>
                   </li>
                 ))}
@@ -268,7 +267,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <button
                   onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full h-9 rounded-[12px] font-semibold text-[13px] transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 shrink-0 ${
+                  className={`w-full h-8 rounded-[10px] font-semibold text-[12.5px] transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 shrink-0 ${
                     isPro
                       ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.55)]"
                       : "bg-foreground/5 text-foreground hover:bg-foreground/10 border border-foreground/10"

@@ -272,7 +272,7 @@ const Dashboard = () => {
     "";
   const emailLocal = user?.email ? user.email.split("@")[0] : "";
   const firstName = (rawName || emailLocal || "there").split(" ")[0];
-  const approvalStatus = profile?.approval_status || "pending";
+  const approvalStatus = profile?.approval_status;
   const banStatus = profile?.ban_status || "active";
 
   // Block banned users
@@ -296,7 +296,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!isAdmin && approvalStatus !== "approved") {
+  if (!isAdmin && profile && approvalStatus !== "approved") {
     const handleCheckStatus = async () => {
       await refresh();
       toast.success("Status refreshed");

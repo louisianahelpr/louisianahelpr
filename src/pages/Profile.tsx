@@ -365,7 +365,9 @@ const ProfilePage = () => {
     if (error) toast.error(error.message);
     else {
       setFullName(merged);
+      setJustSaved(true);
       toast.success("Profile updated!");
+      setTimeout(() => setJustSaved(false), 1800);
     }
   };
 

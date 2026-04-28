@@ -29,6 +29,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [searchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const tab = defaultTab as Tab;
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const paramFilter = searchParams.get("filter");

@@ -350,9 +350,10 @@ const ProfilePage = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const merged = `${firstName.trim()} ${lastName.trim()}`.trim();
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
-      full_name: fullName.trim(), phone: phone.trim(), location: location.trim(),
+      full_name: merged, phone: phone.trim(), location: location.trim(),
       bio: bio.trim(), skills: skills.trim(),
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
       date_of_birth: dateOfBirth || null,
@@ -361,7 +362,30 @@ const ProfilePage = () => {
     } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
-    else toast.success("Profile updated!");
+    else {
+      setFullName(merged);
+      toast.success("Profile updated!");
+    }
+  };
+
+  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!allowed.includes(file.type)) { toast.error("Use JPG, PNG, WEBP or PDF"); return; }
+    setIdUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/id-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
+    if (upErr) { toast.error("Upload failed: " + upErr.message); setIdUploading(false); return; }
+    const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" } as any).eq("user_id", user.id);
+    if (updErr) toast.error("Failed to save ID");
+    else {
+      setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" } as any) : prev);
+      toast.success("ID submitted for review");
+    }
+    setIdUploading(false);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

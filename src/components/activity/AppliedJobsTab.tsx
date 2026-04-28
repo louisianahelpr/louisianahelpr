@@ -114,6 +114,8 @@ export const AppliedJobsTab = ({
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
+  // Slide-up confirmation sheet for Withdraw — friction where it matters.
+  const [withdrawTarget, setWithdrawTarget] = useState<{ appId: string; jobTitle: string } | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
   const [editingMessageAppId, setEditingMessageAppId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
@@ -128,15 +130,18 @@ export const AppliedJobsTab = ({
     setEditingMessageAppId(null);
   };
 
-  const handleWithdraw = async (appId: string, jobTitle: string) => {
+  const confirmWithdraw = async () => {
+    if (!withdrawTarget) return;
+    const { appId, jobTitle } = withdrawTarget;
     setWithdrawingAppId(appId);
     const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
     if (error) {
       toast.error("Failed to withdraw application");
     } else {
-      toast.success(`Withdrawn from "${jobTitle}"`);
+      toast.success(`Successfully withdrawn from "${jobTitle}"`);
     }
     setWithdrawingAppId(null);
+    setWithdrawTarget(null);
   };
 
   const handleAddAttachment = async (appId: string, jobId: string, currentUrls: string[], file: File) => {

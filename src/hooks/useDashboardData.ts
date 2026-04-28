@@ -223,7 +223,7 @@ export function useDashboardData() {
     ]);
   }, [user, queryClient, refreshCurrentUser]);
 
-  const loading = userLoading || ctxLoading || (jobsLoading && allJobs.length === 0);
+  const loading = userLoading || !profile || ctxLoading || (jobsLoading && allJobs.length === 0);
 
   return {
     user,

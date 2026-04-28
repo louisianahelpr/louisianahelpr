@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 
 interface PublicJob {
   id: string;

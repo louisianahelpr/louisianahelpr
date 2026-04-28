@@ -489,67 +489,62 @@ const ProfilePage = () => {
             <div className="space-y-4">
 
 
-              {/* Compact Hero — horizontal identity card with integrated stats */}
-              <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-4 space-y-3.5">
-                {/* Top row: avatar + identity text */}
-                <div className="flex items-center gap-4">
-                  <div className="w-[84px] h-[84px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
+              {/* Compact Hero — single horizontal row, half-height */}
+              <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] p-3.5">
+                <div className="flex flex-row items-center gap-3.5">
+                  {/* Avatar — 70px squircle, left */}
+                  <div className="w-[70px] h-[70px] rounded-[20px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
                     {profile?.avatar_url ? (
                       <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : initials}
                   </div>
+                  {/* Identity + integrated stats, all stacked tight on the right */}
                   <div className="flex-1 min-w-0 text-left">
-                    <h1 className="text-lg font-display font-bold text-foreground truncate">
+                    <h1 className="text-[16px] font-display font-bold text-foreground truncate leading-tight">
                       {displayName || "Welcome back"}
                     </h1>
                     {profile?.location && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
                         <MapPin className="w-3 h-3 shrink-0" />
                         <span className="truncate">{profile.location}</span>
                       </p>
                     )}
-                    {profile?.created_at && (
-                      <p className="text-[11px] text-muted-foreground/80 mt-0.5">
-                        Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-                      </p>
-                    )}
+                    {/* Integrated stats — single inline line directly under location */}
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+                      <button
+                        onClick={() => setTab("reviews")}
+                        className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
+                      >
+                        <Star className="w-3 h-3 text-primary fill-primary" />
+                        <span className="font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</span>
+                        <span className="text-muted-foreground">({reviewCount})</span>
+                      </button>
+                      <span className="w-px h-3 bg-border/60" />
+                      <button
+                        onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }}
+                        className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
+                      >
+                        <span className="font-bold text-foreground">{postedCount}</span>
+                        <span className="text-muted-foreground">Posted</span>
+                      </button>
+                      <span className="w-px h-3 bg-border/60" />
+                      <button
+                        onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }}
+                        className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
+                      >
+                        <span className="font-bold text-foreground">{completedCount}</span>
+                        <span className="text-muted-foreground">Done</span>
+                      </button>
+                    </div>
                     {!profile?.full_name?.trim() && (
                       <button
                         onClick={() => setTab("profile")}
-                        className="mt-1.5 text-xs font-semibold text-primary hover:underline"
+                        className="mt-1 text-[11px] font-semibold text-primary hover:underline"
                       >
                         + Add your name
                       </button>
                     )}
                   </div>
-                </div>
-
-                {/* Integrated stats — slim row inside the same card, separated by a hairline */}
-                <div className="grid grid-cols-3 border-t border-border/50 pt-3 -mx-1">
-                  <button
-                    onClick={() => setTab("reviews")}
-                    className="flex flex-col items-center justify-center gap-0.5 px-2 py-0.5 hover:opacity-70 active:opacity-50 transition-opacity border-r border-border/50"
-                  >
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                      <p className="text-base font-bold text-foreground leading-none">{avgRating ? avgRating.toFixed(1) : "5.0"}</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{reviewCount} Review{reviewCount !== 1 ? "s" : ""}</p>
-                  </button>
-                  <button
-                    onClick={() => { if (postedCount > 0) { loadInlineJobs(); setTab("posted_jobs"); } }}
-                    className="flex flex-col items-center justify-center gap-0.5 px-2 py-0.5 hover:opacity-70 active:opacity-50 transition-opacity border-r border-border/50"
-                  >
-                    <p className="text-base font-bold text-foreground leading-none">{postedCount}</p>
-                    <p className="text-[10px] text-muted-foreground">Jobs Posted</p>
-                  </button>
-                  <button
-                    onClick={() => { if (completedCount > 0) { loadInlineJobs(); setTab("completed_jobs"); } }}
-                    className="flex flex-col items-center justify-center gap-0.5 px-2 py-0.5 hover:opacity-70 active:opacity-50 transition-opacity"
-                  >
-                    <p className="text-base font-bold text-foreground leading-none">{completedCount}</p>
-                    <p className="text-[10px] text-muted-foreground">Jobs Completed</p>
-                  </button>
                 </div>
               </div>
 
@@ -573,11 +568,11 @@ const ProfilePage = () => {
 
               {/* Grouped vertical menu — each group is a white squircle with
                   inset dividers, muted duo-tone icons, and aligned chevrons. */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {menuGroups.map((group) => (
                   <div key={group.title}>
                     <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[#4A4A4A] mb-2 pl-1">{group.title}</p>
-                    <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] overflow-hidden">
+                    <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                       {group.items.map((item, idx) => (
                         <button
                           key={item.label}

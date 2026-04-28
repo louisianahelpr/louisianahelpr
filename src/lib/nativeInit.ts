@@ -15,6 +15,8 @@ export const isNativePlatform =
 export async function initNative() {
   if (!isNativePlatform) return;
 
+  await clearNativeWebCaches();
+
   // Default status bar: dark icons on light cream background.
   // Pages can override per-route via useStatusBar(Style.Dark).
   try {
@@ -25,6 +27,18 @@ export async function initNative() {
 
   // Hide splash after React mounts.
   await hideSplash();
+}
+
+async function clearNativeWebCaches() {
+  try {
+    const registrations = await navigator.serviceWorker?.getRegistrations?.();
+    await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+  } catch { /* service workers unavailable in native webview */ }
+
+  try {
+    const keys = await window.caches?.keys?.();
+    await Promise.all((keys ?? []).map((key) => window.caches.delete(key)));
+  } catch { /* cache storage unavailable in native webview */ }
 }
 
 /**

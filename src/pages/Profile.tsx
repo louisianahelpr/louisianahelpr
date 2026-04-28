@@ -122,6 +122,9 @@ const ProfilePage = () => {
   const [skills, setSkills] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [idUploading, setIdUploading] = useState(false);
 
   // Earnings state
   const [earningsJobs, setEarningsJobs] = useState<Job[]>([]);

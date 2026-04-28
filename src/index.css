@@ -7,12 +7,8 @@
 html {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
-  /* Match the sticky-header tint so iOS rubber-band overscroll at the top
-     reveals the same color as the frosted nav — no jarring white/dark flash
-     above the pinned navigation bar. */
   background-color: hsl(var(--background));
 }
 html::-webkit-scrollbar {
@@ -27,10 +23,28 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  overflow-y: auto;
-  min-height: 100%;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* App-shell viewport lock: when <html> has the .app-shell class, the window
+   itself never scrolls. Pages opt-in by rendering inside AppShell, which
+   provides its own internal overflow-y:auto container. Public marketing/legal
+   pages omit the class so document-scroll keeps working for SEO + long content. */
+html.app-shell,
+html.app-shell body,
+html.app-shell #root {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Default (non-shell) state still allows normal vertical scroll. */
+html:not(.app-shell),
+html:not(.app-shell) body {
+  overflow-y: auto;
+  min-height: 100%;
 }
 body::-webkit-scrollbar {
   display: none;
@@ -363,6 +377,22 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* App-shell internal scroll container.
+   - On app-shell routes (html.app-shell): the <main> becomes a fixed-height
+     scroll box that fills the viewport. The MobileNav (rendered as a sibling,
+     position:fixed, z-50) floats above it and never moves.
+   - On document-scroll routes (no .app-shell on html): this class is a no-op
+     so marketing/legal pages keep their normal page scroll.
+*/
+html.app-shell main.app-shell-scroll {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* ---------------------------------------------------------------------

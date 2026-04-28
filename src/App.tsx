@@ -14,6 +14,7 @@ import { useDynamicTypeSync } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
+import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
 // @radix-ui/react-tooltip + @floating-ui + next-themes (~14 KB gzipped of
@@ -174,6 +175,7 @@ const SessionManager = () => {
   useNativePushSetup();
   useDynamicTypeSync();
   useCppVariantRouter();
+  useAppShellViewport();
   return null;
 };
 
@@ -197,7 +199,10 @@ const App = () => (
             <Suspense fallback={null}>
               <StrikeBanner />
             </Suspense>
-            <main id="main-content" className="w-full max-w-full overflow-y-visible">
+            <main
+              id="main-content"
+              className="w-full max-w-full app-shell-scroll no-scrollbar"
+            >
               <Suspense fallback={<PageFallback />}>
                 <AnimatedRoutes />
               </Suspense>

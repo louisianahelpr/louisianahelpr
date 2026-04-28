@@ -17,6 +17,9 @@ const ScrollToTop = () => {
     window.scrollTo(0, 0);
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
+    // App-shell routes use <main id="main-content"> as the scroll container.
+    const mainEl = document.getElementById("main-content");
+    if (mainEl) mainEl.scrollTop = 0;
   }, [pathname, hash]);
 
   return null;

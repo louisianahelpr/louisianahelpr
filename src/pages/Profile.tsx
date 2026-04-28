@@ -486,7 +486,7 @@ const ProfilePage = () => {
 
           {/* LANDING VIEW */}
           {tab === "landing" && (
-            <div className="space-y-4">
+            <div className="space-y-3">
 
 
               {/* Compact Hero — single horizontal row, half-height */}
@@ -574,8 +574,8 @@ const ProfilePage = () => {
               )}
 
               {/* Category buttons replace the old always-expanded long list. */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2.5">
                   {menuGroups.map((group) => {
                     const isActive = activeMenuGroup === group.title;
                     const GroupIcon = group.title === "Account" ? Edit : group.title === "Money" ? DollarSign : HelpCircle;
@@ -585,13 +585,13 @@ const ProfilePage = () => {
                         key={group.title}
                         type="button"
                         onClick={() => setActiveMenuGroup(isActive ? null : group.title)}
-                        className={`min-h-[92px] rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2.5 py-3 flex flex-col items-center justify-center gap-2 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
+                        className={`min-h-[78px] rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2 py-2.5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
                         aria-expanded={isActive}
                       >
-                        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
-                          <GroupIcon className="w-5 h-5" />
+                        <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
+                          <GroupIcon className="w-4.5 h-4.5" />
                         </span>
-                        <span className="text-[11px] font-bold uppercase tracking-[0.05em] leading-tight text-center">
+                        <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] leading-tight text-center">
                           {group.title === "Settings & Support" ? "Support" : group.title}
                         </span>
                       </button>
@@ -644,23 +644,21 @@ const ProfilePage = () => {
                 })()}
               </div>
 
-              {/* Account actions — squircle cards matching the bottom dock geometry */}
-              <div className="pt-2 pb-4">
-                {/* Sign out — standalone white squircle card */}
+              {/* Account actions — compact pair */}
+              <div className="pt-1 grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowLogoutDialog(true)}
-                  className="w-full rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
+                  className="rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
                 >
                   <LogOut className="w-4 h-4" /> Sign out
                 </button>
-                {/* Delete account — soft red fill with red border, danger zone */}
                 <button
                   type="button"
                   onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
-                  className="mt-4 w-full rounded-[24px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
+                  className="rounded-[20px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" /> Delete account
+                  <Trash2 className="w-4 h-4" /> Delete
                 </button>
               </div>
             </div>

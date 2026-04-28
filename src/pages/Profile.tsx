@@ -605,13 +605,13 @@ const ProfilePage = () => {
                 >
                   <LogOut className="w-4 h-4 mr-2" /> Sign out
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/15 hover:text-destructive hover:border-destructive/50"
-                  onClick={() => setShowDeleteAccountDialog(true)}
+                <button
+                  type="button"
+                  onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
+                  className="w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-destructive/80 hover:text-destructive transition-colors py-2 active:opacity-60"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2" /> Delete account
-                </Button>
+                  <Trash2 className="w-4 h-4" /> Delete account
+                </button>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 // Service Worker for browser push notifications + offline support
 
-const CACHE_NAME = 'helpr-offline-v3';
+const CACHE_NAME = 'helpr-offline-v4';
 const OFFLINE_URL = '/offline.html';
 
 // Cache offline page on install — always activate immediately
@@ -38,8 +38,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Helpr";
   const options = {
     body: data.message || "You have a new notification",
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
+    icon: "/apple-touch-icon.png",
+    badge: "/favicon-32.png",
     data: { link: data.link || "/dashboard" },
     tag: data.tag || "helpr-notification",
     renotify: true,

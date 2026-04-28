@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,8 +8,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        clearBundledWebViewCachesAfterAppUpdate()
         return true
+    }
+
+    private func clearBundledWebViewCachesAfterAppUpdate() {
+        let currentBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        let resetKey = "helpr_last_web_cache_reset_build"
+        let defaults = UserDefaults.standard
+
+        guard defaults.string(forKey: resetKey) != currentBuild else { return }
+
+        URLCache.shared.removeAllCachedResponses()
+
+        let cacheTypes = WKWebsiteDataStore.allWebsiteDataTypes().filter { type in
+            let lowercased = type.lowercased()
+            return lowercased.contains("cache") || lowercased.contains("serviceworker")
+        }
+
+        guard !cacheTypes.isEmpty else {
+            defaults.set(currentBuild, forKey: resetKey)
+            return
+        }
+
+        WKWebsiteDataStore.default().fetchDataRecords(ofTypes: cacheTypes) { records in
+            WKWebsiteDataStore.default().removeData(ofTypes: cacheTypes, for: records) {
+                defaults.set(currentBuild, forKey: resetKey)
+            }
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

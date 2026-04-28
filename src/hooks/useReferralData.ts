@@ -1,0 +1,61 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/lib/queryKeys";
+
+export interface ReferralCredit {
+  id: string;
+  amount: number;
+  reason: string;
+  redeemed: boolean;
+  created_at: string;
+}
+
+export interface ReferralData {
+  referralCode: string | null;
+  credits: ReferralCredit[];
+  referralCount: number;
+  hasStripeAccount: boolean;
+}
+
+const generateCode = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+};
+
+export async function fetchReferralData(userId: string): Promise<ReferralData> {
+  const [codeRes, creditsRes, referralsRes, profileRes] = await Promise.all([
+    supabase.from("referral_codes").select("code").eq("user_id", userId).maybeSingle(),
+    supabase.from("referral_credits").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("referrals").select("*", { count: "exact", head: true }).eq("referrer_id", userId),
+    supabase.from("profiles").select("stripe_account_id").eq("user_id", userId).single(),
+  ]);
+
+  let referralCode: string | null = codeRes.data?.code ?? null;
+  if (!referralCode) {
+    const newCode = generateCode();
+    const { data: inserted } = await supabase
+      .from("referral_codes")
+      .insert({ user_id: userId, code: newCode })
+      .select("code")
+      .single();
+    referralCode = inserted?.code ?? null;
+  }
+
+  return {
+    referralCode,
+    credits: (creditsRes.data as ReferralCredit[]) || [],
+    referralCount: referralsRes.count || 0,
+    hasStripeAccount: !!(profileRes.data as any)?.stripe_account_id,
+  };
+}
+
+export function useReferralData(userId: string | undefined) {
+  return useQuery({
+    queryKey: userId ? queryKeys.referral(userId) : ["referral", "anon"],
+    queryFn: () => fetchReferralData(userId!),
+    enabled: !!userId,
+    staleTime: 60 * 1000,
+  });
+}

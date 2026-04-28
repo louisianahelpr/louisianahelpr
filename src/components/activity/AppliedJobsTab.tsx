@@ -736,14 +736,57 @@ export const AppliedJobsTab = ({
   };
 
   return (
-    <VirtualList
-      items={apps}
-      getKey={(app) => app.id}
-      estimateSize={260}
-      overscan={4}
-      itemClassName="pb-3"
-      renderItem={(app) => renderAppCard(app)}
-    />
+    <>
+      <VirtualList
+        items={apps}
+        getKey={(app) => app.id}
+        estimateSize={260}
+        overscan={4}
+        itemClassName="pb-3"
+        renderItem={(app) => renderAppCard(app)}
+      />
 
+      {/* Withdraw confirmation — slide-up sheet with dimmed backdrop. */}
+      <Sheet open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)]"
+        >
+          {/* Drag-handle affordance */}
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
+          <SheetHeader className="text-center">
+            <SheetTitle className="font-display text-2xl font-bold tracking-tight">
+              Withdraw Application?
+            </SheetTitle>
+            <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+              Withdrawing will remove you from consideration for{" "}
+              <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
+              You can re-apply later if the position is still open.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-2.5">
+            <Button
+              size="lg"
+              variant="destructive"
+              className="w-full rounded-xl text-[15px] font-semibold"
+              disabled={!!withdrawingAppId}
+              onClick={confirmWithdraw}
+            >
+              {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
+              disabled={!!withdrawingAppId}
+              onClick={() => setWithdrawTarget(null)}
+            >
+              Keep My Application
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };

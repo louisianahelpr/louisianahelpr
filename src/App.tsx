@@ -104,12 +104,26 @@ const queryClient = new QueryClient({
 });
 
 // Route-level loading fallback — matches the native/web launch screen.
+// Solid soft-mint background, large centered Helpr 'H', no spinner/text,
+// fades out smoothly as the next route mounts.
 const PageFallback = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
+  <div
+    className="fixed inset-0 flex items-center justify-center overflow-hidden animate-fade-in"
+    style={{ backgroundColor: "#E8F5E9" }}
+  >
     <img
       src="/helpr-splash-icon.png"
       alt="Helpr"
-      className="h-28 w-28 object-contain"
+      className="object-contain rounded-[24px] animate-fade-out"
+      style={{
+        width: "504px",
+        height: "504px",
+        maxWidth: "78vmin",
+        maxHeight: "78vmin",
+        animationDuration: "600ms",
+        animationDelay: "400ms",
+        animationFillMode: "forwards",
+      }}
       aria-hidden="true"
     />
   </div>

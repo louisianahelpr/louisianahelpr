@@ -165,6 +165,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onClick={handleClick}
         onMouseEnter={() => !locked && prefetchRoute(effectivePath)}
         onFocus={() => !locked && prefetchRoute(effectivePath)}
+        onTouchStart={() => !locked && prefetchRoute(effectivePath)}
         aria-label={locked ? `${label} — locked until your account is approved` : label}
         className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
           isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"

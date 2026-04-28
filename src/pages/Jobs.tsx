@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 
 interface PublicJob {
   id: string;
@@ -153,9 +154,9 @@ const Jobs = () => {
 
           {/* Jobs Grid */}
           {loading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Loading jobs">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-border bg-card p-5 h-40 animate-pulse" />
+                <JobCardSkeleton key={i} />
               ))}
             </div>
           ) : filtered.length === 0 ? (

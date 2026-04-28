@@ -190,8 +190,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     <>
       <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="mx-3 mb-2 flex items-end gap-2 max-w-lg md:max-w-xl lg:max-w-2xl md:mx-auto">
-          {/* Main nav pill — heavy glassmorphism, fully pill-shaped */}
-          <div className="flex-1 squircle rounded-full glass shadow-[0_-6px_40px_-8px_hsl(158_45%_42%/0.18),0_8px_28px_-8px_hsl(0_0%_0%/0.12)] border border-white/40">
+          {/* Main nav pill — glassmorphic: blur(12px), white border 20% */}
+          <div className="flex-1 squircle rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 border border-white/20 shadow-[0_8px_28px_-8px_hsl(0_0%_0%/0.12)]" style={{ WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}>
             <div className="flex items-center justify-around h-14 px-2">
               {leftItems.map(renderItem)}
               {rightItems.map(renderItem)}

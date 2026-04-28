@@ -14,6 +14,7 @@ PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
 PLIST="ios/App/App/Info.plist"
 CAP_JSON="ios/App/App/capacitor.config.json"
 CONFIG_XML="ios/App/App/config.xml"
+CAPAPP_SPM="ios/App/CapApp-SPM/Package.swift"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -69,6 +70,17 @@ check "Native capacitor appId = com.Helpr"       "$CAP_JSON" '"appId": "com.Help
 check "Native capacitor appName = Louisiana Helpr" "$CAP_JSON" '"appName": "Louisiana Helpr"'
 check "Native config.xml widget id = com.Helpr" "$CONFIG_XML" 'widget id="com.Helpr"'
 check "Native config.xml name = Louisiana Helpr" "$CONFIG_XML" '<name>Louisiana Helpr</name>'
+
+echo ""
+echo "Capacitor Swift Package ($CAPAPP_SPM):"
+check "Uses npm-compatible Capacitor plugin paths" "$CAPAPP_SPM" 'path: "../../../node_modules/@capacitor/app"'
+if grep -qF 'node_modules/.bun/' "$CAPAPP_SPM"; then
+  printf "  ${RED}✗${NC} No Bun-only plugin paths remain   (found node_modules/.bun/)\n"
+  fail=$((fail+1))
+else
+  printf "  ${GREEN}✓${NC} No Bun-only plugin paths remain\n"
+  pass=$((pass+1))
+fi
 
 echo ""
 echo "=== Result ==="

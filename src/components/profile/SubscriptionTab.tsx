@@ -118,40 +118,45 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     // the whole viewport top-to-bottom.
     <div
       className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-background"
+      style={{ height: "100vh" }}
     >
-      {/* Top nav bar — back arrow + Subscription title */}
+      {/* Top nav bar — fixed compact header (max 60px) with back arrow + title */}
       <div
-        className="flex items-center gap-2 px-4 shrink-0"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)", paddingBottom: "8px" }}
+        className="flex items-center gap-2 px-4 shrink-0 bg-background/95 backdrop-blur-md border-b border-foreground/5"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)",
+          paddingBottom: "8px",
+          maxHeight: "calc(env(safe-area-inset-top, 0px) + 60px)",
+        }}
       >
         <button
           onClick={onBack}
-          className="h-10 w-10 -ml-2 rounded-xl flex items-center justify-center hover:bg-foreground/5 transition-colors text-foreground"
+          className="h-9 w-9 -ml-1.5 rounded-xl flex items-center justify-center hover:bg-foreground/5 transition-colors text-foreground"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-display text-[20px] font-bold leading-none tracking-tight text-foreground">
+        <h1 className="font-display text-[19px] font-bold leading-none tracking-tight text-foreground">
           Subscription
         </h1>
       </div>
 
-      {/* Single-line free plan / status text — capped at 40px */}
-      <div className="px-5 shrink-0 flex items-center" style={{ height: "32px" }}>
+      {/* Single-line free plan / status text — compact */}
+      <div className="px-5 shrink-0 flex items-center" style={{ height: "26px" }}>
         {currentTier && !isExpired ? (
-          <p className="text-[13px] text-foreground/70 truncate">
+          <p className="text-[12px] text-foreground/70 truncate">
             <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
             {expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}
           </p>
         ) : (
-          <p className="text-[13px] text-foreground/70 truncate">
+          <p className="text-[12px] text-foreground/70 truncate">
             {isExpired ? "Your plan expired — pick one to renew." : "Free plan · upgrade to unlock more jobs."}
           </p>
         )}
       </div>
 
-      {/* Billing chip bar */}
-      <div className="px-5 mt-2 shrink-0">
+      {/* Billing chip bar — tight 10px margin */}
+      <div className="px-5 mt-[10px] shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           {([
             { key: "annual" as const, label: "Annual" },

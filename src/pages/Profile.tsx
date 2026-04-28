@@ -493,7 +493,7 @@ const ProfilePage = () => {
               <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] p-3.5">
                 <div className="flex flex-row items-center gap-3.5">
                   {/* Avatar — 70px squircle, left */}
-                  <div className="w-[70px] h-[70px] rounded-[20px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
+                  <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
                     {profile?.avatar_url ? (
                       <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : initials}

@@ -112,7 +112,7 @@ jobs:
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Build web bundle
-        run: npm run build
+        run: npm run build:ios
 
       - name: Sync Fastlane metadata into Xcode
         run: bundle exec fastlane ios sync_xcode_metadata --verbose
@@ -132,6 +132,9 @@ jobs:
         # Refreshes the web bundle in ios/App/App/public and runs pod install
         # to wire up native plugins.
         run: npx cap sync ios
+
+      - name: Verify iOS bundle is fresh and offline-only
+        run: node scripts/verify-ios-bundle.mjs
 
       - name: Verify Fastlane workspace and required secrets
         working-directory: ${{ github.workspace }}

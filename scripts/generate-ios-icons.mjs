@@ -12,7 +12,7 @@
  */
 
 import sharp from 'sharp';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,6 +62,7 @@ const icons = [
   { size: 1024, name: 'icon-1024.png',    idiom: 'ios-marketing', sizeStr: '1024x1024', scale: '1x' },
 ];
 
+await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
 
 console.log(`Generating ${icons.length} iOS icons from ${SRC}…`);

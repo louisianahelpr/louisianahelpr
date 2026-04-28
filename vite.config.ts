@@ -11,6 +11,7 @@ const reactDomEntry = require.resolve("react-dom");
 const reactDomClientEntry = require.resolve("react-dom/client");
 const reactJsxRuntimeEntry = require.resolve("react/jsx-runtime");
 const reactJsxDevRuntimeEntry = require.resolve("react/jsx-dev-runtime");
+const isCapacitorBuild = process.env.VITE_CAPACITOR_BUILD === "1";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -91,7 +92,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
     } satisfies Plugin,
-    VitePWA({
+    !isCapacitorBuild && VitePWA({
       registerType: "autoUpdate",
       // Defer the SW registration script so it doesn't block FCP.
       // Lighthouse flagged /registerSW.js as a ~150ms render-blocking request

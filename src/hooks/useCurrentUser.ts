@@ -6,21 +6,13 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-const PROFILE_QUERY_TIMEOUT_MS = 12000;
+const PROFILE_QUERY_TIMEOUT_MS = 3500;
 
-const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-const withTimeout = async <T,>(promise: Promise<T>, label: string, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
-  let timeoutId: number | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-  });
-
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    if (timeoutId) window.clearTimeout(timeoutId);
-  }
+const withTimeout = async <T,>(promise: Promise<T>, fallback: T, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise<T>((resolve) => window.setTimeout(() => resolve(fallback), ms)),
+  ]);
 };
 
 interface CurrentUser {
@@ -33,34 +25,22 @@ interface CurrentUser {
 }
 
 const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | null; isAdmin: boolean }> => {
-  let profileRes: { data: Profile | null } = { data: null };
-
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      profileRes = await withTimeout(
-        Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(({ data, error }) => {
-          if (error) throw error;
-          return { data: data ?? null };
-        }),
-        "Profile load",
-      );
-      break;
-    } catch (error) {
-      if (attempt === 3) throw error;
-      await delay(500 * attempt);
-    }
-  }
+  const profileRes = await withTimeout(
+    Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(({ data }) => ({
+      data: data ?? null,
+    })),
+    { data: null as Profile | null },
+  );
 
   if (window.location.pathname !== "/admin") {
     return { profile: profileRes.data, isAdmin: false };
   }
 
   const rolesRes = await withTimeout(
-    Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data, error }) => {
-      if (error) throw error;
-      return { data: data ?? null };
-    }),
-    "Admin role load",
+    Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data }) => ({
+      data: data ?? null,
+    })),
+    { data: null as { role: string } | null },
   );
 
   return {
@@ -73,7 +53,7 @@ export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["currentUser", user?.id],
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
@@ -83,7 +63,6 @@ export const useCurrentUser = (): CurrentUser => {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    retry: 2,
   });
 
   // Realtime: when the current user's profile row is updated (e.g. admin
@@ -124,7 +103,7 @@ export const useCurrentUser = (): CurrentUser => {
     user,
     profile: data?.profile ?? null,
     isAdmin: data?.isAdmin ?? false,
-    isLoading: !isReady || (!!user && (isLoading || (!data && isFetching))),
+    isLoading: !isReady || (!!user && isLoading),
     refresh,
   };
 };

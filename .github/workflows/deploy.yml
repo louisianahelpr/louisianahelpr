@@ -267,7 +267,7 @@ jobs:
         run: npm outdated "@capacitor/*" || true
 
       - name: Build web bundle
-        run: npm run build
+        run: npm run build:ios
 
       - name: Sync Fastlane metadata into Xcode
         run: bundle exec fastlane ios sync_xcode_metadata --verbose
@@ -290,6 +290,9 @@ jobs:
 
       - name: Capacitor sync (iOS)
         run: npx cap sync ios
+
+      - name: Verify iOS bundle is fresh and offline-only
+        run: node scripts/verify-ios-bundle.mjs
 
       # Keep the template entitlement file and active target entitlement file in sync.
       - name: Install PrivacyInfo + entitlements into Xcode project

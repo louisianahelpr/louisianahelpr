@@ -587,28 +587,6 @@ def build_ipa_with_xcodebuild(output_name: "Helpr.ipa")
   final_ipa_path
 end
 
-def refresh_ios_web_bundle!
-  sh("cd #{REPO_ROOT.shellescape} && npm run build")
-  sh("cd #{REPO_ROOT.shellescape} && npx cap sync ios")
-
-  public_index = File.join(REPO_ROOT, "ios/App/App/public/index.html")
-  UI.user_error!("iOS web bundle is missing. Expected #{public_index}") unless File.exist?(public_index)
-
-  complete_profile_bundle = Dir[File.join(REPO_ROOT, "ios/App/App/public/assets/CompleteProfile-*.js")].first
-  UI.user_error!("iOS web bundle is stale: CompleteProfile chunk is missing") unless complete_profile_bundle
-  bundle_text = File.read(complete_profile_bundle)
-  unless bundle_text.include?("Checking your saved profile") && bundle_text.include?("Your profile was already saved")
-    UI.user_error!("iOS web bundle is stale: latest profile recovery code was not packaged")
-  end
-
-  UI.success("iOS web bundle refreshed and verified")
-end
-
-def assert_ios_web_bundle_present!
-  public_index = File.join(REPO_ROOT, "ios/App/App/public/index.html")
-  UI.user_error!("Missing bundled iOS web assets. Run `npm run build && npx cap sync ios`.") unless File.exist?(public_index)
-end
-
 def asc_api_key
   # Normalize everything to raw PEM before passing it to fastlane.
   # This avoids fastlane double-decoding malformed/base64-ish input and fixes
@@ -635,6 +613,11 @@ end
 
 platform :ios do
   before_all do
+    # CI runs build/sync in workflow steps. Skip duplicate work there.
+    unless ENV["CI"]
+      sh("cd .. && npm run build:ios")
+      sh("cd .. && npx cap sync ios")
+    end
     sync_metadata_to_xcode!
     assert_ios_identity!
   end
@@ -763,7 +746,6 @@ platform :ios do
   lane :beta do
     api_key = asc_api_key
 
-    refresh_ios_web_bundle!
     configure_signing!(api_key)
     ENV["HELPR_PROFILE_NAME"] = lane_context[SharedValues::SIGH_NAME].to_s
     set_next_build_number!(api_key)

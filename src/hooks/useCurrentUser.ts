@@ -11,7 +11,7 @@ const PROFILE_QUERY_TIMEOUT_MS = 12000;
 const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const withTimeout = async <T,>(promise: Promise<T>, label: string, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
-  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  let timeoutId: number | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
   });

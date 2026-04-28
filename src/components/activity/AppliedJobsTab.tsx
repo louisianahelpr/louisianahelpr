@@ -268,28 +268,19 @@ export const AppliedJobsTab = ({
                 })()}
               </div>
 
-              {/* Description & special requirements — collapsible */}
-              {!isMinimalCard && (job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() || job.special_requirements?.trim()) && (
-                <div className="space-y-1.5">
-                  {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                    <p className={`text-xs text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
-                  )}
-                  {isExpanded && job.special_requirements?.trim() && (
-                    <div className="rounded-lg bg-secondary/30 p-2">
-                      <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                      <p className="text-xs text-foreground">{job.special_requirements}</p>
-                    </div>
-                  )}
-                  {(job.description.length > 100 || job.special_requirements?.trim()) && (
-                    <button
-                      type="button"
-                      className="text-[10px] text-primary hover:underline"
-                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                    >
-                      {isExpanded ? "▲ Less" : "▼ More details"}
-                    </button>
-                  )}
-                </div>
+              {/* Description preview — collapsed to keep cards compact.
+                  Full details live on the job page (chevron link below). */}
+              {!isMinimalCard && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+              )}
+              {!isMinimalCard && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/dashboard?job=${job.id}`); }}
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline active:opacity-70"
+                >
+                  View details <ChevronRight className="w-3 h-3" />
+                </button>
               )}
 
               {/* Poster name */}

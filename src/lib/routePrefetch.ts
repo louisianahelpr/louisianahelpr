@@ -20,6 +20,13 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/community": () => import("@/pages/Community"),
   "/login": () => import("@/pages/Login"),
   "/signup": () => import("@/pages/Signup"),
+  "/account-pending": () => import("@/pages/AccountPending"),
+  "/user": () => import("@/pages/UserProfile"),
+  "/activity": () => import("@/pages/Activity"),
+  "/job-history": () => import("@/pages/JobHistory"),
+  "/earnings": () => import("@/pages/Profile"),
+  "/for-business": () => import("@/pages/ForBusiness"),
+  "/browse": () => import("@/pages/DashboardGuest"),
 };
 
 const warmed = new Set<string>();

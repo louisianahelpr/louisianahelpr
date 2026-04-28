@@ -22,7 +22,6 @@ import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
-import helprIcon from "@/assets/helpr-icon-96.webp";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";

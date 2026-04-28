@@ -1,0 +1,122 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, "..");
+
+const metadataPath = path.join(repoRoot, "fastlane/ios_app_metadata.yml");
+const projectPath = path.join(repoRoot, "ios/App/App.xcodeproj/project.pbxproj");
+const plistPath = path.join(repoRoot, "ios/App/App/Info.plist");
+const capacitorTsPath = path.join(repoRoot, "capacitor.config.ts");
+const capacitorJsonPath = path.join(repoRoot, "ios/App/App/capacitor.config.json");
+
+const read = (relativeOrAbsolute) => fs.readFileSync(relativeOrAbsolute, "utf8");
+const write = (relativeOrAbsolute, contents) => fs.writeFileSync(relativeOrAbsolute, contents);
+
+const yaml = read(metadataPath);
+const pick = (key) => {
+  const match = yaml.match(new RegExp(`^\\s*${key}:\\s*["']?([^"'\\n]+)["']?\\s*$`, "m"));
+  if (!match) throw new Error(`Missing ${key} in ${metadataPath}`);
+  return match[1].trim();
+};
+const pickBool = (key) => pick(key) === "true";
+
+const metadata = {
+  bundleId: pick("bundle_id"),
+  teamId: pick("team_id"),
+  appleId: pick("apple_id"),
+  sku: pick("sku"),
+  displayName: pick("name"),
+  productName: pick("product_name"),
+  category: pick("category_uti"),
+  marketingVersion: pick("marketing_version"),
+  buildNumber: pick("current_project_version"),
+  deploymentTarget: pick("ios_deployment_target"),
+  usesNonExemptEncryption: pickBool("uses_non_exempt_encryption"),
+  marketingUrl: pick("marketing_url"),
+  privacyUrl: pick("privacy_url"),
+  supportUrl: pick("support_url"),
+};
+
+let project = read(projectPath);
+const highestExistingBuild = Math.max(
+  Number(metadata.buildNumber),
+  ...[...project.matchAll(/CURRENT_PROJECT_VERSION = (\d+);/g)].map((match) => Number(match[1])),
+);
+
+const projectReplacements = new Map([
+  [/INFOPLIST_KEY_CFBundleDisplayName = .*?;/g, `INFOPLIST_KEY_CFBundleDisplayName = ${JSON.stringify(metadata.displayName)};`],
+  [/INFOPLIST_KEY_LSApplicationCategoryType = .*?;/g, `INFOPLIST_KEY_LSApplicationCategoryType = ${JSON.stringify(metadata.category)};`],
+  [/PRODUCT_NAME = .*?;/g, `PRODUCT_NAME = ${JSON.stringify(metadata.productName)};`],
+  [/PRODUCT_BUNDLE_IDENTIFIER = .*?;/g, `PRODUCT_BUNDLE_IDENTIFIER = ${metadata.bundleId};`],
+  [/DEVELOPMENT_TEAM = .*?;/g, `DEVELOPMENT_TEAM = ${metadata.teamId};`],
+  [/MARKETING_VERSION = .*?;/g, `MARKETING_VERSION = ${metadata.marketingVersion};`],
+  [/CURRENT_PROJECT_VERSION = .*?;/g, `CURRENT_PROJECT_VERSION = ${highestExistingBuild};`],
+  [/IPHONEOS_DEPLOYMENT_TARGET = .*?;/g, `IPHONEOS_DEPLOYMENT_TARGET = ${metadata.deploymentTarget};`],
+]);
+for (const [pattern, replacement] of projectReplacements) project = project.replace(pattern, replacement);
+write(projectPath, project);
+
+let plist = read(plistPath);
+const upsertPlistString = (key, value) => {
+  const pattern = new RegExp(`(<key>${key}<\\/key>\\s*\\n\\s*<string>)[^<]*(<\\/string>)`, "m");
+  if (pattern.test(plist)) plist = plist.replace(pattern, `$1${value}$2`);
+  else plist = plist.replace(/<\/dict>\s*<\/plist>/, `\t<key>${key}</key>\n\t<string>${value}</string>\n</dict>\n</plist>`);
+};
+const upsertPlistBool = (key, value) => {
+  const pattern = new RegExp(`(<key>${key}<\\/key>\\s*\\n\\s*)<(?:true|false)\\/>`, "m");
+  const boolXml = value ? "<true/>" : "<false/>";
+  if (pattern.test(plist)) plist = plist.replace(pattern, `$1${boolXml}`);
+  else plist = plist.replace(/<\/dict>\s*<\/plist>/, `\t<key>${key}</key>\n\t${boolXml}\n</dict>\n</plist>`);
+};
+
+upsertPlistString("CFBundleDisplayName", metadata.displayName);
+upsertPlistString("CFBundleName", metadata.productName);
+upsertPlistString("LSApplicationCategoryType", metadata.category);
+upsertPlistBool("ITSAppUsesNonExemptEncryption", metadata.usesNonExemptEncryption);
+write(plistPath, plist);
+
+let capacitorTs = read(capacitorTsPath);
+const tsReplacements = new Map([
+  [/appId: ['"].*?['"],/g, `appId: '${metadata.bundleId}',`],
+  [/appName: ['"].*?['"],/g, `appName: '${metadata.displayName}',`],
+  [/appleId: ['"].*?['"],/g, `appleId: '${metadata.appleId}',`],
+  [/sku: ['"].*?['"],/g, `sku: '${metadata.sku}',`],
+  [/version: ['"].*?['"],/g, `version: '${metadata.marketingVersion}',`],
+  [/build: ['"].*?['"],/g, `build: '${highestExistingBuild}',`],
+  [/category: ['"].*?['"],/g, `category: '${metadata.category}',`],
+  [/supportUrl: ['"].*?['"],/g, `supportUrl: '${metadata.supportUrl}',`],
+  [/privacyPolicyUrl: ['"].*?['"],/g, `privacyPolicyUrl: '${metadata.privacyUrl}',`],
+  [/marketingUrl: ['"].*?['"],/g, `marketingUrl: '${metadata.marketingUrl}',`],
+]);
+for (const [pattern, replacement] of tsReplacements) capacitorTs = capacitorTs.replace(pattern, replacement);
+write(capacitorTsPath, capacitorTs);
+
+if (fs.existsSync(capacitorJsonPath)) {
+  const capacitorJson = JSON.parse(read(capacitorJsonPath));
+  capacitorJson.appId = metadata.bundleId;
+  capacitorJson.appName = metadata.displayName;
+  capacitorJson.ios = {
+    ...capacitorJson.ios,
+    appleId: metadata.appleId,
+    sku: metadata.sku,
+    version: metadata.marketingVersion,
+    build: String(highestExistingBuild),
+    category: metadata.category,
+    supportUrl: metadata.supportUrl,
+    privacyPolicyUrl: metadata.privacyUrl,
+    marketingUrl: metadata.marketingUrl,
+  };
+  write(capacitorJsonPath, `${JSON.stringify(capacitorJson, null, "\t")}\n`);
+}
+
+fs.mkdirSync(path.join(repoRoot, "fastlane/metadata/en-US"), { recursive: true });
+write(path.join(repoRoot, "fastlane/metadata/en-US/name.txt"), `${metadata.displayName}\n`);
+write(path.join(repoRoot, "fastlane/metadata/en-US/marketing_url.txt"), `${metadata.marketingUrl}\n`);
+write(path.join(repoRoot, "fastlane/metadata/en-US/privacy_url.txt"), `${metadata.privacyUrl}\n`);
+write(path.join(repoRoot, "fastlane/metadata/en-US/support_url.txt"), `${metadata.supportUrl}\n`);
+write(path.join(repoRoot, "fastlane/metadata/primary_category.txt"), `${metadata.category.split(".").pop().toUpperCase().replaceAll("-", "_")}\n`);
+
+console.log(`Synced iOS metadata: ${metadata.displayName} / ${metadata.bundleId} / ${metadata.category} / ${metadata.marketingVersion} (${highestExistingBuild})`);

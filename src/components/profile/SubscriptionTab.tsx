@@ -132,24 +132,23 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   };
 
   return (
-    <div className="space-y-5">
-      {/* iOS-HIG: back chevron on a thin top row, then a Large Title.
-          Matches PageHeader so every sub-screen reads identically. */}
-      <div className="pt-2">
+    <div className="relative -mx-4 sm:-mx-6 px-5 pb-32 min-h-[calc(100vh-4rem)] bg-gradient-to-b from-primary/15 via-primary/5 to-background">
+      {/* Top nav bar: back arrow + title vertically centered */}
+      <div className="flex items-center gap-2 pt-2 pb-5">
         <button
           onClick={onBack}
-          className="h-11 w-11 -ml-2 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          className="h-10 w-10 -ml-2 rounded-xl flex items-center justify-center hover:bg-foreground/5 transition-colors text-foreground"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
+        <h1 className="font-display text-[22px] font-bold leading-none tracking-tight text-foreground">
+          Subscription
+        </h1>
       </div>
-      <h1 className="font-display text-[30px] sm:text-[34px] font-bold leading-tight tracking-tight text-foreground -mt-2">
-        Subscription
-      </h1>
 
       {currentTier && !isExpired && (
-        <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5 space-y-3">
+        <div className="rounded-[24px] border border-primary/30 bg-white/80 backdrop-blur-xl p-5 space-y-3 mb-5 shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25),0_4px_12px_-4px_hsl(var(--primary)/0.15)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-primary" />

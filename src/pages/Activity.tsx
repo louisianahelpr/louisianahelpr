@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
-import { Search } from "lucide-react";
+import { Search, X as XIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -29,6 +29,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [searchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const tab = defaultTab as Tab;
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const paramFilter = searchParams.get("filter");
@@ -539,30 +540,63 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <DashboardHeader />
-      <main className="container mx-auto px-5 py-4">
-        <div className="max-w-3xl mx-auto space-y-4 overflow-hidden">
-          <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tasks by title, description, or location…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+      <main className="container mx-auto px-5 pt-4 pb-4">
+        <div className="max-w-3xl mx-auto space-y-5 overflow-hidden">
+          {/* Title row with collapsible search trigger on the right */}
+          <div className="flex items-center justify-between gap-3">
+            {searchOpen ? (
+              <div className="flex items-center gap-2 flex-1 animate-in fade-in slide-in-from-right-2 duration-200">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    autoFocus
+                    placeholder="Search tasks…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-10 text-sm rounded-full bg-secondary/60 border-transparent focus-visible:bg-background"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+                  className="text-sm font-medium text-primary px-2 py-1 -mr-1 active:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  aria-label="Search tasks"
+                  className="h-10 w-10 rounded-full flex items-center justify-center text-foreground/80 hover:bg-secondary/60 active:scale-95 transition"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
 
-          <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-hide -mx-4 px-4 justify-center" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Chip bar — transparent w/ thin border, solid green active, dot for >0 */}
+          <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide -mx-5 px-5" style={{ WebkitOverflowScrolling: 'touch' }}>
             {activeStatusFilters.map((f) => {
               const count = activeCounts[f.key] || 0;
+              const isActive = statusFilter === f.key;
               return (
-                <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                  className={`flex-shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter === f.key ? f.color : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"}`}>
+                <button
+                  key={f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                  className={`relative flex-shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-medium border transition-all duration-150 active:scale-95 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-transparent text-muted-foreground border-border/60 hover:text-foreground hover:border-border"
+                  }`}
+                >
                   {f.label}
-                  {count > 0 && (
-                    <span className={`ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold ${statusFilter === f.key ? "bg-foreground/10" : "bg-muted-foreground/15"}`}>{count}</span>
+                  {count > 0 && !isActive && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
                   )}
                 </button>
               );

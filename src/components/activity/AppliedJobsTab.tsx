@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   MapPin, DollarSign, CheckCircle2,
-  Star, MessageSquare, Users, AlertTriangle, RefreshCw, Clock, Calendar, Timer, ThumbsUp, ThumbsDown, Send, XCircle, Paperclip, FileText, Trash2, Pencil, Check, X,
+  Star, MessageSquare, Users, AlertTriangle, RefreshCw, Clock, Calendar, Timer, ThumbsUp, ThumbsDown, Send, XCircle, Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { VirtualList } from "@/components/VirtualList";
@@ -113,6 +114,8 @@ export const AppliedJobsTab = ({
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
+  // Slide-up confirmation sheet for Withdraw — friction where it matters.
+  const [withdrawTarget, setWithdrawTarget] = useState<{ appId: string; jobTitle: string } | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
   const [editingMessageAppId, setEditingMessageAppId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
@@ -127,15 +130,18 @@ export const AppliedJobsTab = ({
     setEditingMessageAppId(null);
   };
 
-  const handleWithdraw = async (appId: string, jobTitle: string) => {
+  const confirmWithdraw = async () => {
+    if (!withdrawTarget) return;
+    const { appId, jobTitle } = withdrawTarget;
     setWithdrawingAppId(appId);
     const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
     if (error) {
       toast.error("Failed to withdraw application");
     } else {
-      toast.success(`Withdrawn from "${jobTitle}"`);
+      toast.success(`Successfully withdrawn from "${jobTitle}"`);
     }
     setWithdrawingAppId(null);
+    setWithdrawTarget(null);
   };
 
   const handleAddAttachment = async (appId: string, jobId: string, currentUrls: string[], file: File) => {
@@ -262,28 +268,19 @@ export const AppliedJobsTab = ({
                 })()}
               </div>
 
-              {/* Description & special requirements — collapsible */}
-              {!isMinimalCard && (job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() || job.special_requirements?.trim()) && (
-                <div className="space-y-1.5">
-                  {job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                    <p className={`text-xs text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
-                  )}
-                  {isExpanded && job.special_requirements?.trim() && (
-                    <div className="rounded-lg bg-secondary/30 p-2">
-                      <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                      <p className="text-xs text-foreground">{job.special_requirements}</p>
-                    </div>
-                  )}
-                  {(job.description.length > 100 || job.special_requirements?.trim()) && (
-                    <button
-                      type="button"
-                      className="text-[10px] text-primary hover:underline"
-                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                    >
-                      {isExpanded ? "▲ Less" : "▼ More details"}
-                    </button>
-                  )}
-                </div>
+              {/* Description preview — collapsed to keep cards compact.
+                  Full details live on the job page (chevron link below). */}
+              {!isMinimalCard && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+              )}
+              {!isMinimalCard && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/dashboard?job=${job.id}`); }}
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline active:opacity-70"
+                >
+                  View details <ChevronRight className="w-3 h-3" />
+                </button>
               )}
 
               {/* Poster name */}
@@ -391,18 +388,18 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Pending withdraw */}
+            {/* Pending withdraw — ghost text link, deliberately understated.
+                Tapping opens a confirmation bottom sheet (see end of file). */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive border-destructive/30 hover:bg-destructive/5"
+              <div className="px-4 py-2 border-t border-border/30 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
                   disabled={withdrawingAppId === app.id}
-                  onClick={() => handleWithdraw(app.id, job.title || "Task")}
+                  onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors active:opacity-60 px-2 py-1 disabled:opacity-50"
                 >
-                  <XCircle className="w-4 h-4 mr-1" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
-                </Button>
+                  <XCircle className="w-3.5 h-3.5" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
+                </button>
               </div>
             )}
 
@@ -739,14 +736,57 @@ export const AppliedJobsTab = ({
   };
 
   return (
-    <VirtualList
-      items={apps}
-      getKey={(app) => app.id}
-      estimateSize={260}
-      overscan={4}
-      itemClassName="pb-3"
-      renderItem={(app) => renderAppCard(app)}
-    />
+    <>
+      <VirtualList
+        items={apps}
+        getKey={(app) => app.id}
+        estimateSize={260}
+        overscan={4}
+        itemClassName="pb-3"
+        renderItem={(app) => renderAppCard(app)}
+      />
 
+      {/* Withdraw confirmation — slide-up sheet with dimmed backdrop. */}
+      <Sheet open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)]"
+        >
+          {/* Drag-handle affordance */}
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
+          <SheetHeader className="text-center">
+            <SheetTitle className="font-display text-2xl font-bold tracking-tight">
+              Withdraw Application?
+            </SheetTitle>
+            <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+              Withdrawing will remove you from consideration for{" "}
+              <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
+              You can re-apply later if the position is still open.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-2.5">
+            <Button
+              size="lg"
+              variant="destructive"
+              className="w-full rounded-xl text-[15px] font-semibold"
+              disabled={!!withdrawingAppId}
+              onClick={confirmWithdraw}
+            >
+              {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
+              disabled={!!withdrawingAppId}
+              onClick={() => setWithdrawTarget(null)}
+            >
+              Keep My Application
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };

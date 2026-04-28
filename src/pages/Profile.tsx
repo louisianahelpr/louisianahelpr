@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { formatName } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   Star, Edit, CalendarDays, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
-  Briefcase, ShieldCheck,
+  Briefcase, ShieldCheck, Trash2,
 } from "lucide-react";
 import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";
@@ -391,6 +392,7 @@ const ProfilePage = () => {
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
@@ -603,13 +605,13 @@ const ProfilePage = () => {
                 >
                   <LogOut className="w-4 h-4 mr-2" /> Sign out
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/15 hover:text-destructive hover:border-destructive/50"
-                  onClick={() => setShowDeleteAccountDialog(true)}
+                <button
+                  type="button"
+                  onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
+                  className="w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-destructive/80 hover:text-destructive transition-colors py-2 active:opacity-60"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2" /> Delete account
-                </Button>
+                  <Trash2 className="w-4 h-4" /> Delete account
+                </button>
               </div>
             </div>
           )}
@@ -1117,39 +1119,97 @@ const ProfilePage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showDeleteAccountDialog} onOpenChange={(open) => { setShowDeleteAccountDialog(open); if (!open) setDeleteConfirmText(""); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" /> Delete Account
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <span className="block">This will permanently delete your account and all associated data including jobs, messages, reviews, and payment history. This cannot be undone.</span>
-              <span className="block rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-                ⚠️ <strong>Stripe payouts:</strong> Any pending or in-transit payouts to your bank will be forfeited. Cash out available balance from the Earnings tab before deleting.
-              </span>
-              <span className="block text-sm font-medium text-foreground">Type <strong>DELETE MY ACCOUNT</strong> to confirm:</span>
-              <Input
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="DELETE MY ACCOUNT"
-                className="mt-2"
-              />
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingAccount}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deletingAccount}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Delete Forever
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Account — slide-up sheet, two-step flow with type-to-confirm safety catch */}
+      <Sheet
+        open={showDeleteAccountDialog}
+        onOpenChange={(open) => {
+          setShowDeleteAccountDialog(open);
+          if (!open) { setDeleteConfirmText(""); setDeleteStep(1); }
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)]"
+        >
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
+
+          {deleteStep === 1 ? (
+            <>
+              <SheetHeader className="text-center">
+                <SheetTitle className="font-display text-2xl font-bold tracking-tight">
+                  Delete your Helpr account?
+                </SheetTitle>
+                <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+                  This action is permanent. You will lose your job history, earnings records, and verified credentials. This cannot be undone.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                ⚠️ Any pending or in-transit Stripe payouts will be forfeited. Cash out your available balance from the Earnings tab first.
+              </div>
+              <div className="mt-6 space-y-2.5">
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="w-full rounded-xl text-[15px] font-semibold"
+                  onClick={() => setDeleteStep(2)}
+                >
+                  Delete Everything
+                </Button>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowDeleteAccountDialog(false)}
+                >
+                  Go Back / Keep Account
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <SheetHeader className="text-center">
+                <SheetTitle className="font-display text-2xl font-bold tracking-tight text-destructive flex items-center justify-center gap-2">
+                  <AlertTriangle className="w-5 h-5" /> Final Confirmation
+                </SheetTitle>
+                <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+                  Type <strong className="text-foreground">DELETE MY ACCOUNT</strong> below to confirm. There is no undo.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-5">
+                <Input
+                  autoFocus
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE MY ACCOUNT"
+                  className="h-11 text-center font-mono tracking-wide"
+                  disabled={deletingAccount}
+                />
+              </div>
+              <div className="mt-6 space-y-2.5">
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="w-full rounded-xl text-[15px] font-semibold"
+                  disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deletingAccount}
+                  onClick={handleDeleteAccount}
+                >
+                  {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Delete Forever
+                </Button>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
+                  disabled={deletingAccount}
+                  onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); }}
+                >
+                  Back
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

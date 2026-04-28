@@ -2,22 +2,19 @@ import UIKit
 import Capacitor
 import WebKit
 
-@UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+private enum HelprWebCacheReset {
+    private static let resetKey = "helpr_last_web_cache_reset_build"
 
-    var window: UIWindow?
-
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        clearBundledWebViewCachesAfterAppUpdate()
-        return true
+    private static var currentBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
     }
 
-    private func clearBundledWebViewCachesAfterAppUpdate() {
-        let currentBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-        let resetKey = "helpr_last_web_cache_reset_build"
+    static func clearIfNeeded(completion: @escaping () -> Void) {
         let defaults = UserDefaults.standard
-
-        guard defaults.string(forKey: resetKey) != currentBuild else { return }
+        guard defaults.string(forKey: resetKey) != currentBuild else {
+            completion()
+            return
+        }
 
         URLCache.shared.removeAllCachedResponses()
 
@@ -26,16 +23,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             return lowercased.contains("cache") || lowercased.contains("serviceworker")
         }
 
-        guard !cacheTypes.isEmpty else {
+        let finish = {
             defaults.set(currentBuild, forKey: resetKey)
+            DispatchQueue.main.async { completion() }
+        }
+
+        guard !cacheTypes.isEmpty else {
+            finish()
             return
         }
 
-        WKWebsiteDataStore.default().fetchDataRecords(ofTypes: cacheTypes) { records in
-            WKWebsiteDataStore.default().removeData(ofTypes: cacheTypes, for: records) {
-                defaults.set(currentBuild, forKey: resetKey)
-            }
+        WKWebsiteDataStore.default().removeData(ofTypes: cacheTypes, modifiedSince: Date(timeIntervalSince1970: 0)) {
+            finish()
         }
+    }
+}
+
+class HelprBridgeViewController: CAPBridgeViewController {
+    override open func viewDidLoad() {
+        HelprWebCacheReset.clearIfNeeded { [weak self] in
+            self?.loadBundledAppAfterCacheReset()
+        }
+    }
+
+    private func loadBundledAppAfterCacheReset() {
+        super.viewDidLoad()
+    }
+}
+
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    var window: UIWindow?
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        return true
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

@@ -25,6 +25,8 @@ if (process.platform === "darwin") {
 }
 
 for (const relativePath of [
+  "ios/App/.build",
+  "ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm",
   "ios/App/App.xcodeproj/xcuserdata",
   "ios/App/App.xcodeproj/project.xcworkspace/xcuserdata",
   "ios/App/App.xcworkspace/xcuserdata",

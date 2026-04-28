@@ -168,6 +168,9 @@ const ProfilePage = () => {
       if (cachedProfile) {
         setProfile(cachedProfile);
         setFullName(cachedProfile.full_name || "");
+        const _parts = (cachedProfile.full_name || "").trim().split(/\s+/);
+        setFirstName(_parts[0] || "");
+        setLastName(_parts.slice(1).join(" ") || "");
         setPhone(cachedProfile.phone || "");
         setLocation(cachedProfile.location || "");
         setZipCode((cachedProfile as any).zip_code || "");

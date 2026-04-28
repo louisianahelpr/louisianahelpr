@@ -86,7 +86,7 @@ const config: CapacitorConfig = {
       // never hangs even if init fails.
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: '#1B9D6F', // Helpr emerald — exact match to app-icon-1024.png + splash bg
+      backgroundColor: '#FFFFFF', // Matches the uploaded Helpr splash/logo canvas
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,

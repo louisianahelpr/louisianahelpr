@@ -75,10 +75,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/browse", "/job-history"];
-  const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-pending", "/account-denied"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending"];
+  const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
+
+  // Pending-approval lock: user is signed in but profile not yet approved.
+  // They can browse the home dashboard but everything else is gated until
+  // an admin clears them. Detected via route OR profile.approval_status.
+  const isPendingApproval =
+    location.pathname.startsWith("/account-pending");
   // Guest "tease & convert" bottom nav is iOS/Android-app only.
   // On the web, guests should see only the top Navbar (no bottom bar).
   if (isGuest && !Capacitor.isNativePlatform()) return null;
@@ -113,6 +119,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
     const guestLocked = isGuest && !["/dashboard", "/profile"].includes(path);
+    const pendingLocked = !isGuest && isPendingApproval && path !== "/dashboard";
+    const locked = guestLocked || pendingLocked;
     const effectivePath = isGuest
       ? path === "/dashboard"
         ? "/browse"
@@ -136,6 +144,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         triggerGate(label.toLowerCase());
         return;
       }
+      if (pendingLocked) {
+        // Pending users can browse the home dashboard but nothing else.
+        // Send them back to the review screen so they can sync status.
+        navigate("/account-pending");
+        return;
+      }
       // If we're inside this tab's stack but not on its root, pop back to root.
       if (!isGuest && inStack && location.pathname !== path) {
         navigate(path);
@@ -149,9 +163,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <button
         key={path}
         onClick={handleClick}
-        onMouseEnter={() => !guestLocked && prefetchRoute(effectivePath)}
-        onFocus={() => !guestLocked && prefetchRoute(effectivePath)}
-        aria-label={guestLocked ? `${label} — sign up required` : label}
+        onMouseEnter={() => !locked && prefetchRoute(effectivePath)}
+        onFocus={() => !locked && prefetchRoute(effectivePath)}
+        aria-label={locked ? `${label} — locked until your account is approved` : label}
         className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
           isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
@@ -162,7 +176,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             strokeWidth={isActive ? 2.25 : 2}
             fill={isActive ? "hsl(var(--primary) / 0.2)" : "none"}
           />
-          {guestLocked && (
+          {locked && (
             <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
               <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
             </span>
@@ -198,21 +212,23 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — squircle with glowing brand-green halo */}
-          <button
-            onClick={handlePostClick}
-            onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-            onFocus={() => !isGuest && prefetchRoute("/post-job")}
-            aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-            className="relative w-14 h-14 squircle rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_0_0_4px_hsl(158_67%_37%/0.12),0_8px_28px_-4px_hsl(158_67%_37%/0.55),0_2px_8px_-2px_hsl(158_67%_37%/0.4)] flex items-center justify-center shrink-0 border border-white/25 active:scale-95 transition-all duration-200 hover:shadow-[0_0_0_6px_hsl(158_67%_37%/0.15),0_12px_32px_-4px_hsl(158_67%_37%/0.65)]"
-          >
-            <Plus className="w-7 h-7" strokeWidth={2.5} />
-            {isGuest && (
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-primary/20 flex items-center justify-center">
-                <Lock className="w-2.5 h-2.5 text-primary" strokeWidth={3} />
-              </span>
-            )}
-          </button>
+          {/* Post FAB — hidden entirely while a user is in the pending-approval lock */}
+          {!isPendingApproval && (
+            <button
+              onClick={handlePostClick}
+              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
+              onFocus={() => !isGuest && prefetchRoute("/post-job")}
+              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+              className="relative w-14 h-14 squircle rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_0_0_4px_hsl(158_67%_37%/0.12),0_8px_28px_-4px_hsl(158_67%_37%/0.55),0_2px_8px_-2px_hsl(158_67%_37%/0.4)] flex items-center justify-center shrink-0 border border-white/25 active:scale-95 transition-all duration-200 hover:shadow-[0_0_0_6px_hsl(158_67%_37%/0.15),0_12px_32px_-4px_hsl(158_67%_37%/0.65)]"
+            >
+              <Plus className="w-7 h-7" strokeWidth={2.5} />
+              {isGuest && (
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-primary/20 flex items-center justify-center">
+                  <Lock className="w-2.5 h-2.5 text-primary" strokeWidth={3} />
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </nav>
 

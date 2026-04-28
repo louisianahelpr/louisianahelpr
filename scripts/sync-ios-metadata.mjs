@@ -11,6 +11,7 @@ const projectPath = path.join(repoRoot, "ios/App/App.xcodeproj/project.pbxproj")
 const plistPath = path.join(repoRoot, "ios/App/App/Info.plist");
 const capacitorTsPath = path.join(repoRoot, "capacitor.config.ts");
 const capacitorJsonPath = path.join(repoRoot, "ios/App/App/capacitor.config.json");
+const configXmlPath = path.join(repoRoot, "ios/App/App/config.xml");
 
 const read = (relativeOrAbsolute) => fs.readFileSync(relativeOrAbsolute, "utf8");
 const write = (relativeOrAbsolute, contents) => fs.writeFileSync(relativeOrAbsolute, contents);
@@ -39,6 +40,14 @@ const metadata = {
   privacyUrl: pick("privacy_url"),
   supportUrl: pick("support_url"),
 };
+
+const escapeXml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 
 let project = read(projectPath);
 const highestExistingBuild = Math.max(
@@ -94,23 +103,35 @@ const tsReplacements = new Map([
 for (const [pattern, replacement] of tsReplacements) capacitorTs = capacitorTs.replace(pattern, replacement);
 write(capacitorTsPath, capacitorTs);
 
-if (fs.existsSync(capacitorJsonPath)) {
-  const capacitorJson = JSON.parse(read(capacitorJsonPath));
-  capacitorJson.appId = metadata.bundleId;
-  capacitorJson.appName = metadata.displayName;
-  capacitorJson.ios = {
-    ...capacitorJson.ios,
-    appleId: metadata.appleId,
-    sku: metadata.sku,
-    version: metadata.marketingVersion,
-    build: String(highestExistingBuild),
-    category: metadata.category,
-    supportUrl: metadata.supportUrl,
-    privacyPolicyUrl: metadata.privacyUrl,
-    marketingUrl: metadata.marketingUrl,
-  };
-  write(capacitorJsonPath, `${JSON.stringify(capacitorJson, null, "\t")}\n`);
-}
+const capacitorJson = fs.existsSync(capacitorJsonPath) ? JSON.parse(read(capacitorJsonPath)) : {};
+capacitorJson.appId = metadata.bundleId;
+capacitorJson.appName = metadata.displayName;
+capacitorJson.webDir = capacitorJson.webDir ?? "dist";
+capacitorJson.ios = {
+  ...capacitorJson.ios,
+  appleId: metadata.appleId,
+  sku: metadata.sku,
+  version: metadata.marketingVersion,
+  build: String(highestExistingBuild),
+  category: metadata.category,
+  supportUrl: metadata.supportUrl,
+  privacyPolicyUrl: metadata.privacyUrl,
+  marketingUrl: metadata.marketingUrl,
+};
+write(capacitorJsonPath, `${JSON.stringify(capacitorJson, null, "\t")}\n`);
+
+write(
+  configXmlPath,
+  `<?xml version='1.0' encoding='utf-8'?>
+<widget id="${escapeXml(metadata.bundleId)}" version="${escapeXml(metadata.marketingVersion)}" xmlns="http://www.w3.org/ns/widgets">
+    <name>${escapeXml(metadata.displayName)}</name>
+    <description>${escapeXml(metadata.displayName)}</description>
+    <author></author>
+    <content src="index.html" />
+    <access origin="*" />
+</widget>
+`,
+);
 
 fs.mkdirSync(path.join(repoRoot, "fastlane/metadata/en-US"), { recursive: true });
 write(path.join(repoRoot, "fastlane/metadata/en-US/name.txt"), `${metadata.displayName}\n`);

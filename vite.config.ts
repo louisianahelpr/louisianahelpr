@@ -138,7 +138,7 @@ export default defineConfig(({ mode }) => ({
         short_name: "Helpr",
         description: "Connect with trusted Louisiana neighbors for cleaning, errands, moving, yard work, and more.",
         theme_color: "#1FA678",
-        background_color: "#1FA678",
+        background_color: "#FFFFFF",
         display: "standalone",
         orientation: "portrait",
         scope: "/",

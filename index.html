@@ -122,7 +122,11 @@
       so users never see a flash — the shell is invisible the moment the
       app hydrates. Brand color matches --background to avoid any flicker.
     -->
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #ffffff;">
+        <img src="/helpr-splash-icon.png" alt="Helpr" style="width: 112px; height: 112px; object-fit: contain;" />
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

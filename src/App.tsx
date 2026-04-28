@@ -102,8 +102,17 @@ const queryClient = new QueryClient({
   },
 });
 
-// No splash — render an empty background while route chunks load.
-const PageFallback = () => <div className="min-h-screen bg-background" />;
+// Route-level loading fallback — matches the native/web launch screen.
+const PageFallback = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <img
+      src="/helpr-splash-icon.png"
+      alt="Helpr"
+      className="h-28 w-28 object-contain"
+      aria-hidden="true"
+    />
+  </div>
+);
 
 
 

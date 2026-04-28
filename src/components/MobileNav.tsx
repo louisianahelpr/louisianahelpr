@@ -119,6 +119,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
     const guestLocked = isGuest && !["/dashboard", "/profile"].includes(path);
+    const pendingLocked = !isGuest && isPendingApproval && path !== "/dashboard";
+    const locked = guestLocked || pendingLocked;
     const effectivePath = isGuest
       ? path === "/dashboard"
         ? "/browse"

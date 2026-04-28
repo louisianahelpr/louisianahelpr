@@ -599,23 +599,23 @@ const ProfilePage = () => {
                 ))}
               </div>
 
-              {/* Account actions */}
+              {/* Account actions — squircle cards matching the bottom dock geometry */}
               <div className="pt-2 pb-4">
-                {/* Sign out — white squircle card matching menu group geometry */}
+                {/* Sign out — standalone white squircle card */}
                 <button
                   type="button"
                   onClick={() => setShowLogoutDialog(true)}
-                  className="w-full rounded-full bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
+                  className="w-full rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
                 >
                   <LogOut className="w-4 h-4" /> Sign out
                 </button>
-                {/* Delete account — high-contrast red pill, danger zone */}
+                {/* Delete account — soft red fill with red border, danger zone */}
                 <button
                   type="button"
                   onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
-                  className="mt-4 w-full rounded-full bg-destructive/90 hover:bg-destructive py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-white shadow-[0_1px_2px_hsl(0_60%_30%/0.10),0_8px_28px_-12px_hsl(0_60%_30%/0.25)] active:opacity-90 transition-colors"
+                  className="mt-4 w-full rounded-[24px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4 text-white" /> Delete account
+                  <Trash2 className="w-4 h-4" /> Delete account
                 </button>
               </div>
             </div>

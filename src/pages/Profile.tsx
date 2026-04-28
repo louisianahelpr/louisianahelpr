@@ -14,7 +14,7 @@ import {
   Star, Edit, CalendarDays, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
-  Briefcase, ShieldCheck, Trash2,
+  ShieldCheck, Trash2,
 } from "lucide-react";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";

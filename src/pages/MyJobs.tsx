@@ -209,10 +209,7 @@ const MyJobs = () => {
             {loading ? (
               <div className="space-y-4" aria-label="Loading your tasks">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl border border-border bg-card p-5 h-28 animate-pulse"
-                  />
+                  <JobCardSkeleton key={i} />
                 ))}
               </div>
             ) : loadError ? (

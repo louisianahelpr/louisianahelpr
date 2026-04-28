@@ -16,7 +16,7 @@ import {
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
   Briefcase, ShieldCheck, Trash2,
 } from "lucide-react";
-import { ProfileCardSkeleton, StatsSkeleton } from "@/components/SkeletonLoaders";
+import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import { PaymentTab } from "@/components/PaymentTab";
@@ -425,9 +425,8 @@ const ProfilePage = () => {
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-5 py-4">
-          <div className="max-w-lg mx-auto space-y-4">
-            <ProfileCardSkeleton />
-            <StatsSkeleton />
+          <div className="max-w-lg mx-auto">
+            <ProfilePageSkeleton />
           </div>
         </main>
       </div>

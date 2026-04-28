@@ -42,6 +42,10 @@ git log -1 --pretty=format:"  %h  %s  (%cr)" 2>/dev/null || echo "  (not a git r
 echo ""
 echo ""
 
+echo "Rewriting iOS metadata from fastlane/ios_app_metadata.yml first..."
+npm run sync:ios-metadata >/dev/null
+echo ""
+
 echo "Xcode project ($PBXPROJ):"
 check "Bundle ID = com.Helpr"             "$PBXPROJ" "PRODUCT_BUNDLE_IDENTIFIER = com.Helpr;"
 check "Team = P85MCK558V"                  "$PBXPROJ" "DEVELOPMENT_TEAM = P85MCK558V;"
@@ -68,9 +72,9 @@ if [ $fail -eq 0 ]; then
   echo "  2. Delete Xcode's derived data:"
   echo "     rm -rf ~/Library/Developer/Xcode/DerivedData/App-*"
   echo "  3. From the project root run:"
-  echo "     npm run build && npx cap sync ios"
-  echo "  4. Reopen with:  open ios/App/App.xcworkspace"
-  echo "     (NOT App.xcodeproj — the workspace pulls in CocoaPods)"
+  echo "     npm run build:ios && npm run sync:ios"
+  echo "  4. Reopen with:  open ios/App/App.xcodeproj"
+  echo "     (this project uses Swift Package Manager; no pod install needed)"
   echo "  5. In Xcode select the BLUE 'App' icon at the very top of the"
   echo "     left sidebar, then the 'App' TARGET (not the project), then"
   echo "     the 'General' tab. The fields populate from the values above."

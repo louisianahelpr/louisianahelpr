@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import helprIcon from "@/assets/helpr-icon-96.webp";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
@@ -72,10 +73,10 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           </Link>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" className="rounded-xl btn-press" onClick={() => navigate("/login")}>
+            <Button variant="ghost" size="sm" className="rounded-xl btn-press" onClick={() => navigate("/login")} onMouseEnter={() => prefetchRoute("/login")} onFocus={() => prefetchRoute("/login")}>
               Log in
             </Button>
-            <Button size="sm" className="rounded-xl btn-press" onClick={() => navigate("/signup")}>
+            <Button size="sm" className="rounded-xl btn-press" onClick={() => navigate("/signup")} onMouseEnter={() => prefetchRoute("/signup")} onFocus={() => prefetchRoute("/signup")}>
               Get started
             </Button>
           </div>

@@ -453,7 +453,6 @@ const ProfilePage = () => {
     {
       title: "Account",
       items: [
-        { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Update your info & portfolio" },
         { key: "credentials", label: "Licensed & Insured", icon: <ShieldCheck className="w-5 h-5" />, desc: "Add your license and insurance" },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
         { key: "landing" as Tab, label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
@@ -491,8 +490,15 @@ const ProfilePage = () => {
 
 
               {/* Compact Hero — single horizontal row, half-height */}
-              <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] p-3.5">
-                <div className="flex flex-row items-center gap-3.5">
+              <div className="relative rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] p-3.5">
+                <button
+                  onClick={() => setTab("profile")}
+                  aria-label="Edit profile"
+                  className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 flex items-center justify-center text-foreground/70 hover:text-foreground transition-all"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <div className="flex flex-row items-center gap-3.5 pr-10">
                   {/* Avatar — 70px squircle, left */}
                   <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
                     {profile?.avatar_url ? (

@@ -1211,7 +1211,7 @@ const ProfilePage = () => {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 };
 

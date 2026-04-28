@@ -1105,8 +1105,9 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
+    </AppShell>
 
-      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Log out?</AlertDialogTitle>

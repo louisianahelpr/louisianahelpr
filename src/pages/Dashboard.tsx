@@ -33,6 +33,7 @@ import { VirtualList } from "@/components/VirtualList";
 import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";

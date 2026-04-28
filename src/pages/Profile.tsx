@@ -576,7 +576,7 @@ const ProfilePage = () => {
               <div className="space-y-4">
                 {menuGroups.map((group) => (
                   <div key={group.title}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">{group.title}</p>
+                    {/* Category label removed — items live physically nested inside the card below */}
                     <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] overflow-hidden">
                       {group.items.map((item, idx) => (
                         <button

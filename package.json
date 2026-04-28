@@ -9,6 +9,7 @@
     "build:ios": "npm run sync:ios-metadata && VITE_CAPACITOR_BUILD=1 vite build",
     "sync:ios-metadata": "node scripts/sync-ios-metadata.mjs",
     "sync:ios": "npm run sync:ios-metadata && npx cap sync ios && npm run sync:ios-metadata",
+    "fix:xcode": "npm run build:ios && npm run sync:ios && bash scripts/verify-ios-metadata.sh",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

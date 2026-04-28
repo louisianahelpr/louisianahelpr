@@ -109,9 +109,15 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
   }
 
   // Stage 2: Universal "Big 7" verification gate.
-  // Legacy users (created before today's cutoff) bypass the gate.
+  // Legacy users (created before the cutoff) bypass the gate entirely.
+  // IMPORTANT: only redirect when we actually have a profile row in hand. If
+  // the profile fetch timed out or RLS hiccupped (`profile === null`), we
+  // **fail open** so legacy users don't get bounced to /complete-profile on
+  // a slow network or transient error. The gate will re-evaluate on the
+  // next render once the profile loads.
   const isLegacy = profile?.is_legacy_user === true;
   if (
+    profile &&
     !isLegacy &&
     user.email_confirmed_at &&
     !isProfileComplete(profile) &&

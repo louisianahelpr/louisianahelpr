@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   MapPin, DollarSign, CheckCircle2,
-  Star, MessageSquare, Users, AlertTriangle, RefreshCw, Clock, Calendar, Timer, ThumbsUp, ThumbsDown, Send, XCircle, Paperclip, FileText, Trash2, Pencil, Check, X,
+  Star, MessageSquare, Users, AlertTriangle, RefreshCw, Clock, Calendar, Timer, ThumbsUp, ThumbsDown, Send, XCircle, Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { VirtualList } from "@/components/VirtualList";

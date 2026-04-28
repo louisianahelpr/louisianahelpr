@@ -108,8 +108,7 @@ const queryClient = new QueryClient({
 // fades out smoothly as the next route mounts.
 const PageFallback = () => (
   <div
-    className="fixed inset-0 flex items-center justify-center overflow-hidden animate-fade-in"
-    style={{ backgroundColor: "#E8F5E9" }}
+    className="fixed inset-0 flex items-center justify-center overflow-hidden bg-background animate-fade-in"
   >
     <img
       src="/helpr-splash-icon.png"

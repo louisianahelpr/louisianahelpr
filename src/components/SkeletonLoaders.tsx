@@ -99,3 +99,48 @@ export const MessagesSkeleton = () => (
     </div>
   </div>
 );
+
+/**
+ * Identity hero skeleton — matches the new horizontal Profile header
+ * (75px avatar + name/stats stacked to its right) inside a 24px squircle card.
+ */
+export const IdentityHeroSkeleton = () => (
+  <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-4 flex items-center gap-4">
+    <Skeleton className="w-[75px] h-[75px] rounded-2xl shrink-0" />
+    <div className="flex-1 space-y-2.5">
+      <Skeleton className="h-5 w-2/3 rounded-md" />
+      <Skeleton className="h-3 w-1/2 rounded-md" />
+      <div className="flex gap-2 pt-1">
+        <Skeleton className="h-4 w-16 rounded-full" />
+        <Skeleton className="h-4 w-12 rounded-full" />
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Menu group card skeleton — one of the three "neighborhood" boxes
+ * (Account / Money / Settings) at 24px squircle radius.
+ */
+export const MenuGroupCardSkeleton = () => (
+  <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] min-h-[78px] p-3 flex flex-col items-center justify-center gap-2">
+    <Skeleton className="w-9 h-9 rounded-xl" />
+    <Skeleton className="h-3 w-12 rounded-md" />
+  </div>
+);
+
+/**
+ * Full Profile-page skeleton — identity hero + 3-up menu grid.
+ * Bottom action row is intentionally omitted; the top + bottom nav are
+ * rendered solid by the shell so they appear instantly.
+ */
+export const ProfilePageSkeleton = () => (
+  <div className="space-y-3">
+    <IdentityHeroSkeleton />
+    <div className="grid grid-cols-3 gap-2.5">
+      <MenuGroupCardSkeleton />
+      <MenuGroupCardSkeleton />
+      <MenuGroupCardSkeleton />
+    </div>
+  </div>
+);

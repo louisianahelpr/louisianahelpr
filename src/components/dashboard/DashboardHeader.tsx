@@ -57,11 +57,11 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
               <span className="text-lg font-display font-bold text-foreground truncate">{title}</span>
             ) : (
               <Link to="/dashboard" className="flex items-center gap-2 group">
-                <span className="w-9 h-9 rounded-xl bg-white shadow-md flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
+                <span className="w-8 h-8 rounded-xl bg-white shadow-md flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
                   <img
                     src={helprIcon}
                     alt="Helpr"
-                    className="w-7 h-7 object-contain"
+                    className="w-8 h-8 object-contain translate-y-[3px]"
                   />
                 </span>
                 <span className="text-lg font-display font-bold text-primary leading-none">

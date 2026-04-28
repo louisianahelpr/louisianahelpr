@@ -19,6 +19,7 @@ import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
+import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];

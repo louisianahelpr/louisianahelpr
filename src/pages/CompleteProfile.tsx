@@ -49,7 +49,7 @@ const CompleteProfile = () => {
   usePageTitle("Complete your profile — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, profile, isLoading } = useCurrentUser();
+  const { user, profile, isLoading, refresh } = useCurrentUser();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -157,6 +157,37 @@ const CompleteProfile = () => {
   ]);
 
   const allComplete = checklist.every((c) => c.done);
+
+  useEffect(() => {
+    if (!user?.id || profile || isLoading) return;
+    void refresh();
+    const retry = window.setInterval(() => void refresh(), 2500);
+    return () => window.clearInterval(retry);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, Boolean(profile), isLoading]);
+
+  const recoverCompletedProfile = async () => {
+    if (!user?.id) return false;
+    try {
+      const { data, error } = await withTimeout(
+        Promise.resolve(supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()),
+        "Profile check",
+        12000,
+      );
+      if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data))) return false;
+
+      queryClient.setQueryData(["currentUser", user.id], (current: any) => ({
+        ...(current ?? {}),
+        profile: data,
+        isAdmin: current?.isAdmin ?? false,
+      }));
+      toast.success("Your profile was already saved — opening Helpr.");
+      navigate("/dashboard", { replace: true });
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,7 +298,8 @@ const CompleteProfile = () => {
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      toast.error(err?.message || "Could not save your profile");
+      const recovered = await recoverCompletedProfile();
+      if (!recovered) toast.error(err?.message || "Could not save your profile");
     } finally {
       setSubmitting(false);
     }
@@ -277,6 +309,32 @@ const CompleteProfile = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-premium-page px-5">
+        <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 text-center shadow-[var(--card-shadow)]">
+          <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin text-primary" />
+          <h1 className="text-xl font-display font-bold text-foreground">Checking your saved profile</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hang tight — we’re making sure your previous submission is loaded before asking for anything again.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate("/login", { replace: true });
+            }}
+            className="mt-5 w-full rounded-xl"
+          >
+            <X className="w-4 h-4 mr-2" /> Sign out
+          </Button>
+        </div>
       </div>
     );
   }

@@ -615,7 +615,7 @@ platform :ios do
   before_all do
     # CI runs build/sync in workflow steps. Skip duplicate work there.
     unless ENV["CI"]
-      sh("cd .. && npm run build")
+      sh("cd .. && npm run build:ios")
       sh("cd .. && npx cap sync ios")
     end
     sync_metadata_to_xcode!

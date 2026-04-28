@@ -195,6 +195,9 @@ const ProfilePage = () => {
     if (data) {
       setProfile(data);
       setFullName(data.full_name || "");
+      const _p = (data.full_name || "").trim().split(/\s+/);
+      setFirstName(_p[0] || "");
+      setLastName(_p.slice(1).join(" ") || "");
       setPhone(data.phone || "");
       setLocation(data.location || "");
       setZipCode((data as any).zip_code || "");

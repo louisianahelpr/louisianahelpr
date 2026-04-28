@@ -72,6 +72,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>(null);
 
   // Sync tab to URL for bookmarkability and browser back
   useEffect(() => {
@@ -566,45 +567,75 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {/* Grouped vertical menu — each group is a white squircle with
-                  inset dividers, muted duo-tone icons, and aligned chevrons. */}
-              <div className="space-y-6">
-                {menuGroups.map((group) => (
-                  <div key={group.title}>
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[#4A4A4A] mb-2 pl-1">{group.title}</p>
-                    <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
-                      {group.items.map((item, idx) => (
-                        <button
-                          key={item.label}
-                          onClick={() => {
-                            if (item.href) navigate(item.href);
-                            else setTab(item.key);
-                          }}
-                          className="group/row w-full flex items-center gap-4 pl-5 pr-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
-                        >
-                          {/* Inset divider — stops short of the card edges */}
-                          {idx > 0 && (
-                            <span
-                              aria-hidden
-                              className="pointer-events-none absolute top-0 left-[68px] right-[15px] h-px bg-border/60"
-                            />
-                          )}
-                          <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
-                            {item.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground leading-tight">{item.label}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.desc}</p>
-                          </div>
-                          {/* Chevron — fixed width keeps every row's arrow on the same vertical axis */}
-                          <span className="w-5 flex items-center justify-center shrink-0">
-                            <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
-                          </span>
-                        </button>
-                      ))}
+              {/* Category buttons replace the old always-expanded long list. */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {menuGroups.map((group) => {
+                    const isActive = activeMenuGroup === group.title;
+                    const GroupIcon = group.title === "Account" ? Edit : group.title === "Money" ? DollarSign : HelpCircle;
+
+                    return (
+                      <button
+                        key={group.title}
+                        type="button"
+                        onClick={() => setActiveMenuGroup(isActive ? null : group.title)}
+                        className={`min-h-[92px] rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2.5 py-3 flex flex-col items-center justify-center gap-2 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
+                        aria-expanded={isActive}
+                      >
+                        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
+                          <GroupIcon className="w-5 h-5" />
+                        </span>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.05em] leading-tight text-center">
+                          {group.title === "Settings & Support" ? "Support" : group.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {activeMenuGroup && (() => {
+                  const group = menuGroups.find((menuGroup) => menuGroup.title === activeMenuGroup);
+                  if (!group) return null;
+
+                  return (
+                    <div>
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-2 pl-1">
+                        {group.title}
+                      </p>
+                      <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
+                        {group.items.map((item, idx) => (
+                          <button
+                            key={item.label}
+                            onClick={() => {
+                              if (item.href) navigate(item.href);
+                              else setTab(item.key);
+                            }}
+                            className="group/row w-full flex items-center justify-between gap-4 pl-5 pr-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
+                          >
+                            {idx > 0 && (
+                              <span
+                                aria-hidden
+                                className="pointer-events-none absolute top-0 left-[68px] right-[15px] h-px bg-border/60"
+                              />
+                            )}
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
+                                {item.icon}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground leading-tight">{item.label}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.desc}</p>
+                              </div>
+                            </div>
+                            <span className="w-5 flex items-center justify-center shrink-0">
+                              <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })()}
               </div>
 
               {/* Account actions — squircle cards matching the bottom dock geometry */}

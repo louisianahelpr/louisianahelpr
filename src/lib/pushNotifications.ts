@@ -33,8 +33,8 @@ export const showLocalNotification = (title: string, message: string, link?: str
   navigator.serviceWorker.ready.then((registration) => {
     registration.showNotification(title, {
       body: message,
-      icon: "/favicon.ico",
-      badge: "/favicon.ico",
+      icon: "/apple-touch-icon.png",
+      badge: "/favicon-32.png",
       data: { link: link || "/dashboard" },
       tag: `helpr-${Date.now()}`,
     });

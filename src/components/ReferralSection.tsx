@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,68 +8,24 @@ import { toast } from "sonner";
 import SocialShare from "@/components/SocialShare";
 import { nativeShare } from "@/lib/nativeShare";
 import { hapticLight } from "@/lib/haptics";
-
-interface ReferralCredit {
-  id: string;
-  amount: number;
-  reason: string;
-  redeemed: boolean;
-  created_at: string;
-}
+import { useReferralData } from "@/hooks/useReferralData";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
- * Single-screen, non-scrollable referral dashboard.
- * Designed to fit between the top + bottom nav frame on standard mobile
- * viewports (~640-820px tall content area). Uses flex-col + justify-between
- * so cards expand/compress to fill available space — no inner scroll.
+ * Single-screen referral dashboard. Backed by React Query (60s staleTime)
+ * so revisits within the window are instant — no DB round-trip.
  */
 const ReferralSection = ({ userId }: { userId: string }) => {
-  const [referralCode, setReferralCode] = useState<string | null>(null);
-  const [credits, setCredits] = useState<ReferralCredit[]>([]);
-  const [referralCount, setReferralCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useReferralData(userId);
+  const referralCode = data?.referralCode ?? null;
+  const credits = data?.credits ?? [];
+  const referralCount = data?.referralCount ?? 0;
+  const hasStripeAccount = data?.hasStripeAccount ?? false;
+  const loading = isLoading;
+
   const [copied, setCopied] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
-  const [hasStripeAccount, setHasStripeAccount] = useState(false);
-
-  useEffect(() => {
-    loadReferralData();
-  }, [userId]);
-
-  const generateCode = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let code = "";
-    for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return code;
-  };
-
-  const loadReferralData = async () => {
-    const [codeRes, creditsRes, referralsRes, profileRes] = await Promise.all([
-      supabase.from("referral_codes").select("code").eq("user_id", userId).maybeSingle(),
-      supabase.from("referral_credits").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-      supabase.from("referrals").select("*", { count: "exact", head: true }).eq("referrer_id", userId),
-      supabase.from("profiles").select("stripe_account_id").eq("user_id", userId).single(),
-    ]);
-
-    if (codeRes.data) {
-      setReferralCode(codeRes.data.code);
-    } else {
-      const newCode = generateCode();
-      const { data: inserted, error } = await supabase
-        .from("referral_codes")
-        .insert({ user_id: userId, code: newCode })
-        .select("code")
-        .single();
-      if (!error && inserted) setReferralCode(inserted.code);
-    }
-
-    if (creditsRes.data) setCredits(creditsRes.data as ReferralCredit[]);
-    setReferralCount(referralsRes.count || 0);
-    setHasStripeAccount(!!profileRes.data?.stripe_account_id);
-    setLoading(false);
-  };
 
   const copyCode = () => {
     if (!referralCode) return;
@@ -93,13 +50,13 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const handleCashOut = async () => {
     setCashingOut(true);
     try {
-      const { data, error } = await supabase.functions.invoke("cash-out-credits");
+      const { data: result, error } = await supabase.functions.invoke("cash-out-credits");
       if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
+      if (result?.error) {
+        toast.error(result.error);
       } else {
-        toast.success(`$${data.amount.toFixed(2)} sent to your connected Stripe account!`);
-        await loadReferralData();
+        toast.success(`$${result.amount.toFixed(2)} sent to your connected Stripe account!`);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.referral(userId) });
       }
     } catch (err: any) {
       toast.error(err.message || "Cash-out failed. Please try again.");

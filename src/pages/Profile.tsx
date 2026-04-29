@@ -721,20 +721,17 @@ const ProfilePage = () => {
               if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
               return age >= 18;
             })();
-            return (
+             return (
               <div className="h-[calc(100dvh-8.5rem)] flex flex-col overflow-hidden">
-                <div className="flex items-center gap-3 shrink-0 mb-2">
+                <div className="flex items-center gap-3 shrink-0 mb-3">
                   <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <div>
-                    <h1 className="text-xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
-                    <p className="text-muted-foreground text-[11px]">The Big 7 — keep these current</p>
-                  </div>
+                  <h1 className="text-xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
                 </div>
 
                 <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="relative group shrink-0">
                         {profile?.avatar_url ? (
@@ -766,17 +763,9 @@ const ProfilePage = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label htmlFor="phone" className="text-[11px] mb-1">Phone</Label>
-                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
-                      </div>
-                      <div>
-                        <Label htmlFor="dob" className="text-[11px] mb-1">
-                          Date of birth {dateOfBirth && !ageOk && <span className="text-destructive">(18+)</span>}
-                        </Label>
-                        <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="h-10" />
-                      </div>
+                    <div>
+                      <Label htmlFor="phone" className="text-[11px] mb-1">Phone</Label>
+                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -838,7 +827,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-2">
+                  <div className="shrink-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
                     <button
                       type="submit"
                       disabled={saving || justSaved}

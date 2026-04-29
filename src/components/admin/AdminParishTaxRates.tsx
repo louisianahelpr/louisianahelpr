@@ -18,8 +18,6 @@ interface ParishRate {
 }
 
 const AdminParishTaxRates = () => {
-  const [rates, setRates] = useState<ParishRate[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [edits, setEdits] = useState<Record<string, { state_rate: string; local_rate: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -27,17 +25,18 @@ const AdminParishTaxRates = () => {
   const [newLocalRate, setNewLocalRate] = useState("");
   const [adding, setAdding] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase.from as any)("parish_tax_rates")
-      .select("*")
-      .order("parish_name", { ascending: true });
-    if (error) toast.error(error.message);
-    setRates((data as any) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  const { data: rates, isFetching, refetch } = useInstantQuery<ParishRate[]>({
+    key: ["admin-parish-tax-rates"],
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await (supabase.from as any)("parish_tax_rates")
+        .select("*")
+        .order("parish_name", { ascending: true });
+      if (error) throw error;
+      return (data as ParishRate[]) || [];
+    },
+  });
+  const loading = isFetching && rates.length === 0;
 
   const setEdit = (id: string, field: "state_rate" | "local_rate", value: string) => {
     setEdits((prev) => ({

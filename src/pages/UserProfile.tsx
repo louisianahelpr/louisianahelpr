@@ -45,100 +45,74 @@ const UserProfile = () => {
   const [searchParams] = useSearchParams();
   const { user: currentAuthUser } = useCurrentUser();
   const currentUserId = currentAuthUser?.id ?? null;
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
-  const [stats, setStats] = useState({ completedJobs: 0, avgRating: 0, reviewCount: 0 });
-  const [postedJobs, setPostedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
-  const [workedJobs, setWorkedJobs] = useState<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }[]>([]);
-  const [responseMetrics, setResponseMetrics] = useState<{ avgResponseHours: number | null; acceptanceRate: number | null; totalApplications: number }>({ avgResponseHours: null, acceptanceRate: null, totalApplications: 0 });
-  const [isIdVerified, setIsIdVerified] = useState(false);
-  
+
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
 
-  useEffect(() => {
-    if (!userId) return;
-
-    const loadAll = async () => {
-      setLoading(true);
-      
-
-      // Step 1: Get profile first
-      const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId] });
-      
+  // React Query: cached for 60s, instant on revisit, refresh in background.
+  const { data, isLoading } = useQuery({
+    queryKey: ["user-profile", userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    queryFn: async () => {
+      const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId!] });
       if (!profileRes.data || profileRes.data.length === 0) {
-        setProfile(null);
-        setLoading(false);
-        return;
+        return { profile: null as Profile | null };
       }
       const prof = profileRes.data[0] as any;
-      setProfile(prof);
-
-      // Step 2: Remaining queries in parallel
       const isHelper = prof.role === "helper";
-      
+
       const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
-        supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId).order("created_at", { ascending: false }),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).order("created_at", { ascending: false }),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         isHelper
-          ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId)
+          ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!)
           : Promise.resolve({ data: null }),
-        supabase.from("profiles").select("id_document_url").eq("user_id", userId).single(),
+        supabase.from("profiles").select("id_document_url").eq("user_id", userId!).single(),
       ]);
-      setIsIdVerified(!!idCheckRes.data?.id_document_url);
-      
 
-      if (postedRes.data) setPostedJobs(postedRes.data);
-      if (workedRes.data) setWorkedJobs(workedRes.data);
-
-      // Derive completed count from posted + worked (no extra query)
-      const allJobs = [...(postedRes.data || []), ...(workedRes.data || [])];
+      const postedJobs = postedRes.data || [];
+      const workedJobs = workedRes.data || [];
+      const allJobs = [...postedJobs, ...workedJobs];
       const completedCount = new Set(allJobs.filter(j => j.status === "completed").map(j => j.id)).size;
-
       const ratings = reviewsRes.data?.map((r: any) => r.rating) || [];
-      setStats({
+      const stats = {
         completedJobs: completedCount,
         avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
         reviewCount: ratings.length,
-      });
+      };
 
-      // Response metrics (only for helpers)
+      let responseMetrics = { avgResponseHours: null as number | null, acceptanceRate: null as number | null, totalApplications: 0 };
       if (isHelper && appsRes?.data && appsRes.data.length > 0) {
         const allApps = appsRes.data;
         const accepted = allApps.filter((a: any) => a.status === "accepted");
         const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
         const responseTimes = accepted
-          .map((a: any) => {
-            const created = new Date(a.created_at).getTime();
-            const updated = new Date(a.updated_at).getTime();
-            return (updated - created) / (1000 * 60 * 60);
-          })
+          .map((a: any) => (new Date(a.updated_at).getTime() - new Date(a.created_at).getTime()) / 3_600_000)
           .filter((h: number) => h > 0 && h < 720);
-        setResponseMetrics({
+        responseMetrics = {
           avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a: number, b: number) => a + b, 0) / responseTimes.length : null,
           acceptanceRate,
           totalApplications: allApps.length,
-        });
+        };
       }
 
-      // Enrich reviews with names
+      let reviews: any[] = [];
       if (reviewsRes.data && reviewsRes.data.length > 0) {
-        
         const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           supabase.from("jobs").select("id, title").in("id", jobIds),
         ]);
-        
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
-        setReviews(reviewsRes.data.map((r: any) => ({
+        reviews = reviewsRes.data.map((r: any) => ({
           rating: r.rating,
           punctuality: r.punctuality ?? null,
           quality: r.quality ?? null,
@@ -147,15 +121,29 @@ const UserProfile = () => {
           created_at: r.created_at,
           reviewerName: nameMap.get(r.reviewer_id) || "User",
           jobTitle: jobMap.get(r.job_id) || "Job",
-        })));
+        }));
       }
 
-      
-      setLoading(false);
-    };
+      return {
+        profile: prof as Profile,
+        reviews,
+        stats,
+        postedJobs,
+        workedJobs,
+        responseMetrics,
+        isIdVerified: !!idCheckRes.data?.id_document_url,
+      };
+    },
+  });
 
-    loadAll();
-  }, [userId]);
+  const profile = data?.profile ?? null;
+  const reviews = data?.reviews ?? [];
+  const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
+  const postedJobs = data?.postedJobs ?? [];
+  const workedJobs = data?.workedJobs ?? [];
+  const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
+  const isIdVerified = data?.isIdVerified ?? false;
+  const loading = isLoading && !data;
 
 
   if (loading) {

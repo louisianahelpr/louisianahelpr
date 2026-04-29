@@ -222,7 +222,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       </div>
 
       {/* Notes list */}
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-xs text-muted-foreground py-2">Loading notes…</p>
       ) : notes.length === 0 ? null : (
         <div className="space-y-2">

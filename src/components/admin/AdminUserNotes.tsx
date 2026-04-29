@@ -19,6 +19,7 @@ import { StickyNote, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-reac
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface AdminUserNotesProps {
   userId: string;

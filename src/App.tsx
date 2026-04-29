@@ -4,9 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-route
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PageTransition from "@/components/PageTransition";
-import MobileNav from "./components/MobileNav";
 import OfflineBanner from "@/components/OfflineBanner";
-import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialog";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
@@ -27,8 +25,9 @@ const Toaster = lazy(() =>
 const Sonner = lazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
 );
-const TooltipProvider = lazy(() =>
-  import("@/components/ui/tooltip").then((m) => ({ default: m.TooltipProvider }))
+const MobileNav = lazy(() => import("./components/MobileNav"));
+const PermissionRationaleDialog = lazy(() =>
+  import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
 
 // Lazy load all pages including landing
@@ -103,29 +102,10 @@ const queryClient = new QueryClient({
   },
 });
 
-// Route-level loading fallback — matches the native/web launch screen.
-// Solid soft-mint background, large centered Helpr 'H', no spinner/text,
-// fades out smoothly as the next route mounts.
+// Route-level loading fallback — no image. A splash image here can become
+// Lighthouse's LCP candidate before the landing route hydrates.
 const PageFallback = () => (
-  <div
-    className="fixed inset-0 flex items-center justify-center overflow-hidden bg-background animate-fade-in"
-  >
-    <img
-      src="/helpr-splash-icon.png"
-      alt="Helpr"
-      className="object-contain rounded-[24px] animate-fade-out"
-      style={{
-        width: "580px",
-        height: "580px",
-        maxWidth: "88vmin",
-        maxHeight: "88vmin",
-        animationDuration: "600ms",
-        animationDelay: "400ms",
-        animationFillMode: "forwards",
-      }}
-      aria-hidden="true"
-    />
-  </div>
+  <div className="fixed inset-0 overflow-hidden bg-background" aria-hidden="true" />
 );
 
 
@@ -196,35 +176,33 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <Suspense fallback={null}>
-        <TooltipProvider>
-          <Suspense fallback={null}>
-            <Toaster />
-            <Sonner />
-          </Suspense>
-          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
-            Skip to content
-          </a>
-          <BrowserRouter>
-            <ScrollToTop />
-            <SessionManager />
-            <NativeLaunchRouter />
-            <OfflineBanner />
-            <Suspense fallback={null}>
-              <StrikeBanner />
-            </Suspense>
-            <main
-              id="main-content"
-              className="w-full max-w-full app-shell-scroll no-scrollbar"
-            >
-              <Suspense fallback={<PageFallback />}>
-                <AnimatedRoutes />
-              </Suspense>
-            </main>
-            <MobileNav />
-            <PermissionRationaleDialog />
-          </BrowserRouter>
-        </TooltipProvider>
+        <Toaster />
+        <Sonner />
       </Suspense>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
+        Skip to content
+      </a>
+      <BrowserRouter>
+        <ScrollToTop />
+        <SessionManager />
+        <NativeLaunchRouter />
+        <OfflineBanner />
+        <Suspense fallback={null}>
+          <StrikeBanner />
+        </Suspense>
+        <main
+          id="main-content"
+          className="w-full max-w-full app-shell-scroll no-scrollbar"
+        >
+          <Suspense fallback={<PageFallback />}>
+            <AnimatedRoutes />
+          </Suspense>
+        </main>
+        <Suspense fallback={null}>
+          <MobileNav />
+          <PermissionRationaleDialog />
+        </Suspense>
+      </BrowserRouter>
     </QueryClientProvider>
   </ErrorBoundary>
 );

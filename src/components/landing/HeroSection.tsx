@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import {
-  Users,
-  CheckCircle,
   Leaf,
   Sparkles,
   Truck,
   Heart,
-  Star,
   MapPin,
-  DollarSign,
   Wrench,
   Paintbrush,
   Package,
@@ -21,12 +16,12 @@ import {
   MoreHorizontal,
   ArrowRight,
   Search,
-  Shield,
 } from "lucide-react";
 import { getCityState } from "@/lib/locationUtils";
 import heroImg400 from "@/assets/hero-porch-garden-400.webp";
 import heroImg500 from "@/assets/hero-porch-garden-500.webp";
 import heroImg600 from "@/assets/hero-porch-garden-600.webp";
+import heroImg700 from "@/assets/hero-porch-garden-700.webp";
 import heroImg800 from "@/assets/hero-porch-garden-800.webp";
 import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
 import heroImg1500 from "@/assets/hero-porch-garden-1500.webp";
@@ -36,12 +31,12 @@ import heroImg2000 from "@/assets/hero-porch-garden-2000.webp";
 // display × DPR. The 2000w variant (~163 KB, re-encoded) is included so
 // retina (2x/3x) phones, tablets, and laptops can resolve crisp pixels
 // instead of upscaling the 800w/1000w file (which read as blurry).
-const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg800} 800w, ${heroImg1000} 1000w, ${heroImg1500} 1500w, ${heroImg2000} 2000w`;
+const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg700} 700w, ${heroImg800} 800w, ${heroImg1000} 1000w, ${heroImg1500} 1500w, ${heroImg2000} 2000w`;
 // `sizes` must describe the CSS slot width — the browser then multiplies
 // by devicePixelRatio to choose a srcset entry. Previous values capped at
 // 800px which forced 2x/3x displays to upscale (the reported blurriness).
 // Slot is roughly full viewport on phones/tablets and ~50vw on desktop.
-const heroSizes = "(max-width: 640px) 100vw, (max-width: 1023px) 90vw, 50vw";
+const heroSizes = "(max-width: 640px) calc(100vw - 48px), (max-width: 1023px) calc(100vw - 80px), 50vw";
 
 // NOTE: We intentionally do NOT inject a JS-side <link rel="preload"> here.
 // That code only runs after React's bundle parses, which is the very thing
@@ -78,12 +73,6 @@ const CATEGORY_ICONS: Record<string, typeof Leaf> = {
   other: MoreHorizontal,
 };
 
-const CATEGORY_ACCENTS = [
-  "from-primary/20 to-primary/5",
-  "from-accent/30 to-accent/5",
-  "from-secondary/40 to-secondary/5",
-];
-
 type LiveJob = {
   id: string;
   title: string;
@@ -95,7 +84,6 @@ type LiveJob = {
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
-  const [stats, setStats] = useState<{ users: number; completed: number } | null>(null);
   const [liveJobs, setLiveJobs] = useState<LiveJob[]>([]);
 
   useEffect(() => {
@@ -105,19 +93,12 @@ const HeroSection = () => {
     // the eager render path lets the hero <img> paint without waiting for
     // the 50KB supabase chunk to download + parse (Lighthouse flagged this
     // as "element render delay" of ~2.0s).
-    const runDeferred = () => {
+    const runDeferred = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) setLoggedIn(true);
       });
-      Promise.all([
-        supabase.rpc("count_profiles"),
-        supabase.rpc("get_public_completed_job_count"),
-      ]).then(([profilesRes, jobsRes]) => {
-        setStats({
-          users: typeof profilesRes.data === "number" ? profilesRes.data : 0,
-          completed: typeof jobsRes.data === "number" ? jobsRes.data : Number(jobsRes.data) || 0,
-        });
-      });
+      if (!window.matchMedia("(min-width: 640px)").matches) return;
       supabase
         .rpc("get_public_open_jobs", { p_limit: 3 })
         .then(({ data }) => {
@@ -125,21 +106,48 @@ const HeroSection = () => {
         });
     };
 
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    let kicked = false;
+    let fallback: number | undefined;
+    const kick = () => {
+      if (kicked) return;
+      kicked = true;
+      window.removeEventListener("pointerdown", kick);
+      window.removeEventListener("keydown", kick);
+      window.removeEventListener("touchstart", kick);
+      void runDeferred();
     };
-    const handle = w.requestIdleCallback
-      ? w.requestIdleCallback(runDeferred, { timeout: 2000 })
-      : window.setTimeout(runDeferred, 1500);
+    window.addEventListener("pointerdown", kick, { once: true, passive: true });
+    window.addEventListener("keydown", kick, { once: true, passive: true });
+    window.addEventListener("touchstart", kick, { once: true, passive: true });
+    fallback = window.setTimeout(kick, 25000);
 
     return () => {
-      const cancel = (window as Window & {
-        cancelIdleCallback?: (h: number) => void;
-      }).cancelIdleCallback;
-      if (cancel) cancel(handle);
-      else window.clearTimeout(handle);
+      window.removeEventListener("pointerdown", kick);
+      window.removeEventListener("keydown", kick);
+      window.removeEventListener("touchstart", kick);
+      if (fallback) window.clearTimeout(fallback);
     };
   }, []);
+
+  const goToPostJob = async () => {
+    if (loggedIn) {
+      navigate("/post-job");
+      return;
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    navigate(session?.user ? "/post-job" : "/signup");
+  };
+
+  const goToBrowseJobs = async () => {
+    if (loggedIn) {
+      navigate("/dashboard");
+      return;
+    }
+    const el = document.getElementById("open-jobs");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    else navigate("/#open-jobs");
+  };
 
   return (
     <section
@@ -186,7 +194,7 @@ const HeroSection = () => {
                       <button
                         key={c.label}
                         type="button"
-                        onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                        onClick={goToPostJob}
                         className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 min-h-[44px] rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0 snap-start"
                       >
                         <c.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary group-hover:scale-110 transition-transform" />
@@ -207,7 +215,7 @@ const HeroSection = () => {
               <Button
                 size="xl"
                 className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                onClick={goToPostJob}
               >
                 <Sparkles className="mr-2 w-5 h-5" />
                 Post a job
@@ -217,18 +225,7 @@ const HeroSection = () => {
                 variant="outline"
                 size="xl"
                 className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={() => {
-                  if (loggedIn) {
-                    navigate("/dashboard");
-                    return;
-                  }
-                  const el = document.getElementById("open-jobs");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  } else {
-                    navigate("/#open-jobs");
-                  }
-                }}
+                onClick={goToBrowseJobs}
               >
                 <Search className="mr-2 w-5 h-5" />
                 Browse jobs

@@ -1,10 +1,16 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+
+// IMPORTANT: do NOT import useCurrentUser at the top of Index. It pulls
+// @supabase/supabase-js into the Index entry chunk (~50 KiB), blocking the
+// LCP image discovery. We only need the auth user inside the native-app
+// redirect path; load that hook lazily so web visitors never download
+// Supabase before paint.
+const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
 // HeroSection is eager-loaded — it's above the fold on every visit and
 // the LCP element. Lazy-loading it added a network round-trip (entry chunk →
@@ -107,8 +113,6 @@ const faqSchema = {
 };
 
 const Index = () => {
-  // Hooks must run unconditionally — call them all before any early return.
-  const { user, isLoading } = useCurrentUser();
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const location = useLocation();
 
@@ -142,14 +146,15 @@ const Index = () => {
     tryScroll();
   }, [location.hash, location.pathname]);
 
-  // iOS/Android native app: skip the marketing landing entirely.
-  // Redirect IMMEDIATELY (don't wait for auth) so the marketing page never
-  // flashes. If the user is signed in, /browse will let ProtectedRoute /
-  // NativeLaunchRouter forward them to /dashboard; if not, /browse is the
-  // correct guest landing (read-only job preview, all CTAs route to /signup).
-  // Web visitors keep seeing the full marketing landing (SEO + funnel intact).
+  // iOS/Android native app: skip the marketing landing entirely. The redirect
+  // logic (which needs Supabase auth) is in a separate lazy chunk so web
+  // visitors don't pay the 50 KiB Supabase tax for a code path they never hit.
   if (isNative) {
-    return <Navigate to={user ? "/dashboard" : "/browse"} replace />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <NativeRedirect />
+      </Suspense>
+    );
   }
 
 

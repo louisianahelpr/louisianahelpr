@@ -827,7 +827,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-2">
+                  <div className="shrink-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
                     <button
                       type="submit"
                       disabled={saving || justSaved}

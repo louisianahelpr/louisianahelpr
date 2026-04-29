@@ -22,6 +22,15 @@ if (process.platform === "darwin") {
       }
     }
   }
+
+  for (const cachePath of [
+    path.join(os.homedir(), "Library/Caches/org.swift.swiftpm"),
+    path.join(os.homedir(), "Library/org.swift.swiftpm"),
+    path.join(os.homedir(), "Library/Developer/Xcode/SourcePackages/checkouts/capacitor-swift-pm"),
+    path.join(os.homedir(), "Library/Developer/Xcode/SourcePackages/artifacts/capacitor-swift-pm"),
+  ]) {
+    removed += removeIfExists(cachePath) ? 1 : 0;
+  }
 }
 
 for (const relativePath of [

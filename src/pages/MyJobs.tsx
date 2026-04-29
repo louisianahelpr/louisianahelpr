@@ -39,11 +39,8 @@ const statusColors: Record<string, string> = {
 const MyJobs = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [tipJobId, setTipJobId] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");
@@ -57,47 +54,40 @@ const MyJobs = () => {
     if (searchParams.get("tip") === "success") {
       toast.success("Tip sent successfully! Your helpr will appreciate it.");
     }
-    loadJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
-  const loadJobs = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      // 10-second timeout so the skeleton never spins forever on a flaky network
+  // React Query: cached for 30s, instant on revisit, refresh in background.
+  const { data: jobs = [], isLoading, error: queryError, refetch } = useQuery<Job[]>({
+    queryKey: ["my-jobs"],
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    queryFn: async () => {
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("timeout")), 10_000),
       );
-
-      const sessionRes = await Promise.race([
-        supabase.auth.getSession(),
-        timeoutPromise,
-      ]);
+      const sessionRes = await Promise.race([supabase.auth.getSession(), timeoutPromise]);
       const user = sessionRes.data.session?.user;
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate("/login"); return []; }
       setCurrentUserId(user.id);
-
       const queryPromise = supabase
         .from("jobs")
         .select("*")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
-
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
       if (error) throw error;
-      setJobs(data || []);
-    } catch (err: any) {
-      console.error("[MyJobs] loadJobs failed:", err);
-      setLoadError(
-        err?.message === "timeout"
-          ? "Could not load jobs. Please check your connection."
-          : err?.message || "Could not load jobs. Please try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+      return (data || []) as Job[];
+    },
+  });
+
+  const loading = isLoading && jobs.length === 0;
+  const loadError = queryError
+    ? ((queryError as any)?.message === "timeout"
+        ? "Could not load jobs. Please check your connection."
+        : (queryError as any)?.message || "Could not load jobs. Please try again.")
+    : null;
+
+  const loadJobs = useCallback(async () => { await refetch(); }, [refetch]);
 
   const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
     onRefresh: loadJobs,

@@ -234,10 +234,10 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           Page {page + 1} • Showing {filtered.length} of {rows.length} loaded
         </span>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage(p => Math.max(0, p - 1))}>
+          <Button variant="outline" size="sm" disabled={page === 0 || isFetching} onClick={() => setPage(p => Math.max(0, p - 1))}>
             Previous
           </Button>
-          <Button variant="outline" size="sm" disabled={rows.length < PAGE_SIZE || loading} onClick={() => setPage(p => p + 1)}>
+          <Button variant="outline" size="sm" disabled={rows.length < PAGE_SIZE || isFetching} onClick={() => setPage(p => p + 1)}>
             Next
           </Button>
         </div>

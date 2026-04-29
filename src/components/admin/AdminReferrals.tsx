@@ -116,7 +116,7 @@ const AdminReferrals = () => {
     c.reason.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) {
+  if (isInitialLoading) {
     return <div className="text-center py-12 text-sm text-muted-foreground">Loading referral data…</div>;
   }
 

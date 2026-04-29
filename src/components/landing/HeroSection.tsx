@@ -2,15 +2,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import {
-  Users,
-  CheckCircle,
   Leaf,
   Sparkles,
   Truck,
   Heart,
-  Star,
   MapPin,
-  DollarSign,
   Wrench,
   Paintbrush,
   Package,
@@ -20,7 +16,6 @@ import {
   MoreHorizontal,
   ArrowRight,
   Search,
-  Shield,
 } from "lucide-react";
 import { getCityState } from "@/lib/locationUtils";
 import heroImg400 from "@/assets/hero-porch-garden-400.webp";
@@ -77,12 +72,6 @@ const CATEGORY_ICONS: Record<string, typeof Leaf> = {
   senior_help: Heart,
   other: MoreHorizontal,
 };
-
-const CATEGORY_ACCENTS = [
-  "from-primary/20 to-primary/5",
-  "from-accent/30 to-accent/5",
-  "from-secondary/40 to-secondary/5",
-];
 
 type LiveJob = {
   id: string;
@@ -205,7 +194,7 @@ const HeroSection = () => {
                       <button
                         key={c.label}
                         type="button"
-                        onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                        onClick={goToPostJob}
                         className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 min-h-[44px] rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0 snap-start"
                       >
                         <c.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary group-hover:scale-110 transition-transform" />
@@ -226,7 +215,7 @@ const HeroSection = () => {
               <Button
                 size="xl"
                 className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={() => navigate(loggedIn ? "/post-job" : "/signup")}
+                onClick={goToPostJob}
               >
                 <Sparkles className="mr-2 w-5 h-5" />
                 Post a job
@@ -236,18 +225,7 @@ const HeroSection = () => {
                 variant="outline"
                 size="xl"
                 className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={() => {
-                  if (loggedIn) {
-                    navigate("/dashboard");
-                    return;
-                  }
-                  const el = document.getElementById("open-jobs");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  } else {
-                    navigate("/#open-jobs");
-                  }
-                }}
+                onClick={goToBrowseJobs}
               >
                 <Search className="mr-2 w-5 h-5" />
                 Browse jobs

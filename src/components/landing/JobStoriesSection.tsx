@@ -111,7 +111,7 @@ const JobStoriesSection = () => {
               <div className="grid grid-cols-2 h-40">
                 <div className="relative overflow-hidden">
                   {story.beforeUrls.length > 0 ? (
-                    <img src={story.beforeUrls[0]} alt="Before" className="w-full h-full object-cover" />
+                    <img src={story.beforeUrls[0]} alt="Before" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-secondary/50 flex items-center justify-center">
                       <span className="text-xs text-muted-foreground">No before photo</span>
@@ -120,7 +120,7 @@ const JobStoriesSection = () => {
                   <span className="absolute bottom-1 left-1 text-[10px] font-bold bg-background/80 px-1.5 py-0.5 rounded">BEFORE</span>
                 </div>
                 <div className="relative overflow-hidden">
-                  <img src={story.afterUrls[0]} alt="After" className="w-full h-full object-cover" />
+                  <img src={story.afterUrls[0]} alt="After" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   <span className="absolute bottom-1 left-1 text-[10px] font-bold bg-primary/90 text-primary-foreground px-1.5 py-0.5 rounded">AFTER</span>
                 </div>
               </div>

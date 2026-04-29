@@ -456,7 +456,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <InstantPayoutDialog
         open={payoutDialogOpen}
         onOpenChange={setPayoutDialogOpen}
-        onSuccess={fetchPayouts}
+        onSuccess={handleRefresh}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface IDVProfile {
   user_id: string;
@@ -34,8 +36,7 @@ const STATUS_TABS = [
 ];
 
 const AdminIDVQueue = () => {
-  const [profiles, setProfiles] = useState<IDVProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("manual_review");
   const [actioning, setActioning] = useState<string | null>(null);
   const [selected, setSelected] = useState<IDVProfile | null>(null);
@@ -46,23 +47,31 @@ const AdminIDVQueue = () => {
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    const statusFilters = activeTab === "pending"
-      ? ["pending", "processing"]
-      : [activeTab];
+  const queryKey = ["admin-idv-queue", activeTab];
+  const { data: profiles, isInitialLoading, isFetching } = useInstantQuery<IDVProfile[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      const statusFilters = activeTab === "pending"
+        ? ["pending", "processing"]
+        : [activeTab];
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, email, idv_status, idv_confidence, idv_failure_reason, idv_session_id, idv_attempted_at, approval_status, legacy_manual_review, created_at")
-      .in("idv_status", statusFilters)
-      .order("idv_attempted_at", { ascending: false, nullsFirst: false })
-      .limit(100);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, idv_status, idv_confidence, idv_failure_reason, idv_session_id, idv_attempted_at, approval_status, legacy_manual_review, created_at")
+        .in("idv_status", statusFilters)
+        .order("idv_attempted_at", { ascending: false, nullsFirst: false })
+        .limit(100);
 
-    if (error) toast.error(error.message);
-    else setProfiles((data as IDVProfile[]) || []);
-    setLoading(false);
-  };
+      if (error) {
+        toast.error(error.message);
+        return [];
+      }
+      return (data as IDVProfile[]) || [];
+    },
+  });
+
+  const load = () => qc.invalidateQueries({ queryKey });
 
   const loadSettings = async () => {
     const { data } = await supabase
@@ -77,7 +86,6 @@ const AdminIDVQueue = () => {
   };
 
   useEffect(() => { loadSettings(); }, []);
-  useEffect(() => { load(); }, [activeTab]);
 
   const saveSettings = async () => {
     if (!settingsId) return;

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface PendingBusiness {
   business_id: string;
@@ -40,23 +42,24 @@ const docLabels: Record<string, string> = {
 };
 
 const AdminBusinessVerificationQueue = () => {
-  const [rows, setRows] = useState<PendingBusiness[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["admin-business-verification-queue"];
   const [busy, setBusy] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase.rpc as any)("get_pending_business_verifications");
-    if (error) toast.error(error.message);
-    else setRows((data as PendingBusiness[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data: rows, isInitialLoading } = useInstantQuery<PendingBusiness[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_pending_business_verifications");
+      if (error) {
+        toast.error(error.message);
+        return [];
+      }
+      return (data as PendingBusiness[]) || [];
+    },
+  });
 
   const decide = async (
     businessId: string,
@@ -75,10 +78,10 @@ const AdminBusinessVerificationQueue = () => {
       return;
     }
     toast.success(decision === "verified" ? "Business verified" : "Rejected");
-    load();
+    qc.invalidateQueries({ queryKey });
   };
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

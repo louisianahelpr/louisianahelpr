@@ -139,13 +139,12 @@ const Index = () => {
   }, [location.hash, location.pathname]);
 
   // iOS/Android native app: skip the marketing landing entirely.
-  // Logged-in users go to /dashboard, guests get the read-only "home
-  // dashboard" at /browse — same chrome, same JobCard layout as the real
-  // /dashboard, but every action button routes to /signup. This satisfies
-  // Apple's "preview before signup" expectation while matching what users
-  // see *after* they create an account, so onboarding feels seamless.
+  // Redirect IMMEDIATELY (don't wait for auth) so the marketing page never
+  // flashes. If the user is signed in, /browse will let ProtectedRoute /
+  // NativeLaunchRouter forward them to /dashboard; if not, /browse is the
+  // correct guest landing (read-only job preview, all CTAs route to /signup).
   // Web visitors keep seeing the full marketing landing (SEO + funnel intact).
-  if (isNative && !isLoading) {
+  if (isNative) {
     return <Navigate to={user ? "/dashboard" : "/browse"} replace />;
   }
 

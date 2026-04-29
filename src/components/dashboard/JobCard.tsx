@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, Calendar, DollarSign, Flag, Star, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
@@ -93,12 +92,13 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
     : null;
   const isExpiringSoon = job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24;
 
+  // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
+  // the dashboard's hot list path (saves ~42KB on iOS cold start).
+  const entryDelay = `${Math.min(index * 70, 500)}ms`;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: Math.min(index * 0.07, 0.5), ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={`group relative rounded-2xl border bg-card overflow-hidden transition-shadow duration-300 cursor-pointer ${
+    <div
+      style={{ animationDelay: entryDelay, animationFillMode: "both" }}
+      className={`animate-fade-in group relative rounded-2xl border bg-card overflow-hidden transition-shadow duration-300 cursor-pointer ${
         job.isBoosted
           ? "border-primary/30 ring-1 ring-primary/10 shadow-[0_4px_20px_-4px_hsl(158_45%_42%/0.12)]"
           : job.is_urgent
@@ -259,7 +259,7 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
           </a>
         </span>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

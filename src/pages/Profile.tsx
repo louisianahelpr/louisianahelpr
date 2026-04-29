@@ -1124,96 +1124,73 @@ const ProfilePage = () => {
       </AlertDialog>
 
       {/* Delete Account — slide-up sheet, two-step flow with type-to-confirm safety catch */}
-      <Sheet
+      <AlertDialog
         open={showDeleteAccountDialog}
         onOpenChange={(open) => {
           setShowDeleteAccountDialog(open);
           if (!open) { setDeleteConfirmText(""); setDeleteStep(1); }
         }}
       >
-        <SheetContent
-          side="bottom"
-          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)]"
-        >
-          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
-
+        <AlertDialogContent>
           {deleteStep === 1 ? (
             <>
-              <SheetHeader className="text-center">
-                <SheetTitle className="font-display text-2xl font-bold tracking-tight">
-                  Delete your Helpr account?
-                </SheetTitle>
-                <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete your Helpr account?</AlertDialogTitle>
+                <AlertDialogDescription>
                   This action is permanent. You will lose your job history, earnings records, and verified credentials. This cannot be undone.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
                 ⚠️ Any pending or in-transit Stripe payouts will be forfeited. Cash out your available balance from the Earnings tab first.
               </div>
-              <div className="mt-6 space-y-2.5">
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  className="w-full rounded-xl text-[15px] font-semibold"
-                  onClick={() => setDeleteStep(2)}
+              <AlertDialogFooter>
+                <AlertDialogCancel>Go Back / Keep Account</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => { e.preventDefault(); setDeleteStep(2); }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Delete Everything
-                </Button>
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowDeleteAccountDialog(false)}
-                >
-                  Go Back / Keep Account
-                </Button>
-              </div>
+                </AlertDialogAction>
+              </AlertDialogFooter>
             </>
           ) : (
             <>
-              <SheetHeader className="text-center">
-                <SheetTitle className="font-display text-2xl font-bold tracking-tight text-destructive flex items-center justify-center gap-2">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-destructive flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5" /> Final Confirmation
-                </SheetTitle>
-                <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+                </AlertDialogTitle>
+                <AlertDialogDescription>
                   Type <strong className="text-foreground">DELETE MY ACCOUNT</strong> below to confirm. There is no undo.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-5">
-                <Input
-                  autoFocus
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="DELETE MY ACCOUNT"
-                  className="h-11 text-center font-mono tracking-wide"
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                autoFocus
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE MY ACCOUNT"
+                className="h-11 text-center font-mono tracking-wide"
+                disabled={deletingAccount}
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel
                   disabled={deletingAccount}
-                />
-              </div>
-              <div className="mt-6 space-y-2.5">
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  className="w-full rounded-xl text-[15px] font-semibold"
+                  onClick={(e) => { e.preventDefault(); setDeleteStep(1); setDeleteConfirmText(""); }}
+                >
+                  Back
+                </AlertDialogCancel>
+                <AlertDialogAction
                   disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deletingAccount}
                   onClick={handleDeleteAccount}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Delete Forever
-                </Button>
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
-                  disabled={deletingAccount}
-                  onClick={() => { setDeleteStep(1); setDeleteConfirmText(""); }}
-                >
-                  Back
-                </Button>
-              </div>
+                </AlertDialogAction>
+              </AlertDialogFooter>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

@@ -130,6 +130,30 @@ export default defineConfig(({ mode }) => ({
               expiration: { maxEntries: 50, maxAgeSeconds: 300 },
             },
           },
+          // Hashed/fingerprinted build assets are immutable. Serve from cache
+          // for up to a year on repeat visits, regardless of upstream
+          // Cache-Control headers (Lighthouse "Use efficient cache lifetimes").
+          {
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /\/assets\/.*-[A-Za-z0-9_-]{8,}\.(js|css|webp|png|jpg|jpeg|svg|woff2?)$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "static-assets",
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          // Static images at the site root (splash icon, PWA icons, etc.)
+          {
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /\.(png|webp|jpg|jpeg|svg|ico)$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "static-images",
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       manifest: {

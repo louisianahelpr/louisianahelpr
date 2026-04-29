@@ -8,17 +8,16 @@ const SocialProofSection = () => {
 
   useEffect(() => {
     const loadStats = async () => {
-      const [jobsRes, usersRes, reviewsRes] = await Promise.all([
+      const [jobsRes, usersRes, avgRes] = await Promise.all([
         supabase.rpc("get_public_completed_job_count"),
         supabase.rpc("count_profiles"),
-        supabase.from("reviews").select("rating"),
+        supabase.rpc("get_public_avg_rating"),
       ]);
 
-      const ratings = reviewsRes.data?.map(r => r.rating) || [];
       setStats({
         completedJobs: typeof jobsRes.data === "number" ? jobsRes.data : Number(jobsRes.data) || 0,
         totalUsers: (usersRes.data as number) || 0,
-        avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+        avgRating: Number(avgRes.data) || 0,
       });
       setLoaded(true);
     };

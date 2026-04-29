@@ -99,20 +99,16 @@ const HeroSection = () => {
   const [liveJobs, setLiveJobs] = useState<LiveJob[]>([]);
 
   useEffect(() => {
-    // Auth check is cheap and gates UI (CTA label) — keep eager.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setLoggedIn(true);
-    });
-
-    // Defer non-critical Supabase queries until after LCP. These power the
-    // stats counter and the "live jobs" social-proof row — both render only
-    // when data arrives, so deferring them does NOT change the UX (no
-    // skeletons swap in/out). This unblocks the longest network chain
-    // Lighthouse flagged (HTML → JS → 8 parallel API calls competing with
-    // the hero image). requestIdleCallback fires after the browser has
-    // painted and processed any urgent work; setTimeout fallback covers
-    // Safari which lacks the API.
+    // EVERYTHING here is deferred until after LCP. Even the auth check —
+    // it only changes the CTA label ("Post a Job" vs "Get Started"), which
+    // most visitors don't click in the first second. Pulling supabase off
+    // the eager render path lets the hero <img> paint without waiting for
+    // the 50KB supabase chunk to download + parse (Lighthouse flagged this
+    // as "element render delay" of ~2.0s).
     const runDeferred = () => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) setLoggedIn(true);
+      });
       Promise.all([
         supabase.rpc("count_profiles"),
         supabase.rpc("get_public_completed_job_count"),

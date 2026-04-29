@@ -83,7 +83,7 @@ const AdminParishTaxRates = () => {
         new_local: localRate,
       });
       setEdits((prev) => { const next = { ...prev }; delete next[rate.id]; return next; });
-      await load();
+      await refetch();
     }
     setSaving(null);
   };
@@ -110,7 +110,7 @@ const AdminParishTaxRates = () => {
       await logAdminAction("add_parish_tax", "parish_tax_rate", newParish.trim(), { local_rate: local });
       setNewParish("");
       setNewLocalRate("");
-      await load();
+      await refetch();
     }
     setAdding(false);
   };

@@ -6,10 +6,12 @@ import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-// Lazy load EVERY landing section. iOS native users redirect away from `/`
-// before render, so lazy-loading prevents the hero's 7 webp variants
-// (~2 MB) and below-the-fold sections from being pulled into the iOS bundle.
-const HeroSection = lazy(() => import("@/components/landing/HeroSection"));
+// HeroSection is eager-loaded — it's above the fold on every visit and
+// the LCP element. Lazy-loading it added a network round-trip (entry chunk →
+// Index chunk → HeroSection chunk → image) that pushed LCP / Speed Index
+// past 3s. Below-the-fold sections stay lazy so they don't compete for
+// bandwidth with the hero image during initial paint.
+import HeroSection from "@/components/landing/HeroSection";
 const SocialProofSection = lazy(() => import("@/components/landing/SocialProofSection"));
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const HelperSpotlightSection = lazy(() => import("@/components/landing/HelperSpotlightSection"));
@@ -166,8 +168,8 @@ const Index = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       <Navbar />
+      <HeroSection />
       <Suspense fallback={<div className="min-h-screen" />}>
-        <HeroSection />
         <SocialProofSection />
         <HowItWorksSection />
         <PublicJobsPreview />

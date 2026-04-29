@@ -17,6 +17,7 @@ import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";

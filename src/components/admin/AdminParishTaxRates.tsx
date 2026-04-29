@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { MapPin, Save, Plus, Search } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface ParishRate {
   id: string;
@@ -17,8 +18,6 @@ interface ParishRate {
 }
 
 const AdminParishTaxRates = () => {
-  const [rates, setRates] = useState<ParishRate[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [edits, setEdits] = useState<Record<string, { state_rate: string; local_rate: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -26,17 +25,18 @@ const AdminParishTaxRates = () => {
   const [newLocalRate, setNewLocalRate] = useState("");
   const [adding, setAdding] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase.from as any)("parish_tax_rates")
-      .select("*")
-      .order("parish_name", { ascending: true });
-    if (error) toast.error(error.message);
-    setRates((data as any) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  const { data: rates, isFetching, refetch } = useInstantQuery<ParishRate[]>({
+    key: ["admin-parish-tax-rates"],
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await (supabase.from as any)("parish_tax_rates")
+        .select("*")
+        .order("parish_name", { ascending: true });
+      if (error) throw error;
+      return (data as ParishRate[]) || [];
+    },
+  });
+  const loading = isFetching && rates.length === 0;
 
   const setEdit = (id: string, field: "state_rate" | "local_rate", value: string) => {
     setEdits((prev) => ({
@@ -83,7 +83,7 @@ const AdminParishTaxRates = () => {
         new_local: localRate,
       });
       setEdits((prev) => { const next = { ...prev }; delete next[rate.id]; return next; });
-      await load();
+      await refetch();
     }
     setSaving(null);
   };
@@ -110,7 +110,7 @@ const AdminParishTaxRates = () => {
       await logAdminAction("add_parish_tax", "parish_tax_rate", newParish.trim(), { local_rate: local });
       setNewParish("");
       setNewLocalRate("");
-      await load();
+      await refetch();
     }
     setAdding(false);
   };

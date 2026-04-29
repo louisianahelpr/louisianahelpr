@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Gift, Users, DollarSign, Banknote, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface ReferralCode {
   id: string;
@@ -35,62 +36,66 @@ interface ReferralCredit {
   userName?: string;
 }
 
+interface ReferralData {
+  codes: ReferralCode[];
+  referrals: Referral[];
+  credits: ReferralCredit[];
+}
+
 const AdminReferrals = () => {
-  const [codes, setCodes] = useState<ReferralCode[]>([]);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
-  const [credits, setCredits] = useState<ReferralCredit[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"overview" | "codes" | "referrals" | "credits">("overview");
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data, isInitialLoading } = useInstantQuery<ReferralData>({
+    key: ["admin-referrals"],
+    fallback: { codes: [], referrals: [], credits: [] },
+    fetcher: async () => {
+      const [codesRes, referralsRes, creditsRes] = await Promise.all([
+        supabase.from("referral_codes").select("*").order("created_at", { ascending: false }),
+        supabase.from("referrals").select("*").order("created_at", { ascending: false }),
+        supabase.from("referral_credits").select("*").order("created_at", { ascending: false }),
+      ]);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [codesRes, referralsRes, creditsRes] = await Promise.all([
-      supabase.from("referral_codes").select("*").order("created_at", { ascending: false }),
-      supabase.from("referrals").select("*").order("created_at", { ascending: false }),
-      supabase.from("referral_credits").select("*").order("created_at", { ascending: false }),
-    ]);
+      const allCodes = codesRes.data || [];
+      const allReferrals = referralsRes.data || [];
+      const allCredits = creditsRes.data || [];
 
-    const allCodes = codesRes.data || [];
-    const allReferrals = referralsRes.data || [];
-    const allCredits = creditsRes.data || [];
+      const userIds = new Set<string>();
+      allCodes.forEach(c => userIds.add(c.user_id));
+      allReferrals.forEach(r => { userIds.add(r.referrer_id); userIds.add(r.referred_id); });
+      allCredits.forEach(c => { userIds.add(c.user_id); if (c.referred_user_id) userIds.add(c.referred_user_id); });
 
-    // Gather all unique user IDs for name resolution
-    const userIds = new Set<string>();
-    allCodes.forEach(c => userIds.add(c.user_id));
-    allReferrals.forEach(r => { userIds.add(r.referrer_id); userIds.add(r.referred_id); });
-    allCredits.forEach(c => { userIds.add(c.user_id); if (c.referred_user_id) userIds.add(c.referred_user_id); });
+      const idsArray = Array.from(userIds);
+      const nameMap: Record<string, string> = {};
 
-    const idsArray = Array.from(userIds);
-    const nameMap: Record<string, string> = {};
+      if (idsArray.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", idsArray);
+        (profiles || []).forEach(p => {
+          nameMap[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8);
+        });
+      }
 
-    // Batch fetch profiles
-    if (idsArray.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email")
-        .in("user_id", idsArray);
-      (profiles || []).forEach(p => {
-        nameMap[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8);
-      });
-    }
+      return {
+        codes: allCodes.map(c => ({ ...c, userName: nameMap[c.user_id] || c.user_id.slice(0, 8) })),
+        referrals: allReferrals.map(r => ({
+          ...r,
+          referrerName: nameMap[r.referrer_id] || r.referrer_id.slice(0, 8),
+          referredName: nameMap[r.referred_id] || r.referred_id.slice(0, 8),
+        })),
+        credits: allCredits.map(c => ({
+          ...c,
+          userName: nameMap[c.user_id] || c.user_id.slice(0, 8),
+        })),
+      };
+    },
+  });
 
-    setCodes(allCodes.map(c => ({ ...c, userName: nameMap[c.user_id] || c.user_id.slice(0, 8) })));
-    setReferrals(allReferrals.map(r => ({
-      ...r,
-      referrerName: nameMap[r.referrer_id] || r.referrer_id.slice(0, 8),
-      referredName: nameMap[r.referred_id] || r.referred_id.slice(0, 8),
-    })));
-    setCredits(allCredits.map(c => ({
-      ...c,
-      userName: nameMap[c.user_id] || c.user_id.slice(0, 8),
-    })));
-    setLoading(false);
-  };
+  const codes = data.codes;
+  const referrals = data.referrals;
+  const credits = data.credits;
 
   const totalEarned = credits.reduce((s, c) => s + Number(c.amount), 0);
   const totalCashedOut = credits.filter(c => c.redeemed).reduce((s, c) => s + Number(c.amount), 0);
@@ -111,7 +116,7 @@ const AdminReferrals = () => {
     c.reason.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) {
+  if (isInitialLoading) {
     return <div className="text-center py-12 text-sm text-muted-foreground">Loading referral data…</div>;
   }
 

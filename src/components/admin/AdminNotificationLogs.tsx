@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, RefreshCw, Search, Mail, Smartphone, AlertCircle } from "lucide-react";
+import { RefreshCw, Search, Mail, Smartphone, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface LogRow {
   id: string;
@@ -49,8 +51,7 @@ interface AdminNotificationLogsProps {
 }
 
 const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
-  const [rows, setRows] = useState<LogRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -62,35 +63,37 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
 
-  const load = async () => {
-    setLoading(true);
-    let q = supabase
-      .from("notification_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+  const queryKey = ["admin-notification-logs", { category, status, channel, page }] as const;
 
-    if (category !== "all") q = q.eq("category", category);
-    if (status !== "all") q = q.eq("status", status);
-    if (channel !== "all") q = q.eq("channel", channel);
+  const { data: rows, isFetching, refetch } = useInstantQuery<LogRow[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      let q = supabase
+        .from("notification_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    const { data, error } = await q;
-    if (!error) setRows((data as LogRow[]) ?? []);
-    setLoading(false);
-  };
+      if (category !== "all") q = q.eq("category", category);
+      if (status !== "all") q = q.eq("status", status);
+      if (channel !== "all") q = q.eq("channel", channel);
 
-  useEffect(() => { load();   }, [category, status, channel, page]);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data as LogRow[]) ?? [];
+    },
+  });
 
   useEffect(() => {
-    const channel = supabase
+    const ch = supabase
       .channel("admin-notification-logs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
-        if (page === 0) load();
+        if (page === 0) qc.invalidateQueries({ queryKey: ["admin-notification-logs"] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-     
-  }, [page]);
+    return () => { supabase.removeChannel(ch); };
+  }, [page, qc]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
@@ -110,8 +113,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         <p className="text-sm text-muted-foreground">
           Every alert sent via in-app or email. Failed deliveries are highlighted in red.
         </p>
-        <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
-          <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
           Refresh
         </Button>
       </div>
@@ -178,17 +181,12 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td colSpan={6} className="px-4 py-12 text-center">
-                  <Loader2 className="w-5 h-5 animate-spin inline-block text-muted-foreground" />
-                </td></tr>
-              )}
-              {!loading && filtered.length === 0 && (
+              {filtered.length === 0 && (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  No notification logs match your filters.
+                  {isFetching ? "Loading…" : "No notification logs match your filters."}
                 </td></tr>
               )}
-              {!loading && filtered.map((row) => (
+              {filtered.map((row) => (
                 <tr
                   key={row.id}
                   className={cn(
@@ -236,10 +234,10 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           Page {page + 1} • Showing {filtered.length} of {rows.length} loaded
         </span>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage(p => Math.max(0, p - 1))}>
+          <Button variant="outline" size="sm" disabled={page === 0 || isFetching} onClick={() => setPage(p => Math.max(0, p - 1))}>
             Previous
           </Button>
-          <Button variant="outline" size="sm" disabled={rows.length < PAGE_SIZE || loading} onClick={() => setPage(p => p + 1)}>
+          <Button variant="outline" size="sm" disabled={rows.length < PAGE_SIZE || isFetching} onClick={() => setPage(p => p + 1)}>
             Next
           </Button>
         </div>

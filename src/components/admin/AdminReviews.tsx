@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Eye, FileText, MapPin, Phone, Clock, Briefcase, Star, User } from "lucide-react";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type PendingProfile = {
   id: string;
@@ -26,8 +27,6 @@ type PendingProfile = {
 };
 
 const AdminReviews = () => {
-  const [profiles, setProfiles] = useState<PendingProfile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "approved" | "denied">("pending");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -36,20 +35,20 @@ const AdminReviews = () => {
   const [denyReason, setDenyReason] = useState("");
   const [showDenyDialog, setShowDenyDialog] = useState(false);
 
-  const loadProfiles = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("approval_status", filter)
-      .order("created_at", { ascending: false });
-    if (data) setProfiles(data as PendingProfile[]);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    setLoading(true);
-    loadProfiles();
-  }, [filter]);
+  const { data: profiles, isInitialLoading, refetch } = useInstantQuery<PendingProfile[]>({
+    key: ["admin-reviews", filter],
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("approval_status", filter)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data as PendingProfile[]) || [];
+    },
+  });
+  const loadProfiles = () => refetch();
 
   const updateStatus = async (profileId: string, userId: string, status: "approved" | "denied", reason?: string) => {
     setActionLoading(profileId);
@@ -102,7 +101,7 @@ const AdminReviews = () => {
 
   const portfolioUrls = selectedProfile?.portfolio_urls || [];
 
-  if (loading) return <p className="text-muted-foreground">Loading profiles…</p>;
+  if (isInitialLoading) return <p className="text-muted-foreground">Loading profiles…</p>;
 
   return (
     <div className="space-y-6">

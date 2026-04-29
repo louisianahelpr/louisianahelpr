@@ -721,20 +721,17 @@ const ProfilePage = () => {
               if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
               return age >= 18;
             })();
-            return (
+             return (
               <div className="h-[calc(100dvh-8.5rem)] flex flex-col overflow-hidden">
-                <div className="flex items-center gap-3 shrink-0 mb-2">
+                <div className="flex items-center gap-3 shrink-0 mb-3">
                   <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <div>
-                    <h1 className="text-xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
-                    <p className="text-muted-foreground text-[11px]">The Big 7 — keep these current</p>
-                  </div>
+                  <h1 className="text-xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
                 </div>
 
                 <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="relative group shrink-0">
                         {profile?.avatar_url ? (

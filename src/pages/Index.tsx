@@ -1,9 +1,13 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
+
+// Navbar lazy-loaded so it doesn't compete with the LCP hero image for the
+// main thread. The hero image preload + inline shell paint instantly;
+// Navbar slides in within a few hundred ms after.
+const Navbar = lazy(() => import("@/components/Navbar"));
 
 // IMPORTANT: do NOT import useCurrentUser at the top of Index. It pulls
 // @supabase/supabase-js into the Index entry chunk (~50 KiB), blocking the
@@ -172,7 +176,9 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <Navbar />
+      <Suspense fallback={<div className="h-16" />}>
+        <Navbar />
+      </Suspense>
       <HeroSection />
       <Suspense fallback={<div className="min-h-screen" />}>
         <SocialProofSection />

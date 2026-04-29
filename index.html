@@ -125,18 +125,13 @@
   </head>
   <body>
     <!--
-      Inline FCP shell. Paints instantly (no JS, no font, no network) so
-      Lighthouse records First Contentful Paint as soon as HTML arrives,
-      instead of waiting for the React bundle to parse + execute (~3s on
-      slow 4G). React's root.render() replaces this synchronously on mount,
-      so users never see a flash — the shell is invisible the moment the
-      app hydrates. Brand color matches --background to avoid any flicker.
+      Inline FCP shell — solid brand-color background only. Previously rendered
+      a 580×580 splash <img> which became Lighthouse's LCP element (the LCP
+      timer doesn't reset when React replaces the splash, so the score waited
+      on the splash to paint). With just the background color, the hero image
+      preloaded above wins LCP as intended.
     -->
-    <div id="root">
-      <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:hsl(158 45% 98%);overflow:hidden;">
-        <img src="/helpr-splash-icon.png" alt="Helpr" width="580" height="580" style="width:580px;height:580px;max-width:88vmin;max-height:88vmin;object-fit:contain;border-radius:24px;" decoding="async" />
-      </div>
-    </div>
+    <div id="root" style="background:hsl(158 45% 98%);min-height:100vh;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

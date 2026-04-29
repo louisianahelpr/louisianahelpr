@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, CheckCircle, Circle, Milestone } from "lucide-react";
 import { toast } from "sonner";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type MilestoneItem = {
   id: string;
@@ -24,24 +26,25 @@ export function JobMilestones({
   isHelper: boolean;
   totalBudget: number;
 }) {
-  const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
+  const qc = useQueryClient();
+  const queryKey = ["job-milestones", jobId];
   const [newTitle, setNewTitle] = useState("");
   const [newAmount, setNewAmount] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadMilestones();
-  }, [jobId]);
+  const { data: milestones } = useInstantQuery<MilestoneItem[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      const { data } = await supabase
+        .from("job_milestones" as any)
+        .select("*")
+        .eq("job_id", jobId)
+        .order("sort_order");
+      return (data ?? []) as any[];
+    },
+  });
 
-  const loadMilestones = async () => {
-    const { data } = await supabase
-      .from("job_milestones" as any)
-      .select("*")
-      .eq("job_id", jobId)
-      .order("sort_order");
-    if (data) setMilestones(data as any[]);
-    setLoading(false);
-  };
+  const refresh = () => qc.invalidateQueries({ queryKey });
 
   const addMilestone = async () => {
     if (!newTitle.trim() || !newAmount) return;
@@ -62,24 +65,24 @@ export function JobMilestones({
     } else {
       setNewTitle("");
       setNewAmount("");
-      loadMilestones();
+      refresh();
     }
   };
 
   const completeMilestone = async (id: string) => {
+    qc.setQueryData<MilestoneItem[]>(queryKey, (prev) =>
+      (prev ?? []).map((m) => (m.id === id ? { ...m, status: "completed" } : m))
+    );
     await (supabase.from("job_milestones" as any) as any)
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", id);
     toast.success("Milestone completed!");
-    loadMilestones();
   };
 
   const removeMilestone = async (id: string) => {
+    qc.setQueryData<MilestoneItem[]>(queryKey, (prev) => (prev ?? []).filter((m) => m.id !== id));
     await (supabase.from("job_milestones" as any) as any).delete().eq("id", id);
-    loadMilestones();
   };
-
-  if (loading) return null;
 
   const usedAmount = milestones.reduce((sum, m) => sum + m.amount, 0);
   const remaining = totalBudget - usedAmount;

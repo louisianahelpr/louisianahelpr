@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import {
   ShieldAlert,
   Upload,
 } from "lucide-react";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type DocType = "license" | "ein_letter" | "insurance";
 
@@ -33,29 +35,30 @@ const docLabels: Record<DocType, string> = {
 };
 
 export default function BusinessVerificationCard() {
-  const [data, setData] = useState<Verification | null>(null);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["my-business-verification"];
   const [uploading, setUploading] = useState(false);
   const [docType, setDocType] = useState<DocType>("license");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = async () => {
-    setLoading(true);
-    const { data: rows, error } = await (supabase.rpc as any)("get_my_business_verification");
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-    const row = (rows && rows[0]) || null;
-    setData(row);
-    if (row?.verification_document_type) setDocType(row.verification_document_type);
-    setLoading(false);
-  };
+  const { data, isInitialLoading } = useInstantQuery<Verification | null>({
+    key: queryKey,
+    fetcher: async () => {
+      const { data: rows, error } = await (supabase.rpc as any)("get_my_business_verification");
+      if (error) {
+        console.error(error);
+        return null;
+      }
+      return ((rows && rows[0]) || null) as Verification | null;
+    },
+  });
 
+  // Sync docType selector with loaded data once.
   useEffect(() => {
-    load();
-  }, []);
+    if (data?.verification_document_type) setDocType(data.verification_document_type);
+  }, [data?.verification_document_type]);
+
+  const load = () => qc.invalidateQueries({ queryKey });
 
   const handleUpload = async (file: File) => {
     if (!data?.business_id) return;
@@ -103,7 +106,7 @@ export default function BusinessVerificationCard() {
     }
   };
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <Card className="p-5 flex items-center justify-center">
         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

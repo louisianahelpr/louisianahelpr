@@ -101,7 +101,7 @@ const AdminReviews = () => {
 
   const portfolioUrls = selectedProfile?.portfolio_urls || [];
 
-  if (loading) return <p className="text-muted-foreground">Loading profiles…</p>;
+  if (isInitialLoading) return <p className="text-muted-foreground">Loading profiles…</p>;
 
   return (
     <div className="space-y-6">

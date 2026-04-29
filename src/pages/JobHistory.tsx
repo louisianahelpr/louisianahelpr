@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, DollarSign, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -21,29 +22,29 @@ type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 
 const JobHistory = () => {
   const navigate = useNavigate();
-  const [postedJobs, setPostedJobs] = useState<Job[]>([]);
-  const [workedJobs, setWorkedJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<HistoryTab>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  useEffect(() => {
-    const load = async () => {
+  // React Query: cached for 30s, instant on revisit, refresh in background.
+  const { data, isLoading } = useQuery({
+    queryKey: ["job-history"],
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) { navigate("/login"); return; }
-
+      if (!user) { navigate("/login"); return { posted: [] as Job[], worked: [] as Job[] }; }
       const [posted, worked] = await Promise.all([
         supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
       ]);
+      return { posted: (posted.data || []) as Job[], worked: (worked.data || []) as Job[] };
+    },
+  });
 
-      if (posted.data) setPostedJobs(posted.data);
-      if (worked.data) setWorkedJobs(worked.data);
-      setLoading(false);
-    };
-    load();
-  }, []);
+  const postedJobs = data?.posted ?? [];
+  const workedJobs = data?.worked ?? [];
+  const loading = isLoading && !data;
 
   const getJobs = () => {
     let jobs: (Job & { _source: "posted" | "worked" })[] = [];

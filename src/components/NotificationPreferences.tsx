@@ -95,28 +95,24 @@ const groups: Group[] = [
 
 const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
+    let cancelled = false;
+    (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (cancelled || !user) return;
       setUserId(user.id);
-
       const { data } = await supabase
         .from("notification_preferences")
         .select("*")
         .eq("user_id", user.id)
         .single();
-
-      if (data) {
-        setPrefs({ ...defaultPrefs, ...(data as any) });
-      }
-      setLoading(false);
-    };
-    load();
+      if (cancelled) return;
+      if (data) setPrefs({ ...defaultPrefs, ...(data as any) });
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const toggle = async (key: keyof Prefs) => {
@@ -150,13 +146,7 @@ const NotificationPreferences = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  // Render immediately with default prefs; real values fade in on fetch.
 
   return (
     <div className="space-y-6">

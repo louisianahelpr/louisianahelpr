@@ -206,7 +206,7 @@ const MiniStars = ({ value }: { value: number }) => (
 
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -225,7 +225,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
         setReviews(data.map((r: any) => ({ ...r, reviewerName: profileMap.get(r.reviewer_id) })));
       }
-      setLoading(false);
+      setLoaded(true);
     };
     load();
   }, [userId]);
@@ -240,8 +240,8 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   const qualityAvg = avg("quality");
   const communicationAvg = avg("communication");
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading reviews…</p>;
-  if (reviews.length === 0) return <p className="text-sm text-muted-foreground">No reviews yet.</p>;
+  if (loaded && reviews.length === 0) return <p className="text-sm text-muted-foreground">No reviews yet.</p>;
+  if (!loaded && reviews.length === 0) return null;
 
   return (
     <div className="space-y-4">

@@ -113,8 +113,6 @@ const faqSchema = {
 };
 
 const Index = () => {
-  // Hooks must run unconditionally — call them all before any early return.
-  const { user, isLoading } = useCurrentUser();
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const location = useLocation();
 
@@ -148,14 +146,15 @@ const Index = () => {
     tryScroll();
   }, [location.hash, location.pathname]);
 
-  // iOS/Android native app: skip the marketing landing entirely.
-  // Redirect IMMEDIATELY (don't wait for auth) so the marketing page never
-  // flashes. If the user is signed in, /browse will let ProtectedRoute /
-  // NativeLaunchRouter forward them to /dashboard; if not, /browse is the
-  // correct guest landing (read-only job preview, all CTAs route to /signup).
-  // Web visitors keep seeing the full marketing landing (SEO + funnel intact).
+  // iOS/Android native app: skip the marketing landing entirely. The redirect
+  // logic (which needs Supabase auth) is in a separate lazy chunk so web
+  // visitors don't pay the 50 KiB Supabase tax for a code path they never hit.
   if (isNative) {
-    return <Navigate to={user ? "/dashboard" : "/browse"} replace />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <NativeRedirect />
+      </Suspense>
+    );
   }
 
 

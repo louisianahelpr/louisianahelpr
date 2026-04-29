@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type ScopeItem = {
   id: string;
@@ -21,23 +23,24 @@ export function ScopeAgreement({
   isOwner: boolean;
   isHelper: boolean;
 }) {
-  const [items, setItems] = useState<ScopeItem[]>([]);
+  const qc = useQueryClient();
+  const queryKey = ["scope-items", jobId];
   const [newItem, setNewItem] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadItems();
-  }, [jobId]);
+  const { data: items } = useInstantQuery<ScopeItem[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      const { data } = await supabase
+        .from("job_scope_items" as any)
+        .select("*")
+        .eq("job_id", jobId)
+        .order("created_at");
+      return (data ?? []) as any[];
+    },
+  });
 
-  const loadItems = async () => {
-    const { data } = await supabase
-      .from("job_scope_items" as any)
-      .select("*")
-      .eq("job_id", jobId)
-      .order("created_at");
-    if (data) setItems(data as any[]);
-    setLoading(false);
-  };
+  const refresh = () => qc.invalidateQueries({ queryKey });
 
   const addItem = async () => {
     if (!newItem.trim()) return;
@@ -49,23 +52,23 @@ export function ScopeAgreement({
       toast.error("Failed to add scope item");
     } else {
       setNewItem("");
-      loadItems();
+      refresh();
     }
   };
 
   const toggleItem = async (id: string, completed: boolean) => {
+    qc.setQueryData<ScopeItem[]>(queryKey, (prev) =>
+      (prev ?? []).map((i) => (i.id === id ? { ...i, completed } : i))
+    );
     await (supabase.from("job_scope_items" as any) as any)
       .update({ completed })
       .eq("id", id);
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, completed } : i)));
   };
 
   const removeItem = async (id: string) => {
+    qc.setQueryData<ScopeItem[]>(queryKey, (prev) => (prev ?? []).filter((i) => i.id !== id));
     await (supabase.from("job_scope_items" as any) as any).delete().eq("id", id);
-    setItems((prev) => prev.filter((i) => i.id !== id));
   };
-
-  if (loading) return null;
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-3">

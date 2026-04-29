@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { MapPin, Save, Plus, Search } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface ParishRate {
   id: string;

@@ -113,8 +113,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         <p className="text-sm text-muted-foreground">
           Every alert sent via in-app or email. Failed deliveries are highlighted in red.
         </p>
-        <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
-          <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
           Refresh
         </Button>
       </div>

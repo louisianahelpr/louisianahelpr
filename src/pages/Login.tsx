@@ -76,7 +76,7 @@ const Login = () => {
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            {isNativePlatform ? "Back to Browse" : "Back to home"}
+            {isNativePlatform ? "Back" : "Back to home"}
           </Link>
         </div>
         <div className="text-center mb-8">

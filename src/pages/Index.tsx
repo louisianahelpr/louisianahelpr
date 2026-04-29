@@ -168,8 +168,8 @@ const Index = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       <Navbar />
+      <HeroSection />
       <Suspense fallback={<div className="min-h-screen" />}>
-        <HeroSection />
         <SocialProofSection />
         <HowItWorksSection />
         <PublicJobsPreview />

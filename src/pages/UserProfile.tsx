@@ -137,11 +137,11 @@ const UserProfile = () => {
     },
   });
 
-  const profile = data?.profile ?? null;
-  const reviews = data?.reviews ?? [];
+  const profile = (data?.profile ?? null) as Profile | null;
+  const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
-  const postedJobs = data?.postedJobs ?? [];
-  const workedJobs = data?.workedJobs ?? [];
+  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
+  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const isIdVerified = data?.isIdVerified ?? false;
   const loading = isLoading && !data;

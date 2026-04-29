@@ -1,19 +1,21 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// iOS/Android load the live production app by default so users receive web
-// updates immediately without a new native build. Local dev hot-reload can
-// still override this with CAP_DEV_URL=https://<sandbox>.lovableproject.com
-// before `npx cap sync`.
+// TRUE NATIVE APP: iOS/Android load the bundled `dist/` folder shipped
+// inside the .ipa/.apk. NO `server.url` — the app is fully self-contained
+// and is NOT a web wrapper. To ship updates: run `npm run build:ios &&
+// npx cap sync ios`, then archive a new build in Xcode for TestFlight.
+//
+// Local dev hot-reload (optional, dev only): set CAP_DEV_URL=https://<sandbox>.lovableproject.com
+// before `npx cap sync`. This is stripped for production builds.
 const rawDevUrl = process.env.CAP_DEV_URL;
 const devServerUrl =
   rawDevUrl && /^https:\/\/[^/]+\.(lovableproject|lovable)\.(app|dev)/.test(rawDevUrl)
     ? rawDevUrl
     : undefined;
-const appServerUrl = devServerUrl ?? 'https://louisianahelpr.com';
 if (rawDevUrl && !devServerUrl) {
   // eslint-disable-next-line no-console
   console.warn(
-    `[capacitor.config] Ignoring CAP_DEV_URL="${rawDevUrl}" — only Lovable sandbox URLs are allowed. Using production URL instead.`,
+    `[capacitor.config] Ignoring CAP_DEV_URL="${rawDevUrl}" — only Lovable sandbox URLs are allowed.`,
   );
 }
 
@@ -22,7 +24,9 @@ const config: CapacitorConfig = {
   appId: 'com.Helpr',
   appName: 'Louisiana Helpr',
   webDir: 'dist',
-  server: { url: appServerUrl, cleartext: false },
+  // Only set `server` when a dev sandbox URL is explicitly provided.
+  // Production builds have NO server block → loads bundled dist/.
+  ...(devServerUrl ? { server: { url: devServerUrl, cleartext: false } } : {}),
   ios: {
     // App Store Connect identifiers
     appleId: '6754470134',

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, DollarSign, Clock } from "lucide-react";
@@ -18,29 +19,28 @@ const statusColors: Record<string, string> = {
 
 const Schedule = () => {
   const navigate = useNavigate();
-  const [postedJobs, setPostedJobs] = useState<Job[]>([]);
-  const [assignedJobs, setAssignedJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["schedule"],
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) { navigate("/login"); return; }
-
+      if (!user) { navigate("/login"); return { posted: [] as Job[], assigned: [] as Job[] }; }
       const [posted, assigned] = await Promise.all([
         supabase.from("jobs").select("*").eq("customer_id", user.id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
         supabase.from("jobs").select("*").eq("helper_id", user.id).in("status", ["accepted", "in_progress"]).order("date_needed"),
       ]);
+      return { posted: (posted.data || []) as Job[], assigned: (assigned.data || []) as Job[] };
+    },
+  });
 
-      if (posted.data) setPostedJobs(posted.data);
-      if (assigned.data) setAssignedJobs(assigned.data);
-      setLoading(false);
-    };
-    load();
-  }, []);
+  const postedJobs = data?.posted ?? [];
+  const assignedJobs = data?.assigned ?? [];
+  const loading = isLoading && !data;
 
   const allJobs = [...postedJobs, ...assignedJobs];
   const jobsByDate = new Map<string, Job[]>();

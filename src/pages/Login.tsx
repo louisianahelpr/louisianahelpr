@@ -72,11 +72,11 @@ const Login = () => {
       <div className="w-full max-w-sm sm:max-w-md md:max-w-lg">
         <div className="mb-4">
           <Link
-            to="/"
+            to={isNativePlatform ? "/browse" : "/"}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to home
+            {isNativePlatform ? "Back to Browse" : "Back to home"}
           </Link>
         </div>
         <div className="text-center mb-8">

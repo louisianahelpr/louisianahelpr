@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Crown, Clock, Users } from "lucide-react";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface SubscribedProfile {
   user_id: string;
@@ -13,37 +14,28 @@ interface SubscribedProfile {
 }
 
 const AdminSubscriptions = () => {
-  const [, setProfiles] = useState<SubscribedProfile[]>([]);
-  const [allProfiles, setAllProfiles] = useState<SubscribedProfile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data: allProfiles, isInitialLoading } = useInstantQuery<SubscribedProfile[]>({
+    key: ["admin-subscriptions"],
+    fallback: [],
+    fetcher: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+        .not("subscription_tier", "is", null)
+        .order("subscription_expires_at", { ascending: false, nullsFirst: false });
 
-  const loadData = async () => {
-    setLoading(true);
-    // Get all profiles that have or had a subscription
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
-      .not("subscription_tier", "is", null)
-      .order("subscription_expires_at", { ascending: false, nullsFirst: false });
+      const { data: expiredData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+        .is("subscription_tier", null)
+        .not("subscription_expires_at", "is", null);
 
-    // Also get profiles where tier is null but expires_at was set (expired)
-    const { data: expiredData } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
-      .is("subscription_tier", null)
-      .not("subscription_expires_at", "is", null);
-
-    const all = [...(data || []), ...(expiredData || [])];
-    setAllProfiles(all);
-    setProfiles(all);
-    setLoading(false);
-  };
+      return [...(data || []), ...(expiredData || [])];
+    },
+  });
 
   const now = new Date();
 
@@ -74,7 +66,7 @@ const AdminSubscriptions = () => {
     tierCounts[t] = (tierCounts[t] || 0) + 1;
   });
 
-  if (loading) {
+  if (isInitialLoading) {
     return <div className="text-center py-12 text-sm text-muted-foreground">Loading subscription data…</div>;
   }
 

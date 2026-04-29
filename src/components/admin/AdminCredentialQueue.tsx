@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface PendingRow {
   user_id: string;
@@ -30,23 +32,24 @@ interface PendingRow {
 }
 
 const AdminCredentialQueue = () => {
-  const [rows, setRows] = useState<PendingRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["admin-credential-queue"];
   const [busy, setBusy] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<{ userId: string; credential: "license" | "insurance" } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase.rpc as any)("get_pending_credentials");
-    if (error) toast.error(error.message);
-    else setRows((data as PendingRow[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data: rows, isInitialLoading } = useInstantQuery<PendingRow[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_pending_credentials");
+      if (error) {
+        toast.error(error.message);
+        return [];
+      }
+      return (data as PendingRow[]) || [];
+    },
+  });
 
   const decide = async (
     userId: string,
@@ -67,10 +70,10 @@ const AdminCredentialQueue = () => {
       return;
     }
     toast.success(decision === "verified" ? "Approved" : "Rejected");
-    load();
+    qc.invalidateQueries({ queryKey });
   };
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

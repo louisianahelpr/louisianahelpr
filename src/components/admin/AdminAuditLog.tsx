@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface AuditEntry {
   id: string;
@@ -18,33 +18,30 @@ interface AuditEntry {
 }
 
 const AdminAuditLog = () => {
-  const [entries, setEntries] = useState<AuditEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: entries, isInitialLoading } = useInstantQuery<AuditEntry[]>({
+    key: ["admin-audit-log"],
+    fallback: [],
+    fetcher: async () => {
+      const { data } = await (supabase.from as any)("admin_audit_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
 
-  const loadEntries = async () => {
-    setLoading(true);
-    const { data } = await (supabase.from as any)("admin_audit_log")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(200);
+      if (!data) return [];
 
-    if (!data) { setEntries([]); setLoading(false); return; }
+      const adminIds = [...new Set((data as any[]).map((e: any) => e.admin_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", adminIds);
 
-    const adminIds = [...new Set((data as any[]).map((e: any) => e.admin_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
-      .in("user_id", adminIds);
-
-    const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-    setEntries((data as any[]).map((e: any) => ({
-      ...e,
-      admin_name: formatName(nameMap.get(e.admin_id), "System"),
-    })));
-    setLoading(false);
-  };
-
-  useEffect(() => { loadEntries(); }, []);
+      const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      return (data as any[]).map((e: any) => ({
+        ...e,
+        admin_name: formatName(nameMap.get(e.admin_id), "System"),
+      }));
+    },
+  });
 
   const exportCSV = () => {
     const header = "Timestamp,Admin,Action,Target Type,Target ID,Details\n";
@@ -80,7 +77,7 @@ const AdminAuditLog = () => {
         </Button>
       </div>
 
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-sm text-muted-foreground">Loading audit log…</p>
       ) : entries.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { logAdminAction } from "@/lib/adminAudit";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface FraudFlag {
   id: string;
@@ -33,38 +35,37 @@ const FLAG_TYPES = [
 ];
 
 const AdminFraudDashboard = () => {
-  const [flags, setFlags] = useState<FraudFlag[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState("all");
   const [showResolved, setShowResolved] = useState(false);
   const [resolving, setResolving] = useState<string | null>(null);
 
-  const loadFlags = async () => {
-    setLoading(true);
-    let query = (supabase.from as any)("fraud_flags")
-      .select("*")
-      .eq("resolved", showResolved)
-      .order("created_at", { ascending: false })
-      .limit(100);
+  const queryKey = ["admin-fraud-flags", filter, showResolved];
+  const { data: flags, isInitialLoading } = useInstantQuery<FraudFlag[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      let query = (supabase.from as any)("fraud_flags")
+        .select("*")
+        .eq("resolved", showResolved)
+        .order("created_at", { ascending: false })
+        .limit(100);
 
-    if (filter !== "all") query = query.eq("flag_type", filter);
+      if (filter !== "all") query = query.eq("flag_type", filter);
 
-    const { data } = await query;
-    if (!data) { setFlags([]); setLoading(false); return; }
+      const { data } = await query;
+      if (!data) return [];
 
-    // Fetch user names
-    const userIds = [...new Set((data as any[]).map((f: any) => f.user_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
-      .in("user_id", userIds);
+      const userIds = [...new Set((data as any[]).map((f: any) => f.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
 
-    const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-    setFlags((data as any[]).map((f: any) => ({ ...f, user_name: formatName(nameMap.get(f.user_id), "Unknown") })));
-    setLoading(false);
-  };
-
-  useEffect(() => { loadFlags(); }, [filter, showResolved]);
+      const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      return (data as any[]).map((f: any) => ({ ...f, user_name: formatName(nameMap.get(f.user_id), "Unknown") }));
+    },
+  });
 
   const resolveFlag = async (flag: FraudFlag) => {
     setResolving(flag.id);
@@ -76,7 +77,7 @@ const AdminFraudDashboard = () => {
     else {
       toast.success("Flag resolved");
       await logAdminAction("resolve_fraud_flag", "fraud_flag", flag.id, { flag_type: flag.flag_type, user_id: flag.user_id });
-      await loadFlags();
+      qc.invalidateQueries({ queryKey });
     }
     setResolving(null);
   };
@@ -108,7 +109,7 @@ const AdminFraudDashboard = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-sm text-muted-foreground">Loading flags…</p>
       ) : flags.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">

@@ -1,68 +1,74 @@
-import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { toast } from "@/hooks/use-toast";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
+
+type HealthData = {
+  emailStats: { total: number; sent: number; failed: number; suppressed: number };
+  fraudCount: number;
+  recentJobs: { open: number; completed: number; disputed: number; cancelled: number };
+  healthStatus: "ok" | "degraded" | "unknown";
+};
 
 const AdminHealth = () => {
-  const [loading, setLoading] = useState(true);
-  const [emailStats, setEmailStats] = useState({ total: 0, sent: 0, failed: 0, suppressed: 0 });
-  const [fraudCount, setFraudCount] = useState(0);
-  const [recentJobs, setRecentJobs] = useState({ open: 0, completed: 0, disputed: 0, cancelled: 0 });
-  const [healthStatus, setHealthStatus] = useState<"ok" | "degraded" | "unknown">("unknown");
+  const qc = useQueryClient();
+  const queryKey = ["admin-health"];
 
-  const loadHealth = async () => {
-    setLoading(true);
+  const { data, isFetching } = useInstantQuery<HealthData>({
+    key: queryKey,
+    fallback: {
+      emailStats: { total: 0, sent: 0, failed: 0, suppressed: 0 },
+      fraudCount: 0,
+      recentJobs: { open: 0, completed: 0, disputed: 0, cancelled: 0 },
+      healthStatus: "unknown",
+    },
+    fetcher: async () => {
+      // Email stats (last 24h)
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const [sentRes, failedRes, suppressedRes] = await Promise.all([
+        (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "sent").gte("created_at", since),
+        (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "dlq").gte("created_at", since),
+        (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "suppressed").gte("created_at", since),
+      ]);
+      const sent = sentRes.count || 0;
+      const failed = failedRes.count || 0;
+      const suppressed = suppressedRes.count || 0;
+      const emailStats = { total: sent + failed + suppressed, sent, failed, suppressed };
 
-    // Email stats (last 24h)
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const [sentRes, failedRes, suppressedRes] = await Promise.all([
-      (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "sent").gte("created_at", since),
-      (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "dlq").gte("created_at", since),
-      (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "suppressed").gte("created_at", since),
-    ]);
-    const sent = sentRes.count || 0;
-    const failed = failedRes.count || 0;
-    const suppressed = suppressedRes.count || 0;
-    setEmailStats({ total: sent + failed + suppressed, sent, failed, suppressed });
+      const { count: fc } = await (supabase.from as any)("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
+      const fraudCount = fc || 0;
 
-    // Unresolved fraud flags
-    const { count: fc } = await (supabase.from as any)("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
-    setFraudCount(fc || 0);
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const [openRes, compRes, dispRes, cancelRes] = await Promise.all([
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "open").gte("created_at", weekAgo),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").gte("updated_at", weekAgo),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any).gte("updated_at", weekAgo),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "cancelled").gte("updated_at", weekAgo),
+      ]);
+      const recentJobs = {
+        open: openRes.count || 0,
+        completed: compRes.count || 0,
+        disputed: dispRes.count || 0,
+        cancelled: cancelRes.count || 0,
+      };
 
-    // Recent job stats (last 7 days)
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [openRes, compRes, dispRes, cancelRes] = await Promise.all([
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "open").gte("created_at", weekAgo),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").gte("updated_at", weekAgo),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any).gte("updated_at", weekAgo),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "cancelled").gte("updated_at", weekAgo),
-    ]);
-    setRecentJobs({
-      open: openRes.count || 0,
-      completed: compRes.count || 0,
-      disputed: dispRes.count || 0,
-      cancelled: cancelRes.count || 0,
-    });
-
-    // Health check (uses logged-in admin's JWT via functions.invoke)
-    try {
-      const { data, error } = await supabase.functions.invoke("health-check");
-      if (error) {
-        setHealthStatus("degraded");
-      } else {
-        setHealthStatus(data?.status === "healthy" ? "ok" : "degraded");
+      let healthStatus: "ok" | "degraded" | "unknown" = "unknown";
+      try {
+        const { data: hc, error } = await supabase.functions.invoke("health-check");
+        healthStatus = error ? "degraded" : (hc?.status === "healthy" ? "ok" : "degraded");
+      } catch {
+        healthStatus = "degraded";
       }
-    } catch {
-      setHealthStatus("degraded");
-    }
 
-    setLoading(false);
-  };
+      return { emailStats, fraudCount, recentJobs, healthStatus };
+    },
+  });
 
-  useEffect(() => { loadHealth(); }, []);
+  const { emailStats, fraudCount, recentJobs, healthStatus } = data;
 
   const statusBadge = {
     ok: <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Healthy</Badge>,
@@ -76,8 +82,8 @@ const AdminHealth = () => {
         <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
           <Activity className="w-5 h-5 text-primary" /> System Health
         </h2>
-        <Button variant="outline" size="sm" onClick={loadHealth} disabled={loading}>
-          <RefreshCw className={`w-3 h-3 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+        <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
+          <RefreshCw className={`w-3 h-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
 
@@ -143,7 +149,6 @@ const AdminHealth = () => {
               variant="destructive"
               size="sm"
               onClick={() => {
-                // Uncaught — exercises window.onerror path.
                 setTimeout(() => {
                   throw new Error(`Sentry uncaught test — ${new Date().toISOString()}`);
                 }, 0);

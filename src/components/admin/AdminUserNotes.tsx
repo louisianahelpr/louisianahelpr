@@ -51,8 +51,6 @@ const categoryLabel = (key: string) =>
   CATEGORIES.find((c) => c.value === key)?.label || "General";
 
 const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
-  const [notes, setNotes] = useState<NoteRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
 
   // Compose
@@ -69,43 +67,38 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const [deleteNote, setDeleteNote] = useState<NoteRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadNotes = async () => {
-    setLoading(true);
-    const { data: notesData, error } = await (supabase.from as any)("admin_user_notes")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+  const { data: notes, isInitialLoading, refetch } = useInstantQuery<NoteRow[]>({
+    key: ["admin-user-notes", userId],
+    fallback: [],
+    fetcher: async () => {
+      const { data: notesData, error } = await (supabase.from as any)("admin_user_notes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      report(error, { tags: { source: "AdminUserNotes.load" } });
-      setNotes([]);
-      setLoading(false);
-      return;
-    }
+      if (error) {
+        report(error, { tags: { source: "AdminUserNotes.load" } });
+        return [];
+      }
 
-    const rows: NoteRow[] = notesData || [];
-    const adminIds = [...new Set(rows.map((n) => n.admin_id))];
-    if (adminIds.length === 0) {
-      setNotes(rows);
-      setLoading(false);
-      return;
-    }
+      const rows: NoteRow[] = notesData || [];
+      const adminIds = [...new Set(rows.map((n) => n.admin_id))];
+      if (adminIds.length === 0) return rows;
 
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
-      .in("user_id", adminIds);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", adminIds);
 
-    const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
-    setNotes(rows.map((n) => ({ ...n, admin_name: formatName(nameMap.get(n.admin_id), "Admin") })));
-    setLoading(false);
-  };
+      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
+      return rows.map((n) => ({ ...n, admin_name: formatName(nameMap.get(n.admin_id), "Admin") }));
+    },
+  });
+  const loadNotes = () => refetch();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentAdminId(data.user?.id || null));
-    loadNotes();
-     
-  }, [userId]);
+  }, []);
 
   const addNote = async () => {
     const trimmed = newNote.trim();

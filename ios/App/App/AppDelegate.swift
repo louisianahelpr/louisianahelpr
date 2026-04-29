@@ -1,55 +1,5 @@
 import UIKit
 import Capacitor
-import WebKit
-
-private enum HelprWebCacheReset {
-    private static let resetKey = "helpr_last_web_cache_reset_build"
-
-    private static var currentBuild: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-    }
-
-    static func clearIfNeeded(completion: @escaping () -> Void) {
-        let defaults = UserDefaults.standard
-        guard defaults.string(forKey: resetKey) != currentBuild else {
-            completion()
-            return
-        }
-
-        URLCache.shared.removeAllCachedResponses()
-
-        let cacheTypes = WKWebsiteDataStore.allWebsiteDataTypes().filter { type in
-            let lowercased = type.lowercased()
-            return lowercased.contains("cache") || lowercased.contains("serviceworker")
-        }
-
-        let finish = {
-            defaults.set(currentBuild, forKey: resetKey)
-            DispatchQueue.main.async { completion() }
-        }
-
-        guard !cacheTypes.isEmpty else {
-            finish()
-            return
-        }
-
-        WKWebsiteDataStore.default().removeData(ofTypes: cacheTypes, modifiedSince: Date(timeIntervalSince1970: 0)) {
-            finish()
-        }
-    }
-}
-
-class HelprBridgeViewController: CAPBridgeViewController {
-    override open func viewDidLoad() {
-        HelprWebCacheReset.clearIfNeeded { [weak self] in
-            self?.loadBundledAppAfterCacheReset()
-        }
-    }
-
-    private func loadBundledAppAfterCacheReset() {
-        super.viewDidLoad()
-    }
-}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {

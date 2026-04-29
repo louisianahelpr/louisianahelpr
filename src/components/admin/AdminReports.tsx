@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
@@ -9,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type Report = {
   id: string;
@@ -25,46 +27,57 @@ type Report = {
 
 const AdminReports = () => {
   const navigate = useNavigate();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending" | "resolved" | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
   const [messageTarget, setMessageTarget] = useState<{ userId: string; name: string } | null>(null);
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  const loadReports = async () => {
-    setLoading(true);
-    let query = supabase.from("reports").select("*").neq("reported_type", "support").order("created_at", { ascending: false });
-    if (filter === "pending") query = query.eq("status", "pending");
-    if (filter === "resolved") query = query.eq("status", "resolved");
+  const queryKey = ["admin-reports", filter];
+  const { data: reports, isInitialLoading } = useInstantQuery<Report[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      let query = supabase.from("reports").select("*").neq("reported_type", "support").order("created_at", { ascending: false });
+      if (filter === "pending") query = query.eq("status", "pending");
+      if (filter === "resolved") query = query.eq("status", "resolved");
 
-    const { data, error } = await query;
-    if (error) {
-      toast.error("Failed to load reports");
-      setLoading(false);
-      return;
-    }
+      const { data, error } = await query;
+      if (error) {
+        toast.error("Failed to load reports");
+        return [];
+      }
 
-    const userIds = [...new Set((data || []).flatMap(r => [r.reporter_id, r.reported_id]))];
-    if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-      const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
-      setReports((data || []).map(r => ({
-        ...r,
-        reporter_name: nameMap.get(r.reporter_id) || "Unknown",
-        reported_name: nameMap.get(r.reported_id) || "Unknown",
-      })));
-    } else {
-      setReports(data || []);
+      const userIds = [...new Set((data || []).flatMap(r => [r.reporter_id, r.reported_id]))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
+        return (data || []).map(r => ({
+          ...r,
+          reporter_name: nameMap.get(r.reporter_id) || "Unknown",
+          reported_name: nameMap.get(r.reported_id) || "Unknown",
+        }));
+      }
+      return (data || []) as Report[];
+    },
+  });
+
+  const loadReports = () => qc.invalidateQueries({ queryKey });
+
+  const updateStatus = async (id: string, status: string) => {
+    setUpdating(id);
+    const { error } = await supabase.from("reports").update({ status }).eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(`Report marked as ${status}`);
+      loadReports();
     }
-    setLoading(false);
+    setUpdating(null);
   };
-
-  useEffect(() => { loadReports(); }, [filter]);
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);

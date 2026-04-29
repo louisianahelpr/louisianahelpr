@@ -3266,6 +3266,7 @@ export type Database = {
           invited_by_name: string
         }[]
       }
+      get_public_avg_rating: { Args: never; Returns: number }
       get_public_completed_job_count: { Args: never; Returns: number }
       get_public_job_stories: {
         Args: { p_limit?: number }

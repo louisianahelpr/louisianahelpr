@@ -2,13 +2,15 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/landing/HeroSection";
-import SocialProofSection from "@/components/landing/SocialProofSection";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-// Lazy load below-the-fold sections
+// Lazy load EVERY landing section. iOS native users redirect away from `/`
+// before render, so lazy-loading prevents the hero's 7 webp variants
+// (~2 MB) and below-the-fold sections from being pulled into the iOS bundle.
+const HeroSection = lazy(() => import("@/components/landing/HeroSection"));
+const SocialProofSection = lazy(() => import("@/components/landing/SocialProofSection"));
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const HelperSpotlightSection = lazy(() => import("@/components/landing/HelperSpotlightSection"));
 const JobStoriesSection = lazy(() => import("@/components/landing/JobStoriesSection"));

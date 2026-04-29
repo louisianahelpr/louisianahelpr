@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Loader2 } from "lucide-react";
+import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 
 interface CredentialFields {
@@ -21,36 +22,55 @@ interface CredentialFields {
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_SIZE = 5 * 1024 * 1024;
+const SELECT_COLS =
+  "is_licensed,is_insured,license_url,insurance_url,license_status,insurance_status,license_rejection_reason,insurance_rejection_reason";
+
+const EMPTY: CredentialFields = {
+  is_licensed: false,
+  is_insured: false,
+  license_url: null,
+  insurance_url: null,
+  license_status: "none",
+  insurance_status: "none",
+  license_rejection_reason: null,
+  insurance_rejection_reason: null,
+};
 
 export function CredentialsTab({ userId }: { userId: string }) {
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"license" | "insurance" | null>(null);
-  const [data, setData] = useState<CredentialFields | null>(null);
 
-  // Local toggle state (keeps UX snappy before save)
-  const [licensedOn, setLicensedOn] = useState(false);
-  const [insuredOn, setInsuredOn] = useState(false);
-
-  useEffect(() => {
-    (async () => {
+  // React Query cache — renders instantly on revisit, refetches in background.
+  const { data: fetched } = useQuery({
+    queryKey: ["credentials", userId],
+    queryFn: async () => {
       const { data: row, error } = await supabase
         .from("profiles")
-        .select(
-          "is_licensed,is_insured,license_url,insurance_url,license_status,insurance_status,license_rejection_reason,insurance_rejection_reason"
-        )
+        .select(SELECT_COLS)
         .eq("user_id", userId)
         .maybeSingle();
       if (error) {
         toast.error("Couldn't load credentials");
-      } else if (row) {
-        setData(row as CredentialFields);
-        setLicensedOn(!!row.is_licensed);
-        setInsuredOn(!!row.is_insured);
+        throw error;
       }
-      setLoading(false);
-    })();
-  }, [userId]);
+      return (row as CredentialFields) ?? EMPTY;
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+
+  // Render the form immediately with empty defaults; no full-page spinner.
+  const data: CredentialFields = fetched ?? EMPTY;
+  const licensedOn = data.is_licensed;
+  const insuredOn = data.is_insured;
+
+  const patchCache = (patch: Partial<CredentialFields>) => {
+    qc.setQueryData<CredentialFields>(["credentials", userId], (prev) => ({
+      ...(prev ?? EMPTY),
+      ...patch,
+    }));
+  };
 
   const validate = (file: File, label: string): boolean => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -90,19 +110,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
       const { error: updErr } = await (supabase.from("profiles") as any).update(update).eq("user_id", userId);
       if (updErr) throw updErr;
 
-      // Reload
-      const { data: row } = await supabase
-        .from("profiles")
-        .select(
-          "is_licensed,is_insured,license_url,insurance_url,license_status,insurance_status,license_rejection_reason,insurance_rejection_reason"
-        )
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (row) {
-        setData(row as CredentialFields);
-        setLicensedOn(!!row.is_licensed);
-        setInsuredOn(!!row.is_insured);
-      }
+      patchCache(update as Partial<CredentialFields>);
       toast.success(`${kind === "license" ? "License" : "Insurance"} uploaded — pending admin review`);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
@@ -129,29 +137,9 @@ export function CredentialsTab({ userId }: { userId: string }) {
       toast.error(error.message);
       return;
     }
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            ...(kind === "license"
-              ? { license_url: null, is_licensed: false, license_status: "none" }
-              : { insurance_url: null, is_insured: false, insurance_status: "none" }),
-          }
-        : prev
-    );
-    if (kind === "license") setLicensedOn(false);
-    else setInsuredOn(false);
+    patchCache(update as Partial<CredentialFields>);
     toast.success("Removed");
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-  if (!data) return null;
 
   const renderStatus = (status: string, reason: string | null) => {
     if (status === "verified")
@@ -212,8 +200,13 @@ export function CredentialsTab({ userId }: { userId: string }) {
             id="lic-toggle"
             checked={licensedOn}
             onCheckedChange={async (v) => {
-              setLicensedOn(v);
-              if (!v && data.license_url) await removeDoc("license");
+              if (v) {
+                patchCache({ is_licensed: true });
+              } else if (data.license_url) {
+                await removeDoc("license");
+              } else {
+                patchCache({ is_licensed: false });
+              }
             }}
           />
         </div>
@@ -279,8 +272,13 @@ export function CredentialsTab({ userId }: { userId: string }) {
             id="ins-toggle"
             checked={insuredOn}
             onCheckedChange={async (v) => {
-              setInsuredOn(v);
-              if (!v && data.insurance_url) await removeDoc("insurance");
+              if (v) {
+                patchCache({ is_insured: true });
+              } else if (data.insurance_url) {
+                await removeDoc("insurance");
+              } else {
+                patchCache({ is_insured: false });
+              }
             }}
           />
         </div>

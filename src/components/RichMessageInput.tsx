@@ -55,15 +55,22 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return null;
+    if (!jobId) {
+      toast.error("Cannot upload image without a job context");
+      return null;
+    }
     setUploading(true);
     const ext = imageFile.name.split(".").pop();
-    const path = `chat/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = `chat/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("job-photos").upload(path, imageFile);
     setUploading(false);
     if (error) {
       toast.error("Failed to upload image");
       return null;
     }
+    // Bucket is public for backwards-compat with shared URLs; chat uploads
+    // are scoped to chat/<jobId>/... and write access is RLS-restricted to
+    // job participants.
     const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
     return data.publicUrl;
   };

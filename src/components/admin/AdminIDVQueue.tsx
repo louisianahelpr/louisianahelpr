@@ -237,13 +237,13 @@ const AdminIDVQueue = () => {
             </button>
           );
         })}
-        <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="ml-auto">
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+        <Button variant="ghost" size="sm" onClick={load} disabled={isFetching} className="ml-auto">
+          <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
 
       {/* List */}
-      {loading ? (
+      {isInitialLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>

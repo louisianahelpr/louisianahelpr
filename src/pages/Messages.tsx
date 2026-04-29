@@ -114,7 +114,12 @@ const Messages = () => {
   const CONVO_LIMIT = 50;
 
   const loadConversations = async (uid: string) => {
-    setLoading(true);
+    // Only show the skeleton on the very first load. Background refreshes
+    // (e.g. realtime updates, returning to the page) keep the existing UI.
+    setConversations((prev) => {
+      if (prev.length === 0) setLoading(true);
+      return prev;
+    });
 
     // Fetch blocked-user IDs first so we can hide them from the list
     const { getBlockedUserIds } = await import("@/lib/userBlocks");

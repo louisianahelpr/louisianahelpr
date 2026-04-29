@@ -17,6 +17,7 @@ import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -395,11 +396,11 @@ const Signup = () => {
         <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl pb-12">
           <div className="mb-4">
             <Link
-              to="/"
+              to={isNativePlatform ? "/browse" : "/"}
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to home
+              {isNativePlatform ? "Back to Browse" : "Back to home"}
             </Link>
           </div>
           <div className="text-center mb-6">

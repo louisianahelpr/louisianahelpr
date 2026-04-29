@@ -181,17 +181,12 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td colSpan={6} className="px-4 py-12 text-center">
-                  <Loader2 className="w-5 h-5 animate-spin inline-block text-muted-foreground" />
-                </td></tr>
-              )}
-              {!loading && filtered.length === 0 && (
+              {filtered.length === 0 && (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  No notification logs match your filters.
+                  {isFetching ? "Loading…" : "No notification logs match your filters."}
                 </td></tr>
               )}
-              {!loading && filtered.map((row) => (
+              {filtered.map((row) => (
                 <tr
                   key={row.id}
                   className={cn(

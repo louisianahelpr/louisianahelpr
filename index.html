@@ -76,12 +76,22 @@
       />
     </noscript>
 
-    <!-- Note: The hero LCP image preload was removed because the /src/assets/* paths
-         only exist in dev — production paths are content-hashed (e.g. /assets/hero-…-AB12.webp).
-         Vite injects a `modulepreload` for the JS that imports the image, and the <img>
-         in HeroSection has fetchpriority="high" + loading="eager" which gives it the
-         same priority as a manual preload once the bundle parses. -->
-
+    <!-- Hero LCP image preload. Vite rewrites /src/assets/* references in index.html
+         to the content-hashed production path during build, so this works in both dev
+         and prod. We preload the responsive set with imagesrcset/imagesizes matching
+         the <img>'s srcset/sizes in HeroSection.tsx — the browser picks the right
+         variant for the viewport (Moto G Power → 400-500w; desktop → 1500-2000w) and
+         starts the fetch in parallel with the JS bundle instead of waiting for React
+         to mount and discover the <img> tag. This is the single biggest LCP win on
+         the landing page (Lighthouse-flagged ~4.4s savings). -->
+    <link
+      rel="preload"
+      as="image"
+      href="/src/assets/hero-porch-garden-1000.webp"
+      imagesrcset="/src/assets/hero-porch-garden-400.webp 400w, /src/assets/hero-porch-garden-500.webp 500w, /src/assets/hero-porch-garden-600.webp 600w, /src/assets/hero-porch-garden-800.webp 800w, /src/assets/hero-porch-garden-1000.webp 1000w, /src/assets/hero-porch-garden-1500.webp 1500w, /src/assets/hero-porch-garden-2000.webp 2000w"
+      imagesizes="(max-width: 640px) 100vw, (max-width: 1023px) 90vw, 50vw"
+      fetchpriority="high"
+    />
     <!-- Sentry + PostHog both initialize inside requestIdleCallback (after
          first paint), which means a preconnect handshake completes seconds
          before the connection is actually used and gets flagged by

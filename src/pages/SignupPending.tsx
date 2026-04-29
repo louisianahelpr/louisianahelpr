@@ -4,6 +4,7 @@ import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw, ArrowLeft } from "lu
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 const SignupPending = () => {
   const [resending, setResending] = useState(false);

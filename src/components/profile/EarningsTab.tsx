@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,32 +81,33 @@ const formatDate = (unixSec: number) =>
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
-  const [stripeData, setStripeData] = useState<StripePayoutData | null>(null);
-  const [stripeLoading, setStripeLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const qc = useQueryClient();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
 
-  const fetchPayouts = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke<StripePayoutData>("stripe-payouts", { body: {} });
-      if (error) throw error;
-      setStripeData(data ?? null);
-    } catch (err) {
-      report(err, { severity: "warning", tags: { source: "EarningsTab.fetchPayouts" } });
-      setStripeData({ connected: false, payouts_enabled: false, available: [], pending: [], payouts: [] });
-    } finally {
-      setStripeLoading(false);
-      setRefreshing(false);
-    }
+  // React Query: caches Stripe payout data so re-opening the tab is instant.
+  const FALLBACK_STRIPE: StripePayoutData = {
+    connected: false, payouts_enabled: false, available: [], pending: [], payouts: [],
   };
+  const { data: stripeData, isLoading: stripeLoading, isFetching, refetch } = useQuery<StripePayoutData>({
+    queryKey: ["stripe-payouts"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke<StripePayoutData>("stripe-payouts", { body: {} });
+        if (error) throw error;
+        return data ?? FALLBACK_STRIPE;
+      } catch (err) {
+        report(err, { severity: "warning", tags: { source: "EarningsTab.fetchPayouts" } });
+        return FALLBACK_STRIPE;
+      }
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    fetchPayouts();
-  }, []);
-
+  const refreshing = isFetching && !stripeLoading;
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchPayouts();
+    qc.invalidateQueries({ queryKey: ["stripe-payouts"] });
+    refetch();
   };
 
   // ─── CSV EXPORT (1099 / Tax prep) ─────────────────────────
@@ -454,7 +456,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <InstantPayoutDialog
         open={payoutDialogOpen}
         onOpenChange={setPayoutDialogOpen}
-        onSuccess={fetchPayouts}
+        onSuccess={handleRefresh}
       />
     </div>
   );

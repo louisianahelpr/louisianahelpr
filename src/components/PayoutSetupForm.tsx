@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,33 +25,43 @@ type AccountStatus = {
   requirements: string[];
 };
 
+type PayoutData = { methods: PayoutMethod[]; status: AccountStatus | null };
+const FALLBACK: PayoutData = {
+  methods: [],
+  status: { connected: false, details_submitted: false, payouts_enabled: false, transfers_status: "", requirements: [] },
+};
+
 export function PayoutSetupForm() {
-  const [methods, setMethods] = useState<PayoutMethod[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<AccountStatus | null>(null);
+  const qc = useQueryClient();
   const [onboarding, setOnboarding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // React Query: cached for 60s, instant render on revisit, refresh in background.
+  const { data, isLoading } = useQuery<PayoutData>({
+    queryKey: ["payout-setup"],
+    queryFn: async () => {
+      try {
+        const [methodsRes, statusRes] = await Promise.all([
+          supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } }),
+          supabase.functions.invoke("stripe-connect", { body: { action: "status" } }),
+        ]);
+        return {
+          methods: methodsRes.error ? [] : methodsRes.data?.methods || [],
+          status: statusRes.error ? null : statusRes.data || null,
+        };
+      } catch (err: any) {
+        report(err, { tags: { source: "PayoutSetupForm.loadPayoutData" } });
+        return FALLBACK;
+      }
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [methodsRes, statusRes] = await Promise.all([
-        supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } }),
-        supabase.functions.invoke("stripe-connect", { body: { action: "status" } }),
-      ]);
-      if (!methodsRes.error) setMethods(methodsRes.data?.methods || []);
-      if (!statusRes.error) setStatus(statusRes.data || null);
-    } catch (err: any) {
-      report(err, { tags: { source: "PayoutSetupForm.loadPayoutData" } });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const methods = data?.methods ?? [];
+  const status = data?.status ?? null;
+  const loadData = () => qc.invalidateQueries({ queryKey: ["payout-setup"] });
 
   const handleOnboard = async () => {
     setOnboarding(true);
@@ -127,7 +138,7 @@ export function PayoutSetupForm() {
     }
   };
 
-  if (loading) {
+  if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" /> Loading payout info…

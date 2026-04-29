@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { CreditCard, DollarSign, BanknoteIcon } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { toast } from "sonner";
@@ -14,40 +13,21 @@ interface PaymentTabProps {
   totalEarnings: number;
 }
 
-type ConnectStatus = {
-  connected: boolean;
-  details_submitted: boolean;
-  payouts_enabled: boolean;
-  charges_enabled?: boolean;
-};
-
 export function PaymentTab({ role: _role, earningsJobs, totalEarnings }: PaymentTabProps) {
   const [searchParams] = useSearchParams();
-  const [, setConnectStatus] = useState<ConnectStatus | null>(null);
-  const [, setLoadingConnect] = useState(true);
 
+  // Surface Stripe redirect outcomes; the live status is rendered inside
+  // <PayoutSetupForm /> which owns its own fetch — no need to duplicate it
+  // here (the previous implementation fetched the status and threw the
+  // result away, which only added latency).
   useEffect(() => {
-    checkConnectStatus();
     const connectParam = searchParams.get("connect");
     if (connectParam === "success") {
       toast.success("Payout account setup in progress. Checking status...");
     } else if (connectParam === "refresh") {
       toast.info("Please complete your payout setup to receive payouts.");
     }
-  }, []);
-
-  const checkConnectStatus = async () => {
-    setLoadingConnect(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
-      if (error) throw error;
-      setConnectStatus(data);
-    } catch {
-      setConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
-    } finally {
-      setLoadingConnect(false);
-    }
-  };
+  }, [searchParams]);
 
   const isHelper = true;
 

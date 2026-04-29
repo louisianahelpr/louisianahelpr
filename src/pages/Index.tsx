@@ -4,7 +4,13 @@ import { Capacitor } from "@capacitor/core";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+
+// IMPORTANT: do NOT import useCurrentUser at the top of Index. It pulls
+// @supabase/supabase-js into the Index entry chunk (~50 KiB), blocking the
+// LCP image discovery. We only need the auth user inside the native-app
+// redirect path; load that hook lazily so web visitors never download
+// Supabase before paint.
+const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
 // HeroSection is eager-loaded — it's above the fold on every visit and
 // the LCP element. Lazy-loading it added a network round-trip (entry chunk →

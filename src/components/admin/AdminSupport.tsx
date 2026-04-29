@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, CheckCircle2, Clock, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type Ticket = {
   id: string;
@@ -25,53 +27,49 @@ const categoryFromReason = (reason: string) => {
   return { label: "Support", icon: <Mail className="w-4 h-4" /> };
 };
 
-const subjectFromReason = (reason: string) => {
-  return reason.replace(/^\[.*?\]\s*/, "");
-};
+const subjectFromReason = (reason: string) => reason.replace(/^\[.*?\]\s*/, "");
 
 const AdminSupport = () => {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending" | "resolved" | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const loadTickets = async () => {
-    setLoading(true);
-    let query = supabase
-      .from("reports")
-      .select("*")
-      .eq("reported_type", "support")
-      .order("created_at", { ascending: false });
+  const queryKey = ["admin-support", filter];
+  const { data: tickets, isInitialLoading } = useInstantQuery<Ticket[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      let query = supabase
+        .from("reports")
+        .select("*")
+        .eq("reported_type", "support")
+        .order("created_at", { ascending: false });
 
-    if (filter === "pending") query = query.eq("status", "pending");
-    if (filter === "resolved") query = query.neq("status", "pending");
+      if (filter === "pending") query = query.eq("status", "pending");
+      if (filter === "resolved") query = query.neq("status", "pending");
 
-    const { data, error } = await query;
-    if (error) {
-      toast.error("Failed to load support tickets");
-      setLoading(false);
-      return;
-    }
+      const { data, error } = await query;
+      if (error) {
+        toast.error("Failed to load support tickets");
+        return [];
+      }
 
-    const userIds = [...new Set((data || []).map(r => r.reporter_id))];
-    if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email")
-        .in("user_id", userIds);
-      const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
-      setTickets((data || []).map(r => ({
-        ...r,
-        reporter_name: formatName(profileMap.get(r.reporter_id)?.full_name, "Unknown"),
-        reporter_email: profileMap.get(r.reporter_id)?.email || "",
-      })));
-    } else {
-      setTickets(data || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { loadTickets(); }, [filter]);
+      const userIds = [...new Set((data || []).map(r => r.reporter_id))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", userIds);
+        const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+        return (data || []).map(r => ({
+          ...r,
+          reporter_name: formatName(profileMap.get(r.reporter_id)?.full_name, "Unknown"),
+          reporter_email: profileMap.get(r.reporter_id)?.email || "",
+        }));
+      }
+      return (data || []) as Ticket[];
+    },
+  });
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
@@ -79,7 +77,7 @@ const AdminSupport = () => {
     if (error) toast.error(error.message);
     else {
       toast.success(`Ticket marked as ${status}`);
-      loadTickets();
+      qc.invalidateQueries({ queryKey });
     }
     setUpdating(null);
   };
@@ -102,7 +100,7 @@ const AdminSupport = () => {
         ))}
       </div>
 
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-muted-foreground text-sm py-8 text-center">Loading tickets…</p>
       ) : tickets.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">

@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Crown, Star, TrendingUp, Sparkles, ExternalLink } from "lucide-react";
 import { formatName } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 const getInitials = (name?: string | null) =>
   (name || "?")
@@ -13,7 +15,6 @@ const getInitials = (name?: string | null) =>
     .join("")
     .slice(0, 2)
     .toUpperCase();
-import { Link } from "react-router-dom";
 
 interface HelperTier {
   user_id: string;
@@ -46,18 +47,17 @@ const TIER_ICON: Record<string, any> = {
 };
 
 const AdminHelperTiers = () => {
-  const [helpers, setHelpers] = useState<HelperTier[]>([]);
-  const [loading, setLoading] = useState(true);
   const [tierFilter, setTierFilter] = useState<string>("all");
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase.rpc as any)("get_helper_tiers", { p_limit: 50 });
-    if (!error) setHelpers((data as any) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  const { data: helpers, isInitialLoading } = useInstantQuery<HelperTier[]>({
+    key: ["admin-helper-tiers"],
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_helper_tiers", { p_limit: 50 });
+      if (error) return [];
+      return (data as any) || [];
+    },
+  });
 
   const tiers = ["Elite", "Verified", "Rising Star", "Active", "New"];
   const visible = tierFilter === "all" ? helpers : helpers.filter((h) => h.tier === tierFilter);
@@ -97,7 +97,7 @@ const AdminHelperTiers = () => {
         ))}
       </div>
 
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-sm text-muted-foreground">Loading tiers…</p>
       ) : visible.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">No helprs in this tier yet.</p>

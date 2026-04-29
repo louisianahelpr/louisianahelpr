@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle } from "lucide-rea
 import { formatDistanceToNow } from "date-fns";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface PayoutBatch {
   helper_id: string;
@@ -19,26 +21,25 @@ interface PayoutBatch {
 }
 
 const AdminPayoutBatches = () => {
-  const [batches, setBatches] = useState<PayoutBatch[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["admin-payout-batches"];
   const [paying, setPaying] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase.rpc as any)("get_payout_batches");
-    if (error) {
-      toast.error(error.message);
-      setBatches([]);
-    } else {
-      setBatches((data || []).map((r: any) => ({
+  const { data: batches, isInitialLoading, isFetching } = useInstantQuery<PayoutBatch[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_payout_batches");
+      if (error) {
+        toast.error(error.message);
+        return [];
+      }
+      return (data || []).map((r: any) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
-      })));
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+      }));
+    },
+  });
 
   const triggerPayout = async (batch: PayoutBatch) => {
     if (!batch.stripe_account_id) {
@@ -56,7 +57,7 @@ const AdminPayoutBatches = () => {
         job_count: batch.job_count,
         total_payout: batch.total_payout,
       });
-      await load();
+      qc.invalidateQueries({ queryKey });
     } catch (err: any) {
       toast.error(err.message || "Failed to trigger payout");
     } finally {
@@ -78,12 +79,12 @@ const AdminPayoutBatches = () => {
             Helprs with completed jobs awaiting payout. Trigger Stripe transfers in bulk per helpr.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
+        <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
+          {isFetching ? "Refreshing…" : "Refresh"}
         </Button>
       </div>
 
-      {!loading && batches.length > 0 && (
+      {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
@@ -100,7 +101,7 @@ const AdminPayoutBatches = () => {
         </div>
       )}
 
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-sm text-muted-foreground">Loading payout batches…</p>
       ) : batches.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">

@@ -24,9 +24,11 @@ interface RichMessageInputProps {
   /** Optional controlled value — when provided, parent owns the text state. */
   value?: string;
   onChange?: (value: string) => void;
+  /** Job ID for the active conversation — required for image uploads (RLS scopes chat/<jobId>/...). */
+  jobId?: string;
 }
 
-export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange }: RichMessageInputProps) => {
+export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, jobId }: RichMessageInputProps) => {
   const [internalText, setInternalText] = useState("");
   const isControlled = value !== undefined;
   const text = isControlled ? (value as string) : internalText;

@@ -146,13 +146,7 @@ const NotificationPreferences = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  // Render immediately with default prefs; real values fade in on fetch.
 
   return (
     <div className="space-y-6">

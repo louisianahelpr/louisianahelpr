@@ -51,8 +51,7 @@ interface AdminNotificationLogsProps {
 }
 
 const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
-  const [rows, setRows] = useState<LogRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -64,35 +63,37 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
 
-  const load = async () => {
-    setLoading(true);
-    let q = supabase
-      .from("notification_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+  const queryKey = ["admin-notification-logs", { category, status, channel, page }] as const;
 
-    if (category !== "all") q = q.eq("category", category);
-    if (status !== "all") q = q.eq("status", status);
-    if (channel !== "all") q = q.eq("channel", channel);
+  const { data: rows, isFetching, refetch } = useInstantQuery<LogRow[]>({
+    key: queryKey,
+    fallback: [],
+    fetcher: async () => {
+      let q = supabase
+        .from("notification_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    const { data, error } = await q;
-    if (!error) setRows((data as LogRow[]) ?? []);
-    setLoading(false);
-  };
+      if (category !== "all") q = q.eq("category", category);
+      if (status !== "all") q = q.eq("status", status);
+      if (channel !== "all") q = q.eq("channel", channel);
 
-  useEffect(() => { load();   }, [category, status, channel, page]);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data as LogRow[]) ?? [];
+    },
+  });
 
   useEffect(() => {
-    const channel = supabase
+    const ch = supabase
       .channel("admin-notification-logs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
-        if (page === 0) load();
+        if (page === 0) qc.invalidateQueries({ queryKey: ["admin-notification-logs"] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-     
-  }, [page]);
+    return () => { supabase.removeChannel(ch); };
+  }, [page, qc]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;

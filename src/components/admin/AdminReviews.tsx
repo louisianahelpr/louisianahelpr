@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Eye, FileText, MapPin, Phone, Clock, Briefcase, Star, User } from "lucide-react";
+import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type PendingProfile = {
   id: string;

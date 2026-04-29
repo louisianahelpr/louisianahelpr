@@ -672,6 +672,7 @@ const Messages = () => {
                   onChange={setDraft}
                   onSend={(content) => { sendMessage(content); setDraft(""); }}
                   onTyping={broadcastTyping}
+                  jobId={activeConvo.jobId}
                 />
               </div>
             </div>

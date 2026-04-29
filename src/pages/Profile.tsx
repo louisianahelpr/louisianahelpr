@@ -763,17 +763,9 @@ const ProfilePage = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label htmlFor="phone" className="text-[11px] mb-1">Phone</Label>
-                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
-                      </div>
-                      <div>
-                        <Label htmlFor="dob" className="text-[11px] mb-1">
-                          Date of birth {dateOfBirth && !ageOk && <span className="text-destructive">(18+)</span>}
-                        </Label>
-                        <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="h-10" />
-                      </div>
+                    <div>
+                      <Label htmlFor="phone" className="text-[11px] mb-1">Phone</Label>
+                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">

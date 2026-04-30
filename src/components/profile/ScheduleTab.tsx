@@ -37,7 +37,7 @@ interface ScheduleTabProps {
   onBack: () => void;
 }
 
-export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack }: ScheduleTabProps) {
+export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: ScheduleTabProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 

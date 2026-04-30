@@ -10,7 +10,7 @@ const TermsOfService = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 1rem) + 3.5rem)" }} />
+      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
 
       <main className="mx-auto max-w-5xl px-5 pt-2 pb-8">
         <div className="max-w-2xl mx-auto space-y-8">

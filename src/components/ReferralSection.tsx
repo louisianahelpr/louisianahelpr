@@ -31,14 +31,6 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     toast.success("Referral code copied!");
     setTimeout(() => setCopied(false), 2000);
   };
-    const url = `https://www.louisianahelpr.com/signup?ref=${referralCode}`;
-    await nativeShare({
-      title: "Join Helpr!",
-      text: `Sign up on Helpr with my referral code ${referralCode}. Complete your first job (post or work) and we both earn $5!`,
-      url,
-      dialogTitle: "Share your Helpr referral",
-    });
-  };
 
   const handleCashOut = async () => {
     setCashingOut(true);

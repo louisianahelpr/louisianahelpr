@@ -354,7 +354,10 @@ const Dashboard = () => {
 
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
-    <div className="h-[100dvh] bg-premium-page pb-safe-nav flex flex-col overflow-hidden">
+    <div
+      className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden"
+      style={{ paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))" }}
+    >
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 

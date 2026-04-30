@@ -381,14 +381,12 @@ const JobFilters = ({
 
         <Section
           icon={MapPin}
-          label="Place & budget"
-          badge={locationFilter || maxBudget ? "Set" : null}
+          label="Place"
+          badge={locationFilter ? "Set" : null}
         >
           <LocationBudgetContent
             locationFilter={locationFilter}
             setLocationFilter={setLocationFilter}
-            maxBudget={maxBudget}
-            setMaxBudget={setMaxBudget}
           />
         </Section>
 

@@ -13,7 +13,7 @@ const PlatformRules = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div className="h-14" aria-hidden />
+      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 1rem) + 3.5rem)" }} />
       <div className="container mx-auto max-w-3xl px-5 pt-2 pb-8">
         <div className="flex items-center gap-2 mb-3">
           <BackButton to="/" />

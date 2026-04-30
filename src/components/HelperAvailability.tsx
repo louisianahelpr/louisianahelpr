@@ -101,7 +101,70 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     }
   };
 
-  if (!loaded) return <p className="text-sm text-muted-foreground">Loading availability...</p>;
+  if (!loaded) return <p className="text-sm text-muted-foreground p-4">Loading availability...</p>;
+
+  if (compact) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+          {DAYS.map((day, i) => {
+            const slot = slots[i];
+            const off = !slot.is_available;
+            return (
+              <div
+                key={day}
+                className={cn(
+                  "rounded-xl border p-2.5 transition-all",
+                  off ? "border-border/60 bg-muted/30" : "border-border bg-card shadow-sm",
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Switch
+                      checked={slot.is_available}
+                      onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
+                      aria-label={`Toggle ${day}`}
+                    />
+                    <span
+                      className={cn(
+                        "font-display text-sm font-bold tracking-tight w-9",
+                        off ? "text-muted-foreground" : "text-foreground",
+                      )}
+                    >
+                      {day.slice(0, 3)}
+                    </span>
+                  </div>
+
+                  {slot.is_available ? (
+                    <TimeRangeField
+                      start={slot.start_time}
+                      end={slot.end_time}
+                      onChange={({ start, end }) => {
+                        updateSlot(i, "start_time", start);
+                        updateSlot(i, "end_time", end);
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground">Unavailable</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="border-t border-border p-3 bg-card/80 backdrop-blur">
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            size="lg"
+            className="w-full h-11 rounded-xl text-sm font-semibold"
+          >
+            {saving ? "Saving..." : "Save Availability"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

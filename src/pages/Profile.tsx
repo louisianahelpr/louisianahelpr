@@ -38,6 +38,7 @@ const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab"
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 import { EarningsTab } from "@/components/profile/EarningsTab";
 import { ScheduleTab } from "@/components/profile/ScheduleTab";
+import { AvailabilityTab } from "@/components/profile/AvailabilityTab";
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));

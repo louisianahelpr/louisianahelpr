@@ -12,7 +12,7 @@ export default function StrikeBanner() {
   useEffect(() => {
     let cancelled = false;
     const load = async (userId: string) => {
-      if (!user || cancelled) return;
+      if (cancelled) return;
       const { data } = await supabase
         .from("profiles")
         .select("ban_status, auto_suspended_until")

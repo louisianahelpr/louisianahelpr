@@ -176,7 +176,7 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <Suspense fallback={<div className="h-16" />}>
+      <Suspense fallback={null}>
         <Navbar />
       </Suspense>
       <HeroSection />

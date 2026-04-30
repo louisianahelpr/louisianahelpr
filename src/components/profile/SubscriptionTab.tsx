@@ -169,7 +169,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
-      <div className="flex flex-col gap-2 flex-1 min-h-0">
+      <div className="flex flex-row gap-2 flex-1 min-h-0">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
@@ -177,23 +177,25 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           return (
             <div
               key={tier.id}
-              className={`relative rounded-2xl border bg-card p-3 flex-1 min-h-0 flex items-center gap-3 ${
-                isPro ? "border-primary/30 shadow-lg" : "border-border"
+              className={`relative rounded-2xl border p-2.5 flex-1 min-w-0 flex flex-col ${
+                isPro
+                  ? "border-primary/40 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.35)] bg-gradient-to-b from-primary/5 to-card scale-[1.02]"
+                  : "border-border bg-card"
               } ${isActive ? "ring-2 ring-primary" : ""}`}
             >
               {isPro && (
-                <span className="absolute -top-2 left-3 text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap">
                   Popular
                 </span>
               )}
 
-              <div className="flex flex-col shrink-0 w-20">
-                <h3 className="font-display font-bold text-sm leading-tight text-foreground">
+              <div className="flex flex-col items-center text-center mb-2">
+                <h3 className="font-display font-bold text-xs leading-tight text-foreground">
                   {tier.badge} {tier.name}
                 </h3>
-                <p className="text-xs font-bold text-primary leading-none mt-1">{getPrice(tier)}</p>
+                <p className="text-sm font-bold text-primary leading-tight mt-1">{getPrice(tier)}</p>
                 {saveBadge && (
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none mt-1 w-fit">
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none mt-1">
                     {saveBadge}
                   </span>
                 )}
@@ -204,7 +206,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 )}
               </div>
 
-              <ul className="flex-1 min-w-0 space-y-0.5 overflow-hidden">
+              <ul className="flex-1 min-h-0 space-y-1 overflow-hidden mb-2">
                 {tier.features.map((f) => (
                   <li key={f} className="text-[10px] leading-snug flex items-start gap-1 text-muted-foreground">
                     <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
@@ -217,10 +219,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <button
                   onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`shrink-0 px-3 h-9 rounded-lg font-semibold text-[11px] transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
+                  className={`w-full px-2 h-9 rounded-xl font-bold text-[11px] transition-all flex items-center justify-center gap-1 disabled:opacity-60 active:scale-[0.97] ${
                     isPro
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
+                      ? "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground shadow-[0_4px_14px_-2px_hsl(var(--primary)/0.5),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] hover:shadow-[0_6px_18px_-2px_hsl(var(--primary)/0.6),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] border border-primary/40"
+                      : "bg-gradient-to-b from-secondary to-secondary/70 text-foreground shadow-[0_2px_8px_-2px_hsl(var(--foreground)/0.15),inset_0_1px_0_hsl(var(--background)/0.6)] hover:shadow-[0_4px_12px_-2px_hsl(var(--foreground)/0.2),inset_0_1px_0_hsl(var(--background)/0.6)] border border-border"
                   }`}
                 >
                   {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3 h-3 animate-spin" />}

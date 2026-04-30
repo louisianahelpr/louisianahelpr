@@ -817,7 +817,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+                  <div className="shrink-0 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)" }}>
                     <button
                       type="submit"
                       disabled={saving || justSaved}

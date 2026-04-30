@@ -32,9 +32,9 @@ const Availability = () => {
   }, [navigate]);
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
-      <main className="flex-1 min-h-0 overflow-hidden pt-[env(safe-area-inset-top)]">
-        <div className="max-w-3xl mx-auto h-full min-h-0 flex flex-col px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+4.25rem)] overflow-hidden">
+    <div className="h-auto max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
+      <main className="shrink-0 overflow-hidden pt-[env(safe-area-inset-top)]">
+        <div className="max-w-3xl mx-auto flex flex-col px-3 pt-2 pb-0 overflow-hidden">
           <div className="flex items-center gap-2 shrink-0 mb-1">
             <Button
               variant="ghost"

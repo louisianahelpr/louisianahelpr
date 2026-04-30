@@ -104,9 +104,12 @@ const SavedHelpers = () => {
   });
 
   return (
-    <div className="h-[100dvh] bg-premium-page pb-safe-nav overflow-hidden flex flex-col">
+    <div className="h-[100dvh] bg-premium-page overflow-hidden flex flex-col">
       <Navbar />
-      <main className="container mx-auto px-5 pt-3 pb-6 flex-1 min-h-0 overflow-y-auto no-scrollbar">
+      <main
+        className="container mx-auto px-5 pt-3 flex-1 min-h-0 overflow-y-auto no-scrollbar"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+      >
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>

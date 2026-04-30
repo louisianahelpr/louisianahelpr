@@ -393,7 +393,7 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col mb-3"
+            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col"
           >
             {/* Header row */}
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
@@ -548,29 +548,27 @@ const Dashboard = () => {
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
-              <div className="glass-card squircle rounded-[24px] py-12 px-6 text-center space-y-6">
-                {/* Isometric "Discovery" tile — layered green squircles
-                    with a magnifying lens motif. Pure CSS so it's crisp at any DPI. */}
-                <div className="relative w-28 h-28 mx-auto" aria-hidden>
+              <div className="h-full flex flex-col items-center justify-center py-10 px-6 text-center gap-5">
+                <div className="relative w-24 h-24" aria-hidden>
                   <div
-                    className="absolute inset-0 squircle rounded-[28px] bg-gradient-to-br from-primary/25 via-primary/15 to-primary/5 shadow-[0_20px_50px_-15px_hsl(158_67%_37%/0.35)]"
+                    className="absolute inset-0 squircle rounded-[24px] bg-gradient-to-br from-primary/25 via-primary/15 to-primary/5 shadow-[0_20px_50px_-15px_hsl(158_67%_37%/0.35)]"
                     style={{ transform: "perspective(600px) rotateX(18deg) rotateZ(-8deg)" }}
                   />
                   <div
-                    className="absolute inset-3 squircle rounded-[24px] bg-gradient-to-br from-white/90 to-white/60 backdrop-blur flex items-center justify-center"
+                    className="absolute inset-3 squircle rounded-[20px] bg-gradient-to-br from-white/90 to-white/60 backdrop-blur flex items-center justify-center"
                     style={{ transform: "perspective(600px) rotateX(18deg) rotateZ(-8deg)" }}
                   >
-                    <Search className="w-12 h-12 text-primary" strokeWidth={2.25} />
+                    <Search className="w-10 h-10 text-primary" strokeWidth={2.25} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xl font-display font-bold text-foreground">
+                <div className="space-y-1.5">
+                  <p className="text-lg font-display font-bold text-foreground">
                     {filters.hasFilters ? "No jobs match your filters" : "Nothing nearby just yet"}
                   </p>
                   <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                     {filters.hasFilters
                       ? "Try widening your search or clearing a filter to see more jobs."
-                      : "New jobs are posted every day across Louisiana. Pick a path below to get moving."}
+                      : "New jobs are posted every day across Louisiana. Check back soon."}
                   </p>
                 </div>
                 {filters.hasFilters && (

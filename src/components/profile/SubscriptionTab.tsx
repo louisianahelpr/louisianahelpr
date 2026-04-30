@@ -169,7 +169,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+      <div className="flex flex-col gap-2 flex-1 min-h-0">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
@@ -177,23 +177,23 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           return (
             <div
               key={tier.id}
-              className={`relative rounded-2xl border bg-card p-2.5 flex flex-col min-h-0 ${
+              className={`relative rounded-2xl border bg-card p-3 flex-1 min-h-0 flex items-center gap-3 ${
                 isPro ? "border-primary/30 shadow-lg" : "border-border"
               } ${isActive ? "ring-2 ring-primary" : ""}`}
             >
               {isPro && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap">
+                <span className="absolute -top-2 left-3 text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap">
                   Popular
                 </span>
               )}
 
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col shrink-0 w-20">
                 <h3 className="font-display font-bold text-sm leading-tight text-foreground">
                   {tier.badge} {tier.name}
                 </h3>
                 <p className="text-xs font-bold text-primary leading-none mt-1">{getPrice(tier)}</p>
                 {saveBadge && (
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none mt-1">
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none mt-1 w-fit">
                     {saveBadge}
                   </span>
                 )}
@@ -204,7 +204,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 )}
               </div>
 
-              <ul className="mt-2 mb-2 space-y-1 flex-1 min-h-0 overflow-hidden">
+              <ul className="flex-1 min-w-0 space-y-0.5 overflow-hidden">
                 {tier.features.map((f) => (
                   <li key={f} className="text-[10px] leading-snug flex items-start gap-1 text-muted-foreground">
                     <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
@@ -217,7 +217,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <button
                   onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full h-8 rounded-lg font-semibold text-[11px] transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
+                  className={`shrink-0 px-3 h-9 rounded-lg font-semibold text-[11px] transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
                     isPro
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"

@@ -155,16 +155,6 @@ const SavedHelpers = () => {
                     : "Try a different search term."}
                 </p>
               </div>
-              {helpers.length === 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/heroes")}
-                  className="rounded-xl"
-                >
-                  Browse top helprs
-                </Button>
-              )}
             </div>
           ) : (
             <div className="space-y-3">

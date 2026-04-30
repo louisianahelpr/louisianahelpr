@@ -29,7 +29,7 @@ import { SavedSearches } from "@/components/SavedSearches";
 
 import PayoutSetupDialog from "@/components/PayoutSetupDialog";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
-import { VirtualList } from "@/components/VirtualList";
+
 
 import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";

@@ -30,7 +30,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         // between the status bar and the Helpr logo.
         paddingTop: isNative
           ? "0px"
-          : "max(env(safe-area-inset-top), 1rem)",
+          : "max(env(safe-area-inset-top), 0.25rem)",
       }}
     >
       <div

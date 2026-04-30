@@ -1112,7 +1112,7 @@ const ProfilePage = () => {
           if (!open) { setDeleteConfirmText(""); setDeleteStep(1); }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           {deleteStep === 1 ? (
             <>
               <AlertDialogHeader>
@@ -1121,16 +1121,17 @@ const ProfilePage = () => {
                   This action is permanent. You will lose your job history, earnings records, and verified credentials. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-                ⚠️ Any pending or in-transit Stripe payouts will be forfeited. Cash out your available balance from the Earnings tab first.
+              <div className="my-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Any pending or in-transit Stripe payouts will be forfeited. Cash out your available balance from the Earnings tab first.</span>
               </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Go Back / Keep Account</AlertDialogCancel>
+              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <AlertDialogCancel className="mt-0 sm:flex-1">Keep Account</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={(e) => { e.preventDefault(); setDeleteStep(2); }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:flex-1"
                 >
-                  Delete Everything
+                  Continue
                 </AlertDialogAction>
               </AlertDialogFooter>
             </>
@@ -1149,20 +1150,21 @@ const ProfilePage = () => {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE MY ACCOUNT"
-                className="h-11 text-center font-mono tracking-wide"
+                className="my-2 h-11 text-center font-mono tracking-wide"
                 disabled={deletingAccount}
               />
-              <AlertDialogFooter>
+              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
                 <AlertDialogCancel
                   disabled={deletingAccount}
                   onClick={(e) => { e.preventDefault(); setDeleteStep(1); setDeleteConfirmText(""); }}
+                  className="mt-0 sm:flex-1"
                 >
                   Back
                 </AlertDialogCancel>
                 <AlertDialogAction
                   disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deletingAccount}
                   onClick={handleDeleteAccount}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:flex-1"
                 >
                   {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Delete Forever

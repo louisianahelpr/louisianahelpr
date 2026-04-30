@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BackButton from "@/components/BackButton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ForBusiness = () => {
@@ -30,16 +31,19 @@ const ForBusiness = () => {
               For Business
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold leading-[1.05] text-balance">
-              The best help for{" "}
-              <span className="relative inline">
-                <span className="relative z-10 text-primary">Louisiana businesses.</span>
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
-                />
-              </span>
-            </h1>
+            <div className="flex items-start gap-2">
+              <BackButton to="/" className="mt-1" />
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold leading-[1.05] text-balance">
+                The best help for{" "}
+                <span className="relative inline">
+                  <span className="relative z-10 text-primary">Louisiana businesses.</span>
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
+                  />
+                </span>
+              </h1>
+            </div>
 
             <p className="text-base lg:text-lg text-muted-foreground leading-relaxed max-w-xl">
               The simplest way to find, hire, and pay local pros for your business tasks.

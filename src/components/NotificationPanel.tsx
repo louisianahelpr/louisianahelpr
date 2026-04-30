@@ -154,59 +154,70 @@ const NotificationPanel = () => {
       <SheetTrigger asChild>
         <NotificationTrigger unreadCount={unreadCount} />
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh]">
-        <SheetHeader className="p-4 pb-3 border-b border-border shrink-0">
-          <SheetTitle className="font-display">Notifications</SheetTitle>
-          <div className="flex items-center gap-2 pt-1">
-            {pushSupported && !pushEnabled && (
-              <Button variant="ghost" size="sm" onClick={enablePush} className="text-xs text-primary h-7 px-2">
-                <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
-              </Button>
-            )}
-            {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs text-muted-foreground h-7 px-2">
-                <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
-              </Button>
-            )}
+      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh] overflow-hidden">
+        <SheetHeader className="px-4 pt-3 pb-2 border-b border-border shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle className="font-display text-base">Notifications</SheetTitle>
+            <div className="flex items-center gap-1">
+              {pushSupported && !pushEnabled && (
+                <Button variant="ghost" size="sm" onClick={enablePush} className="text-[11px] text-primary h-7 px-2">
+                  <BellRing className="w-3.5 h-3.5 mr-1" /> Push
+                </Button>
+              )}
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={markAllRead} className="text-[11px] text-muted-foreground h-7 px-2">
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all
+                </Button>
+              )}
+            </div>
           </div>
         </SheetHeader>
         <div
-          className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain"
+          className="flex-1 min-h-0 overflow-hidden flex flex-col"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           {notifications.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+              <Bell className="w-10 h-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">No notifications yet</p>
             </div>
           ) : (
-            <div>
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => handleClick(n)}
-                  className={`w-full text-left px-4 py-3 border-b border-border hover:bg-secondary/50 transition-colors ${
-                    !n.read ? "bg-primary/5" : ""
-                  }`}
-                >
-                  <div className="flex gap-3">
-                    <div className="mt-0.5 flex-shrink-0">
-                      {typeIcons[n.type] || typeIcons.info}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`text-sm font-medium truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
-                          {n.title}
-                        </p>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />}
+            <>
+              <div className="flex-1 min-h-0">
+                {notifications.slice(0, 8).map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => handleClick(n)}
+                    className={`w-full text-left px-3 py-2 border-b border-border hover:bg-secondary/50 transition-colors ${
+                      !n.read ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="flex gap-2 items-start">
+                      <div className="mt-0.5 flex-shrink-0">
+                        {typeIcons[n.type] || typeIcons.info}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-[13px] font-medium truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                            {n.title}
+                          </p>
+                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">{n.message}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 mt-0.5">{timeAgo(n.created_at)}</span>
                     </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+              {notifications.length > 8 && (
+                <div className="px-4 py-2 text-center border-t border-border shrink-0">
+                  <p className="text-[11px] text-muted-foreground">
+                    Showing 8 of {notifications.length} — older alerts auto-archive
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </SheetContent>

@@ -1,102 +1,79 @@
-## Goal
+## Acknowledged rules
 
-Standardize a "Fixed App Shell + Internal Scroll Box" architecture so the Top Nav and Bottom Dock/FAB never move. Only the inner content area scrolls, and only when needed.
+1. Tapping the **Profile** bottom-nav icon while the user is anywhere inside the Profile stack (any sub-tab or sub-route) returns them to the Profile root (the landing menu — `tab=landing`, no query params).
+2. None of the Profile sub-pages may scroll at the page level. Each sub-page's outer container is `h-[100dvh] overflow-hidden` in a flex column.
+3. Only the inner content region (settings list / form fields) gets `overflow-y-auto` with `min-h-0 flex-1` so it occupies the space between the header and the bottom nav.
+4. Edit Profile action buttons (Cancel / Save Changes) get the premium look used elsewhere: `rounded-[20px]` + layered shadow `shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)]`, full-height `h-12`, no flat states.
 
-## Current state
+## Current architecture (so we don't break it)
 
-Today every page uses `min-h-screen` and lets the **whole window** scroll. The bottom nav (`MobileNav`, `position: fixed`) and any sticky headers float over a long page that scrolls in the body. This causes:
-- Address bar jumps on iOS
-- Headers/dock that appear to "move" between routes
-- Inconsistent scroll behavior page-to-page
+The "sub-pages" the user named are **not all separate routes**. Most live as internal `tab` state inside `src/pages/Profile.tsx`:
 
-The Subscription page already proves the target pattern works.
+- Internal tabs (one route, `/profile?tab=…`): Payout (`payment`), Subscription, Referral, Licenses + Insurance (`credentials`), Edit Profile (`profile`), Notifications, Account Settings (`security`), Warnings, Help (`support`), Legal.
+- Real routes: `/schedule`, `/availability`, `/saved-helpers`.
 
-## Proposed architecture
+So the "navigation reset" rule has two implementations:
+- For real routes → MobileNav must `navigate('/profile')`.
+- For internal tabs → MobileNav already lands on `/profile`, but if the user is on `/profile?tab=xxx`, tapping Profile must clear the tab back to `landing`.
 
-### 1. New reusable shell component
+## Plan
 
-Create `src/components/AppShell.tsx`:
+### 1. MobileNav — Profile tab reset (`src/components/MobileNav.tsx`)
 
-```tsx
-<AppShell
-  header={<TopBar title="Jobs" onBack={...} />}   // optional
-  scrollable                                       // default true; set false for fit-to-screen pages
->
-  {children}
-</AppShell>
+Extend `tabStacks["/profile"]` to include the real Profile sub-routes:
+
+```ts
+"/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helpers"]
 ```
 
-Internals:
-- Outer: `fixed inset-0 flex flex-col overflow-hidden bg-background` with `height: 100dvh`
-- Header slot: `shrink-0`, with `padding-top: env(safe-area-inset-top)`
-- Content slot:
-  - If `scrollable`: `flex-1 min-h-0 overflow-y-auto no-scrollbar` with bottom padding `calc(env(safe-area-inset-bottom) + 96px)` to clear the dock
-  - If not: `flex-1 min-h-0 overflow-hidden`
-- Bottom nav (`MobileNav`) stays mounted at the App level — unchanged — so it never re-renders between routes (no flicker).
+In `handleClick`, add a Profile-specific branch: when `path === "/profile"` AND we're already on `/profile` but `location.search` contains a `tab` param other than `landing`, call `navigate('/profile')` (no query) so the page resets to the landing menu. This piggybacks on Profile's existing `popstate` listener which already syncs `tab` from the URL.
 
-### 2. Global CSS
+### 2. Profile sub-pages — scroll lock (no page scroll, internal scroll only)
 
-`src/index.css` already has `.no-scrollbar`. Add:
-- `html, body, #root { height: 100%; overflow: hidden; overscroll-behavior: none; }` so the window itself never scrolls.
-- Keep `.no-scrollbar` as the opt-in helper (don't hide scrollbars globally — desktop forms etc. still benefit from scroll affordance inside modals).
+Apply the same shell pattern we used on Availability to:
 
-### 3. Migrate pages to AppShell
+- `src/pages/Profile.tsx` — wrap the tab content area so the outer page is `h-[100dvh] overflow-hidden flex flex-col`, header is fixed-height, and the tab content container is `flex-1 min-h-0 overflow-y-auto`. Each tab body keeps its existing markup; only the wrapper changes.
+- `src/pages/Schedule.tsx`
+- `src/pages/Availability.tsx` — already done; verify and leave as-is.
+- `src/pages/SavedHelpers.tsx`
+- `src/pages/Support.tsx`
 
-Convert these pages from `min-h-screen` to `<AppShell>`:
+Pattern per page:
+```tsx
+<div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
+  <Header />                                {/* shrink-0 */}
+  <main data-allow-scroll="true"
+        className="flex-1 min-h-0 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+96px)]">
+    {content}
+  </main>
+</div>
+```
 
-| Page | Header | Scrollable? |
-|---|---|---|
-| Dashboard | existing top bar | yes |
-| Jobs | "Jobs" + filters | yes |
-| Messages (list view) | "Messages" | yes |
-| Messages (active thread) | conversation header | yes (chat list already scrolls internally — keep that, set page non-scrollable) |
-| Profile | "Profile" | yes |
-| Activity | "Activity" + tabs | yes |
-| SubscriptionTab | already uses pattern → refactor to use `AppShell` for consistency |
-| Settings sub-screens (Payment, Notifications, etc.) | sub-screen header | yes |
+`data-allow-scroll="true"` bypasses the global wheel/touchmove lock so internal scroll works on iOS. Bottom padding keeps the last item clear of the bottom nav.
 
-Public/landing pages (`Index`, `Heroes`, `ForBusiness`, `Features`, legal pages) keep normal document scroll — they aren't part of the app shell.
+### 3. Edit Profile buttons — premium styling (`src/pages/Profile.tsx`, lines ~838–858)
 
-### 4. Subscription page polish (already mostly done)
+Replace current `rounded-[18px]` / `h-11` with the premium token used by the menu cards:
 
-- Confirm cards use `rounded-[24px]` (currently 24px ✓)
-- Pro card: white background + green bloom shadow ✓
-- Tighten spacing: reduce `gap-2.5` between cards to `gap-2`, drop the status text top padding from `pt-2` to `pt-1.5`
-- Wrap content in the new `AppShell` for parity
+- Cancel: `rounded-[20px] h-12 bg-white border border-border/40 shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] active:scale-[0.98]`
+- Save Changes: `rounded-[20px] h-12 bg-primary text-primary-foreground shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] active:scale-[0.98]` (preserve existing `saving`/`justSaved` states)
 
-### 5. Bottom dock stability
+### 4. QA before declaring done
 
-Move `<MobileNav />` rendering up so it lives **outside** the `<Routes>` tree (it's already in `App.tsx` — verify it's outside `<PageTransition>` which remounts on route change). This guarantees zero flicker between route changes.
+For each page below, in the live preview:
+1. Open the page, attempt to scroll the body — page must not move.
+2. Scroll inside the inner list/form — must scroll smoothly.
+3. From inside the page, tap the **Profile** bottom-nav icon — must land on `/profile` with the landing menu visible (no `?tab=` in URL).
 
-## Technical details
+Pages to QA: Edit Profile, Payout, Subscription, Referral, Licenses, Insurance, Schedule, Availability, Saved Helpr, Notifications, Account Settings, Warnings, Help, Legal. Plus visual check on the new Cancel/Save buttons.
 
-- Use `100dvh` (dynamic viewport height) instead of `100vh` — fixes iOS Safari address-bar jump
-- Header padding: `padding-top: calc(env(safe-area-inset-top, 0px) + 8px)`; max header height ~60px including safe area
-- Content padding-bottom: `calc(env(safe-area-inset-bottom, 0px) + 96px)` to clear the floating dock + FAB
-- Keep `useKeyboardInset` working for Messages — when the keyboard opens on iOS, the inner scroll box absorbs the resize because the outer shell is `100dvh`
-- Pull-to-refresh (`PullToRefreshWrapper`) wraps the **inner scroll container**, not the page
-- `interactive-widget=resizes-content` is already in the viewport meta (mobile-ux memory) — preserved
+## Files to edit
 
-## Files to create/edit
+- `src/components/MobileNav.tsx` — extend `/profile` stack + reset-tab branch
+- `src/pages/Profile.tsx` — outer shell scroll lock + premium Edit Profile buttons
+- `src/pages/Schedule.tsx` — outer shell scroll lock
+- `src/pages/SavedHelpers.tsx` — outer shell scroll lock
+- `src/pages/Support.tsx` — outer shell scroll lock
+- `src/pages/Availability.tsx` — verify only
 
-**Create:**
-- `src/components/AppShell.tsx`
-
-**Edit:**
-- `src/index.css` — body/root height lock
-- `src/App.tsx` — verify `MobileNav` placement outside route transitions
-- `src/pages/Dashboard.tsx`, `Jobs.tsx`, `Messages.tsx`, `Profile.tsx`, `Activity.tsx` — wrap in `AppShell`
-- `src/components/profile/SubscriptionTab.tsx` — switch to `AppShell`, tighten spacing
-- Sub-tabs inside Profile (Payment, Notifications, Subscription) — use `AppShell` with `onBack`
-
-## Out of scope
-
-- Public marketing pages (Index, Heroes, ForBusiness, Features, legal) — these are document-scroll by design for SEO and long-form content
-- Modals/dialogs — already overlay with their own scroll containment
-- Admin pages — internal tooling, not part of the consumer app shell
-
-## Risk / rollout
-
-- Risk: iOS keyboard interactions on Messages — mitigated by `100dvh` + existing `useKeyboardInset`
-- Risk: Pull-to-refresh on Dashboard — must be re-attached to the inner scroll node
-- Will migrate one page at a time, verifying each on mobile preview before moving on
+No business-logic, data, or DB changes.

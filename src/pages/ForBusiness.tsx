@@ -165,7 +165,7 @@ const ForBusiness = () => {
                       { name: "Starter", seats: "2", price: "Free", featured: false },
                       { name: "Crew", seats: "5", price: "$10", featured: false },
                       { name: "Team", seats: "10", price: "$20", featured: true },
-                      { name: "Enterprise", seats: "25", price: "$40", featured: false },
+                      { name: "Enterprise", seats: "15", price: "$40", featured: false },
                     ].map((tier) => (
                       <div
                         key={tier.name}

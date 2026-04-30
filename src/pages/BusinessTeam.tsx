@@ -30,7 +30,7 @@ const TIERS: Array<{ id: SeatTier; name: string; seats: number; price: string; p
   { id: "starter", name: "Starter", seats: 2, price: "Free", priceCents: 0 },
   { id: "crew", name: "Crew", seats: 5, price: "$10/mo", priceCents: 1000 },
   { id: "team", name: "Team", seats: 10, price: "$20/mo", priceCents: 2000 },
-  { id: "enterprise", name: "Enterprise", seats: 25, price: "$40/mo", priceCents: 4000 },
+  { id: "enterprise", name: "Enterprise", seats: 15, price: "$40/mo", priceCents: 4000 },
 ];
 
 const TIER_RANK: Record<SeatTier, number> = { starter: 0, crew: 1, team: 2, enterprise: 3 };

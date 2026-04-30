@@ -92,6 +92,13 @@
       imagesizes="(max-width: 640px) calc(100vw - 48px), (max-width: 1023px) calc(100vw - 80px), 50vw"
       fetchpriority="high"
     />
+    <!-- Preload navbar logo so it paints with the navbar instead of flashing in -->
+    <link
+      rel="preload"
+      as="image"
+      href="/src/assets/helpr-icon-96.webp"
+      fetchpriority="high"
+    />
     <!-- Sentry + PostHog both initialize inside requestIdleCallback (after
          first paint), which means a preconnect handshake completes seconds
          before the connection is actually used and gets flagged by

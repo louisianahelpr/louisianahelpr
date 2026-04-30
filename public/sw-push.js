@@ -1,6 +1,6 @@
 // Service Worker for browser push notifications + offline support
 
-const CACHE_NAME = 'helpr-offline-v4';
+const CACHE_NAME = 'helpr-offline-v5';
 const OFFLINE_URL = '/offline.html';
 
 // Cache offline page on install — always activate immediately

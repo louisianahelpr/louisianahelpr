@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import helprIcon from "@/assets/helpr-icon-96.png";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";

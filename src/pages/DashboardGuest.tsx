@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import helprIcon from "@/assets/helpr-icon-96.webp";
+import helprIcon from "@/assets/helpr-icon-96.png";
 
 /**
  * DashboardGuest — the read-only "home dashboard" iOS guests land on.

@@ -7,7 +7,6 @@ import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import AppShell from "@/components/AppShell";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -113,171 +112,129 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     return null;
   };
 
-  const header = (
-    <div
-      className="flex items-center gap-2 px-4 bg-background/95 backdrop-blur-md border-b border-foreground/5"
-      style={{
-        paddingTop: "8px",
-        paddingBottom: "8px",
-        maxHeight: "60px",
-      }}
-    >
-      <button
-        onClick={onBack}
-        className="h-9 w-9 -ml-1.5 rounded-xl flex items-center justify-center hover:bg-foreground/5 transition-colors text-foreground"
-        aria-label="Go back"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-      <h1 className="font-display text-[19px] font-bold leading-none tracking-tight text-foreground">
-        Subscription
-      </h1>
-    </div>
-  );
-
   return (
-    // fixed inset-0 z-40 overlay sits above the Profile page content but below
-    // MobileNav (z-50). AppShell handles the 100dvh lock + internal scroll box.
-    <div className="fixed inset-0 z-40 bg-background">
-      <AppShell header={header}>
-        {/* Free plan / status text — compact */}
-        <div className="px-5 pt-1.5 flex items-center">
-          {currentTier && !isExpired ? (
-            <p className="text-[12px] text-foreground/70 truncate">
-              <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
-              {expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}
-            </p>
-          ) : (
-            <p className="text-[12px] text-foreground/70 truncate">
-              {isExpired ? "Your plan expired — pick one to renew." : "Free plan · upgrade to unlock more jobs."}
-            </p>
-          )}
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+      </div>
 
-        {/* Billing chip bar */}
-        <div className="px-5 mt-2">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {([
-              { key: "annual" as const, label: "Annual" },
-              { key: "monthly" as const, label: "Monthly" },
-              { key: "one_time" as const, label: "One-Time" },
-            ]).map((opt) => {
-              const active = billingInterval === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => setBillingInterval(opt.key)}
-                  className={`shrink-0 px-3.5 h-8 rounded-full text-[13px] font-semibold transition-all border ${
-                    active
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-white/60 text-foreground/70 border-foreground/10 hover:bg-white"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Active subscription manage button */}
-        {currentTier && !isExpired && (
-          <div className="px-5 mt-2 flex gap-2">
-            <Button
-              onClick={handleManageSubscription}
-              disabled={loadingPortal}
-              variant="outline"
-              size="sm"
-              className="flex-1 h-9"
-            >
-              {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Crown className="w-3.5 h-3.5 mr-1.5 text-primary" />}
-              Manage
-            </Button>
-            <Button
-              onClick={refreshSubscription}
-              disabled={refreshing}
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              aria-label="Refresh"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {currentTier && !isExpired ? (
+          <p className="text-xs text-muted-foreground">
+            <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
+            {expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {isExpired ? "Your plan expired — pick one to renew." : "Free plan · upgrade to unlock more jobs."}
+          </p>
         )}
 
-        {/* Cards stack — tightened spacing */}
-        <div className="px-3 pt-2.5 flex flex-col gap-2">
-          {tierConfig.map((tier) => {
-            const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
-            const saveBadge = getSaveBadge(tier);
-            const isPro = tier.id === "pro";
+        <div className="flex items-center gap-1.5">
+          {([
+            { key: "annual" as const, label: "Annual" },
+            { key: "monthly" as const, label: "Monthly" },
+            { key: "one_time" as const, label: "One-Time" },
+          ]).map((opt) => {
+            const active = billingInterval === opt.key;
             return (
-              <div
-                key={tier.id}
-                className={`relative rounded-[24px] px-4 py-3 flex flex-col bg-white border transition-all ${
-                  isPro
-                    ? "border-primary/25 shadow-[0_0_0_4px_hsl(var(--primary)/0.08),0_22px_44px_-16px_hsl(var(--primary)/0.4),0_8px_18px_-6px_hsl(var(--primary)/0.22)]"
-                    : "border-foreground/8 shadow-[0_8px_22px_-12px_rgba(15,23,42,0.18),0_2px_8px_-3px_rgba(15,23,42,0.08)]"
-                } ${isActive ? "ring-2 ring-primary" : ""}`}
+              <button
+                key={opt.key}
+                onClick={() => setBillingInterval(opt.key)}
+                className={`px-3 h-7 rounded-full text-xs font-semibold transition-all border ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-muted-foreground border-border hover:bg-secondary"
+                }`}
               >
-                {isPro && (
-                  <span className="absolute -top-2 right-4 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
-                    Most Popular
-                  </span>
-                )}
-
-                {/* Header row — title + price */}
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0">
-                    <h3 className="font-display font-bold text-[15px] leading-tight text-foreground truncate">
-                      {tier.badge} {tier.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <p className="text-[13px] font-bold text-primary leading-none">{getPrice(tier)}</p>
-                      {saveBadge && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none">
-                          {saveBadge}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {isActive && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-primary shrink-0">
-                      <CheckCircle className="w-3 h-3" /> Current
-                    </span>
-                  )}
-                </div>
-
-                {/* Features */}
-                <ul className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2 mb-2.5 content-start">
-                  {tier.features.map((f) => (
-                    <li key={f} className="text-[11px] leading-snug flex items-start gap-1 text-foreground/75">
-                      <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
-                      <span className="truncate">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {!isActive && (
-                  <button
-                    onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
-                    disabled={loadingCheckout === tier.id || loadingPortal}
-                    className={`w-full h-9 rounded-[12px] font-semibold text-[13px] transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 ${
-                      isPro
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.55)]"
-                        : "bg-foreground/5 text-foreground hover:bg-foreground/10 border border-foreground/10"
-                    }`}
-                  >
-                    {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
-                  </button>
-                )}
-              </div>
+                {opt.label}
+              </button>
             );
           })}
         </div>
-      </AppShell>
+      </div>
+
+      {currentTier && !isExpired && (
+        <div className="flex gap-2">
+          <Button onClick={handleManageSubscription} disabled={loadingPortal} variant="outline" size="sm" className="flex-1 h-9">
+            {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Crown className="w-3.5 h-3.5 mr-1.5 text-primary" />}
+            Manage
+          </Button>
+          <Button onClick={refreshSubscription} disabled={refreshing} variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Refresh">
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {tierConfig.map((tier) => {
+          const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
+          const saveBadge = getSaveBadge(tier);
+          const isPro = tier.id === "pro";
+          return (
+            <div
+              key={tier.id}
+              className={`relative rounded-2xl border bg-card p-4 flex flex-col ${
+                isPro ? "border-primary/30 shadow-lg" : "border-border"
+              } ${isActive ? "ring-2 ring-primary" : ""}`}
+            >
+              {isPro && (
+                <span className="absolute -top-2 right-4 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
+                  Most Popular
+                </span>
+              )}
+
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-display font-bold text-base leading-tight text-foreground">
+                    {tier.badge} {tier.name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <p className="text-sm font-bold text-primary leading-none">{getPrice(tier)}</p>
+                    {saveBadge && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none">
+                        {saveBadge}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {isActive && (
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-primary shrink-0">
+                    <CheckCircle className="w-3 h-3" /> Current
+                  </span>
+                )}
+              </div>
+
+              <ul className="mt-3 mb-3 space-y-1 flex-1">
+                {tier.features.map((f) => (
+                  <li key={f} className="text-xs leading-snug flex items-start gap-1.5 text-muted-foreground">
+                    <CheckCircle className="w-3 h-3 shrink-0 mt-0.5 text-primary" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {!isActive && (
+                <button
+                  onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
+                  disabled={loadingCheckout === tier.id || loadingPortal}
+                  className={`w-full h-9 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 ${
+                    isPro
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
+                  }`}
+                >
+                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

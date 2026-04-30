@@ -12,8 +12,16 @@ const Availability = () => {
 
   useEffect(() => {
     document.documentElement.classList.add("availability-screen-lock");
+    const stopScroll = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest("[data-allow-scroll='true']")) return;
+      event.preventDefault();
+    };
+    document.addEventListener("wheel", stopScroll, { passive: false });
+    document.addEventListener("touchmove", stopScroll, { passive: false });
     return () => {
       document.documentElement.classList.remove("availability-screen-lock");
+      document.removeEventListener("wheel", stopScroll);
+      document.removeEventListener("touchmove", stopScroll);
     };
   }, []);
 

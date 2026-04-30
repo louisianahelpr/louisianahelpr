@@ -861,6 +861,12 @@ const ProfilePage = () => {
             </Suspense>
           )}
 
+          {tab === "availability" && user && (
+            <Suspense fallback={<TabFallback />}>
+              <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
+            </Suspense>
+          )}
+
           {tab === "payment" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">

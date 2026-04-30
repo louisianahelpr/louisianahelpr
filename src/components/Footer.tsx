@@ -32,31 +32,28 @@ const Footer = () => (
           </div>
         </div>
 
-        {/* Link columns — 3 tight columns, balanced */}
+        {/* Link columns — balanced columns */}
         <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-6 lg:gap-10">
-          {/* Company (with Support back in) */}
+          {/* Company */}
           <div>
             <h3 className="text-xs font-semibold text-foreground mb-4 uppercase tracking-wider">Company</h3>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
-              
-              
-              
               <li><Link to="/for-business" className="hover:text-primary transition-colors">Business</Link></li>
               <li><Link to="/support" className="hover:text-primary transition-colors">Contact / Support</Link></li>
             </ul>
           </div>
 
-          {/* Legal & pricing */}
+          {/* Legal */}
           <div>
             <h3 className="text-xs font-semibold text-foreground mb-4 uppercase tracking-wider">Legal</h3>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
-              <li><Link to="/rules" className="hover:text-primary transition-colors">Platform Rules & Pricing</Link></li>
+              <li><Link to="/rules" className="hover:text-primary transition-colors">Rules & Pricing</Link></li>
               <li><Link to="/terms" className="hover:text-primary transition-colors">Terms</Link></li>
               <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy</Link></li>
             </ul>
           </div>
 
-          {/* Connect — compact icon buttons, side by side */}
+          {/* Connect */}
           <div>
             <h3 className="text-xs font-semibold text-foreground mb-4 uppercase tracking-wider">Connect</h3>
             <div className="flex items-center gap-2.5">

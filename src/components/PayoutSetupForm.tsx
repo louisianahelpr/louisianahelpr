@@ -37,31 +37,44 @@ export function PayoutSetupForm() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
 
-  // React Query: cached for 60s, instant render on revisit, refresh in background.
-  const { data, isLoading } = useQuery<PayoutData>({
-    queryKey: ["payout-setup"],
+  const statusQuery = useQuery<AccountStatus | null>({
+    queryKey: ["payout-setup", "status"],
     queryFn: async () => {
       try {
-        const [methodsRes, statusRes] = await Promise.all([
-          supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } }),
-          supabase.functions.invoke("stripe-connect", { body: { action: "status" } }),
-        ]);
-        return {
-          methods: methodsRes.error ? [] : methodsRes.data?.methods || [],
-          status: statusRes.error ? null : statusRes.data || null,
-        };
+        const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
+        return res.error ? null : (res.data || null);
       } catch (err: any) {
-        report(err, { tags: { source: "PayoutSetupForm.loadPayoutData" } });
-        return FALLBACK;
+        report(err, { tags: { source: "PayoutSetupForm.status" } });
+        return null;
       }
     },
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
 
-  const methods = data?.methods ?? [];
-  const status = data?.status ?? null;
-  const loadData = () => qc.invalidateQueries({ queryKey: ["payout-setup"] });
+  const methodsQuery = useQuery<PayoutMethod[]>({
+    queryKey: ["payout-setup", "methods"],
+    queryFn: async () => {
+      try {
+        const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
+        return res.error ? [] : (res.data?.methods || []);
+      } catch (err: any) {
+        report(err, { tags: { source: "PayoutSetupForm.methods" } });
+        return [];
+      }
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+
+  const status = statusQuery.data ?? null;
+  const methods = methodsQuery.data ?? [];
+  const statusLoading = statusQuery.isLoading && !statusQuery.data;
+  const methodsLoading = methodsQuery.isLoading && !methodsQuery.data;
+  const loadData = () => {
+    qc.invalidateQueries({ queryKey: ["payout-setup", "status"] });
+    qc.invalidateQueries({ queryKey: ["payout-setup", "methods"] });
+  };
 
   const handleOnboard = async () => {
     setOnboarding(true);

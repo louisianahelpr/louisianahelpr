@@ -83,32 +83,23 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   }
 
   return (
-    <div className="h-full flex flex-col gap-2 overflow-hidden justify-start">
-      <p className="text-[11px] text-muted-foreground leading-snug shrink-0">
+    <div className="h-full flex flex-col gap-3 overflow-y-auto overscroll-contain pb-2">
+      <p className="text-xs text-muted-foreground leading-relaxed shrink-0">
         Invite friends — they enter your code at sign-up. When they complete their first job, <strong>you both earn $5</strong> (max 5 = $25).
       </p>
 
-      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 space-y-2 shrink-0">
+      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3 shrink-0">
         <div className="text-center">
-          <p className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">Your referral code</p>
-          <p className="text-xl font-bold font-display text-primary tracking-widest leading-none mt-1">{referralCode}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Your referral code</p>
+          <p className="text-3xl font-bold font-display text-primary tracking-[0.2em] leading-none mt-2">{referralCode}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1 h-8" onClick={copyCode}>
-            {copied ? <Check className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-            {copied ? "Copied!" : "Copy"}
-          </Button>
-          <Button size="sm" className="flex-1 h-8" onClick={shareLink}>
-            <Share2 className="w-3.5 h-3.5 mr-1" /> Share
-          </Button>
-        </div>
-        <div className="pt-1.5 border-t border-primary/10 flex justify-center">
-          <SocialShare
-            url={`https://www.louisianahelpr.com/signup?ref=${referralCode}`}
-            text={`Join me on Helpr! Use my referral code ${referralCode} — once your first job is completed, we both earn $5.`}
-            compact
-          />
-        </div>
+        <Button variant="default" size="sm" className="w-full h-10" onClick={copyCode}>
+          {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+          {copied ? "Copied!" : "Copy code"}
+        </Button>
+        <p className="text-[10px] text-center text-muted-foreground leading-snug">
+          Share your code with friends in any app — they enter it on the sign-up screen.
+        </p>
       </div>
 
       <div className="grid grid-cols-3 gap-2 shrink-0">

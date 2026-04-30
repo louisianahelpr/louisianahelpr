@@ -47,50 +47,21 @@ const defaultPrefs: Prefs = {
   financial_alerts: true, email_financial_alerts: true,
 };
 
-interface Group {
-  title: string;
+interface Row {
+  key: keyof Prefs;
+  emailKey: keyof Prefs;
+  label: string;
   icon: React.ReactNode;
-  items: { key: keyof Prefs; emailKey: keyof Prefs; label: string; desc: string; icon: React.ReactNode }[];
 }
 
-const groups: Group[] = [
-  {
-    title: "Jobs & Offers",
-    icon: <Inbox className="w-4 h-4" />,
-    items: [
-      { key: "new_offers", emailKey: "email_new_offers", label: "New Offers", desc: "When someone applies to your job or accepts your offer", icon: <Briefcase className="w-4 h-4" /> },
-      { key: "messages", emailKey: "email_messages", label: "Messages", desc: "Direct messages from posters or helprs", icon: <MessageSquare className="w-4 h-4" /> },
-    ],
-  },
-  {
-    title: "Safety & Tracking",
-    icon: <Navigation className="w-4 h-4" />,
-    items: [
-      { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit Updates", desc: "On the Way and Arrived alerts from your helper", icon: <Navigation className="w-4 h-4" /> },
-      { key: "work_status", emailKey: "email_work_status", label: "Work Status", desc: "In Progress and Completed updates", icon: <CheckCircle2 className="w-4 h-4" /> },
-    ],
-  },
-  {
-    title: "Financial Alerts",
-    icon: <DollarSign className="w-4 h-4" />,
-    items: [
-      { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments, Payouts & Tips", desc: "Escrow confirmations, payout releases, and tip notifications", icon: <DollarSign className="w-4 h-4" /> },
-    ],
-  },
-  {
-    title: "Reputation",
-    icon: <Star className="w-4 h-4" />,
-    items: [
-      { key: "reviews", emailKey: "email_reviews", label: "Reviews & Ratings", desc: "When someone leaves you a review", icon: <Star className="w-4 h-4" /> },
-    ],
-  },
-  {
-    title: "Platform",
-    icon: <Megaphone className="w-4 h-4" />,
-    items: [
-      { key: "promotions", emailKey: "email_promotions", label: "Promotions & Tips", desc: "Special offers, referral bonuses, and platform news", icon: <Megaphone className="w-4 h-4" /> },
-    ],
-  },
+const rows: Row[] = [
+  { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
+  { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit (On the Way / Arrived)", icon: <Navigation className="w-3.5 h-3.5" /> },
+  { key: "work_status", emailKey: "email_work_status", label: "Work Status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments & Tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
+  { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
+  { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
 ];
 
 const NotificationPreferences = () => {
@@ -122,7 +93,6 @@ const NotificationPreferences = () => {
     const newVal = !prefs[key];
     const updated = { ...prefs, [key]: newVal };
 
-    // Mirror new granular toggles into legacy fields so old code paths still work
     if (key === "new_offers") updated.job_applications = newVal;
     if (key === "email_new_offers") updated.email_job_applications = newVal;
     if (key === "transit_updates" || key === "work_status") {
@@ -148,90 +118,62 @@ const NotificationPreferences = () => {
     }
   };
 
-  // Render immediately with default prefs; real values fade in on fetch.
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end gap-6 px-4 pb-1 border-b border-border/40 relative">
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-0" />}
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Smartphone className="w-3.5 h-3.5" />
-          <span>In-App</span>
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center justify-end gap-5 px-3 py-1.5 border-b border-border bg-muted/30 relative">
+        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground absolute left-3 top-1.5" />}
+        <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Smartphone className="w-3 h-3" /> App
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Mail className="w-3.5 h-3.5" />
-          <span>Email</span>
+        <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Mail className="w-3 h-3" /> Email
         </div>
       </div>
 
-      {groups.map((group) => (
-        <section key={group.title} className="space-y-1">
-          <div className="flex items-center gap-2 px-4 pb-1">
-            <span className="text-primary">{group.icon}</span>
-            <h3 className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground">
-              {group.title}
-            </h3>
+      {rows.map((item) => (
+        <div
+          key={item.key}
+          className="flex items-center justify-between px-3 py-2 border-b border-border/40 last:border-b-0"
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="text-primary shrink-0">{item.icon}</span>
+            <Label className="text-[13px] font-medium text-foreground truncate">{item.label}</Label>
           </div>
-          {group.items.map((item) => (
-            <div
-              key={item.key}
-              className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-secondary/50 transition-colors"
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  {item.icon}
-                </div>
-                <div className="min-w-0">
-                  <Label className="text-sm font-medium text-foreground">{item.label}</Label>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </div>
-              </div>
-              <div className={`flex items-center gap-6 shrink-0 ml-3 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
-                <Switch
-                  checked={prefs[item.key]}
-                  onCheckedChange={() => toggle(item.key)}
-                  disabled={!loaded}
-                  aria-label={`${item.label} in-app`}
-                />
-                <Switch
-                  checked={prefs[item.emailKey]}
-                  onCheckedChange={() => toggle(item.emailKey)}
-                  disabled={!loaded}
-                  aria-label={`${item.label} email`}
-                />
-              </div>
-            </div>
-          ))}
-        </section>
+          <div className={`flex items-center gap-5 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+            <Switch
+              checked={prefs[item.key]}
+              onCheckedChange={() => toggle(item.key)}
+              disabled={!loaded}
+              aria-label={`${item.label} in-app`}
+            />
+            <Switch
+              checked={prefs[item.emailKey]}
+              onCheckedChange={() => toggle(item.emailKey)}
+              disabled={!loaded}
+              aria-label={`${item.label} email`}
+            />
+          </div>
+        </div>
       ))}
 
-      {/* Push notifications */}
-      <div className="pt-2 border-t border-border/40">
-        <div className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-secondary/50 transition-colors">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Bell className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <Label className="text-sm font-medium text-foreground">Push Notifications</Label>
-              <p className="text-xs text-muted-foreground">Receive browser push notifications when you're away</p>
-            </div>
-          </div>
-          <Switch
-            checked={prefs.push_enabled}
-            onCheckedChange={() => toggle("push_enabled")}
-            disabled={!loaded}
-            aria-label="Push notifications"
-            className={`transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
-          />
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-t border-border">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Bell className="w-3.5 h-3.5 text-primary shrink-0" />
+          <Label className="text-[13px] font-medium text-foreground truncate">Browser Push</Label>
         </div>
+        <Switch
+          checked={prefs.push_enabled}
+          onCheckedChange={() => toggle("push_enabled")}
+          disabled={!loaded}
+          aria-label="Push notifications"
+          className={`mr-[3.25rem] transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
       </div>
 
-      {/* Safety footer */}
-      <div className="flex items-start gap-2.5 mx-4 p-3 rounded-xl bg-muted/40 border border-border/50">
-        <Lock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Critical account security alerts (login attempts, account changes, dispute resolutions) cannot be disabled.
+      <div className="flex items-start gap-1.5 px-3 py-2 border-t border-border bg-muted/10">
+        <Lock className="w-3 h-3 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Critical security alerts (logins, disputes) cannot be disabled.
         </p>
       </div>
     </div>

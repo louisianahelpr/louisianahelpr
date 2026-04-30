@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, DollarSign, Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { HelperAvailability } from "@/components/HelperAvailability";
 
 import type { Database } from "@/integrations/supabase/types";
 

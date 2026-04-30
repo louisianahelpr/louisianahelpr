@@ -75,7 +75,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/community", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending"];
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
@@ -96,7 +96,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Map each tab root to sub-routes that belong to its stack.
   // Tapping the tab while inside one of these returns the user to the tab root.
   const tabStacks: Record<string, string[]> = {
-    "/dashboard": ["/jobs", "/community"],
+    "/dashboard": ["/jobs"],
     "/my-posts": ["/activity", "/post-job"],
     "/my-jobs": ["/job-history", "/earnings", "/schedule"],
     "/messages": [],

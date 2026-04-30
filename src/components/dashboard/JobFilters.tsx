@@ -313,6 +313,7 @@ const JobFilters = ({
   sortBy, setSortBy, filtersOpen: _filtersOpen, setFiltersOpen: _setFiltersOpen,
   expiresWithin, setExpiresWithin,
   matchAvailability, setMatchAvailability, hasAvailability,
+  userLocStatus, userLocMessage,
 }: JobFiltersProps) => {
   const activeFilterCount = [
     selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "",
@@ -333,7 +334,8 @@ const JobFilters = ({
   const expiresLabel = expiresWithin
     ? expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "Expires"
     : "Expires";
-  const placeBudgetLabel = locationFilter || "Place";
+  const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
+  const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
 
   return (
     <div className={`overflow-hidden ${surfaceGradient}`}>

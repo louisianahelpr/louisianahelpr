@@ -23,7 +23,7 @@ type HelperAvailabilityInsert = Database["public"]["Tables"]["helper_availabilit
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Failed to save";
 
-export function HelperAvailability({ userId }: { userId: string }) {
+export function HelperAvailability({ userId, compact = false }: { userId: string; compact?: boolean }) {
   const [slots, setSlots] = useState<AvailabilitySlot[]>(
     DAYS.map((_, i) => ({ day_of_week: i, is_available: true, start_time: "09:00", end_time: "17:00" }))
   );

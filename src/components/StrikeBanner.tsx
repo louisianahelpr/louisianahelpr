@@ -3,11 +3,6 @@ import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Strike 2 banner: "One more violation will result in a temporary suspension."
- * Strike 3+ (suspended) banner: shows lockout countdown.
- * Hidden on auth/landing routes.
- */
 export default function StrikeBanner() {
   const [status, setStatus] = useState<{
     ban_status: string | null;
@@ -16,18 +11,22 @@ export default function StrikeBanner() {
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
+    const load = async (userId: string) => {
+      if (cancelled) return;
       const { data } = await supabase
         .from("profiles")
         .select("ban_status, auto_suspended_until")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle();
       if (!cancelled && data) setStatus(data as any);
     };
-    load();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => load());
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user.id) void load(session.user.id);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user.id) void load(session.user.id);
+      else setStatus(null);
+    });
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
@@ -36,7 +35,6 @@ export default function StrikeBanner() {
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (["/", "/login", "/signup"].includes(path) || path.startsWith("/forgot") || path.startsWith("/reset")) return null;
 
-  // Strike 3 — suspended
   if (status.ban_status === "temp_banned" && status.auto_suspended_until) {
     const until = new Date(status.auto_suspended_until);
     if (until > new Date()) {
@@ -54,7 +52,6 @@ export default function StrikeBanner() {
     }
   }
 
-  // Strike 2 — final warning
   if (status.ban_status === "final_warning") {
     return (
       <div className="sticky top-0 z-40 w-full bg-accent text-accent-foreground border-b border-accent/60">

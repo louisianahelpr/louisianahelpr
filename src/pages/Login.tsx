@@ -12,6 +12,22 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { isNativePlatform } from "@/lib/nativeInit";
 
+const LOGIN_TIMEOUT_MS = 15000;
+
+const signInWithTimeout = async (email: string, password: string) => {
+  let timeoutId: number | undefined;
+  try {
+    return await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error("Login timed out. Please check your connection and try again.")), LOGIN_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
 const Login = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -34,7 +50,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await signInWithTimeout(email, password).catch((error: Error) => ({ data: { session: null }, error }));
     if (error) {
       setLoading(false);
       const newAttempts = loginAttempts + 1;

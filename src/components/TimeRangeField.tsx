@@ -40,7 +40,9 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         align="end"
         sideOffset={8}
         data-allow-scroll="true"
+        onWheelCapture={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
+        onTouchMoveCapture={(event) => event.stopPropagation()}
         onTouchMove={(event) => event.stopPropagation()}
         className="w-[300px] rounded-2xl p-4 space-y-4 touch-pan-y"
       >

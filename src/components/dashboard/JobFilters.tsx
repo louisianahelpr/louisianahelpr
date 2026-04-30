@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  X, MapPin, DollarSign, Clock, ChevronDown,
+  X, MapPin, Clock, ChevronDown,
   Sparkles, Leaf, Truck, ShoppingBag, Wrench, Paintbrush,
   Package, PawPrint, Hammer, MoreHorizontal, ArrowUpRight,
   ArrowUpDown, LayoutGrid, CalendarClock, CalendarRange,

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/PageHeader";
 import { HelperAvailability } from "@/components/HelperAvailability";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 const Availability = () => {
   const navigate = useNavigate();
@@ -12,8 +12,16 @@ const Availability = () => {
 
   useEffect(() => {
     document.documentElement.classList.add("availability-screen-lock");
+    const stopScroll = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest("[data-allow-scroll='true']")) return;
+      event.preventDefault();
+    };
+    document.addEventListener("wheel", stopScroll, { passive: false });
+    document.addEventListener("touchmove", stopScroll, { passive: false });
     return () => {
       document.documentElement.classList.remove("availability-screen-lock");
+      document.removeEventListener("wheel", stopScroll);
+      document.removeEventListener("touchmove", stopScroll);
     };
   }, []);
 
@@ -32,16 +40,27 @@ const Availability = () => {
   }, [navigate]);
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
-      <PageHeader title="Availability" />
+    <div className="h-auto max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
+      <main className="shrink-0 overflow-hidden pt-[env(safe-area-inset-top)]">
+        <div className="max-w-3xl mx-auto flex flex-col px-3 pt-2 pb-0 overflow-hidden">
+          <div className="flex items-center gap-2 shrink-0 mb-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="h-10 w-10 shrink-0 rounded-xl -ml-1"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="font-display text-2xl font-bold leading-tight text-foreground">Availability</h1>
+          </div>
 
-      <main className="flex-1 min-h-0 overflow-hidden">
-        <div className="max-w-3xl mx-auto h-full flex flex-col px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
-          <p className="text-xs text-muted-foreground mb-2 px-1">
+          <p className="text-[11px] leading-snug text-muted-foreground mb-1.5 px-1 shrink-0">
             Set your weekly hours so posters can match jobs to days you're free.
           </p>
 
-          <div className="flex-1 min-h-0 rounded-xl border border-border bg-card overflow-hidden">
+          <div className="shrink-0 rounded-xl border border-border bg-card overflow-hidden">
             {loading || !userId ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

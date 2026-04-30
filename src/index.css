@@ -398,8 +398,19 @@ html.app-shell main.app-shell-scroll {
   overscroll-behavior: contain;
 }
 
+html.availability-screen-lock,
+html.availability-screen-lock body,
+html.availability-screen-lock #root,
 html.availability-screen-lock main.app-shell-scroll {
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
+  width: 100%;
+}
+
+html.availability-screen-lock body {
+  position: fixed;
+  inset: 0;
 }
 
 /* ---------------------------------------------------------------------

@@ -102,10 +102,10 @@ const queryClient = new QueryClient({
   },
 });
 
-// Route-level loading fallback — no image. A splash image here can become
-// Lighthouse's LCP candidate before the landing route hydrates.
 const PageFallback = () => (
-  <div className="fixed inset-0 overflow-hidden bg-background" aria-hidden="true" />
+  <div className="fixed inset-0 overflow-hidden bg-background flex items-center justify-center" aria-hidden="true">
+    <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+  </div>
 );
 
 

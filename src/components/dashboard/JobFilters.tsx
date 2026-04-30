@@ -49,6 +49,8 @@ interface JobFiltersProps {
   matchAvailability: boolean;
   setMatchAvailability: (v: boolean) => void;
   hasAvailability: boolean;
+  userLocStatus?: "idle" | "loading" | "ready" | "error";
+  userLocMessage?: string;
 }
 
 const chipBase =

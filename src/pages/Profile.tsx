@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, DollarSign, LogOut, MapPin,
   CreditCard, Shield, FileText, Mail, Lock, Upload, X,
-  Star, Edit, CalendarDays, Gavel,
+  Star, Edit, CalendarDays, Clock, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
   ShieldCheck, Trash2,

@@ -354,12 +354,12 @@ const Dashboard = () => {
 
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="h-[100dvh] bg-premium-page pb-safe-nav flex flex-col overflow-hidden">
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 
-      <main className="container mx-auto px-5 py-5">
-        <div className="max-w-3xl mx-auto space-y-5">
+      <main className="container mx-auto px-5 py-3 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="max-w-3xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
 
           <BroadcastBanner />
           <PushNotificationPrompt />

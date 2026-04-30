@@ -151,10 +151,11 @@ export function PayoutSetupForm() {
     }
   };
 
-  if (isLoading && !data) {
+  if (statusLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" /> Loading payout info…
+      <div className="space-y-3" aria-busy="true">
+        <div className="h-16 rounded-lg bg-muted/40 animate-pulse" />
+        <div className="h-10 rounded-lg bg-muted/30 animate-pulse" />
       </div>
     );
   }

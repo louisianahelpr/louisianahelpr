@@ -401,14 +401,19 @@ html.app-shell main.app-shell-scroll {
 html.availability-screen-lock,
 html.availability-screen-lock body,
 html.availability-screen-lock #root,
-html.availability-screen-lock main.app-shell-scroll {
+html.availability-screen-lock main.app-shell-scroll,
+html.edit-profile-screen-lock,
+html.edit-profile-screen-lock body,
+html.edit-profile-screen-lock #root,
+html.edit-profile-screen-lock main.app-shell-scroll {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
   width: 100%;
 }
 
-html.availability-screen-lock body {
+html.availability-screen-lock body,
+html.edit-profile-screen-lock body {
   position: fixed;
   inset: 0;
 }

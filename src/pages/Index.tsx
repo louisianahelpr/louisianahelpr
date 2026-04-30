@@ -180,11 +180,19 @@ const Index = () => {
         <Navbar />
       </Suspense>
       <HeroSection />
-      <Suspense fallback={<div className="min-h-screen" />}>
+      <Suspense fallback={<div className="h-32" />}>
         <SocialProofSection />
+      </Suspense>
+      <Suspense fallback={<div className="h-64" />}>
         <HowItWorksSection />
+      </Suspense>
+      <Suspense fallback={<div className="h-64" />}>
         <PublicJobsPreview />
+      </Suspense>
+      <Suspense fallback={<div className="h-64" />}>
         <HelperSpotlightSection />
+      </Suspense>
+      <Suspense fallback={<div className="h-64" />}>
         <JobStoriesSection />
       </Suspense>
       <Footer />

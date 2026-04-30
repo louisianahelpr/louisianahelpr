@@ -238,14 +238,14 @@ const HeroSection = () => {
         {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop.
             Min-heights at every breakpoint reserve the actual rendered slot so the
             page doesn't jolt when the image swaps in (avoids CLS). */}
-        <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:min-h-[36rem]">
-          <div className="relative w-full h-full min-h-[18rem] sm:min-h-[24rem] md:min-h-[28rem] lg:h-full lg:min-h-[36rem]">
+        <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[20rem] sm:min-h-[26rem] md:min-h-[30rem] lg:min-h-[36rem]">
+          <div className="relative w-full aspect-square sm:aspect-[4/3] lg:aspect-auto lg:w-full lg:h-full lg:min-h-[36rem]">
             <img
               src={heroImg1000}
               srcSet={heroSrcSet}
               sizes={heroSizes}
               alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover object-[82%_center] sm:object-[82%_center] lg:object-[82%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30 [image-rendering:-webkit-optimize-contrast]"
+              className="absolute inset-0 w-full h-full object-cover object-center lg:object-[75%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30 [image-rendering:-webkit-optimize-contrast]"
               loading="eager"
               {...({ fetchpriority: "high" } as React.ImgHTMLAttributes<HTMLImageElement>)}
               decoding="async"

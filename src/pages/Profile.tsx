@@ -531,9 +531,13 @@ const ProfilePage = () => {
 
   return (
     <>
-    <AppShell header={<DashboardHeader />}>
-      <main className="mx-auto max-w-5xl px-5 py-4">
-        <div className="max-w-2xl mx-auto space-y-4">
+    <AppShell
+      header={<DashboardHeader />}
+      scrollable={tab !== "profile"}
+      contentClassName={tab === "profile" ? "overflow-hidden" : undefined}
+    >
+      <main className={tab === "profile" ? "mx-auto h-full max-w-5xl overflow-hidden px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]" : "mx-auto max-w-5xl px-5 py-4"}>
+        <div className={tab === "profile" ? "max-w-2xl mx-auto h-full overflow-hidden" : "max-w-2xl mx-auto space-y-4"}>
 
           {/* LANDING VIEW */}
           {tab === "landing" && (
@@ -738,22 +742,22 @@ const ProfilePage = () => {
               return age >= 18;
             })();
               return (
-              <div className="edit-profile-screen h-[calc(100dvh-env(safe-area-inset-top)-9rem)] flex flex-col overflow-hidden -mt-1">
-                <div className="flex items-center gap-2 shrink-0 mb-2">
-                  <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
+              <div className="edit-profile-screen h-full min-h-0 flex flex-col overflow-hidden">
+                <div className="flex items-center gap-2 shrink-0 mb-1.5">
+                  <button onClick={() => setTab("landing")} className="p-1 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <h1 className="text-lg font-display font-bold text-foreground leading-tight">Edit profile</h1>
+                  <h1 className="text-base font-display font-bold text-foreground leading-tight">Edit profile</h1>
                 </div>
 
                 <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
+                  <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2.5">
                       <div className="relative group shrink-0">
                         {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="Profile" className="w-14 h-14 rounded-full object-cover border-2 border-primary/20" />
+                          <img src={profile.avatar_url} alt="Profile" className="w-12 h-12 rounded-full object-cover border-2 border-primary/20" />
                         ) : (
-                          <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold border-2 border-primary/20">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold border-2 border-primary/20">
                             {initials}
                           </div>
                         )}
@@ -763,22 +767,22 @@ const ProfilePage = () => {
                         </label>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-foreground truncate">{`${firstName} ${lastName}`.trim() || "Your name"}</p>
+                        <p className="text-[13px] font-semibold text-foreground truncate">{`${firstName} ${lastName}`.trim() || "Your name"}</p>
                         <p className="text-[10px] text-muted-foreground leading-tight">Tap photo to change · Name locked</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-1.5">
                       <div className="col-span-3">
-                        <Label htmlFor="phone" className="text-[10px] mb-0.5">Phone</Label>
-                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-8 text-sm" />
+                        <Label htmlFor="phone" className="text-[10px] leading-none mb-0.5">Phone</Label>
+                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-7 text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <Label htmlFor="location" className="text-[10px] mb-0.5">City</Label>
-                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-8 text-sm" />
+                        <Label htmlFor="location" className="text-[10px] leading-none mb-0.5">City</Label>
+                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-7 text-sm" />
                       </div>
                       <div>
-                        <Label htmlFor="zipCode" className="text-[10px] mb-0.5">ZIP</Label>
+                        <Label htmlFor="zipCode" className="text-[10px] leading-none mb-0.5">ZIP</Label>
                         <Input
                           id="zipCode"
                           value={zipCode}
@@ -786,7 +790,7 @@ const ProfilePage = () => {
                           placeholder="70801"
                           inputMode="numeric"
                           maxLength={5}
-                          className="h-8 text-sm"
+                          className="h-7 text-sm"
                         />
                       </div>
                     </div>

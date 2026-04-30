@@ -32,38 +32,25 @@ export function PaymentTab({ role: _role, earningsJobs, totalEarnings }: Payment
   const isHelper = true;
 
   return (
-    <div className="space-y-8">
-
-      {/* ─── SECTION 1: PAYOUT ACCOUNT ─── */}
+    <div className="space-y-4">
       {isHelper && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BanknoteIcon className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-display font-bold text-foreground">Payout Account</h2>
-              <p className="text-xs text-muted-foreground">Where you receive money for completed jobs</p>
-            </div>
+        <section className="space-y-2">
+          <div className="flex items-center gap-2">
+            <BanknoteIcon className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-display font-bold text-foreground">Payout Account</h2>
           </div>
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <PayoutSetupForm />
           </div>
         </section>
       )}
 
-      {/* ─── SECTION 2: PAYMENT SUMMARY ─── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-display font-bold text-foreground">Payment Summary</h2>
-            <p className="text-xs text-muted-foreground">Overview of your spending and earnings</p>
-          </div>
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-display font-bold text-foreground">Payment Summary</h2>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg bg-secondary/30 p-3">
               <p className="text-xs text-muted-foreground">Total Spent</p>
@@ -76,13 +63,12 @@ export function PaymentTab({ role: _role, earningsJobs, totalEarnings }: Payment
               <p className="text-lg font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
             </div>
           </div>
-          <div className="mt-4 rounded-lg bg-secondary/20 border border-border p-3 flex items-center gap-3">
+          <div className="mt-3 rounded-lg bg-secondary/20 border border-border p-3 flex items-center gap-3">
             <CreditCard className="w-5 h-5 text-muted-foreground shrink-0" />
             <p className="text-xs text-muted-foreground">Your payment methods are managed securely through Stripe during checkout.</p>
           </div>
         </div>
       </section>
-
     </div>
   );
 }

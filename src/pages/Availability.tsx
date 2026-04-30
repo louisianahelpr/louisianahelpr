@@ -25,24 +25,22 @@ const Availability = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <PageHeader title="Availability" />
 
-      <main className="container mx-auto px-5 py-6">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Set your weekly working hours. Posters can match jobs to days and times you're free.
-            </p>
-          </div>
+      <main className="flex-1 min-h-0 overflow-hidden">
+        <div className="max-w-3xl mx-auto h-full flex flex-col px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+          <p className="text-xs text-muted-foreground mb-2 px-1">
+            Set your weekly hours so posters can match jobs to days you're free.
+          </p>
 
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex-1 min-h-0 rounded-xl border border-border bg-card overflow-hidden">
             {loading || !userId ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <HelperAvailability userId={userId} />
+              <HelperAvailability userId={userId} compact />
             )}
           </div>
         </div>

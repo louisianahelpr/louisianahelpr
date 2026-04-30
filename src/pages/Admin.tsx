@@ -37,7 +37,7 @@ const AdminFraudDashboard = lazy(() => import("@/components/admin/AdminFraudDash
 const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
 const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
 const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
-const AdminSocialPost = lazy(() => import("@/components/admin/AdminSocialPost"));
+
 const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatches"));
 const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));

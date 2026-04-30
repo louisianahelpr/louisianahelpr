@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface TimePickerWheelProps {
-  /** "HH:mm" 24h format or "" for unset (matches existing form state). */
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -11,7 +10,7 @@ interface TimePickerWheelProps {
 
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i));
 const MINUTE_OPTIONS = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
-const ITEM_HEIGHT = 44; // 44pt — Apple HIG minimum hit target
+const ITEM_HEIGHT = 44;
 
 function parse24(time: string) {
   if (!time) return null;
@@ -20,7 +19,6 @@ function parse24(time: string) {
   const m = Number(mStr || 0);
   const period: "AM" | "PM" = h >= 12 ? "PM" : "AM";
   const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  // Snap minute to nearest 5
   const snapped = MINUTE_OPTIONS.reduce((prev, curr) =>
     Math.abs(Number(curr) - m) < Math.abs(Number(prev) - m) ? curr : prev,
   );

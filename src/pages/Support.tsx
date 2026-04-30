@@ -17,6 +17,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BackButton from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Category = "message" | "suggestion" | "report" | "help";
 
@@ -116,10 +117,13 @@ const SupportPage = () => {
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
-              Support & Help Center
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="flex items-center gap-2">
+              <BackButton to="/" />
+              <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
+                Support & Help Center
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1 pl-12">
               Find answers, get help, or contact our team
             </p>
           </div>

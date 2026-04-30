@@ -103,50 +103,50 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       </div>
 
       <div className="grid grid-cols-3 gap-2 shrink-0">
-        <div className="rounded-xl border border-border bg-card p-2 text-center">
+        <div className="rounded-xl border border-border bg-card p-3 text-center">
           <div className="flex items-center justify-center gap-1">
-            <Users className="w-3 h-3 text-primary" />
-            <p className="text-base font-bold text-foreground leading-none">{referralCount}</p>
+            <Users className="w-3.5 h-3.5 text-primary" />
+            <p className="text-lg font-bold text-foreground leading-none">{referralCount}</p>
           </div>
-          <p className="text-[9px] text-muted-foreground mt-0.5">Referrals</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Referrals</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-2 text-center">
+        <div className="rounded-xl border border-border bg-card p-3 text-center">
           <div className="flex items-center justify-center gap-1">
-            <DollarSign className="w-3 h-3 text-primary" />
-            <p className="text-base font-bold text-foreground leading-none">${totalCredits}</p>
+            <DollarSign className="w-3.5 h-3.5 text-primary" />
+            <p className="text-lg font-bold text-foreground leading-none">${totalCredits}</p>
           </div>
-          <p className="text-[9px] text-muted-foreground mt-0.5">Earned</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Earned</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-2 text-center">
+        <div className="rounded-xl border border-border bg-card p-3 text-center">
           <div className="flex items-center justify-center gap-1">
-            <Gift className="w-3 h-3 text-primary" />
-            <p className="text-base font-bold text-foreground leading-none">${unredeemedCredits}</p>
+            <Gift className="w-3.5 h-3.5 text-primary" />
+            <p className="text-lg font-bold text-foreground leading-none">${unredeemedCredits}</p>
           </div>
-          <p className="text-[9px] text-muted-foreground mt-0.5">Available</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Available</p>
         </div>
       </div>
 
       {unredeemedCredits > 0 && (
-        <div className="rounded-xl border border-border bg-card p-2.5 flex items-center justify-between gap-2 shrink-0">
+        <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-2 shrink-0">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate">Cash out credits</p>
-            <p className="text-[10px] text-muted-foreground truncate">
+            <p className="text-sm font-semibold text-foreground truncate">Cash out credits</p>
+            <p className="text-[11px] text-muted-foreground truncate">
               {hasStripeAccount ? `$${unredeemedCredits.toFixed(2)} → Stripe` : "Connect Stripe to cash out"}
             </p>
           </div>
-          <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-8">
+          <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-9">
             {cashingOut ? (
-              <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> …</>
+              <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> …</>
             ) : (
-              <><Banknote className="w-3.5 h-3.5 mr-1" /> ${unredeemedCredits.toFixed(2)}</>
+              <><Banknote className="w-4 h-4 mr-1" /> ${unredeemedCredits.toFixed(2)}</>
             )}
           </Button>
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card p-2.5 shrink-0">
-        <h3 className="text-[11px] font-semibold text-foreground mb-1.5">How it works</h3>
-        <div className="space-y-1">
+      <div className="rounded-xl border border-border bg-card p-3 shrink-0">
+        <h3 className="text-xs font-semibold text-foreground mb-2">How it works</h3>
+        <div className="space-y-2">
           {[
             "Share your code with friends",
             "They enter it at sign-up",
@@ -154,10 +154,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-primary/10 text-primary text-[9px] flex items-center justify-center shrink-0 font-bold mt-0.5">
+              <span className="w-4 h-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center shrink-0 font-bold mt-0.5">
                 {i + 1}
               </span>
-              <p className="text-[11px] text-muted-foreground leading-snug">{step}</p>
+              <p className="text-xs text-muted-foreground leading-snug">{step}</p>
             </div>
           ))}
         </div>

@@ -494,6 +494,8 @@ const Dashboard = () => {
                     expiresWithin={filters.expiresWithin} setExpiresWithin={filters.setExpiresWithin}
                     matchAvailability={filters.matchAvailability} setMatchAvailability={filters.setMatchAvailability}
                     hasAvailability={helperAvailability.length > 0}
+                    userLocStatus={filters.userLoc?.status}
+                    userLocMessage={filters.userLoc?.status === "error" ? filters.userLoc.message : undefined}
                   />
                 </motion.div>
               )}

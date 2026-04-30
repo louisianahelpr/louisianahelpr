@@ -4,15 +4,20 @@ import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, 
   Scale, CheckCircle, XCircle, Receipt
 } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const PlatformRules = () => {
   usePageTitle("Platform Rules & Policies — Helpr");
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Platform Rules" />
+      <Navbar />
+      <div className="h-[88px]" aria-hidden />
       <div className="container mx-auto max-w-3xl px-5 py-8">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
+          Platform Rules & Pricing
+        </h1>
         <div className="space-y-2 mb-12">
           <p className="text-muted-foreground">
             These rules keep Helpr safe, fair, and reliable for everyone. By using Helpr, you agree to follow these policies.
@@ -557,6 +562,7 @@ const PlatformRules = () => {
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

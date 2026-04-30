@@ -62,7 +62,7 @@ const Section = ({
   title,
   subtitle,
   warning,
-  defaultOpen = true,
+  defaultOpen = false,
   children,
 }: {
   icon: LucideIcon;

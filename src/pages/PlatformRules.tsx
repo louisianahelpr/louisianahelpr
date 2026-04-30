@@ -562,6 +562,7 @@ const PlatformRules = () => {
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

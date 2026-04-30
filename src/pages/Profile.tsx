@@ -105,7 +105,7 @@ const ProfilePage = () => {
       document.documentElement.classList.add("edit-profile-screen-lock");
       return () => document.documentElement.classList.remove("edit-profile-screen-lock");
     }
-  }, []);
+  }, [tab]);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [, setStripeConnectLoading] = useState(false);
   

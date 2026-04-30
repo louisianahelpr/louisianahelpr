@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, MapPin, Briefcase, Send, Star, Search } from "lucide-react";
+import { Heart, Briefcase, Send, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
@@ -104,9 +104,9 @@ const SavedHelpers = () => {
   });
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="h-[100dvh] bg-premium-page pb-safe-nav overflow-hidden flex flex-col">
       <Navbar />
-      <main className="container mx-auto px-5 pb-6" style={{ paddingTop: "calc(env(safe-area-inset-top) + 3.75rem)" }}>
+      <main className="container mx-auto px-5 pt-3 pb-6 flex-1 min-h-0 overflow-y-auto no-scrollbar">
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>

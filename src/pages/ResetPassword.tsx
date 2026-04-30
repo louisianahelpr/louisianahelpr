@@ -85,7 +85,7 @@ const ResetPassword = () => {
           </Link>
         </div>
         <div className="text-center">
-          <Link to="/" className="text-3xl font-display font-bold text-primary">Helpr</Link>
+          <Link to="/" className="text-3xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">Helpr</Link>
           <p className="mt-2 text-muted-foreground">Set a new password</p>
         </div>
 

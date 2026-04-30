@@ -106,7 +106,7 @@ const SavedHelpers = () => {
   return (
     <div className="h-[100dvh] bg-premium-page pb-safe-nav overflow-hidden flex flex-col">
       <Navbar />
-      <main className="container mx-auto px-5 pt-[calc(3.5rem+0.75rem)] pb-6 flex-1 min-h-0 overflow-y-auto no-scrollbar">
+      <main className="container mx-auto px-5 pt-3 pb-6 flex-1 min-h-0 overflow-y-auto no-scrollbar">
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>

@@ -401,6 +401,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           }
         />
       </Section>
+      </div>
     </div>
   );
 }

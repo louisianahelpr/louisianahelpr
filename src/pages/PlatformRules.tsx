@@ -16,7 +16,7 @@ const PlatformRules = () => {
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
       <div className="container mx-auto max-w-3xl px-5 pt-2 pb-8">
         <div className="flex items-center gap-2 mb-3">
-          <BackButton to="/" />
+          <BackButton to="/profile?tab=legal" />
           <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Platform Rules & Pricing
           </h1>

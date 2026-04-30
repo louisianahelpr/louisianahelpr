@@ -1044,7 +1044,7 @@ const ProfilePage = () => {
           )}
 
           {tab === "referral" && user && (
-            <div className="h-full flex flex-col gap-3 overflow-hidden">
+            <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
               <div className="flex items-center gap-3 shrink-0">
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />

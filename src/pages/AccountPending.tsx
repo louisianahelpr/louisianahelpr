@@ -250,7 +250,7 @@ const AccountPending = () => {
         <span className="w-8 h-8 rounded-xl bg-white shadow-md flex items-center justify-center overflow-hidden">
           <img src={helprIcon} alt="Helpr" className="w-8 h-8 object-contain translate-y-[3px]" />
         </span>
-        <span className="text-lg font-display font-bold text-primary">Helpr</span>
+        <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">Helpr</span>
       </Link>
       <Button
         variant="ghost"

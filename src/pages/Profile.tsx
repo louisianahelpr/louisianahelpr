@@ -101,6 +101,11 @@ const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
+    const urlTab = (searchParams.get("tab") as Tab) || "landing";
+    setTab((prev) => (prev === urlTab ? prev : urlTab));
+  }, [searchParams]);
+
+  useEffect(() => {
     if (tab === "profile") {
       document.documentElement.classList.add("edit-profile-screen-lock");
       return () => document.documentElement.classList.remove("edit-profile-screen-lock");

@@ -17,13 +17,10 @@ export async function initNative() {
 
   await clearNativeWebCaches();
 
-  // Default status bar: dark icons on light cream background.
-  // Pages can override per-route via useStatusBar(Style.Dark).
   try {
     await StatusBar.setStyle({ style: Style.Light });
-    await StatusBar.setBackgroundColor({ color: "#F4F8F5" });
-    await StatusBar.setOverlaysWebView({ overlay: false });
-  } catch { /* plugin missing on web */ }
+    await StatusBar.setOverlaysWebView({ overlay: true });
+  } catch { }
 
   // Hide splash after React mounts.
   await hideSplash();

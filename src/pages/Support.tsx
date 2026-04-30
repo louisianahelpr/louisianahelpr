@@ -108,11 +108,11 @@ const SupportPage = () => {
   const activeCategory = categories.find(c => c.key === openCategory);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="min-h-screen sm:min-h-screen h-[100dvh] sm:h-auto bg-premium-page pb-safe-nav overflow-hidden sm:overflow-visible flex flex-col">
       <Navbar />
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
-      <main className="container mx-auto px-5 pt-2 pb-6">
-        <div className="max-w-2xl mx-auto space-y-5">
+      <main className="container mx-auto px-5 pt-2 pb-6 flex-1 min-h-0 overflow-y-auto sm:overflow-visible">
+        <div className="max-w-2xl mx-auto space-y-3 sm:space-y-5">
 
           <div>
             <div className="flex items-center gap-2">
@@ -121,28 +121,27 @@ const SupportPage = () => {
                 Support & Help Center
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground mt-1 pl-12">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 pl-12">
               Find answers, get help, or contact our team
             </p>
           </div>
 
-          {/* Contact Us — compact */}
-          <section className="rounded-2xl border border-border bg-card px-4 py-3">
+          <section className="rounded-2xl border border-border bg-card px-4 py-2.5 sm:py-3">
             <h2 className="text-sm font-semibold text-foreground mb-2">Contact Us</h2>
-            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2.5">
-              <div className="flex items-center gap-2.5">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+              <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary shrink-0" />
-                <a href="mailto:admin@louisianahelpr.com" className="text-xs text-primary hover:underline truncate">
+                <a href="mailto:admin@louisianahelpr.com" className="text-[11px] sm:text-xs text-primary hover:underline truncate">
                   admin@louisianahelpr.com
                 </a>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground">Reply within 24–48h</p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground">Reply 24–48h</p>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex gap-1.5 text-xs">
+                <div className="flex gap-1.5 text-[11px] sm:text-xs">
                   <Link to="/terms" className="text-primary hover:underline">Terms</Link>
                   <span className="text-muted-foreground">·</span>
                   <Link to="/privacy" className="text-primary hover:underline">Privacy</Link>
@@ -150,30 +149,29 @@ const SupportPage = () => {
                   <Link to="/rules" className="text-primary hover:underline">Rules</Link>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground">All helprs reviewed</p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground">Helprs reviewed</p>
               </div>
             </div>
           </section>
 
-          {/* Send Us a Message — compact action chips */}
           {user && (
-            <section className="space-y-2.5">
+            <section className="space-y-2">
               <h2 className="text-sm font-semibold text-foreground">Send Us a Message</h2>
-              <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {categories.map((c) => (
                   <button
                     key={c.key}
                     onClick={() => setOpenCategory(c.key)}
-                    className="shrink-0 sm:shrink rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5 min-w-[140px] sm:min-w-0"
+                    className="rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5"
                   >
                     <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${c.accent} flex items-center justify-center shrink-0`}>
                       {c.icon}
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium text-xs text-foreground leading-tight">{c.label}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">{c.description}</p>
+                    <div className="text-left min-w-0">
+                      <p className="font-medium text-xs text-foreground leading-tight truncate">{c.label}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight truncate">{c.description}</p>
                     </div>
                   </button>
                 ))}
@@ -181,8 +179,7 @@ const SupportPage = () => {
             </section>
           )}
 
-          {/* FAQ */}
-          <section className="space-y-2.5">
+          <section className="space-y-2 hidden sm:block">
             <h2 className="text-sm font-semibold text-foreground">Frequently Asked Questions</h2>
             <div className="space-y-2">
               {faqItems.map((item, i) => (
@@ -196,6 +193,10 @@ const SupportPage = () => {
               ))}
             </div>
           </section>
+
+          <p className="sm:hidden text-[11px] text-center text-muted-foreground">
+            Tap <span className="font-medium text-foreground">Get Help</span> above to browse FAQs
+          </p>
 
           {!user && (
             <section className="rounded-2xl border border-border bg-card p-4 text-center space-y-3">

@@ -18,7 +18,7 @@ const ForBusiness = () => {
   return (
     <div className="relative min-h-screen bg-background">
       <Navbar />
-      <div className="h-[64px]" aria-hidden />
+      <div className="h-14" aria-hidden />
 
       <div className="relative container mx-auto px-5 py-6 lg:py-8 max-w-7xl">
 

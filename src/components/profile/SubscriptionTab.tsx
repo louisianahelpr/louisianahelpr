@@ -135,9 +135,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
 
         <div className="flex items-center gap-1.5">
           {([
-            { key: "annual" as const, label: "Annual" },
-            { key: "monthly" as const, label: "Monthly" },
             { key: "one_time" as const, label: "One-Time" },
+            { key: "monthly" as const, label: "Monthly" },
+            { key: "annual" as const, label: "Annual" },
           ]).map((opt) => {
             const active = billingInterval === opt.key;
             return (

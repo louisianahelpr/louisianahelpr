@@ -834,18 +834,18 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-2 grid grid-cols-3 gap-2">
+                  <div className="shrink-0 pt-2 grid grid-cols-3 gap-2.5">
                     <button
                       type="button"
                       onClick={() => setTab("landing")}
-                      className="rounded-[18px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] h-11 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
+                      className="rounded-[20px] bg-white border border-border/40 shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] h-12 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:scale-[0.98] transition-all"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={saving || justSaved}
-                      className={`col-span-2 rounded-[18px] h-11 inline-flex items-center justify-center gap-2 text-sm font-bold transition-all active:scale-[0.98] disabled:active:scale-100 shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] ${
+                      className={`col-span-2 rounded-[20px] h-12 inline-flex items-center justify-center gap-2 text-sm font-bold transition-all active:scale-[0.98] disabled:active:scale-100 shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] ${
                         saving
                           ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : justSaved

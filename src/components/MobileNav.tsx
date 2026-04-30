@@ -98,9 +98,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const tabStacks: Record<string, string[]> = {
     "/dashboard": ["/jobs"],
     "/my-posts": ["/activity", "/post-job"],
-    "/my-jobs": ["/job-history", "/earnings", "/schedule", "/availability"],
+    "/my-jobs": ["/job-history", "/earnings"],
     "/messages": [],
-    "/profile": ["/support", "/user", "/admin"],
+    "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helpers"],
   };
 
   const isInStack = (tabPath: string) => {
@@ -153,6 +153,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       // If we're inside this tab's stack but not on its root, pop back to root.
       if (!isGuest && inStack && location.pathname !== path) {
         navigate(path);
+        return;
+      }
+      if (!isGuest && path === "/profile" && location.pathname === "/profile" && location.search) {
+        navigate("/profile");
         return;
       }
       if (location.pathname !== effectivePath) {

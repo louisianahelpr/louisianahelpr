@@ -108,10 +108,14 @@ const SupportPage = () => {
   const activeCategory = categories.find(c => c.key === openCategory);
 
   return (
-    <div className="min-h-screen sm:min-h-screen h-[100dvh] sm:h-auto bg-premium-page pb-safe-nav overflow-hidden sm:overflow-visible flex flex-col">
+    <div className="h-[100dvh] max-h-[100dvh] bg-premium-page overflow-hidden flex flex-col">
       <Navbar />
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
-      <main className="container mx-auto px-5 pt-2 pb-6 flex-1 min-h-0 overflow-y-auto sm:overflow-visible">
+      <main
+        data-allow-scroll="true"
+        className="container mx-auto px-5 pt-2 pb-6 flex-1 min-h-0 overflow-y-auto"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+      >
         <div className="max-w-2xl mx-auto space-y-3 sm:space-y-5">
 
           <div>

@@ -7,7 +7,6 @@ import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import AppShell from "@/components/AppShell";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

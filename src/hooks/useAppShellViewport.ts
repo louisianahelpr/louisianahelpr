@@ -7,7 +7,7 @@ import { useLocation } from "react-router-dom";
  */
 const DOCUMENT_SCROLL_ROUTES = [
   "/",
-  "/heroes",
+  
   "/for-business",
   "/features",
   "/terms",

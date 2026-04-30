@@ -24,7 +24,7 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 import HeroSection from "@/components/landing/HeroSection";
 const SocialProofSection = lazy(() => import("@/components/landing/SocialProofSection"));
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
-const HelperSpotlightSection = lazy(() => import("@/components/landing/HelperSpotlightSection"));
+
 const JobStoriesSection = lazy(() => import("@/components/landing/JobStoriesSection"));
 const PublicJobsPreview = lazy(() => import("@/components/landing/PublicJobsPreview"));
 
@@ -188,9 +188,6 @@ const Index = () => {
       </Suspense>
       <Suspense fallback={<div className="h-64" />}>
         <PublicJobsPreview />
-      </Suspense>
-      <Suspense fallback={<div className="h-64" />}>
-        <HelperSpotlightSection />
       </Suspense>
       <Suspense fallback={<div className="h-64" />}>
         <JobStoriesSection />

@@ -1,4 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
+import helprIcon from "@/assets/helpr-icon-96.png";
 import { formatName } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";

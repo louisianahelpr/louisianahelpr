@@ -573,27 +573,10 @@ const Dashboard = () => {
                       : "New jobs are posted every day across Louisiana. Pick a path below to get moving."}
                   </p>
                 </div>
-                {filters.hasFilters ? (
+                {filters.hasFilters && (
                   <Button variant="outline" onClick={filters.clearFilters} className="squircle rounded-2xl">
                     Clear filters
                   </Button>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-3 max-w-md mx-auto pt-2">
-                    <button
-                      onClick={() => navigate("/post-job")}
-                      className="squircle rounded-[20px] bg-primary text-primary-foreground px-5 py-4 text-left shadow-[0_10px_30px_-10px_hsl(158_67%_37%/0.55)] hover:shadow-[0_14px_36px_-10px_hsl(158_67%_37%/0.65)] transition-all active:scale-[0.98]"
-                    >
-                      <div className="text-xs font-semibold opacity-80 mb-0.5">Need help?</div>
-                      <div className="text-base font-display font-bold leading-tight">Post a task →</div>
-                    </button>
-                    <button
-                      onClick={() => filters.setSearchQuery("")}
-                      className="squircle rounded-[20px] border-2 border-primary/30 bg-white/40 backdrop-blur px-5 py-4 text-left text-foreground hover:border-primary/60 hover:bg-white/60 transition-all active:scale-[0.98]"
-                    >
-                      <div className="text-xs font-semibold text-muted-foreground mb-0.5">Looking for work?</div>
-                      <div className="text-base font-display font-bold text-primary leading-tight">Browse nearby →</div>
-                    </button>
-                  </div>
                 )}
               </div>
             ) : (() => {

@@ -11,6 +11,13 @@ const Availability = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.documentElement.classList.add("availability-screen-lock");
+    return () => {
+      document.documentElement.classList.remove("availability-screen-lock");
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return;

@@ -98,7 +98,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const tabStacks: Record<string, string[]> = {
     "/dashboard": ["/jobs"],
     "/my-posts": ["/activity", "/post-job"],
-    "/my-jobs": ["/job-history", "/earnings", "/schedule"],
+    "/my-jobs": ["/job-history", "/earnings", "/schedule", "/availability"],
     "/messages": [],
     "/profile": ["/support", "/user", "/admin"],
   };

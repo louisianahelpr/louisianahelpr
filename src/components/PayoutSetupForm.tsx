@@ -151,17 +151,48 @@ export function PayoutSetupForm() {
     }
   };
 
+  const isFullyOnboarded = status?.connected && status?.details_submitted && status?.payouts_enabled;
+  const needsMoreInfo = status?.connected && (!status?.details_submitted || (status?.requirements?.length ?? 0) > 0);
+
   if (statusLoading) {
     return (
-      <div className="space-y-3" aria-busy="true">
+      <div className="space-y-4" aria-busy="true">
         <div className="h-16 rounded-lg bg-muted/40 animate-pulse" />
         <div className="h-10 rounded-lg bg-muted/30 animate-pulse" />
+        {!methodsLoading && methods.length > 0 && (
+          <div className="space-y-2">
+            {methods.map((m) => (
+              <div key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+                <div className="flex items-center gap-3">
+                  {m.type === "bank_account" ? (
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-primary" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {m.type === "bank_account"
+                        ? `${m.bank_name || "Bank"} ····${m.last4}`
+                        : `${m.brand || "Card"} ····${m.last4}`}
+                    </p>
+                    {m.default_for_currency && (
+                      <span className="text-xs text-primary font-medium flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Default
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
-
-  const isFullyOnboarded = status?.connected && status?.details_submitted && status?.payouts_enabled;
-  const needsMoreInfo = status?.connected && (!status?.details_submitted || (status?.requirements?.length ?? 0) > 0);
 
   return (
     <div className="space-y-4">

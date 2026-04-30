@@ -155,6 +155,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         navigate(path);
         return;
       }
+      if (!isGuest && path === "/profile" && location.pathname === "/profile" && location.search) {
+        navigate("/profile");
+        return;
+      }
       if (location.pathname !== effectivePath) {
         navigate(effectivePath);
         return;

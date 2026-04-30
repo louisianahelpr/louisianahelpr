@@ -364,29 +364,16 @@ const Dashboard = () => {
           <BroadcastBanner />
           <PushNotificationPrompt />
           
-          {/* Welcome section */}
-          {showGreeting && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3 }}
-            className="glass-card squircle rounded-xl px-3 py-1.5 relative flex items-center justify-between gap-2"
+            className="px-1 shrink-0"
           >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h1 className="text-sm font-display font-semibold tracking-tight text-foreground leading-none truncate">
-                {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
-              </h1>
-            </div>
-            <button
-              onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
-              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 shrink-0"
-              aria-label="Dismiss greeting"
-            >
-              <X className="w-3 h-3" />
-            </button>
+            <h1 className="text-base font-display font-semibold tracking-tight text-foreground leading-tight truncate">
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
+            </h1>
           </motion.div>
-          )}
 
 
           <motion.section

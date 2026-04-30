@@ -102,7 +102,7 @@ serve(async (req) => {
       .eq("id", ownedBiz.id);
 
     const seatLimit =
-      activeTier === "enterprise" ? 25 :
+      activeTier === "enterprise" ? 15 :
       activeTier === "team" ? 10 :
       activeTier === "crew" ? 5 : 2;
 

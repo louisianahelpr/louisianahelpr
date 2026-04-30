@@ -12,7 +12,7 @@ const corsHeaders = {
 const TIER_TO_PRICE: Record<string, string> = {
   crew: "price_1TQKGYKp2H4b7tECTmOd0rp7", // 5 seats — $10/mo
   team: "price_1TQKGZKp2H4b7tECwr664UEh", // 10 seats — $20/mo
-  enterprise: "price_1TQKGaKp2H4b7tECp6ZNxarR", // 25 seats — $40/mo
+  enterprise: "price_1TQKGaKp2H4b7tECp6ZNxarR", // 15 seats — $40/mo
 };
 
 serve(async (req) => {

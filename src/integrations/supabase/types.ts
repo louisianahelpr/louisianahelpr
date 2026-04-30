@@ -2918,6 +2918,7 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
+      business_seat_limit: { Args: { _business_id: string }; Returns: number }
       can_review_job: {
         Args: { _job_id: string; _reviewer_id: string }
         Returns: boolean

@@ -367,6 +367,7 @@ const SupportPage = () => {
           )}
         </SheetContent>
       </Sheet>
+      <Footer />
     </div>
   );
 };

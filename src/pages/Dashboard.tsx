@@ -398,60 +398,15 @@ const Dashboard = () => {
           )}
 
 
-          {/* Jobs Near You */}
-          {filters.nearbyJobs.length > 0 && !filters.hasFilters && (
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-              className="space-y-3"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400/20 to-sky-500/10 flex items-center justify-center shadow-sm">
-                  <MapPin className="w-4 h-4 text-sky-600" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Jobs Near You</h2>
-                  <span className="text-[10px] text-muted-foreground">{profile?.location}</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {filters.nearbyJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                ))}
-              </div>
-              {filters.nearbyJobs.length > 3 && (
-                <button onClick={() => filters.setLocationFilter(profile?.location || "")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
-                  View all {filters.nearbyJobs.length} nearby jobs →
-                </button>
-              )}
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          {false && filters.nearbyJobs.length > 0 && !filters.hasFilters && (
+            <motion.section className="space-y-3">
+              <div />
             </motion.section>
           )}
 
-          {/* Recommended for You */}
-          {recommendedJobs.length > 0 && !filters.hasFilters && (
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-              className="space-y-3"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center shadow-sm">
-                  <Star className="w-4 h-4 text-accent fill-accent" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Recommended for You</h2>
-                  <span className="text-[10px] text-muted-foreground">based on your skills</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {recommendedJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                ))}
-              </div>
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          {false && recommendedJobs.length > 0 && !filters.hasFilters && (
+            <motion.section className="space-y-3">
+              <div />
             </motion.section>
           )}
 

@@ -162,7 +162,7 @@ const Schedule = () => {
                   <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
                 ) : (
                   selectedJobs.map((job) => (
-                    <JobScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
+                    <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
                   ))
                 )}
               </div>
@@ -173,7 +173,7 @@ const Schedule = () => {
                   <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
                 ) : (
                   upcomingJobs.map((job) => (
-                    <JobScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
+                    <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
                   ))
                 )}
               </div>

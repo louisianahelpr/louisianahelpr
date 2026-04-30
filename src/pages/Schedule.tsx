@@ -1,5 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HelperAvailability } from "@/components/HelperAvailability";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,14 @@ const statusColors: Record<string, string> = {
 
 const Schedule = () => {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "availability" ? "availability" : "schedule";
+  const [tab, setTab] = useState<"schedule" | "availability">(initialTab);
+  useEffect(() => {
+    const next = searchParams.get("tab") === "availability" ? "availability" : "schedule";
+    setTab(next);
+  }, [searchParams]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -90,95 +101,130 @@ const Schedule = () => {
       <PageHeader title="My Schedule" />
 
       <main className="container mx-auto px-5 py-6">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}><ChevronLeft className="w-4 h-4" /></Button>
-              <h2 className="font-display font-semibold text-foreground">
-                {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-              </h2>
-              <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}><ChevronRight className="w-4 h-4" /></Button>
-            </div>
+        <div className="max-w-3xl mx-auto">
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              setTab(v as "schedule" | "availability");
+              const next = new URLSearchParams(searchParams);
+              if (v === "availability") next.set("tab", "availability");
+              else next.delete("tab");
+              setSearchParams(next, { replace: true });
+            }}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="availability">Availability</TabsTrigger>
+            </TabsList>
 
-            <div className="grid grid-cols-7 gap-1 mb-1">
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {days.map((day, i) => {
-                if (day === null) return <div key={`e-${i}`} className="aspect-square" />;
-                const dateStr = getDateStr(day);
-                const hasJobs = !loading && jobsByDate.has(dateStr);
-                const isToday = dateStr === today;
-                const isSelected = dateStr === selectedDate;
+            <TabsContent value="schedule" className="space-y-6 mt-0">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}><ChevronLeft className="w-4 h-4" /></Button>
+                  <h2 className="font-display font-semibold text-foreground">
+                    {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  </h2>
+                  <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}><ChevronRight className="w-4 h-4" /></Button>
+                </div>
 
-                return (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    disabled={loading}
-                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
-                      isSelected ? "bg-primary text-primary-foreground" :
-                      isToday ? "bg-primary/10 text-primary font-bold" :
-                      "hover:bg-secondary text-foreground"
-                    }`}
-                  >
-                    {day}
-                    {hasJobs && !isSelected && (
-                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
-                    )}
-                    {hasJobs && isSelected && (
-                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                <div className="grid grid-cols-7 gap-1 mb-1">
+                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                    <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {days.map((day, i) => {
+                    if (day === null) return <div key={`e-${i}`} className="aspect-square" />;
+                    const dateStr = getDateStr(day);
+                    const hasJobs = !loading && jobsByDate.has(dateStr);
+                    const isToday = dateStr === today;
+                    const isSelected = dateStr === selectedDate;
 
-            <div className="flex gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Jobs scheduled
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary/30" /> Today
-              </span>
-            </div>
-          </div>
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                        disabled={loading}
+                        className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
+                          isSelected ? "bg-primary text-primary-foreground" :
+                          isToday ? "bg-primary/10 text-primary font-bold" :
+                          "hover:bg-secondary text-foreground"
+                        }`}
+                      >
+                        {day}
+                        {hasJobs && !isSelected && (
+                          <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                        )}
+                        {hasJobs && isSelected && (
+                          <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
 
-          <div className="min-h-[280px]">
-            {loading ? (
-              <div className="space-y-3">
-                <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
-                <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
-                <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+                <div className="flex gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Jobs scheduled
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary/30" /> Today
+                  </span>
+                </div>
               </div>
-            ) : selectedDate ? (
-              <div className="space-y-3">
-                <h3 className="font-display font-semibold text-foreground">
-                  {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-                </h3>
-                {selectedJobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+
+              <div className="min-h-[280px]">
+                {loading ? (
+                  <div className="space-y-3">
+                    <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
+                    <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+                    <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+                  </div>
+                ) : selectedDate ? (
+                  <div className="space-y-3">
+                    <h3 className="font-display font-semibold text-foreground">
+                      {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                    </h3>
+                    {selectedJobs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+                    ) : (
+                      selectedJobs.map((job) => (
+                        <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
+                      ))
+                    )}
+                  </div>
                 ) : (
-                  selectedJobs.map((job) => (
-                    <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
-                  ))
+                  <div className="space-y-3">
+                    <h3 className="font-display font-semibold text-foreground">Upcoming</h3>
+                    {upcomingJobs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
+                    ) : (
+                      upcomingJobs.map((job) => (
+                        <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                <h3 className="font-display font-semibold text-foreground">Upcoming</h3>
-                {upcomingJobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
+            </TabsContent>
+
+            <TabsContent value="availability" className="mt-0">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="mb-4">
+                  <h2 className="font-display font-semibold text-foreground">Set your weekly hours</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Posters can match jobs to your availability. Toggle days off and adjust your hours.
+                  </p>
+                </div>
+                {user ? (
+                  <HelperAvailability userId={user.id} />
                 ) : (
-                  upcomingJobs.map((job) => (
-                    <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
-                  ))
+                  <p className="text-sm text-muted-foreground">Sign in to set your availability.</p>
                 )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>

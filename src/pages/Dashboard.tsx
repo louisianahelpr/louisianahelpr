@@ -398,24 +398,11 @@ const Dashboard = () => {
           )}
 
 
-          {false && filters.nearbyJobs.length > 0 && !filters.hasFilters && (
-            <motion.section className="space-y-3">
-              <div />
-            </motion.section>
-          )}
-
-          {false && recommendedJobs.length > 0 && !filters.hasFilters && (
-            <motion.section className="space-y-3">
-              <div />
-            </motion.section>
-          )}
-
-          {/* All Tasks section */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden"
+            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col"
           >
             {/* Header row */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">

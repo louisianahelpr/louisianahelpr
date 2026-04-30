@@ -146,14 +146,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
           )}
         </>
       )}
-
-
-      {/* Availability section */}
-      <div className="border-t border-border pt-6">
-        <h2 className="text-lg font-display font-bold text-foreground mb-1">Working Hours</h2>
-        <p className="text-muted-foreground text-xs mb-4">Set your weekly availability so customers know when you're free</p>
-        <HelperAvailability userId={userId} />
-      </div>
     </div>
   );
 }

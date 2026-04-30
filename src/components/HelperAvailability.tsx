@@ -101,12 +101,12 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     }
   };
 
-  if (!loaded) return <p className="text-sm text-muted-foreground p-4">Loading availability...</p>;
+  if (!loaded) return <p className="text-sm text-muted-foreground p-3">Loading availability...</p>;
 
   if (compact) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-hidden p-2 space-y-1.5">
           {DAYS.map((day, i) => {
             const slot = slots[i];
             const off = !slot.is_available;
@@ -114,12 +114,12 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
               <div
                 key={day}
                 className={cn(
-                  "rounded-xl border p-2.5 transition-all",
+                  "rounded-lg border px-2 py-1.5 transition-all",
                   off ? "border-border/60 bg-muted/30" : "border-border bg-card shadow-sm",
                 )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center justify-between gap-1.5 min-h-10">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <Switch
                       checked={slot.is_available}
                       onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
@@ -127,7 +127,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     />
                     <span
                       className={cn(
-                        "font-display text-sm font-bold tracking-tight w-9",
+                        "font-display text-[13px] font-bold w-8",
                         off ? "text-muted-foreground" : "text-foreground",
                       )}
                     >
@@ -143,6 +143,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                         updateSlot(i, "start_time", start);
                         updateSlot(i, "end_time", end);
                       }}
+                      className="h-9 px-2.5 rounded-lg text-xs gap-1.5"
                     />
                   ) : (
                     <span className="text-xs font-medium text-muted-foreground">Unavailable</span>
@@ -152,12 +153,12 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             );
           })}
         </div>
-        <div className="border-t border-border p-3 bg-card/80 backdrop-blur">
+        <div className="border-t border-border p-2 bg-card/80 backdrop-blur shrink-0">
           <Button
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="w-full h-11 rounded-xl text-sm font-semibold"
+            className="w-full h-10 rounded-lg text-sm font-semibold"
           >
             {saving ? "Saving..." : "Save Availability"}
           </Button>

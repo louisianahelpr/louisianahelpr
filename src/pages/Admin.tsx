@@ -20,7 +20,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import helprIcon from "@/assets/helpr-icon-96.webp";
+import helprIcon from "@/assets/helpr-icon-96.png";
 
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
 const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));

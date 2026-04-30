@@ -6,7 +6,7 @@ import { useState, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
-import helprIcon from "@/assets/helpr-icon-96.webp";
+import helprIcon from "@/assets/helpr-icon-96.png";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);

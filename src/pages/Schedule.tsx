@@ -22,6 +22,14 @@ const statusColors: Record<string, string> = {
 
 const Schedule = () => {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "availability" ? "availability" : "schedule";
+  const [tab, setTab] = useState<"schedule" | "availability">(initialTab);
+  useEffect(() => {
+    const next = searchParams.get("tab") === "availability" ? "availability" : "schedule";
+    setTab(next);
+  }, [searchParams]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 

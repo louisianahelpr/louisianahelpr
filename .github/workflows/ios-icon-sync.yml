@@ -1,0 +1,56 @@
+name: iOS Icon Sync
+
+# Manual-only — regenerates every iOS AppIcon size from the single source
+# of truth at public/apple-touch-icon.png and commits the result.
+#
+# Run from the Actions tab → "iOS Icon Sync" → "Run workflow" any time
+# the marketing icon changes. Cheap (Linux runner, no Xcode, no signing).
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ios-icon-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync-icons:
+    name: Regenerate AppIcon set
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need write access to push the regenerated PNGs back to the branch.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Setup Ruby + Bundler (cached)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: .
+
+      - name: Run fastlane sync_app_icon
+        run: bundle exec fastlane ios sync_app_icon
+
+      - name: Commit regenerated icons
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios/App/App/Assets.xcassets/AppIcon.appiconset/
+          if git diff --cached --quiet; then
+            echo "No icon changes — nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(ios): sync AppIcon set from public/apple-touch-icon.png"
+          git push

@@ -905,4 +905,65 @@ platform :ios do
       )
     end
   end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # sync_app_icon — regenerates every iOS AppIcon.appiconset PNG from the
+  # single source-of-truth file at public/apple-touch-icon.png (1024×1024).
+  #
+  # Run locally:  bundle exec fastlane ios sync_app_icon
+  # Run in CI:    Actions → "iOS Icon Sync" → Run workflow
+  #
+  # Requires `magick` (ImageMagick 7) in PATH. macOS runners have it via
+  # Homebrew; ubuntu-latest installs it in the workflow.
+  # ─────────────────────────────────────────────────────────────────────
+  desc "Regenerate iOS AppIcon set from public/apple-touch-icon.png"
+  lane :sync_app_icon do
+    source = File.join(REPO_ROOT, "public/apple-touch-icon.png")
+    UI.user_error!("Missing source icon: #{source}") unless File.exist?(source)
+
+    appiconset = File.join(REPO_ROOT, "ios/App/App/Assets.xcassets/AppIcon.appiconset")
+    UI.user_error!("Missing AppIcon.appiconset: #{appiconset}") unless Dir.exist?(appiconset)
+
+    # filename => pixel size. Mirrors Contents.json (iPhone + iPad + marketing).
+    targets = {
+      "icon-20.png"          => 20,
+      "icon-20@2x.png"       => 40,
+      "icon-20@2x-ipad.png"  => 40,
+      "icon-20@3x.png"       => 60,
+      "icon-29.png"          => 29,
+      "icon-29@2x.png"       => 58,
+      "icon-29@2x-ipad.png"  => 58,
+      "icon-29@3x.png"       => 87,
+      "icon-40.png"          => 40,
+      "icon-40@2x.png"       => 80,
+      "icon-40@2x-ipad.png"  => 80,
+      "icon-40@3x.png"       => 120,
+      "icon-60@2x.png"       => 120,
+      "icon-60@3x.png"       => 180,
+      "icon-76.png"          => 76,
+      "icon-76@2x.png"       => 152,
+      "icon-83.5@2x.png"     => 167,
+      "icon-1024.png"        => 1024
+    }
+
+    magick = `command -v magick`.strip
+    convert = `command -v convert`.strip
+    bin = !magick.empty? ? "magick" : (!convert.empty? ? "convert" : nil)
+    UI.user_error!("ImageMagick not found in PATH (need `magick` or `convert`)") if bin.nil?
+
+    targets.each do |filename, size|
+      out = File.join(appiconset, filename)
+      # -background white -alpha remove flattens any transparency to white,
+      # which matches App Store Connect's requirement that the 1024 marketing
+      # icon must have NO alpha channel.
+      cmd = "#{bin} #{Shellwords.escape(source)} -resize #{size}x#{size} " \
+            "-background white -alpha remove -alpha off " \
+            "#{Shellwords.escape(out)}"
+      UI.message("→ #{filename} (#{size}×#{size})")
+      sh(cmd, log: false)
+    end
+
+    UI.success("Regenerated #{targets.size} AppIcon files from public/apple-touch-icon.png")
+    UI.message("Commit ios/App/App/Assets.xcassets/AppIcon.appiconset/ then run ios beta to ship.")
+  end
 end

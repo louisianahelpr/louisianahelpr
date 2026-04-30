@@ -3,11 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Gift, Copy, Share2, Users, DollarSign, Check, Banknote, Loader2 } from "lucide-react";
+import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import SocialShare from "@/components/SocialShare";
-import { nativeShare } from "@/lib/nativeShare";
-import { hapticLight } from "@/lib/haptics";
 import { useReferralData } from "@/hooks/useReferralData";
 import { queryKeys } from "@/lib/queryKeys";
 

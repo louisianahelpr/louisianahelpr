@@ -75,7 +75,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers"];
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;

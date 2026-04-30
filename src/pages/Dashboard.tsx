@@ -619,18 +619,13 @@ const Dashboard = () => {
                 });
               return (
                 <>
-                  <VirtualList
-                    items={visibleJobs}
-                    getKey={(job) => job.id}
-                    estimateSize={220}
-                    overscan={4}
-                    className="divide-y divide-border/30"
-                    renderItem={(job, i) => (
-                      <div className="px-3 py-2.5">
+                  <div className="divide-y divide-border/30">
+                    {visibleJobs.map((job, i) => (
+                      <div key={job.id} className="px-3 py-2.5">
                         <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                       </div>
-                    )}
-                  />
+                    ))}
+                  </div>
                   {/* Infinite scroll sentinel + manual fallback */}
                   {hasNextPage && (
                     <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">

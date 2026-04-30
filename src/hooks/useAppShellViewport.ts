@@ -9,7 +9,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/",
   
   "/for-business",
-  "/features",
+  
   "/terms",
   "/privacy",
   "/data-rights",

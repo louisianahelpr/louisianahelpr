@@ -121,37 +121,20 @@ const CategoryContent = ({
 );
 
 const LocationBudgetContent = ({
-  locationFilter, setLocationFilter, maxBudget, setMaxBudget,
+  locationFilter, setLocationFilter,
 }: {
   locationFilter: string; setLocationFilter: (v: string) => void;
-  maxBudget: string; setMaxBudget: (v: string) => void;
 }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-    <div>
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Location</p>
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
-        <Input
-          placeholder="City"
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
-        />
-      </div>
-    </div>
-    <div>
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5"><br /></p>
-      <div className="relative">
-        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
-        <Input
-          type="number"
-          inputMode="numeric"
-          placeholder="No limit"
-          value={maxBudget}
-          onChange={(e) => setMaxBudget(e.target.value)}
-          className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
-        />
-      </div>
+  <div>
+    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Location</p>
+    <div className="relative">
+      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
+      <Input
+        placeholder="City"
+        value={locationFilter}
+        onChange={(e) => setLocationFilter(e.target.value)}
+        className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
+      />
     </div>
   </div>
 );
@@ -324,10 +307,7 @@ const JobFilters = ({
   const expiresLabel = expiresWithin
     ? expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "Expires"
     : "Expires";
-  const placeBudgetLabel =
-    locationFilter || maxBudget
-      ? [locationFilter, maxBudget ? `≤$${maxBudget}` : ""].filter(Boolean).join(" · ")
-      : "Place & budget";
+  const placeBudgetLabel = locationFilter || "Place";
 
   return (
     <div className={`overflow-hidden ${surfaceGradient}`}>
@@ -347,12 +327,10 @@ const JobFilters = ({
             />
           </MobileDropdown>
 
-          <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!(locationFilter || maxBudget)}>
+          <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
             <LocationBudgetContent
               locationFilter={locationFilter}
               setLocationFilter={setLocationFilter}
-              maxBudget={maxBudget}
-              setMaxBudget={setMaxBudget}
             />
           </MobileDropdown>
 
@@ -403,14 +381,12 @@ const JobFilters = ({
 
         <Section
           icon={MapPin}
-          label="Place & budget"
-          badge={locationFilter || maxBudget ? "Set" : null}
+          label="Place"
+          badge={locationFilter ? "Set" : null}
         >
           <LocationBudgetContent
             locationFilter={locationFilter}
             setLocationFilter={setLocationFilter}
-            maxBudget={maxBudget}
-            setMaxBudget={setMaxBudget}
           />
         </Section>
 

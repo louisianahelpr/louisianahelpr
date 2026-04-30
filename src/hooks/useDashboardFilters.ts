@@ -122,5 +122,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     matchAvailability, setMatchAvailability,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs,
+    userLoc, nearbyMiles,
   };
 }

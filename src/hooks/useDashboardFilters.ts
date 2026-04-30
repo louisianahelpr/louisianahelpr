@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
+import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

@@ -155,7 +155,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         navigate(path);
         return;
       }
-      if (location.pathname !== effectivePath) navigate(effectivePath);
+      if (location.pathname !== effectivePath) {
+        navigate(effectivePath);
+        return;
+      }
+      if (location.search || location.hash) {
+        navigate(effectivePath);
+      }
     };
 
     const isActive = active || inStack;

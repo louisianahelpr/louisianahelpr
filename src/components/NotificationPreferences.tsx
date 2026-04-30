@@ -186,15 +186,17 @@ const NotificationPreferences = () => {
                   <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-6 shrink-0 ml-3">
+              <div className={`flex items-center gap-6 shrink-0 ml-3 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
                 <Switch
                   checked={prefs[item.key]}
                   onCheckedChange={() => toggle(item.key)}
+                  disabled={!loaded}
                   aria-label={`${item.label} in-app`}
                 />
                 <Switch
                   checked={prefs[item.emailKey]}
                   onCheckedChange={() => toggle(item.emailKey)}
+                  disabled={!loaded}
                   aria-label={`${item.label} email`}
                 />
               </div>

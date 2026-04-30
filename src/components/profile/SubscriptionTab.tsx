@@ -113,29 +113,29 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
+    <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
+      <div className="flex items-center gap-3 shrink-0">
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
         {currentTier && !isExpired ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
             {expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}
           </p>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            {isExpired ? "Your plan expired — pick one to renew." : "Free plan · upgrade to unlock more jobs."}
+          <p className="text-[11px] text-muted-foreground">
+            {isExpired ? "Plan expired — pick one to renew." : "Free plan · upgrade for more."}
           </p>
         )}
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {([
-            { key: "one_time" as const, label: "One-Time" },
+            { key: "one_time" as const, label: "Once" },
             { key: "monthly" as const, label: "Monthly" },
             { key: "annual" as const, label: "Annual" },
           ]).map((opt) => {
@@ -144,7 +144,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               <button
                 key={opt.key}
                 onClick={() => setBillingInterval(opt.key)}
-                className={`px-3 h-7 rounded-full text-xs font-semibold transition-all border ${
+                className={`px-2.5 h-7 rounded-full text-[11px] font-semibold transition-all border ${
                   active
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : "bg-card text-muted-foreground border-border hover:bg-secondary"
@@ -158,18 +158,18 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       </div>
 
       {currentTier && !isExpired && (
-        <div className="flex gap-2">
-          <Button onClick={handleManageSubscription} disabled={loadingPortal} variant="outline" size="sm" className="flex-1 h-9">
+        <div className="flex gap-2 shrink-0">
+          <Button onClick={handleManageSubscription} disabled={loadingPortal} variant="outline" size="sm" className="flex-1 h-8">
             {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Crown className="w-3.5 h-3.5 mr-1.5 text-primary" />}
             Manage
           </Button>
-          <Button onClick={refreshSubscription} disabled={refreshing} variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Refresh">
+          <Button onClick={refreshSubscription} disabled={refreshing} variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Refresh">
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
           </Button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
@@ -177,42 +177,38 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           return (
             <div
               key={tier.id}
-              className={`relative rounded-2xl border bg-card p-4 flex flex-col ${
+              className={`relative rounded-2xl border bg-card p-2.5 flex flex-col min-h-0 ${
                 isPro ? "border-primary/30 shadow-lg" : "border-border"
               } ${isActive ? "ring-2 ring-primary" : ""}`}
             >
               {isPro && (
-                <span className="absolute -top-2 right-4 text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
-                  Most Popular
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap">
+                  Popular
                 </span>
               )}
 
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="font-display font-bold text-base leading-tight text-foreground">
-                    {tier.badge} {tier.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <p className="text-sm font-bold text-primary leading-none">{getPrice(tier)}</p>
-                    {saveBadge && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none">
-                        {saveBadge}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              <div className="flex flex-col items-center text-center">
+                <h3 className="font-display font-bold text-sm leading-tight text-foreground">
+                  {tier.badge} {tier.name}
+                </h3>
+                <p className="text-xs font-bold text-primary leading-none mt-1">{getPrice(tier)}</p>
+                {saveBadge && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary leading-none mt-1">
+                    {saveBadge}
+                  </span>
+                )}
                 {isActive && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-primary shrink-0">
-                    <CheckCircle className="w-3 h-3" /> Current
+                  <span className="flex items-center gap-0.5 text-[9px] font-semibold text-primary mt-1">
+                    <CheckCircle className="w-2.5 h-2.5" /> Current
                   </span>
                 )}
               </div>
 
-              <ul className="mt-3 mb-3 space-y-1 flex-1">
+              <ul className="mt-2 mb-2 space-y-1 flex-1 min-h-0 overflow-hidden">
                 {tier.features.map((f) => (
-                  <li key={f} className="text-xs leading-snug flex items-start gap-1.5 text-muted-foreground">
-                    <CheckCircle className="w-3 h-3 shrink-0 mt-0.5 text-primary" />
-                    <span>{f}</span>
+                  <li key={f} className="text-[10px] leading-snug flex items-start gap-1 text-muted-foreground">
+                    <CheckCircle className="w-2.5 h-2.5 shrink-0 mt-0.5 text-primary" />
+                    <span className="break-words">{f}</span>
                   </li>
                 ))}
               </ul>
@@ -221,14 +217,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <button
                   onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full h-9 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 ${
+                  className={`w-full h-8 rounded-lg font-semibold text-[11px] transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
                     isPro
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
                   }`}
                 >
-                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {currentTier && !isExpired ? "Change Plan" : billingInterval === "one_time" ? "Buy Now" : "Subscribe"}
+                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {currentTier && !isExpired ? "Change" : billingInterval === "one_time" ? "Buy" : "Subscribe"}
                 </button>
               )}
             </div>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, DollarSign, Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { HelperAvailability } from "@/components/HelperAvailability";
 
 import type { Database } from "@/integrations/supabase/types";
 
@@ -38,7 +37,7 @@ interface ScheduleTabProps {
   onBack: () => void;
 }
 
-export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack }: ScheduleTabProps) {
+export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: ScheduleTabProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -70,7 +69,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack 
         </button>
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">My Schedule</h1>
-          <p className="text-muted-foreground text-sm">Your calendar, upcoming jobs & working hours</p>
+          <p className="text-muted-foreground text-sm">Your calendar and upcoming jobs</p>
         </div>
       </div>
 
@@ -147,14 +146,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack 
           )}
         </>
       )}
-
-
-      {/* Availability section */}
-      <div className="border-t border-border pt-6">
-        <h2 className="text-lg font-display font-bold text-foreground mb-1">Working Hours</h2>
-        <p className="text-muted-foreground text-xs mb-4">Set your weekly availability so customers know when you're free</p>
-        <HelperAvailability userId={userId} />
-      </div>
     </div>
   );
 }

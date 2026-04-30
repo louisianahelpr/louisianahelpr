@@ -205,7 +205,7 @@ const AvailabilityContent = ({
           ) : (
             <button
               type="button"
-              onClick={() => navigate("/schedule?tab=availability")}
+              onClick={() => navigate("/availability")}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
             >
               Set your hours in Schedule

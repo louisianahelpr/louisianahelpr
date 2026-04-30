@@ -35,6 +35,7 @@ const Index = lazy(() => import("./pages/Index"));
 
 // Lazy load all other pages
 const Schedule = lazy(() => import("./pages/Schedule"));
+const Availability = lazy(() => import("./pages/Availability"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SignupPending = lazy(() => import("./pages/SignupPending"));
@@ -151,6 +152,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
       
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+      <Route path="/availability" element={<ProtectedRoute><Availability /></ProtectedRoute>} />
       <Route path="/saved-helpers" element={<ProtectedRoute><SavedHelpers /></ProtectedRoute>} />
       <Route path="/for-business" element={<PageTransition><ForBusiness /></PageTransition>} />
       <Route path="/business/team" element={<ProtectedRoute><BusinessTeam /></ProtectedRoute>} />

@@ -75,7 +75,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [user?.id]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/admin", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers"];
   const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
@@ -98,7 +98,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const tabStacks: Record<string, string[]> = {
     "/dashboard": ["/jobs"],
     "/my-posts": ["/activity", "/post-job"],
-    "/my-jobs": ["/job-history", "/earnings", "/schedule"],
+    "/my-jobs": ["/job-history", "/earnings", "/schedule", "/availability"],
     "/messages": [],
     "/profile": ["/support", "/user", "/admin"],
   };

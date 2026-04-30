@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, DollarSign, LogOut, MapPin,
   CreditCard, Shield, FileText, Mail, Lock, Upload, X,
-  Star, Edit, CalendarDays, Gavel,
+  Star, Edit, CalendarDays, Clock, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
   ShieldCheck, Trash2,
@@ -38,6 +38,7 @@ const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab"
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 import { EarningsTab } from "@/components/profile/EarningsTab";
 import { ScheduleTab } from "@/components/profile/ScheduleTab";
+import { AvailabilityTab } from "@/components/profile/AvailabilityTab";
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
@@ -51,7 +52,7 @@ const TabFallback = () => (
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials";
 
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
@@ -491,7 +492,8 @@ const ProfilePage = () => {
       title: "Account",
       items: [
         { key: "credentials", label: "Licensed & Insured", icon: <ShieldCheck className="w-5 h-5" />, desc: "Add your license and insurance" },
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & availability" },
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar and upcoming jobs" },
+        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Set your weekly working hours" },
         { key: "landing" as Tab, label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
       ],
@@ -856,6 +858,12 @@ const ProfilePage = () => {
           {tab === "schedule" && user && (
             <Suspense fallback={<TabFallback />}>
               <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
+            </Suspense>
+          )}
+
+          {tab === "availability" && user && (
+            <Suspense fallback={<TabFallback />}>
+              <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
             </Suspense>
           )}
 

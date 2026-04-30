@@ -411,12 +411,14 @@ const JobFilters = ({
 
         <Section
           icon={MapPin}
-          label="Place"
-          badge={locationFilter ? "Set" : null}
+          label="Nearby"
+          badge={nearbyMi ? `${nearbyMi} mi` : null}
         >
-          <LocationBudgetContent
+          <NearbyContent
             locationFilter={locationFilter}
             setLocationFilter={setLocationFilter}
+            status={userLocStatus}
+            message={userLocMessage}
           />
         </Section>
 

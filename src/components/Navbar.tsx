@@ -53,6 +53,10 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           <img
             src={helprIcon}
             alt="Helpr"
+            width={36}
+            height={36}
+            fetchPriority="high"
+            decoding="async"
             className="w-9 h-9 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
           />
           <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">

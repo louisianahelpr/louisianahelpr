@@ -112,9 +112,8 @@ const Section = ({
 
 export function LegalTab({ onBack }: { onBack: () => void }) {
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+    <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
+      <div className="flex items-center gap-3 shrink-0">
         <button
           onClick={onBack}
           className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
@@ -124,6 +123,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
       </div>
 
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
       {/* Sticky Quick Access chip bar */}
       <div className="sticky top-0 z-10 -mx-1 px-1 py-1 bg-background/80 backdrop-blur-md">
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">

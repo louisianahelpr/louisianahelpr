@@ -97,6 +97,7 @@ const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +112,7 @@ const NotificationPreferences = () => {
         .single();
       if (cancelled) return;
       if (data) setPrefs({ ...defaultPrefs, ...(data as any) });
+      setLoaded(true);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -184,15 +186,17 @@ const NotificationPreferences = () => {
                   <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-6 shrink-0 ml-3">
+              <div className={`flex items-center gap-6 shrink-0 ml-3 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
                 <Switch
                   checked={prefs[item.key]}
                   onCheckedChange={() => toggle(item.key)}
+                  disabled={!loaded}
                   aria-label={`${item.label} in-app`}
                 />
                 <Switch
                   checked={prefs[item.emailKey]}
                   onCheckedChange={() => toggle(item.emailKey)}
+                  disabled={!loaded}
                   aria-label={`${item.label} email`}
                 />
               </div>
@@ -216,7 +220,9 @@ const NotificationPreferences = () => {
           <Switch
             checked={prefs.push_enabled}
             onCheckedChange={() => toggle("push_enabled")}
+            disabled={!loaded}
             aria-label="Push notifications"
+            className={`transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
           />
         </div>
       </div>

@@ -35,6 +35,7 @@ const Index = lazy(() => import("./pages/Index"));
 
 // Lazy load all other pages
 const Schedule = lazy(() => import("./pages/Schedule"));
+const Availability = lazy(() => import("./pages/Availability"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SignupPending = lazy(() => import("./pages/SignupPending"));

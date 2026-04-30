@@ -97,6 +97,7 @@ const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +112,7 @@ const NotificationPreferences = () => {
         .single();
       if (cancelled) return;
       if (data) setPrefs({ ...defaultPrefs, ...(data as any) });
+      setLoaded(true);
     })();
     return () => { cancelled = true; };
   }, []);

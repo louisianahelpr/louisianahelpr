@@ -378,22 +378,13 @@ const Dashboard = () => {
                 {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
               </h1>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <Button
-                onClick={() => navigate("/post-job")}
-                size="sm"
-                className="sm:hidden h-6 text-[11px] px-2 squircle rounded-lg bg-gradient-to-r from-primary to-primary/85 shadow-sm gap-1"
-              >
-                <Briefcase className="w-3 h-3" /> Post
-              </Button>
-              <button
-                onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
-                className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                aria-label="Dismiss greeting"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
+            <button
+              onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 shrink-0"
+              aria-label="Dismiss greeting"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </motion.div>
           )}
 
@@ -402,7 +393,7 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col"
+            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col mb-3"
           >
             {/* Header row */}
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
@@ -582,27 +573,10 @@ const Dashboard = () => {
                       : "New jobs are posted every day across Louisiana. Pick a path below to get moving."}
                   </p>
                 </div>
-                {filters.hasFilters ? (
+                {filters.hasFilters && (
                   <Button variant="outline" onClick={filters.clearFilters} className="squircle rounded-2xl">
                     Clear filters
                   </Button>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-3 max-w-md mx-auto pt-2">
-                    <button
-                      onClick={() => navigate("/post-job")}
-                      className="squircle rounded-[20px] bg-primary text-primary-foreground px-5 py-4 text-left shadow-[0_10px_30px_-10px_hsl(158_67%_37%/0.55)] hover:shadow-[0_14px_36px_-10px_hsl(158_67%_37%/0.65)] transition-all active:scale-[0.98]"
-                    >
-                      <div className="text-xs font-semibold opacity-80 mb-0.5">Need help?</div>
-                      <div className="text-base font-display font-bold leading-tight">Post a task →</div>
-                    </button>
-                    <button
-                      onClick={() => filters.setSearchQuery("")}
-                      className="squircle rounded-[20px] border-2 border-primary/30 bg-white/40 backdrop-blur px-5 py-4 text-left text-foreground hover:border-primary/60 hover:bg-white/60 transition-all active:scale-[0.98]"
-                    >
-                      <div className="text-xs font-semibold text-muted-foreground mb-0.5">Looking for work?</div>
-                      <div className="text-base font-display font-bold text-primary leading-tight">Browse nearby →</div>
-                    </button>
-                  </div>
                 )}
               </div>
             ) : (() => {

@@ -128,7 +128,7 @@ const LocationBudgetContent = ({
   <div>
     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Location</p>
     <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
+      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70 z-10 pointer-events-none" aria-hidden="true" />
       <Input
         placeholder="City"
         value={locationFilter}

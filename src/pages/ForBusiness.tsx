@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft,
   ArrowRight,
   Building2,
   CheckCircle2,
@@ -9,6 +8,8 @@ import {
   Users,
   CreditCard,
 } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ForBusiness = () => {

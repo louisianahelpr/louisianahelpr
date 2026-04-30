@@ -46,6 +46,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
       <PopoverContent
         align="end"
         sideOffset={8}
+        data-allow-scroll="true"
         className="w-[300px] rounded-2xl p-4 space-y-4"
       >
         {/* Start / End segmented tabs */}

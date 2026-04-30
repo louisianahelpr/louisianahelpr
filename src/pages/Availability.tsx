@@ -40,9 +40,9 @@ const Availability = () => {
   }, [navigate]);
 
   return (
-    <div className="h-auto max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
-      <main className="shrink-0 overflow-hidden pt-[env(safe-area-inset-top)]">
-        <div className="max-w-3xl mx-auto flex flex-col px-3 pt-2 pb-0 overflow-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
+        <div className="max-w-3xl w-full mx-auto flex-1 min-h-0 flex flex-col px-3 pt-2 pb-0 overflow-hidden">
           <div className="flex items-center gap-2 shrink-0 mb-1">
             <Button
               variant="ghost"
@@ -60,7 +60,7 @@ const Availability = () => {
             Set your weekly hours so posters can match jobs to days you're free.
           </p>
 
-          <div className="shrink-0 rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex-1 min-h-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
             {loading || !userId ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

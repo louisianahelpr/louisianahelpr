@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
+import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -23,6 +25,9 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   const [expiresWithin, setExpiresWithin] = useState("");
   const [matchAvailability, setMatchAvailability] = useState(false);
 
+  const nearbyMiles = parseNearbyFilter(locationFilter);
+  const userLoc = useUserLocation(nearbyMiles !== null);
+
   const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
 
@@ -44,7 +49,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       }
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
-      if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+      if (nearbyMiles !== null && userLoc.status === "ready") {
+        const jLat = (job as any).latitude;
+        const jLng = (job as any).longitude;
+        if (typeof jLat !== "number" || typeof jLng !== "number") return false;
+        const dist = haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng);
+        if (dist > nearbyMiles) return false;
+      }
       if (expiresWithin && job.expires_at) {
         const hoursLeft = (new Date(job.expires_at).getTime() - Date.now()) / (1000 * 60 * 60);
         if (expiresWithin === "24h" && hoursLeft > 24) return false;
@@ -90,7 +101,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, expiresWithin, profile?.role, helprTier, matchAvailability, helperAvailability, sortBy]);
+    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, profile?.role, helprTier, matchAvailability, helperAvailability, sortBy]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
@@ -111,5 +122,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     matchAvailability, setMatchAvailability,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs,
+    userLoc, nearbyMiles,
   };
 }

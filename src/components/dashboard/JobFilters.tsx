@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -10,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  X, MapPin, DollarSign, Clock, ChevronDown,
+  X, MapPin, Clock, ChevronDown,
   Sparkles, Leaf, Truck, ShoppingBag, Wrench, Paintbrush,
   Package, PawPrint, Hammer, MoreHorizontal, ArrowUpRight,
   ArrowUpDown, LayoutGrid, CalendarClock, CalendarRange,
@@ -49,6 +48,8 @@ interface JobFiltersProps {
   matchAvailability: boolean;
   setMatchAvailability: (v: boolean) => void;
   hasAvailability: boolean;
+  userLocStatus?: "idle" | "loading" | "ready" | "error";
+  userLocMessage?: string;
 }
 
 const chipBase =
@@ -120,24 +121,48 @@ const CategoryContent = ({
   </div>
 );
 
-const LocationBudgetContent = ({
-  locationFilter, setLocationFilter,
+const radiusOptions = [5, 10, 25, 50];
+
+const NearbyContent = ({
+  locationFilter, setLocationFilter, status, message,
 }: {
-  locationFilter: string; setLocationFilter: (v: string) => void;
-}) => (
-  <div>
-    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Location</p>
-    <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70 z-10 pointer-events-none" aria-hidden="true" />
-      <Input
-        placeholder="City"
-        value={locationFilter}
-        onChange={(e) => setLocationFilter(e.target.value)}
-        className="pl-9 h-10 text-sm rounded-xl squircle border-border bg-white/80 dark:bg-card/80 placeholder:text-muted-foreground/80 focus:bg-background focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all"
-      />
+  locationFilter: string;
+  setLocationFilter: (v: string) => void;
+  status?: "idle" | "loading" | "ready" | "error";
+  message?: string;
+}) => {
+  const current = locationFilter.startsWith("nearby:") ? parseFloat(locationFilter.slice(7)) : null;
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Nearby radius</p>
+      <div className="flex flex-wrap gap-1.5">
+        {radiusOptions.map((mi) => {
+          const active = current === mi;
+          return (
+            <button
+              key={mi}
+              type="button"
+              onClick={() => setLocationFilter(active ? "" : `nearby:${mi}`)}
+              className={`${chipBase} ${active ? chipActive : chipIdle}`}
+            >
+              <MapPin className={`w-3.5 h-3.5 ${active ? "" : "text-primary"}`} strokeWidth={2.25} />
+              {mi} mi
+            </button>
+          );
+        })}
+      </div>
+      {current !== null && status === "loading" && (
+        <p className="text-[11px] text-muted-foreground mt-2">Getting your location…</p>
+      )}
+      {current !== null && status === "error" && (
+        <p className="text-[11px] text-destructive mt-2">{message || "Couldn't get your location"}</p>
+      )}
+      {current !== null && status === "ready" && (
+        <p className="text-[11px] text-muted-foreground mt-2">Showing jobs within {current} miles of you</p>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const ExpiresContent = ({
   expiresWithin, setExpiresWithin,
@@ -287,6 +312,7 @@ const JobFilters = ({
   sortBy, setSortBy, filtersOpen: _filtersOpen, setFiltersOpen: _setFiltersOpen,
   expiresWithin, setExpiresWithin,
   matchAvailability, setMatchAvailability, hasAvailability,
+  userLocStatus, userLocMessage,
 }: JobFiltersProps) => {
   const activeFilterCount = [
     selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "",
@@ -307,7 +333,8 @@ const JobFilters = ({
   const expiresLabel = expiresWithin
     ? expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "Expires"
     : "Expires";
-  const placeBudgetLabel = locationFilter || "Place";
+  const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
+  const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
 
   return (
     <div className={`overflow-hidden ${surfaceGradient}`}>
@@ -328,9 +355,11 @@ const JobFilters = ({
           </MobileDropdown>
 
           <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
-            <LocationBudgetContent
+            <NearbyContent
               locationFilter={locationFilter}
               setLocationFilter={setLocationFilter}
+              status={userLocStatus}
+              message={userLocMessage}
             />
           </MobileDropdown>
 
@@ -381,12 +410,14 @@ const JobFilters = ({
 
         <Section
           icon={MapPin}
-          label="Place"
-          badge={locationFilter ? "Set" : null}
+          label="Nearby"
+          badge={nearbyMi ? `${nearbyMi} mi` : null}
         >
-          <LocationBudgetContent
+          <NearbyContent
             locationFilter={locationFilter}
             setLocationFilter={setLocationFilter}
+            status={userLocStatus}
+            message={userLocMessage}
           />
         </Section>
 

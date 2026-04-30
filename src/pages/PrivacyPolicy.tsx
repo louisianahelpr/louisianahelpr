@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
 import { useEffect } from "react";
-import PageHeader from "@/components/PageHeader";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const PrivacyPolicy = () => {
 
@@ -12,10 +13,14 @@ const PrivacyPolicy = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Privacy Policy" />
+      <Navbar />
+      <div className="h-[88px]" aria-hidden />
 
       <main className="container mx-auto px-5 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            Privacy Policy
+          </h1>
           <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 
           <section className="space-y-4">
@@ -94,6 +99,7 @@ const PrivacyPolicy = () => {
           </p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

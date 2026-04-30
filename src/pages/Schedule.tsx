@@ -42,37 +42,48 @@ const Schedule = () => {
   const assignedJobs = data?.assigned ?? [];
   const loading = isLoading && !data;
 
-  const allJobs = [...postedJobs, ...assignedJobs];
-  const jobsByDate = new Map<string, Job[]>();
-  allJobs.forEach((j) => {
-    const key = j.date_needed;
-    if (!jobsByDate.has(key)) jobsByDate.set(key, []);
-    jobsByDate.get(key)!.push(j);
-  });
+  const postedIds = useMemo(() => new Set(postedJobs.map((j) => j.id)), [postedJobs]);
 
-  // Calendar helpers
+  const jobsByDate = useMemo(() => {
+    const map = new Map<string, Job[]>();
+    for (const j of postedJobs) {
+      const arr = map.get(j.date_needed);
+      if (arr) arr.push(j); else map.set(j.date_needed, [j]);
+    }
+    for (const j of assignedJobs) {
+      const arr = map.get(j.date_needed);
+      if (arr) arr.push(j); else map.set(j.date_needed, [j]);
+    }
+    return map;
+  }, [postedJobs, assignedJobs]);
+
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split("T")[0];
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
-  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
+  const prevMonth = useCallback(() => setCurrentMonth(new Date(year, month - 1, 1)), [year, month]);
+  const nextMonth = useCallback(() => setCurrentMonth(new Date(year, month + 1, 1)), [year, month]);
 
-  const days: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) days.push(null);
-  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+  const days = useMemo(() => {
+    const arr: (number | null)[] = [];
+    for (let i = 0; i < firstDay; i++) arr.push(null);
+    for (let i = 1; i <= daysInMonth; i++) arr.push(i);
+    return arr;
+  }, [firstDay, daysInMonth]);
 
   const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   const selectedJobs = selectedDate ? (jobsByDate.get(selectedDate) || []) : [];
 
-  // Upcoming jobs (next 14 days)
-  const upcomingJobs = allJobs
-    .filter((j) => j.date_needed >= today)
-    .sort((a, b) => a.date_needed.localeCompare(b.date_needed))
-    .slice(0, 10);
+  const upcomingJobs = useMemo(() => {
+    const all = [...postedJobs, ...assignedJobs];
+    return all
+      .filter((j) => j.date_needed >= today)
+      .sort((a, b) => a.date_needed.localeCompare(b.date_needed))
+      .slice(0, 10);
+  }, [postedJobs, assignedJobs, today]);
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">

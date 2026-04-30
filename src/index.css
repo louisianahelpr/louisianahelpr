@@ -398,6 +398,10 @@ html.app-shell main.app-shell-scroll {
   overscroll-behavior: contain;
 }
 
+html.availability-screen-lock main.app-shell-scroll {
+  overflow: hidden;
+}
+
 /* ---------------------------------------------------------------------
    2026 Squircle (superellipse) corners.
    Progressive enhancement — uses the new CSS `corner-shape` property

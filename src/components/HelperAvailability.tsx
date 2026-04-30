@@ -106,7 +106,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   if (compact) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-2">
           {DAYS.map((day, i) => {
             const slot = slots[i];
             const off = !slot.is_available;

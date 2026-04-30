@@ -512,7 +512,10 @@ const Dashboard = () => {
                 )}
                 {filters.locationFilter && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
-                    <MapPin className="w-3 h-3" />{filters.locationFilter}
+                    <MapPin className="w-3 h-3" />
+                    {filters.locationFilter.startsWith("nearby:")
+                      ? `Within ${filters.locationFilter.slice(7)} mi`
+                      : filters.locationFilter}
                     <button onClick={() => filters.setLocationFilter("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}

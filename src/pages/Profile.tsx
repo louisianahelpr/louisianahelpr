@@ -749,17 +749,7 @@ const ProfilePage = () => {
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{`${firstName} ${lastName}`.trim() || "Your name"}</p>
                         <p className="text-[11px] text-muted-foreground">Tap photo to change</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label htmlFor="firstName" className="text-[11px] mb-1">First name</Label>
-                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-10" />
-                      </div>
-                      <div>
-                        <Label htmlFor="lastName" className="text-[11px] mb-1">Last name</Label>
-                        <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-10" />
+                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">Name can't be changed. Contact support if needed.</p>
                       </div>
                     </div>
 
@@ -827,7 +817,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+                  <div className="shrink-0 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)" }}>
                     <button
                       type="submit"
                       disabled={saving || justSaved}

@@ -29,7 +29,7 @@ import { SavedSearches } from "@/components/SavedSearches";
 
 import PayoutSetupDialog from "@/components/PayoutSetupDialog";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
-import { VirtualList } from "@/components/VirtualList";
+
 
 import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -354,12 +354,12 @@ const Dashboard = () => {
 
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="h-[100dvh] bg-premium-page pb-safe-nav flex flex-col overflow-hidden">
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 
-      <main className="container mx-auto px-5 py-5">
-        <div className="max-w-3xl mx-auto space-y-5">
+      <main className="container mx-auto px-5 py-3 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="max-w-3xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
 
           <BroadcastBanner />
           <PushNotificationPrompt />
@@ -398,72 +398,14 @@ const Dashboard = () => {
           )}
 
 
-          {/* Jobs Near You */}
-          {filters.nearbyJobs.length > 0 && !filters.hasFilters && (
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-              className="space-y-3"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400/20 to-sky-500/10 flex items-center justify-center shadow-sm">
-                  <MapPin className="w-4 h-4 text-sky-600" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Jobs Near You</h2>
-                  <span className="text-[10px] text-muted-foreground">{profile?.location}</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {filters.nearbyJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                ))}
-              </div>
-              {filters.nearbyJobs.length > 3 && (
-                <button onClick={() => filters.setLocationFilter(profile?.location || "")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
-                  View all {filters.nearbyJobs.length} nearby jobs →
-                </button>
-              )}
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            </motion.section>
-          )}
-
-          {/* Recommended for You */}
-          {recommendedJobs.length > 0 && !filters.hasFilters && (
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-              className="space-y-3"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center shadow-sm">
-                  <Star className="w-4 h-4 text-accent fill-accent" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">Recommended for You</h2>
-                  <span className="text-[10px] text-muted-foreground">based on your skills</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {recommendedJobs.filter(j => !dismissedJobIds.has(j.id)).slice(0, 3).map((job, i) => (
-                  <SwipeableJobCard key={job.id} job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                ))}
-              </div>
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            </motion.section>
-          )}
-
-          {/* All Tasks section */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden"
+            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col"
           >
             {/* Header row */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
                   <Briefcase className="w-4 h-4 text-primary" />
@@ -612,6 +554,7 @@ const Dashboard = () => {
               </div>
             )}
 
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
               <div className="glass-card squircle rounded-[24px] py-12 px-6 text-center space-y-6">
@@ -676,18 +619,13 @@ const Dashboard = () => {
                 });
               return (
                 <>
-                  <VirtualList
-                    items={visibleJobs}
-                    getKey={(job) => job.id}
-                    estimateSize={220}
-                    overscan={4}
-                    className="divide-y divide-border/30"
-                    renderItem={(job, i) => (
-                      <div className="px-3 py-2.5">
+                  <div className="divide-y divide-border/30">
+                    {visibleJobs.map((job, i) => (
+                      <div key={job.id} className="px-3 py-2.5">
                         <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                       </div>
-                    )}
-                  />
+                    ))}
+                  </div>
                   {/* Infinite scroll sentinel + manual fallback */}
                   {hasNextPage && (
                     <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">
@@ -716,6 +654,7 @@ const Dashboard = () => {
                 </>
               );
             })()}
+            </div>
           </motion.section>
         </div>
       </main>

@@ -6,20 +6,13 @@ import { formatTime12 } from "@/components/TimePickerSelect";
 import { cn } from "@/lib/utils";
 
 interface TimeRangeFieldProps {
-  start: string; // "HH:mm" 24h
-  end: string;   // "HH:mm" 24h
+  start: string;
+  end: string;
   onChange: (next: { start: string; end: string }) => void;
   disabled?: boolean;
   className?: string;
 }
 
-/**
- * iOS-native style time-range pill. Tapping it opens a popover with two
- * wheel pickers (Start / End) and a chunky AM/PM segmented toggle.
- *
- * Stores values as the existing `HH:mm` 24h strings so it slots straight
- * into the helper_availability table without a migration.
- */
 export function TimeRangeField({ start, end, onChange, disabled, className }: TimeRangeFieldProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"start" | "end">("start");
@@ -47,9 +40,12 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         align="end"
         sideOffset={8}
         data-allow-scroll="true"
-        className="w-[300px] rounded-2xl p-4 space-y-4"
+        onWheelCapture={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
+        onTouchMoveCapture={(event) => event.stopPropagation()}
+        onTouchMove={(event) => event.stopPropagation()}
+        className="w-[300px] rounded-2xl p-4 space-y-4 touch-pan-y"
       >
-        {/* Start / End segmented tabs */}
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
           {(["start", "end"] as const).map((t) => (
             <button

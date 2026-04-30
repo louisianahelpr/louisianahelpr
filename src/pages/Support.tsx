@@ -9,11 +9,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, Send, CheckCircle2,
-  Mail, Clock, FileText, Shield, ArrowLeft, Search, Upload, X,
+  Mail, Clock, FileText, Shield, Search, Upload, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 type Category = "message" | "suggestion" | "report" | "help";
 
@@ -107,27 +109,19 @@ const SupportPage = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <Navbar />
+      <div className="h-[88px]" aria-hidden />
       <main className="container mx-auto px-5 pt-6 pb-6">
         <div className="max-w-2xl mx-auto space-y-5">
 
-          {/* Inline back + title */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              aria-label="Go back"
-              className="h-9 w-9 shrink-0 rounded-xl -ml-2"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+          <div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
               Support & Help Center
             </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Find answers, get help, or contact our team
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground -mt-2">
-            Find answers, get help, or contact our team
-          </p>
 
           {/* Contact Us — compact */}
           <section className="rounded-2xl border border-border bg-card px-4 py-3">

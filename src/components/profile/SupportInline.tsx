@@ -208,73 +208,76 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
+    <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
+      <div className="flex items-center gap-3 shrink-0">
         <button
           onClick={onBack}
-          className="h-11 w-11 -ml-2 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-primary" /> Help & Support
-          </h1>
-          <p className="text-[15px] leading-relaxed text-muted-foreground">
-            {selected
-              ? `Sending as: ${selected.label}`
-              : "Pick a category to get started."}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-display font-bold text-foreground leading-tight">Help & Support</h1>
+          <p className="text-xs text-muted-foreground truncate">
+            {selected ? `Sending as: ${selected.label}` : "Pick a category to get started."}
           </p>
         </div>
       </div>
 
-      {/* Category picker — always visible. The active card uses a bold
-          primary border + soft tinted background so the user can see at a
-          glance which type of message they're about to send. */}
-      <div className="grid grid-cols-2 gap-3">
-        {supportCategories.map((c) => {
-          const isActive = category === c.key;
-          return (
+      {!selected ? (
+        <div className="grid grid-cols-2 gap-3 shrink-0">
+          {supportCategories.map((c) => (
             <button
               key={c.key}
               type="button"
               onClick={() => setCategory(c.key)}
-              aria-pressed={isActive}
-              className={`relative rounded-xl border-2 p-4 text-left transition-all active:scale-[0.98] ${
-                isActive
-                  ? "border-primary bg-primary/10 shadow-sm"
-                  : "border-border bg-card hover:border-primary/40"
-              }`}
+              className="relative rounded-xl border-2 border-border bg-card hover:border-primary/40 p-4 text-left transition-all active:scale-[0.98]"
             >
-              <div className={`mb-2 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                {c.icon}
-              </div>
+              <div className="mb-2 text-muted-foreground">{c.icon}</div>
               <p className="font-semibold text-sm text-foreground">{c.label}</p>
               <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
                 {c.description}
               </p>
-              {isActive && (
-                <span
-                  aria-hidden
-                  className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"
-                />
-              )}
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-2 shrink-0">
+          {supportCategories.map((c) => {
+            const isActive = category === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setCategory(c.key)}
+                aria-pressed={isActive}
+                className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 px-2 py-2 transition-all active:scale-[0.98] ${
+                  isActive
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                }`}
+              >
+                <div className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                  {c.icon}
+                </div>
+                <p className={`text-[11px] font-semibold leading-tight text-center ${isActive ? "text-foreground" : "text-foreground/80"}`}>
+                  {c.label}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Form — hidden until a category is selected. Slides + fades in so
-          the reveal feels native rather than a hard pop. */}
       {selected && (
         <form
           ref={formRef}
-          key={selected.key /* re-mount triggers the animation when switching categories */}
+          key={selected.key}
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-border bg-card p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
+          className="rounded-2xl border border-border bg-card p-4 flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto"
         >
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="support-subject" className="text-xs">
               Subject (optional)
             </Label>
@@ -284,10 +287,11 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Brief summary…"
               maxLength={120}
+              className="h-9"
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1 flex-1 min-h-0 flex flex-col">
             <Label htmlFor="support-message" className="text-xs">
               {selected.key === "suggestion"
                 ? "Your idea *"
@@ -302,14 +306,13 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={selected.messagePlaceholder}
-              rows={5}
               required
+              className="flex-1 min-h-[80px] resize-none"
             />
           </div>
 
-          {/* Screenshot upload — only rendered for the Report Issue flow. */}
           {selected.key === "report" && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="space-y-1.5 shrink-0">
               <Label className="text-xs">Screenshot (optional)</Label>
               <input
                 ref={fileInputRef}
@@ -323,7 +326,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                   <img
                     src={screenshotPreview}
                     alt="Screenshot preview"
-                    className="max-h-40 w-auto object-cover"
+                    className="max-h-24 w-auto object-cover"
                   />
                   <button
                     type="button"
@@ -338,22 +341,20 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full justify-center"
+                  className="w-full justify-center h-9"
                 >
                   <ImagePlus className="w-4 h-4 mr-2" />
                   Upload Screenshot
                 </Button>
               )}
-              <p className="text-[11px] text-muted-foreground">
-                A picture helps us reproduce the bug faster. PNG or JPG, up to 5MB.
-              </p>
             </div>
           )}
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full shrink-0"
             disabled={sending || uploadingScreenshot || !message.trim()}
           >
             {sending || uploadingScreenshot ? (

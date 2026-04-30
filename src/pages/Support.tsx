@@ -110,8 +110,8 @@ const SupportPage = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div className="h-[88px]" aria-hidden />
-      <main className="container mx-auto px-5 pt-6 pb-6">
+      <div className="h-[64px]" aria-hidden />
+      <main className="container mx-auto px-5 pt-3 pb-6">
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>

@@ -31,10 +31,6 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     toast.success("Referral code copied!");
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const shareLink = async () => {
-    if (!referralCode) return;
-    hapticLight();
     const url = `https://www.louisianahelpr.com/signup?ref=${referralCode}`;
     await nativeShare({
       title: "Join Helpr!",

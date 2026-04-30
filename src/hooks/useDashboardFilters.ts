@@ -49,7 +49,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       }
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
-      if (locationFilter && !job.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+      if (nearbyMiles !== null && userLoc.status === "ready") {
+        const jLat = (job as any).latitude;
+        const jLng = (job as any).longitude;
+        if (typeof jLat !== "number" || typeof jLng !== "number") return false;
+        const dist = haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng);
+        if (dist > nearbyMiles) return false;
+      }
       if (expiresWithin && job.expires_at) {
         const hoursLeft = (new Date(job.expires_at).getTime() - Date.now()) / (1000 * 60 * 60);
         if (expiresWithin === "24h" && hoursLeft > 24) return false;

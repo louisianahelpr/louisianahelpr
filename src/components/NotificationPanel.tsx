@@ -154,8 +154,8 @@ const NotificationPanel = () => {
       <SheetTrigger asChild>
         <NotificationTrigger unreadCount={unreadCount} />
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0">
-        <SheetHeader className="p-4 pb-3 border-b border-border">
+      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh]">
+        <SheetHeader className="p-4 pb-3 border-b border-border shrink-0">
           <SheetTitle className="font-display">Notifications</SheetTitle>
           <div className="flex items-center gap-2 pt-1">
             {pushSupported && !pushEnabled && (
@@ -170,7 +170,10 @@ const NotificationPanel = () => {
             )}
           </div>
         </SheetHeader>
-        <div className="overflow-y-auto max-h-[calc(100vh-5rem)]">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        >
           {notifications.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />

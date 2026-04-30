@@ -15,16 +15,7 @@ const ForBusiness = () => {
   usePageTitle("Helpr for Business — Louisiana Commercial Services");
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-premium-page">
-      {/* Ambient background orbs */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 -right-32 w-[520px] h-[520px] rounded-full bg-primary/15 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 -left-32 w-[480px] h-[480px] rounded-full bg-accent/20 blur-3xl"
-      />
+    <div className="relative min-h-screen bg-background">
 
       <div className="relative container mx-auto px-5 py-5 lg:py-7 max-w-6xl">
         <a

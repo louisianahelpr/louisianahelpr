@@ -194,6 +194,7 @@ const ForBusiness = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

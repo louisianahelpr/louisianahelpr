@@ -723,47 +723,47 @@ const ProfilePage = () => {
               if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
               return age >= 18;
             })();
-             return (
-              <div className="h-[calc(100dvh-8.5rem)] flex flex-col overflow-hidden">
-                <div className="flex items-center gap-3 shrink-0 mb-3">
+              return (
+              <div className="h-[calc(100dvh-env(safe-area-inset-top)-9.5rem)] flex flex-col overflow-hidden">
+                <div className="flex items-center gap-3 shrink-0 mb-2">
                   <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <h1 className="text-2xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
+                  <h1 className="text-xl font-display font-bold text-foreground leading-tight">Edit profile</h1>
                 </div>
 
                 <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4 pb-4">
+                  <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-2.5">
                     <div className="flex items-center gap-3">
                       <div className="relative group shrink-0">
                         {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary/20" />
+                          <img src={profile.avatar_url} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
                         ) : (
-                          <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-bold border-2 border-primary/20">
+                          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-bold border-2 border-primary/20">
                             {initials}
                           </div>
                         )}
                         <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                          {avatarUploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+                          {avatarUploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
                           <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
                         </label>
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{`${firstName} ${lastName}`.trim() || "Your name"}</p>
                         <p className="text-[11px] text-muted-foreground">Tap photo to change</p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">Name can't be changed. Contact support if needed.</p>
+                        <p className="text-[10px] text-muted-foreground/70">Name can't be changed. Contact support.</p>
                       </div>
                     </div>
 
                     <div>
                       <Label htmlFor="phone" className="text-[11px] mb-1">Phone</Label>
-                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+                      <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-9" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <Label htmlFor="location" className="text-[11px] mb-1">City</Label>
-                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-9" />
                       </div>
                       <div>
                         <Label htmlFor="zipCode" className="text-[11px] mb-1">ZIP</Label>
@@ -774,12 +774,12 @@ const ProfilePage = () => {
                           placeholder="70801"
                           inputMode="numeric"
                           maxLength={5}
-                          className="h-10"
+                          className="h-9"
                         />
                       </div>
                     </div>
 
-                    <div>
+                    <div className="flex-1 min-h-0 flex flex-col">
                       <Label htmlFor="bio" className="text-[11px] mb-1 flex items-center justify-between">
                         <span>About your work</span>
                         <span className={bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}>{bio.trim().length}/20</span>
@@ -789,22 +789,21 @@ const ProfilePage = () => {
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         placeholder="What you do, tools you bring, what makes you reliable…"
-                        rows={3}
-                        className="min-h-[72px]"
+                        className="flex-1 min-h-0 resize-none"
                       />
                     </div>
 
-                    <div className="rounded-xl border border-border bg-card/60 p-3 flex items-center gap-3">
-                      <Shield className="w-5 h-5 text-primary shrink-0" />
+                    <div className="rounded-xl border border-border bg-card/60 p-2.5 flex items-center gap-2.5 shrink-0">
+                      <Shield className="w-4 h-4 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                        <p className="text-[13px] font-semibold text-foreground flex items-center gap-2 flex-wrap">
                           ID Verification
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${idBadge.cls}`}>{idBadge.label}</span>
                         </p>
-                        <p className="text-[11px] text-muted-foreground leading-snug">Government ID. Encrypted &amp; reviewed by Helpr.</p>
+                        <p className="text-[10px] text-muted-foreground leading-snug">Encrypted &amp; reviewed by Helpr.</p>
                       </div>
                       <label className="shrink-0">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-3 h-9 rounded-xl bg-primary text-primary-foreground cursor-pointer hover:opacity-90">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-3 h-8 rounded-lg bg-primary text-primary-foreground cursor-pointer hover:opacity-90">
                           {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                           {hasId ? "Replace" : "Upload"}
                         </span>
@@ -819,7 +818,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)" }}>
+                  <div className="shrink-0 pt-3">
                     <button
                       type="submit"
                       disabled={saving || justSaved}

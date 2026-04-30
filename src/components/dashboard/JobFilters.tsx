@@ -307,10 +307,7 @@ const JobFilters = ({
   const expiresLabel = expiresWithin
     ? expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "Expires"
     : "Expires";
-  const placeBudgetLabel =
-    locationFilter || maxBudget
-      ? [locationFilter, maxBudget ? `≤$${maxBudget}` : ""].filter(Boolean).join(" · ")
-      : "Place & budget";
+  const placeBudgetLabel = locationFilter || "Place";
 
   return (
     <div className={`overflow-hidden ${surfaceGradient}`}>

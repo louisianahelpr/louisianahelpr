@@ -20,17 +20,17 @@ const ForBusiness = () => {
       <Navbar />
       <div className="h-[88px]" aria-hidden />
 
-      <div className="relative container mx-auto px-5 py-5 lg:py-7 max-w-6xl">
+      <div className="relative container mx-auto px-5 py-6 lg:py-8 max-w-7xl">
 
-        <div className="grid lg:grid-cols-5 gap-6 lg:gap-10 items-start">
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
-          <div className="lg:col-span-3 space-y-5">
+          <div className="lg:col-span-3 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] font-medium tracking-wide uppercase shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               For Business
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-display font-bold leading-[1.08] text-balance">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold leading-[1.05] text-balance">
               The best help for{" "}
               <span className="relative inline">
                 <span className="relative z-10 text-primary">Louisiana businesses.</span>

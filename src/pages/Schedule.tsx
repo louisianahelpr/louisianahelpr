@@ -80,101 +80,94 @@ const Schedule = () => {
 
       <main className="container mx-auto px-5 py-6">
         <div className="max-w-3xl mx-auto space-y-6">
-
-          {loading ? (
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-card p-4 h-72 animate-pulse bg-muted/30" />
-              <div className="rounded-xl border border-border bg-card p-4 h-20 animate-pulse bg-muted/30" />
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-4">
+              <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}><ChevronLeft className="w-4 h-4" /></Button>
+              <h2 className="font-display font-semibold text-foreground">
+                {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </h2>
+              <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}><ChevronRight className="w-4 h-4" /></Button>
             </div>
-          ) : (
-            <>
-              {/* Calendar */}
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-                  <h2 className="font-display font-semibold text-foreground">
-                    {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                  </h2>
-                  <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
-                </div>
 
-                <div className="grid grid-cols-7 gap-1 mb-1">
-                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                    <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {days.map((day, i) => {
-                    if (day === null) return <div key={`e-${i}`} />;
-                    const dateStr = getDateStr(day);
-                    const hasJobs = jobsByDate.has(dateStr);
-                    const isToday = dateStr === today;
-                    const isSelected = dateStr === selectedDate;
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((day, i) => {
+                if (day === null) return <div key={`e-${i}`} className="aspect-square" />;
+                const dateStr = getDateStr(day);
+                const hasJobs = !loading && jobsByDate.has(dateStr);
+                const isToday = dateStr === today;
+                const isSelected = dateStr === selectedDate;
 
-                    return (
-                      <button
-                        key={day}
-                        onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                        className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
-                          isSelected ? "bg-primary text-primary-foreground" :
-                          isToday ? "bg-primary/10 text-primary font-bold" :
-                          "hover:bg-secondary text-foreground"
-                        }`}
-                      >
-                        {day}
-                        {hasJobs && !isSelected && (
-                          <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
-                        )}
-                        {hasJobs && isSelected && (
-                          <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                return (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                    disabled={loading}
+                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
+                      isSelected ? "bg-primary text-primary-foreground" :
+                      isToday ? "bg-primary/10 text-primary font-bold" :
+                      "hover:bg-secondary text-foreground"
+                    }`}
+                  >
+                    {day}
+                    {hasJobs && !isSelected && (
+                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                    {hasJobs && isSelected && (
+                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-                {/* Legend */}
-                <div className="flex gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Jobs scheduled
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary/30" /> Today
-                  </span>
-                </div>
+            <div className="flex gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Jobs scheduled
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary/30" /> Today
+              </span>
+            </div>
+          </div>
+
+          <div className="min-h-[280px]">
+            {loading ? (
+              <div className="space-y-3">
+                <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
+                <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+                <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
               </div>
-
-              {/* Selected date jobs */}
-              {selectedDate && (
-                <div className="space-y-3">
-                  <h3 className="font-display font-semibold text-foreground">
-                    {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-                  </h3>
-                  {selectedJobs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
-                  ) : (
-                    selectedJobs.map((job) => (
-                      <JobScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
-                    ))
-                  )}
-                </div>
-              )}
-
-              {/* Upcoming */}
-              {!selectedDate && (
-                <div className="space-y-3">
-                  <h3 className="font-display font-semibold text-foreground">Upcoming</h3>
-                  {upcomingJobs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
-                  ) : (
-                    upcomingJobs.map((job) => (
-                      <JobScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
-                    ))
-                  )}
-                </div>
-              )}
-            </>
-          )}
+            ) : selectedDate ? (
+              <div className="space-y-3">
+                <h3 className="font-display font-semibold text-foreground">
+                  {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                </h3>
+                {selectedJobs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+                ) : (
+                  selectedJobs.map((job) => (
+                    <JobScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <h3 className="font-display font-semibold text-foreground">Upcoming</h3>
+                {upcomingJobs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
+                ) : (
+                  upcomingJobs.map((job) => (
+                    <JobScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

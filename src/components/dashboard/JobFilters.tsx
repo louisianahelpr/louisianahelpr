@@ -356,9 +356,11 @@ const JobFilters = ({
           </MobileDropdown>
 
           <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
-            <LocationBudgetContent
+            <NearbyContent
               locationFilter={locationFilter}
               setLocationFilter={setLocationFilter}
+              status={userLocStatus}
+              message={userLocMessage}
             />
           </MobileDropdown>
 

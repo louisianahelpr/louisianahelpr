@@ -14,9 +14,9 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div className="h-[64px]" aria-hidden />
+      <div className="h-14" aria-hidden />
 
-      <main className="container mx-auto px-5 pt-3 pb-8">
+      <main className="container mx-auto px-5 pt-2 pb-8">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-2">
             <BackButton to="/" />

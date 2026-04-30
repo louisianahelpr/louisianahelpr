@@ -40,17 +40,11 @@ interface WheelProps {
   disabled?: boolean;
 }
 
-/**
- * Snap-scrolling vertical wheel column. The middle slot (highlighted) is
- * the selected value — scroll snap + scrollend fire onChange. Falls back
- * to scroll-debounce for browsers without scrollend (older iOS WebKit).
- */
 function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastEmitted = useRef<string | null>(null);
 
-  // Sync external value → scroll position
   useEffect(() => {
     const el = ref.current;
     if (!el || value == null) return;
@@ -77,15 +71,15 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
 
   return (
     <div
+      data-allow-scroll="true"
       className={cn(
-        "relative flex-1 overflow-hidden rounded-2xl border border-input bg-background/70",
+        "relative flex-1 overflow-hidden rounded-2xl border border-input bg-background/70 touch-pan-y",
         disabled && "opacity-50 pointer-events-none",
       )}
       style={{ height: ITEM_HEIGHT * 3 }}
       role="listbox"
       aria-label={ariaLabel}
     >
-      {/* Middle selection band */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-2 rounded-xl bg-primary/10 border border-primary/20"
@@ -94,14 +88,15 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
       <div
         ref={ref}
         onScroll={handleScroll}
-        className="h-full overflow-y-scroll scroll-smooth no-scrollbar snap-y snap-mandatory"
+        data-allow-scroll="true"
+        className="h-full overflow-y-auto scroll-smooth no-scrollbar snap-y snap-mandatory overscroll-contain touch-pan-y"
         style={{
           scrollSnapType: "y mandatory",
           scrollPaddingTop: ITEM_HEIGHT,
           scrollPaddingBottom: ITEM_HEIGHT,
+          WebkitOverflowScrolling: "touch",
         }}
       >
-        {/* Top spacer */}
         <div style={{ height: ITEM_HEIGHT }} aria-hidden />
         {options.map((opt) => {
           const isActive = String(opt) === String(value);
@@ -120,7 +115,6 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
             </div>
           );
         })}
-        {/* Bottom spacer */}
         <div style={{ height: ITEM_HEIGHT }} aria-hidden />
       </div>
     </div>

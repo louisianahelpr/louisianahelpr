@@ -823,10 +823,10 @@ const ProfilePage = () => {
                       disabled={saving || justSaved}
                       className={`w-full h-12 rounded-2xl font-bold text-[15px] transition-all duration-200 active:scale-[0.98] disabled:active:scale-100 shadow-md ${
                         saving
-                          ? "bg-[#D3D3D3] text-white cursor-not-allowed"
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : justSaved
-                          ? "bg-[#2E7D32] text-white"
-                          : "bg-[#2E7D32] hover:bg-[#256628] text-white"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground"
                       }`}
                     >
                       {saving ? "Saving..." : justSaved ? "✓ Saved" : "Save Changes"}

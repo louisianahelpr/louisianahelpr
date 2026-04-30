@@ -98,7 +98,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   }
 
   return (
-    <div className="h-full flex flex-col gap-2 overflow-hidden">
+    <div className="h-full flex flex-col gap-2 overflow-hidden justify-start">
       <p className="text-[11px] text-muted-foreground leading-snug shrink-0">
         Invite friends — they enter your code at sign-up. When they complete their first job, <strong>you both earn $5</strong> (max 5 = $25).
       </p>
@@ -168,7 +168,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card p-2.5 flex-1 min-h-0 overflow-hidden">
+      <div className="rounded-xl border border-border bg-card p-2.5 shrink-0">
         <h3 className="text-[11px] font-semibold text-foreground mb-1.5">How it works</h3>
         <div className="space-y-1">
           {[

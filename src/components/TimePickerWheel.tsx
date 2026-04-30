@@ -152,7 +152,6 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
         />
       </div>
 
-      {/* AM/PM segmented toggle — chunky, easy thumb-tap */}
       <div className="grid grid-cols-2 gap-2 rounded-2xl border border-input bg-background/70 p-1">
         {(["AM", "PM"] as const).map((p) => {
           const active = hasValue ? parsed.period === p : false;

@@ -40,6 +40,7 @@ const PRESERVE_PATHS = [
   "/support",
   "/saved-helpers",
   "/schedule",
+  "/availability",
   "/user/",
   "/payment-success",
 ];

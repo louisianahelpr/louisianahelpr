@@ -106,8 +106,7 @@ const SavedHelpers = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0px) + 3.5rem)" }} />
-      <main className="container mx-auto px-5 pt-1 pb-6">
+      <main className="container mx-auto px-5 pt-16 pb-6">
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>

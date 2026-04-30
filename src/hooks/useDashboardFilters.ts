@@ -25,6 +25,9 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   const [expiresWithin, setExpiresWithin] = useState("");
   const [matchAvailability, setMatchAvailability] = useState(false);
 
+  const nearbyMiles = parseNearbyFilter(locationFilter);
+  const userLoc = useUserLocation(nearbyMiles !== null);
+
   const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
 

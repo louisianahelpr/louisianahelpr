@@ -86,10 +86,14 @@ const Schedule = () => {
   }, [postedJobs, assignedJobs, today]);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <PageHeader title="My Schedule" />
 
-      <main className="container mx-auto px-5 py-6">
+      <main
+        data-allow-scroll="true"
+        className="flex-1 min-h-0 overflow-y-auto container mx-auto px-5 py-6"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+      >
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm text-muted-foreground">Your calendar and upcoming jobs.</p>

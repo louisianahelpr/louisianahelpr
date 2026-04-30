@@ -212,6 +212,10 @@ export function PayoutSetupForm() {
         </>
       )}
 
+      {status?.connected && methodsLoading && methods.length === 0 && (
+        <div className="h-14 rounded-lg bg-muted/30 animate-pulse" />
+      )}
+
       {methods.length > 0 && (
         <div className="space-y-2">
           {methods.map((m) => (

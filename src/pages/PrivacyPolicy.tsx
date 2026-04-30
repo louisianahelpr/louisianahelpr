@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
 import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import BackButton from "@/components/BackButton";
 
 const PrivacyPolicy = () => {
@@ -103,7 +102,6 @@ const PrivacyPolicy = () => {
           </p>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

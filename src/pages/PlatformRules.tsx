@@ -5,7 +5,6 @@ import {
   Scale, CheckCircle, XCircle, Receipt
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import BackButton from "@/components/BackButton";
 
 const PlatformRules = () => {
@@ -566,7 +565,6 @@ const PlatformRules = () => {
           </p>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

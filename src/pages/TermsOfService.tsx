@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Crown, Scale, Receipt } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import BackButton from "@/components/BackButton";
 
 const TermsOfService = () => {
@@ -304,7 +303,6 @@ const TermsOfService = () => {
           </p>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

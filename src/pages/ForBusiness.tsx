@@ -9,7 +9,6 @@ import {
   CreditCard,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import BackButton from "@/components/BackButton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -198,7 +197,6 @@ const ForBusiness = () => {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

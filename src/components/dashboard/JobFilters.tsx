@@ -327,12 +327,10 @@ const JobFilters = ({
             />
           </MobileDropdown>
 
-          <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!(locationFilter || maxBudget)}>
+          <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
             <LocationBudgetContent
               locationFilter={locationFilter}
               setLocationFilter={setLocationFilter}
-              maxBudget={maxBudget}
-              setMaxBudget={setMaxBudget}
             />
           </MobileDropdown>
 

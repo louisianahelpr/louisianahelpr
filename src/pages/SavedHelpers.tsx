@@ -106,7 +106,7 @@ const SavedHelpers = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <main className="container mx-auto px-5 pt-16 pb-6">
+      <main className="container mx-auto px-5 pb-6" style={{ paddingTop: "calc(env(safe-area-inset-top) + 3.75rem)" }}>
         <div className="max-w-2xl mx-auto space-y-5">
 
           <div>

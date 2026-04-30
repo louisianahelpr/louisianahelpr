@@ -17,14 +17,10 @@ const ForBusiness = () => {
 
   return (
     <div className="relative min-h-screen bg-background">
+      <Navbar />
+      <div className="h-[88px]" aria-hidden />
 
       <div className="relative container mx-auto px-5 py-5 lg:py-7 max-w-6xl">
-        <a
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 lg:mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Helpr
-        </a>
 
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-10 items-start">
           {/* LEFT — Pitch (3 cols) */}

@@ -119,27 +119,27 @@ const NotificationPreferences = () => {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-end gap-5 px-3 py-1.5 border-b border-border bg-muted/30 relative">
-        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground absolute left-3 top-1.5" />}
-        <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          <Smartphone className="w-3 h-3" /> App
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="flex items-center justify-end gap-6 px-4 py-2.5 border-b border-border bg-muted/40 relative">
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-2.5" />}
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Smartphone className="w-3.5 h-3.5" /> App
         </div>
-        <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          <Mail className="w-3 h-3" /> Email
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Mail className="w-3.5 h-3.5" /> Email
         </div>
       </div>
 
       {rows.map((item) => (
         <div
           key={item.key}
-          className="flex items-center justify-between px-3 py-2 border-b border-border/40 last:border-b-0"
+          className="flex items-center justify-between px-4 py-3.5 border-b border-border/40 last:border-b-0"
         >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="text-primary shrink-0">{item.icon}</span>
-            <Label className="text-[13px] font-medium text-foreground truncate">{item.label}</Label>
+            <Label className="text-sm font-medium text-foreground truncate">{item.label}</Label>
           </div>
-          <div className={`flex items-center gap-5 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+          <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
             <Switch
               checked={prefs[item.key]}
               onCheckedChange={() => toggle(item.key)}
@@ -156,23 +156,23 @@ const NotificationPreferences = () => {
         </div>
       ))}
 
-      <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-t border-border">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Bell className="w-3.5 h-3.5 text-primary shrink-0" />
-          <Label className="text-[13px] font-medium text-foreground truncate">Browser Push</Label>
+      <div className="flex items-center justify-between px-4 py-3.5 bg-muted/30 border-t border-border">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Bell className="w-4 h-4 text-primary shrink-0" />
+          <Label className="text-sm font-medium text-foreground truncate">Browser Push</Label>
         </div>
         <Switch
           checked={prefs.push_enabled}
           onCheckedChange={() => toggle("push_enabled")}
           disabled={!loaded}
           aria-label="Push notifications"
-          className={`mr-[3.25rem] transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`mr-[3.75rem] transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       </div>
 
-      <div className="flex items-start gap-1.5 px-3 py-2 border-t border-border bg-muted/10">
-        <Lock className="w-3 h-3 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-[10px] text-muted-foreground leading-snug">
+      <div className="flex items-start gap-2 px-4 py-2.5 border-t border-border bg-muted/20">
+        <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-[11px] text-muted-foreground leading-snug">
           Critical security alerts (logins, disputes) cannot be disabled.
         </p>
       </div>

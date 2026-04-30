@@ -378,22 +378,13 @@ const Dashboard = () => {
                 {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
               </h1>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <Button
-                onClick={() => navigate("/post-job")}
-                size="sm"
-                className="sm:hidden h-6 text-[11px] px-2 squircle rounded-lg bg-gradient-to-r from-primary to-primary/85 shadow-sm gap-1"
-              >
-                <Briefcase className="w-3 h-3" /> Post
-              </Button>
-              <button
-                onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
-                className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                aria-label="Dismiss greeting"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
+            <button
+              onClick={() => { setShowGreeting(false); safeStorage.setItem("greeting_dismissed_at", Date.now().toString()); }}
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 shrink-0"
+              aria-label="Dismiss greeting"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </motion.div>
           )}
 

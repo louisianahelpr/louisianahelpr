@@ -121,7 +121,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
       </div>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
+      <div className="flex flex-col gap-2 shrink-0">
         {currentTier && !isExpired ? (
           <p className="text-[11px] text-muted-foreground">
             <span className="font-semibold capitalize text-foreground">{currentTier} plan</span>
@@ -144,7 +144,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               <button
                 key={opt.key}
                 onClick={() => setBillingInterval(opt.key)}
-                className={`px-2.5 h-7 rounded-full text-[11px] font-semibold transition-all border ${
+                className={`flex-1 px-2.5 h-7 rounded-full text-[11px] font-semibold transition-all border ${
                   active
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : "bg-card text-muted-foreground border-border hover:bg-secondary"

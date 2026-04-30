@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Heart, MapPin, Briefcase, Send, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import PageHeader from "@/components/PageHeader";
+import Navbar from "@/components/Navbar";
+import BackButton from "@/components/BackButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { formatName } from "@/lib/utils";
@@ -104,15 +105,22 @@ const SavedHelpers = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader
-        title="Saved Helprs"
-        onBack={() => navigate(-1)}
-        subtitle="Your favorite helprs. Send a job offer directly — they get a 24-hour window before your task opens to everyone."
-      />
+      <Navbar />
+      <div className="h-[64px]" aria-hidden />
+      <main className="container mx-auto px-5 pt-3 pb-6">
+        <div className="max-w-2xl mx-auto space-y-5">
 
-      <main className="mx-auto max-w-5xl px-5 pb-6 pt-2">
-        <div className="max-w-lg mx-auto space-y-4">
-
+          <div>
+            <div className="flex items-center gap-2">
+              <BackButton to="/profile" />
+              <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
+                Saved Helprs
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1 pl-12">
+              Your favorite helprs. Send a job offer directly — they get a 24-hour window before your task opens to everyone.
+            </p>
+          </div>
           {helpers.length > 0 && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -13,7 +13,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/terms",
   "/privacy",
   "/data-rights",
-  "/community",
+  
   "/rules",
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/browse", // guest dashboard preview

@@ -554,6 +554,7 @@ const Dashboard = () => {
               </div>
             )}
 
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
               <div className="glass-card squircle rounded-[24px] py-12 px-6 text-center space-y-6">

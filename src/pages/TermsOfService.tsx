@@ -3,6 +3,7 @@ import { FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Crown, Scale
 import { usePageTitle } from "@/hooks/usePageTitle";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BackButton from "@/components/BackButton";
 
 const TermsOfService = () => {
   usePageTitle("Terms & Policies — Helpr");
@@ -14,9 +15,12 @@ const TermsOfService = () => {
 
       <main className="mx-auto max-w-5xl px-5 pt-6 pb-8">
         <div className="max-w-2xl mx-auto space-y-8">
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-            Terms & Policies
-          </h1>
+          <div className="flex items-center gap-2">
+            <BackButton to="/" />
+            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+              Terms & Policies
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 
           {/* Terms of Use */}

@@ -3,6 +3,7 @@ import { Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
 import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BackButton from "@/components/BackButton";
 
 const PrivacyPolicy = () => {
 
@@ -18,9 +19,12 @@ const PrivacyPolicy = () => {
 
       <main className="container mx-auto px-5 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-            Privacy Policy
-          </h1>
+          <div className="flex items-center gap-2">
+            <BackButton to="/" />
+            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+              Privacy Policy
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 
           <section className="space-y-4">

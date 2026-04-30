@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BackButton from "@/components/BackButton";
 
 const PlatformRules = () => {
   usePageTitle("Platform Rules & Policies — Helpr");
@@ -15,9 +16,12 @@ const PlatformRules = () => {
       <Navbar />
       <div className="h-[88px]" aria-hidden />
       <div className="container mx-auto max-w-3xl px-5 py-8">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
-          Platform Rules & Pricing
-        </h1>
+        <div className="flex items-center gap-2 mb-3">
+          <BackButton to="/" />
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            Platform Rules & Pricing
+          </h1>
+        </div>
         <div className="space-y-2 mb-12">
           <p className="text-muted-foreground">
             These rules keep Helpr safe, fair, and reliable for everyone. By using Helpr, you agree to follow these policies.

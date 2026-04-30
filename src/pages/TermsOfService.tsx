@@ -1,17 +1,22 @@
 import { Link } from "react-router-dom";
 import { FileText, Shield, DollarSign, Users, AlertTriangle, Clock, Crown, Scale, Receipt } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import PageHeader from "@/components/PageHeader";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const TermsOfService = () => {
   usePageTitle("Terms & Policies — Helpr");
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Terms & Policies" />
+      <Navbar />
+      <div className="h-[88px]" aria-hidden />
 
-      <main className="mx-auto max-w-5xl px-5 pt-2 pb-8">
+      <main className="mx-auto max-w-5xl px-5 pt-6 pb-8">
         <div className="max-w-2xl mx-auto space-y-8">
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            Terms & Policies
+          </h1>
           <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
 
           {/* Terms of Use */}
@@ -295,6 +300,7 @@ const TermsOfService = () => {
           </p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

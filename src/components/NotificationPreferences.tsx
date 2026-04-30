@@ -151,7 +151,7 @@ const NotificationPreferences = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-6 px-4 pb-1 border-b border-border/40 relative">
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-0" />
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-0" />}
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <Smartphone className="w-3.5 h-3.5" />
           <span>In-App</span>

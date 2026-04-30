@@ -47,7 +47,7 @@ const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
 const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "social" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -91,7 +91,6 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
       { id: "notifications", label: "Notifications", icon: BellRing },
       { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
-      { id: "social", label: "Social Post", icon: TrendingUp },
       { id: "marketing", label: "Marketing", icon: Mail },
     ],
   },
@@ -314,7 +313,7 @@ const Admin = () => {
     notifications: "Notifications", notiflogs: "Notification Logs",
     reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
-    audit: "Audit Log", health: "Health", export: "Export", social: "Social Post",
+    audit: "Audit Log", health: "Health", export: "Export",
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
     credentials: "License & Insurance",
@@ -339,7 +338,6 @@ const Admin = () => {
       case "audit": return <AdminAuditLog />;
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
-      case "social": return <AdminSocialPost />;
       case "payouts": return <AdminPayoutBatches />;
       case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;

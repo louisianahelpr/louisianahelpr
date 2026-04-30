@@ -393,7 +393,7 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col mb-3"
+            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col"
           >
             {/* Header row */}
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">

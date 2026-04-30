@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import helprIcon from "@/assets/helpr-icon-96.png";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -255,8 +256,9 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="container mx-auto flex items-center justify-between h-16 px-4">
-            <span className="text-2xl font-display font-bold text-primary">Helpr</span>
+          <div className="container mx-auto flex items-center gap-2 h-16 px-4">
+            <img src={helprIcon} alt="Helpr" width={36} height={36} className="w-9 h-9 rounded-xl shadow-md" />
+            <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">Helpr</span>
           </div>
         </header>
         <main className="container mx-auto px-5 py-4">

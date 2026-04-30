@@ -220,7 +220,9 @@ const NotificationPreferences = () => {
           <Switch
             checked={prefs.push_enabled}
             onCheckedChange={() => toggle("push_enabled")}
+            disabled={!loaded}
             aria-label="Push notifications"
+            className={`transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
           />
         </div>
       </div>

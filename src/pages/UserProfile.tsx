@@ -400,7 +400,7 @@ const UserProfile = () => {
                       </div>
                       <span className="text-xs font-medium text-foreground">{r.reviewerName}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
+                    <span className="text-muted-foreground text-xs">{new Date(r.created_at).toLocaleDateString()}</span>
                   </div>
                   {(r.punctuality || r.quality || r.communication) && (
                     <div className="grid grid-cols-3 gap-2">

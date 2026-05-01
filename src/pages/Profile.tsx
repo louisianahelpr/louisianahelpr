@@ -562,7 +562,7 @@ const ProfilePage = () => {
                   </div>
                   {/* Identity + integrated stats, all stacked tight on the right */}
                   <div className="flex-1 min-w-0 text-left">
-                    <h1 className="text-[16px] font-display font-bold text-foreground truncate leading-tight">
+                    <h1 className="font-display font-bold text-foreground truncate leading-tight text-2xl">
                       {displayName || "Welcome back"}
                     </h1>
                     {profile?.location && (

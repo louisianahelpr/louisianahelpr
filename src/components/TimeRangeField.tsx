@@ -42,9 +42,9 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         data-allow-scroll="true"
         onWheelCapture={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
+        onTouchStartCapture={(event) => event.stopPropagation()}
         onTouchMoveCapture={(event) => event.stopPropagation()}
-        onTouchMove={(event) => event.stopPropagation()}
-        className="w-[300px] rounded-2xl p-4 space-y-4 touch-pan-y"
+        className="w-[300px] rounded-2xl p-4 space-y-4 touch-pan-y native-scroll-area"
       >
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
           {(["start", "end"] as const).map((t) => (

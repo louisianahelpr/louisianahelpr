@@ -68,7 +68,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
             </div>
             <div className="p-2.5">
               <p className="text-xs font-medium text-foreground truncate">{item.jobTitle}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {new Date(item.completedAt).toLocaleDateString()}
               </p>
             </div>

@@ -310,7 +310,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                       <span className="text-xs font-semibold text-foreground">Instant cash out</span>
                     </div>
                     <p className="text-base font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-[10px] text-muted-foreground">~30 min · 3% + $1 fee</p>
+                    <p className="text-muted-foreground text-xs">~30 min · 3% + $1 fee</p>
                   </div>
                   <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-xs gap-1.5 shrink-0">
                     <Zap className="w-3.5 h-3.5" /> Cash out

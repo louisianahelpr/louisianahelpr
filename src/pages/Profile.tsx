@@ -75,7 +75,7 @@ const ProfilePage = () => {
   const [justSaved, setJustSaved] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>("Account");
+  const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>("Money");
 
   // Sync tab to URL for bookmarkability and browser back
   useEffect(() => {

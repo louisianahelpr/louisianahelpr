@@ -1521,7 +1521,7 @@ const AdminUsers = () => {
                           <div className="rounded-xl bg-secondary/30 border border-border p-3">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
                             <p className="text-lg font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
-                            <p className="text-[10px] text-muted-foreground">{workedCompleted.length} completed</p>
+                            <p className="text-muted-foreground text-xs">{workedCompleted.length} completed</p>
                           </div>
                           <div className="rounded-xl bg-secondary/30 border border-border p-3">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>

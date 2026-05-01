@@ -449,7 +449,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-xs">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-sm font-bold text-primary">${job.budget}</span>

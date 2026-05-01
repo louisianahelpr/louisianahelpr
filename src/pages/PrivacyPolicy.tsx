@@ -14,17 +14,17 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
+      <div aria-hidden className="h-14" />
 
-      <main className="container mx-auto px-5 pt-2 pb-8">
-        <div className="max-w-2xl mx-auto space-y-8">
+      <main className="container mx-auto px-5 pt-1 pb-8">
+        <div className="max-w-2xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
             <BackButton to="/profile?tab=legal" />
-            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            <h1 className="text-page-title text-foreground">
               Privacy Policy
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
+          <p className="text-[11px] text-muted-foreground pl-12">Last updated: March 2026</p>
 
           <section className="space-y-4">
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">

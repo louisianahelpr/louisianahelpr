@@ -201,6 +201,7 @@ export default defineConfig(({ mode }) => ({
       "react/jsx-runtime",
       "react/jsx-dev-runtime",
     ],
+    exclude: ["@capacitor-community/in-app-review"],
   },
   // Strip console + debugger from production bundles. Keeps bundle slim
   // and avoids leaking debug info in App Store builds.

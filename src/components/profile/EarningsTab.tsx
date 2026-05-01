@@ -352,7 +352,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <span className="text-muted-foreground text-xs uppercase tracking-wide">Active</span>
               </div>
               <p className="text-base font-bold text-foreground leading-tight">{inProgressJobs.length}</p>
-              <p className="text-[10px] text-muted-foreground">in progress</p>
+              <p className="text-muted-foreground text-xs">in progress</p>
             </div>
           </div>
         )}

@@ -119,9 +119,9 @@ const NotificationPreferences = () => {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-      <div className="flex items-center justify-end gap-6 px-4 py-2.5 border-b border-border bg-muted/40 relative">
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-2.5" />}
+    <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card overflow-hidden shadow-sm flex flex-col">
+      <div className="flex items-center justify-end gap-6 px-4 py-2 border-b border-border bg-muted/40 relative shrink-0">
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-2" />}
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Smartphone className="w-3.5 h-3.5" /> App
         </div>
@@ -133,7 +133,7 @@ const NotificationPreferences = () => {
       {rows.map((item) => (
         <div
           key={item.key}
-          className="flex items-center justify-between px-4 py-3.5 border-b border-border/40 last:border-b-0"
+          className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 last:border-b-0 shrink-0"
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="text-primary shrink-0">{item.icon}</span>
@@ -156,7 +156,7 @@ const NotificationPreferences = () => {
         </div>
       ))}
 
-      <div className="flex items-center justify-between px-4 py-3.5 bg-muted/30 border-t border-border">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-t border-border shrink-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Bell className="w-4 h-4 text-primary shrink-0" />
           <Label className="text-sm font-medium text-foreground truncate">Browser Push</Label>
@@ -170,7 +170,7 @@ const NotificationPreferences = () => {
         />
       </div>
 
-      <div className="flex items-start gap-2 px-4 py-2.5 border-t border-border bg-muted/20">
+      <div className="flex items-start gap-2 px-4 py-2 border-t border-border bg-muted/20 shrink-0">
         <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
         <p className="text-[11px] text-muted-foreground leading-snug">
           Critical security alerts (logins, disputes) cannot be disabled.

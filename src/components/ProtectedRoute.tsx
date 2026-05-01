@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
+const DEBUG_AUTH = import.meta.env.DEV;
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowUnapproved?: boolean;
@@ -75,6 +77,18 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, location.pathname]);
 
+  useEffect(() => {
+    if (!DEBUG_AUTH) return;
+    console.log("[auth] ProtectedRoute", {
+      path: location.pathname,
+      isLoading,
+      hasUser: !!user,
+      userId: user?.id ?? null,
+      hasProfile: !!profile,
+      allowUnapproved,
+    });
+  }, [allowUnapproved, isLoading, location.pathname, profile, user?.id]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -84,6 +98,7 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
   }
 
   if (!user) {
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/login", reason: "no-user-after-ready" });
     return <Navigate to="/login" replace />;
   }
 
@@ -92,18 +107,22 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     profile?.ban_status &&
     ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)
   ) {
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-banned", reason: profile.ban_status });
     return <Navigate to="/account-banned" replace />;
   }
 
   if (!allowUnapproved) {
     // Stage 1: Email verification (auth user is the source of truth)
     if (user && !user.email_confirmed_at) {
+      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
       return <Navigate to="/account-pending" replace />;
     }
     if (profile?.approval_status === "pending") {
+      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
       return <Navigate to="/account-pending" replace />;
     }
     if (profile?.approval_status === "denied") {
+      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-denied", reason: "approval-denied" });
       return <Navigate to="/account-denied" replace />;
     }
   }
@@ -123,6 +142,7 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
     !isProfileComplete(profile) &&
     !PROFILE_GATE_ALLOWED.has(location.pathname)
   ) {
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });
     return <Navigate to="/complete-profile" replace />;
   }
 

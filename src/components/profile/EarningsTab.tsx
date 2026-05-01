@@ -333,7 +333,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             <div className="rounded-xl border border-border bg-card px-3 py-2.5">
               <div className="flex items-center gap-1 mb-0.5">
                 <TrendingUp className="w-3 h-3 text-primary" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</span>
+                <span className="text-muted-foreground text-xs uppercase tracking-wide">Total</span>
               </div>
               <p className="text-base font-bold text-foreground leading-tight">${totalEarnings.toFixed(2)}</p>
               <p className="text-[10px] text-muted-foreground">{completedJobs.length} jobs</p>

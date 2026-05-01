@@ -44,7 +44,7 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle, hideBack = false }: Pa
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="text-page-title text-foreground">
+          <h1 className="text-page-title text-foreground text-2xl">
             {title}
           </h1>
         </div>

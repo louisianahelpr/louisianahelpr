@@ -21,7 +21,7 @@ const PrivacyPolicy = () => {
         <div className="max-w-2xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
             <BackButton to="/profile?tab=legal" />
-            <h1 className="text-page-title text-foreground">
+            <h1 className="text-page-title text-foreground text-2xl">
               Privacy Policy
             </h1>
           </div>

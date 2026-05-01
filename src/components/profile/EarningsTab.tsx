@@ -209,7 +209,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-page-title text-foreground flex-1">My Earnings</h1>
+        <h1 className="text-page-title text-foreground text-2xl flex-1">My Earnings</h1>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

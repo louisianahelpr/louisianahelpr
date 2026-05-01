@@ -447,7 +447,7 @@ const Messages = () => {
         <div className="max-w-3xl mx-auto">
           {!activeConvo ? (
             <div className="space-y-4">
-              <h1 className="text-page-title text-foreground">Messages</h1>
+              <h1 className="text-page-title text-foreground text-2xl">Messages</h1>
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4].map((i) => (

@@ -20,7 +20,7 @@ const PlatformRules = () => {
         <div className="max-w-2xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
             <BackButton to="/profile?tab=legal" />
-            <h1 className="text-page-title text-foreground">Platform Rules &amp; Pricing</h1>
+            <h1 className="text-page-title text-foreground text-2xl">Platform Rules &amp; Pricing</h1>
           </div>
           <p className="text-[11px] text-muted-foreground pl-12">Last updated: March 2026</p>
 

@@ -115,7 +115,7 @@ const TermsOfService = () => {
           <div>
             <div className="flex items-center gap-2">
               <BackButton to="/profile?tab=legal" />
-              <h1 className="text-page-title text-foreground leading-tight">
+              <h1 className="text-page-title text-foreground text-2xl leading-tight">
                 Terms &amp; Policies
               </h1>
             </div>

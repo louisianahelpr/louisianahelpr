@@ -177,7 +177,7 @@ const AdminIDVQueue = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+        <h2 className="text-page-title text-foreground flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-primary" /> Identity Verification
         </h2>
         <p className="text-sm text-muted-foreground mt-1">

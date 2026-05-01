@@ -118,7 +118,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-display font-bold text-foreground">Subscription</h1>
+        <h1 className="text-page-title text-foreground">Subscription</h1>
       </div>
 
       <div className="flex flex-col gap-2 shrink-0">

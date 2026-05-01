@@ -288,7 +288,7 @@ const Dashboard = () => {
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
             <XCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">
+          <h1 className="text-page-title text-foreground">
             Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
           </h1>
           <p className="text-muted-foreground">
@@ -318,7 +318,7 @@ const Dashboard = () => {
             {approvalStatus === "pending" ? (
               <>
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Clock className="w-8 h-8 text-primary" /></div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Profile under review</h1>
+                <h1 className="text-page-title text-foreground">Profile under review</h1>
                 <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed.</p>
                 <p className="text-xs text-muted-foreground">
                   We'll let you know as soon as you're approved. This screen updates automatically.
@@ -335,7 +335,7 @@ const Dashboard = () => {
             ) : (
               <>
                 <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Profile not approved</h1>
+                <h1 className="text-page-title text-foreground">Profile not approved</h1>
                 <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
                 <div className="flex items-center justify-center gap-2 pt-2">
                   <Button variant="outline" onClick={handleSignOut} className="rounded-xl">

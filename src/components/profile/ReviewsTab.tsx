@@ -47,7 +47,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">My Reviews</h1>
+          <h1 className="text-page-title text-foreground">My Reviews</h1>
           <p className="text-muted-foreground text-sm">
             {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
           </p>

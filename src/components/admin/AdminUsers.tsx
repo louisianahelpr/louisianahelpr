@@ -886,7 +886,7 @@ const AdminUsers = () => {
           {summary.recent.map((n, i) => (
             <div key={i} className="text-xs space-y-0.5 border-l-2 border-accent/40 pl-2">
               <p className="text-foreground line-clamp-3">{n.note}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {n.category} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </p>
             </div>

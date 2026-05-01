@@ -36,7 +36,7 @@ const FeaturesSection = forwardRef<HTMLElement>((_props, ref) => {
                   <f.icon className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="font-semibold text-foreground mb-1">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             ))}
             {/* Right-edge spacer so the last card scrolls fully into view */}

@@ -110,11 +110,11 @@ const AdminFraudDashboard = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-sm text-muted-foreground">Loading flags…</p>
+        <p className="text-xs text-muted-foreground">Loading flags…</p>
       ) : flags.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">{showResolved ? "No resolved flags" : "No unresolved fraud flags — looking good!"}</p>
+          <p className="text-xs text-muted-foreground">{showResolved ? "No resolved flags" : "No unresolved fraud flags — looking good!"}</p>
         </div>
       ) : (
         <div className="space-y-2">

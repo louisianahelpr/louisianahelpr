@@ -119,7 +119,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
+            <p className="text-xs text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
             <div className="flex gap-1 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)}>
@@ -163,7 +163,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
+            <p className="text-xs text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Enter your tip</label>
               <div className="flex gap-2">

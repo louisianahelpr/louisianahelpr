@@ -123,7 +123,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                 {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </h3>
               {selectedJobs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+                <p className="text-xs text-muted-foreground">No jobs scheduled for this day.</p>
               ) : (
                 selectedJobs.map((job) => (
                   <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
@@ -136,7 +136,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
             <div className="space-y-3">
               <h3 className="font-display font-semibold text-foreground text-sm">Upcoming</h3>
               {upcomingJobs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No upcoming jobs.</p>
+                <p className="text-xs text-muted-foreground">No upcoming jobs.</p>
               ) : (
                 upcomingJobs.map((job) => (
                   <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />

@@ -720,7 +720,7 @@ const PostJob = () => {
                       onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
                       className="mt-0.5"
                     />
-                    <span className="text-sm text-muted-foreground leading-snug">
+                    <span className="text-xs text-muted-foreground leading-snug">
                       <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
                     </span>
                   </label>
@@ -958,7 +958,7 @@ const PostJob = () => {
                       <ChevronLeft className="w-3 h-3 mr-1" /> Edit
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground">{description}</p>
+                  <p className="text-xs text-muted-foreground">{description}</p>
 
                   {/* Photos */}
                   {imagePreviews.length > 0 && (
@@ -970,22 +970,22 @@ const PostJob = () => {
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
                       <span>{`${streetAddress}, ${city}, ${addrState} ${zipCode}`}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Calendar className="w-4 h-4 text-primary shrink-0" />
                       <span>{new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}{isFlexibleSchedule ? " (flexible)" : ""}</span>
                     </div>
                     {startTime && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-4 h-4 text-primary shrink-0" />
                         <span>{startTime}{isFlexibleSchedule ? " (flexible)" : ""}</span>
                       </div>
                     )}
                     {estimatedHours && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Briefcase className="w-4 h-4 text-primary shrink-0" />
                         <span>{estimatedHours}h estimated</span>
                       </div>

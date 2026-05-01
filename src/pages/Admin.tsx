@@ -501,7 +501,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
         )}
       </div>
       <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
+      <p className="text-xs sm:text-xs text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
     </button>
   );
 };
@@ -539,7 +539,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       {/* Greeting — desktop only, mobile saves space */}
       <div className="hidden sm:block">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Here's what's happening on the platform today.</p>
+        <p className="text-xs sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Here's what's happening on the platform today.</p>
       </div>
 
       {/* KPI Summary cards */}

@@ -13,10 +13,10 @@ const Footer = () => (
           <Link to="/" className="inline-block text-2xl font-display font-bold text-primary tracking-tight">
             Helpr
           </Link>
-          <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+          <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
             Hire a Helpr or find local work — your trusted Louisiana partner for everyday tasks.
           </p>
-          <div className="flex flex-col gap-1.5 text-sm text-muted-foreground pt-1">
+          <div className="flex flex-col gap-1.5 text-xs text-muted-foreground pt-1">
             <a
               href="mailto:admin@louisianahelpr.com"
               className="inline-flex items-center gap-2 hover:text-primary transition-colors w-fit"
@@ -34,7 +34,7 @@ const Footer = () => (
         {/* Company */}
         <div className="md:col-span-3">
           <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Company</h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+          <ul className="space-y-2 text-xs text-muted-foreground">
             <li><Link to="/for-business" className="hover:text-primary transition-colors">Business</Link></li>
             <li><Link to="/support" className="hover:text-primary transition-colors">Contact / Support</Link></li>
           </ul>
@@ -43,7 +43,7 @@ const Footer = () => (
         {/* Legal */}
         <div className="md:col-span-2">
           <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Legal</h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+          <ul className="space-y-2 text-xs text-muted-foreground">
             <li><Link to="/rules" className="hover:text-primary transition-colors">Rules & Pricing</Link></li>
             <li><Link to="/terms" className="hover:text-primary transition-colors">Terms</Link></li>
             <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy</Link></li>

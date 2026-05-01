@@ -102,11 +102,11 @@ const AdminPayoutBatches = () => {
       )}
 
       {isInitialLoading ? (
-        <p className="text-sm text-muted-foreground">Loading payout batches…</p>
+        <p className="text-xs text-muted-foreground">Loading payout batches…</p>
       ) : batches.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">All payouts are settled. Nothing to send.</p>
+          <p className="text-xs text-muted-foreground">All payouts are settled. Nothing to send.</p>
         </div>
       ) : (
         <div className="space-y-2">

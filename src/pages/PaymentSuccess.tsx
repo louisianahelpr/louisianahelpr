@@ -21,7 +21,7 @@ const PaymentSuccess = () => {
           <CheckCircle className="w-8 h-8 text-primary" />
         </div>
         <h1 className="text-3xl font-display font-bold text-foreground">Payment authorized!</h1>
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
           <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
           <p>Your payment has been securely processed. The helpr will be paid once both you and the helpr confirm the job is complete.</p>
         </div>

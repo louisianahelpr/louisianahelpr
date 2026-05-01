@@ -122,7 +122,7 @@ const Jobs = () => {
                 <h1 className="text-xl md:text-3xl font-display font-bold text-foreground leading-tight truncate">
                   Browse Tasks
                 </h1>
-                <p className="text-xs md:text-sm text-muted-foreground leading-tight mt-0.5">
+                <p className="text-xs md:text-xs text-muted-foreground leading-tight mt-0.5">
                   <span className="font-semibold text-primary tabular-nums">{filtered.length}</span> available right now
                 </p>
               </div>
@@ -183,7 +183,7 @@ const Jobs = () => {
                 <p className="text-base font-display font-bold text-foreground">
                   No tasks found in your area yet
                 </p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day.
                 </p>
               </div>
@@ -288,7 +288,7 @@ const Jobs = () => {
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 max-w-lg mx-auto space-y-4">
               <Lock className="w-8 h-8 text-primary mx-auto" />
               <h3 className="text-lg font-bold text-foreground">Ready to get started?</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Sign up to apply for jobs, message posters, and start earning — or post your own task and find help today.
               </p>
               <Button

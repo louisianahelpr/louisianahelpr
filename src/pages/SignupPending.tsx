@@ -35,7 +35,7 @@ const SignupPending = () => {
         <div className="flex items-center justify-between">
           <Link
             to={isNativePlatform ? "/browse" : "/"}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             {isNativePlatform ? "Back" : "Back to home"}
@@ -103,7 +103,7 @@ const SignupPending = () => {
               </button>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">Enter your email to resend the verification link:</p>
+                <p className="text-xs text-muted-foreground">Enter your email to resend the verification link:</p>
                 <input
                   type="email"
                   value={email}
@@ -119,7 +119,7 @@ const SignupPending = () => {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Already verified?{" "}
           <Link to="/login" className="text-primary font-medium hover:underline">
             Log in

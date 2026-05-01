@@ -78,10 +78,10 @@ const AdminAuditLog = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-sm text-muted-foreground">Loading audit log…</p>
+        <p className="text-xs text-muted-foreground">Loading audit log…</p>
       ) : entries.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">No audit entries yet</p>
+          <p className="text-xs text-muted-foreground">No audit entries yet</p>
         </div>
       ) : (
         <div className="space-y-1.5">

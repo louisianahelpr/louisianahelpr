@@ -121,7 +121,7 @@ const AdminDisputes = () => {
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">${job.budget}</p>
+              <p className="text-xs text-muted-foreground">${job.budget}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Customer: <span className="font-medium text-foreground">{profiles[job.customer_id] || "Unknown"}</span>
                 {job.helper_id && <> · Helpr: <span className="font-medium text-foreground">{profiles[job.helper_id] || "Unknown"}</span></>}
@@ -137,7 +137,7 @@ const AdminDisputes = () => {
           {job.dispute_reason && (
             <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
               <p className="text-sm text-foreground font-medium">Reason:</p>
-              <p className="text-sm text-muted-foreground">{job.dispute_reason}</p>
+              <p className="text-xs text-muted-foreground">{job.dispute_reason}</p>
             </div>
           )}
 

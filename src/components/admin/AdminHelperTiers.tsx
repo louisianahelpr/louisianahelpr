@@ -98,9 +98,9 @@ const AdminHelperTiers = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-sm text-muted-foreground">Loading tiers…</p>
+        <p className="text-xs text-muted-foreground">Loading tiers…</p>
       ) : visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">No helprs in this tier yet.</p>
+        <p className="text-xs text-muted-foreground text-center py-8">No helprs in this tier yet.</p>
       ) : (
         <div className="space-y-2">
           {visible.map((helper) => {

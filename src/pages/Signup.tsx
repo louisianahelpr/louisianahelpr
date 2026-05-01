@@ -397,7 +397,7 @@ const Signup = () => {
           <div className="mb-4">
             <Link
               to={isNativePlatform ? "/browse" : "/"}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               {isNativePlatform ? "Back" : "Back to home"}
@@ -407,7 +407,7 @@ const Signup = () => {
             <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
               Helpr
             </Link>
-            <p className="mt-1.5 text-sm text-muted-foreground">Join your Louisiana neighbors</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">Join your Louisiana neighbors</p>
           </div>
 
           <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-6">
@@ -587,7 +587,7 @@ const Signup = () => {
                     <ShieldCheck className="w-7 h-7 text-primary" strokeWidth={1.75} />
                   </div>
                   <h3 className="text-base font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance. Re-verified by Stripe when you post or apply to your first job.
                   </p>
                   <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
@@ -1150,7 +1150,7 @@ const Signup = () => {
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
                 <h3 className="font-semibold text-foreground">Portfolio (optional)</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   A few photos of past work — finished lawns, clean driveways, repairs — help posters trust you instantly.
                 </p>
                 <p className="text-xs text-primary font-medium mt-1">💎 Portfolio Showcase is a Pro+ subscriber perk — you can upload now, but only Pro/Elite subscribers' portfolios will be visible on their profiles.</p>
@@ -1239,7 +1239,7 @@ const Signup = () => {
         )}
           </div>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-xs text-muted-foreground mt-6">
             Already have an account?{" "}
             <Link to="/login" className="text-primary font-semibold hover:underline">Log in</Link>
           </p>

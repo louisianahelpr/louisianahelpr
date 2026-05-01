@@ -119,7 +119,7 @@ const SavedHelpers = () => {
                 Saved Helprs
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground mt-1 pl-12">
+            <p className="text-xs text-muted-foreground mt-1 pl-12">
               Your favorite helprs. Send a job offer directly — they get a 24-hour window before your task opens to everyone.
             </p>
           </div>

@@ -24,7 +24,7 @@ const PlatformRules = () => {
           </div>
           <p className="text-[11px] text-muted-foreground pl-12">Last updated: March 2026</p>
 
-          <p className="text-sm text-muted-foreground px-1">
+          <p className="text-xs text-muted-foreground px-1">
             These rules keep Helpr safe, fair, and reliable for everyone. By using Helpr, you agree to follow these policies.
           </p>
 

@@ -117,7 +117,7 @@ const AdminReferrals = () => {
   );
 
   if (isInitialLoading) {
-    return <div className="text-center py-12 text-sm text-muted-foreground">Loading referral data…</div>;
+    return <div className="text-center py-12 text-xs text-muted-foreground">Loading referral data…</div>;
   }
 
   const tabs = [
@@ -232,7 +232,7 @@ const AdminReferrals = () => {
               </div>
             ))}
             {credits.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">No credits awarded yet</p>
+              <p className="text-xs text-muted-foreground text-center py-4">No credits awarded yet</p>
             )}
           </div>
         </div>
@@ -259,7 +259,7 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredCodes.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No referral codes found</p>
+            <p className="text-xs text-muted-foreground text-center py-8">No referral codes found</p>
           )}
         </div>
       )}
@@ -289,7 +289,7 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredReferrals.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No referrals found</p>
+            <p className="text-xs text-muted-foreground text-center py-8">No referrals found</p>
           )}
         </div>
       )}
@@ -314,7 +314,7 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredCredits.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No credits found</p>
+            <p className="text-xs text-muted-foreground text-center py-8">No credits found</p>
           )}
         </div>
       )}

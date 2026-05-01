@@ -177,7 +177,7 @@ const NotificationPanel = () => {
           {notifications.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No notifications yet</p>
+              <p className="text-xs text-muted-foreground">No notifications yet</p>
             </div>
           ) : (
             <div>

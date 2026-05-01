@@ -240,7 +240,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   const qualityAvg = avg("quality");
   const communicationAvg = avg("communication");
 
-  if (loaded && reviews.length === 0) return <p className="text-sm text-muted-foreground">No reviews yet.</p>;
+  if (loaded && reviews.length === 0) return <p className="text-xs text-muted-foreground">No reviews yet.</p>;
   if (!loaded && reviews.length === 0) return null;
 
   return (
@@ -255,7 +255,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               />
             ))}
           </div>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {overallAvg.toFixed(1)} ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
           </span>
         </div>

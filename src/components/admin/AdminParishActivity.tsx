@@ -44,7 +44,7 @@ const AdminParishActivity = () => {
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">No parish activity yet.</p>
+        <p className="text-xs text-muted-foreground text-center py-6">No parish activity yet.</p>
       ) : (
         <div className="space-y-1.5">
           {rows.map((r, i) => (

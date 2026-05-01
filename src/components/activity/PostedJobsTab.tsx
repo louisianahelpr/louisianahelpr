@@ -134,7 +134,7 @@ export const PostedJobsTab = ({
           <p className="text-base font-display font-semibold text-foreground">
             No posts yet in this view
           </p>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
             Post your first task and we'll match you with vetted Louisiana helprs nearby.
           </p>
         </div>
@@ -666,7 +666,7 @@ export const PostedJobsTab = ({
             {applications.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No applications yet.</p>
+                <p className="text-xs text-muted-foreground">No applications yet.</p>
               </div>
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">

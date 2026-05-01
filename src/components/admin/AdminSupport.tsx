@@ -138,7 +138,7 @@ const AdminSupport = () => {
                 </div>
 
                 {ticket.description && (
-                  <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">{ticket.description}</p>
+                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">{ticket.description}</p>
                 )}
 
                 {ticket.status === "pending" && (

@@ -57,7 +57,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Why are you reporting this?</p>
+            <p className="text-xs text-muted-foreground">Why are you reporting this?</p>
             <div className="flex flex-wrap gap-2">
               {reasons.map((r) => (
                 <button

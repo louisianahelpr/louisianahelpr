@@ -65,13 +65,13 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
 
         {/* Desktop */}
         <div className="hidden lg:flex items-center gap-6">
-          <Link to="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-sans">
+          <Link to="/#how-it-works" className="text-xs text-muted-foreground hover:text-foreground transition-colors font-sans">
             How it works
           </Link>
-          <Link to="/#open-jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/#open-jobs" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
             Jobs
           </Link>
-          <Link to="/for-business" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/for-business" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
             Business
           </Link>
           <div className="flex items-center gap-1">

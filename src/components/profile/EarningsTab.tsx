@@ -250,7 +250,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {stripeLoading ? (
           <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading live payout data…</p>
+            <p className="text-xs text-muted-foreground">Loading live payout data…</p>
           </div>
         ) : !stripeData?.connected ? (
           <div className="rounded-2xl border border-border bg-card p-4 space-y-2">

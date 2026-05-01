@@ -277,10 +277,10 @@ const AdminSettings = () => {
         </div>
 
         {adminsLoading ? (
-          <p className="text-sm text-muted-foreground">Loading admins…</p>
+          <p className="text-xs text-muted-foreground">Loading admins…</p>
         ) : admins.length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-6 text-center">
-            <p className="text-sm text-muted-foreground">No admins found</p>
+            <p className="text-xs text-muted-foreground">No admins found</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -311,7 +311,7 @@ const AdminSettings = () => {
       {/* How fees work */}
       <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-3">
         <h3 className="font-semibold text-foreground">How the split fee model works</h3>
-        <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
+        <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
           <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
           <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent tip</li>
           <li>Platform keeps: service fee from customer + platform fee from helpr</li>
@@ -338,7 +338,7 @@ const AdminSettings = () => {
               </Button>
             </div>
 
-            {searching && <p className="text-sm text-muted-foreground">Searching…</p>}
+            {searching && <p className="text-xs text-muted-foreground">Searching…</p>}
 
             {searchResults.length > 0 && (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
@@ -362,7 +362,7 @@ const AdminSettings = () => {
             )}
 
             {!searching && searchResults.length === 0 && searchQuery.trim() && (
-              <p className="text-sm text-muted-foreground text-center py-4">No users found. Try a different search.</p>
+              <p className="text-xs text-muted-foreground text-center py-4">No users found. Try a different search.</p>
             )}
           </div>
         </DialogContent>

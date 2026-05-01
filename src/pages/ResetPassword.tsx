@@ -78,7 +78,7 @@ const ResetPassword = () => {
         <div>
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to login
@@ -133,7 +133,7 @@ const ResetPassword = () => {
           </form>
         )}
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground">
           <Link to="/login" className="text-primary font-medium hover:underline">
             Back to login
           </Link>

@@ -275,7 +275,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </Button>
             <button
               onClick={() => setGateOpen(false)}
-              className="text-sm text-muted-foreground py-2 hover:text-foreground transition-colors"
+              className="text-xs text-muted-foreground py-2 hover:text-foreground transition-colors"
             >
               Keep browsing
             </button>

@@ -166,7 +166,7 @@ const AdminReports = () => {
               </div>
 
               {report.description && (
-                <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
               )}
 
               <div className="flex flex-wrap gap-2 pt-1">
@@ -225,7 +225,7 @@ const AdminReports = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               This will send an in-app notification to {messageTarget?.name}.
             </p>
             <Textarea

@@ -461,7 +461,7 @@ const Messages = () => {
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-base font-display font-semibold text-foreground">No messages yet</p>
-                    <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                    <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
                       Apply to a task or accept a helpr's offer — your conversations will land here.
                     </p>
                   </div>
@@ -499,7 +499,7 @@ const Messages = () => {
                                     )}
                                   </div>
                                   <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
-                                  <p className="text-sm text-muted-foreground truncate mt-1">{c.lastMessage}</p>
+                                  <p className="text-xs text-muted-foreground truncate mt-1">{c.lastMessage}</p>
                                 </div>
                                 <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
                                   {new Date(c.lastAt).toLocaleDateString()}
@@ -607,7 +607,7 @@ const Messages = () => {
                 {messages.length === 0 && (
                   <div className="text-center py-12 space-y-2">
                     <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-sm text-muted-foreground">No messages yet. Say hello!</p>
+                    <p className="text-xs text-muted-foreground">No messages yet. Say hello!</p>
                   </div>
                 )}
                 {messages.map((m) => {

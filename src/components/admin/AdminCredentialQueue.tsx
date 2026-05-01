@@ -96,7 +96,7 @@ const AdminCredentialQueue = () => {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-border bg-card p-10 text-center text-xs text-muted-foreground">
           No pending credentials. 🎉
         </div>
       ) : (

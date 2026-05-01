@@ -541,7 +541,7 @@ const ProfilePage = () => {
 
           {/* LANDING VIEW */}
           {tab === "landing" && (
-            <div className="space-y-3">
+            <div className="h-full min-h-0 overflow-hidden space-y-3">
 
 
               {/* Compact Hero — single horizontal row, half-height */}
@@ -987,7 +987,7 @@ const ProfilePage = () => {
           )}
 
           {tab === "notifications" && (
-            <div className="space-y-4">
+            <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
               <div className="flex items-center gap-3">
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />

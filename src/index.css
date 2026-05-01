@@ -476,3 +476,33 @@ html.edit-profile-screen-lock body {
   filter: brightness(0.98);
 }
 
+
+html, body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+  touch-action: manipulation;
+}
+
+input, select, textarea {
+  font-size: 16px;
+}
+@media (min-width: 768px) {
+  input, select, textarea {
+    font-size: inherit;
+  }
+}
+
+.image-square {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: hsl(var(--muted));
+}
+.image-avatar {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 9999px;
+  background: hsl(var(--muted));
+}

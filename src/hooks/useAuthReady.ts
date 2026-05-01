@@ -63,8 +63,10 @@ export const useAuthReady = () => {
             userId: session?.user?.id ?? null,
           });
         }
-        initialized = true;
-        emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
+        if (session || event === "SIGNED_OUT" || event !== "INITIAL_SESSION") {
+          initialized = true;
+          emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
+        }
       });
 
       void getSessionWithTimeout().then((session) => {

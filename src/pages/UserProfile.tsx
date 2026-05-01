@@ -430,7 +430,7 @@ const UserProfile = () => {
                       )}
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
+                  <p className="text-muted-foreground text-xs">For: {r.jobTitle}</p>
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>
               )) : (

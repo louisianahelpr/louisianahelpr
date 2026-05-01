@@ -479,7 +479,7 @@ const PostJob = () => {
           {/* STEP 1: FORM */}
           {step === "form" && (
             <>
-              <p className="text-muted-foreground text-sm">Describe what you need help with</p>
+              <p className="text-muted-foreground text-xs">Describe what you need help with</p>
 
               {offerToHelperId && (
                 <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 flex items-center gap-3">
@@ -942,7 +942,7 @@ const PostJob = () => {
 
           {step === "checkout" && (
             <>
-              <p className="text-muted-foreground text-sm">Review your task before paying</p>
+              <p className="text-muted-foreground text-xs">Review your task before paying</p>
 
               {/* Task Details Card */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden">

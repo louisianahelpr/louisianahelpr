@@ -74,7 +74,7 @@ const AccountBanned = () => {
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">{headline}</h1>
-            <p className="text-muted-foreground text-sm">{subline}</p>
+            <p className="text-muted-foreground text-xs">{subline}</p>
           </div>
 
           {isTemp && formattedUntil && (

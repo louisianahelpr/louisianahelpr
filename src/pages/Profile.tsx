@@ -1104,7 +1104,7 @@ const ProfilePage = () => {
                 </button>
                 <div>
                   <h1 className="text-page-title text-foreground text-2xl">Licensed & Insured</h1>
-                  <p className="text-muted-foreground text-sm">Verify your professional credentials</p>
+                  <p className="text-muted-foreground text-xs">Verify your professional credentials</p>
                 </div>
               </div>
               <Suspense fallback={<TabFallback />}>

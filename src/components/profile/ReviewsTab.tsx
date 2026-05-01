@@ -48,7 +48,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
         </button>
         <div>
           <h1 className="text-page-title text-foreground text-2xl">My Reviews</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs">
             {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
           </p>
         </div>

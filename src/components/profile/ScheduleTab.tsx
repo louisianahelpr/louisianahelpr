@@ -69,7 +69,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
         </button>
         <div>
           <h1 className="text-page-title text-foreground text-2xl">My Schedule</h1>
-          <p className="text-muted-foreground text-sm">Your calendar and upcoming jobs</p>
+          <p className="text-muted-foreground text-xs">Your calendar and upcoming jobs</p>
         </div>
       </div>
 

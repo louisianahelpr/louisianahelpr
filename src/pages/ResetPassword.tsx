@@ -91,7 +91,7 @@ const ResetPassword = () => {
 
         {!ready ? (
           <div className="text-center space-y-4">
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-xs">
               This page is used to reset your password. Please use the link from your email.
             </p>
             <Link to="/forgot-password">

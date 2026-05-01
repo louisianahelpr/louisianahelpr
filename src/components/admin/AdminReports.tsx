@@ -125,7 +125,7 @@ const AdminReports = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-muted-foreground text-sm py-8 text-center">Loading reports…</p>
+        <p className="text-muted-foreground text-xs py-8 text-center">Loading reports…</p>
       ) : reports.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-40" />

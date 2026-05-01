@@ -344,7 +344,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <span className="text-muted-foreground text-xs uppercase tracking-wide">Tips</span>
               </div>
               <p className="text-base font-bold text-foreground leading-tight">${totalTips.toFixed(2)}</p>
-              <p className="text-[10px] text-muted-foreground">{tips.length} tips</p>
+              <p className="text-muted-foreground text-xs">{tips.length} tips</p>
             </div>
             <div className="rounded-xl border border-border bg-card px-3 py-2.5">
               <div className="flex items-center gap-1 mb-0.5">

@@ -36,6 +36,7 @@ export const useAuthReady = () => {
 
   useEffect(() => {
     authListeners.add(setSnapshot);
+    if (authSnapshot.isReady) setSnapshot(authSnapshot);
 
     if (!authBootstrapStarted) {
       authBootstrapStarted = true;

@@ -477,9 +477,11 @@ html.edit-profile-screen-lock body {
 }
 
 
-html, body {
+html.app-shell, html.app-shell body {
   overscroll-behavior: none;
-  touch-action: manipulation;
+}
+html:not(.app-shell), html:not(.app-shell) body {
+  touch-action: pan-y;
 }
 
 button, a, [role="button"], input[type="checkbox"], input[type="radio"] {

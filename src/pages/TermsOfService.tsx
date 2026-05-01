@@ -86,7 +86,7 @@ const Section = ({
               <Icon className="w-4 h-4" strokeWidth={2.25} />
             </span>
             <span className="min-w-0">
-              <p className="text-sm font-display font-bold text-foreground leading-tight">{title}</p>
+              <p className="font-display font-bold text-foreground leading-tight text-base">{title}</p>
               <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
             </span>
           </span>

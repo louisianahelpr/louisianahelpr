@@ -10,9 +10,12 @@ import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+
+const DEBUG_AUTH = import.meta.env.DEV;
 
 interface PublicJob {
   id: string;
@@ -50,6 +53,7 @@ const Jobs = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useCurrentUser();
   const PAGE_SIZE = 30;
 
   const fetchJobs = async (offset = 0, append = false) => {
@@ -76,6 +80,17 @@ const Jobs = () => {
   useEffect(() => {
     fetchJobs();
   }, []);
+
+  useEffect(() => {
+    if (!DEBUG_AUTH) return;
+    console.log("[auth] Jobs page", {
+      authLoading,
+      hasUser: !!user,
+      userId: user?.id ?? null,
+      jobsLoading: loading,
+      route: window.location.pathname,
+    });
+  }, [authLoading, loading, user?.id]);
 
   const now = new Date();
   const filtered = jobs.filter((job) => {

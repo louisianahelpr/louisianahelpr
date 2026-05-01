@@ -156,7 +156,7 @@ const AdminSubscriptions = () => {
                   {status === "active" ? "Active" : "Expired"}
                 </Badge>
                 {p.subscription_expires_at && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-muted-foreground text-xs">
                     {status === "active" ? "Expires" : "Expired"}{" "}
                     {new Date(p.subscription_expires_at).toLocaleDateString()}
                   </span>

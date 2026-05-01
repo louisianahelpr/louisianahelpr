@@ -886,7 +886,7 @@ const AdminUsers = () => {
           {summary.recent.map((n, i) => (
             <div key={i} className="text-xs space-y-0.5 border-l-2 border-accent/40 pl-2">
               <p className="text-foreground line-clamp-3">{n.note}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {n.category} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </p>
             </div>
@@ -1521,12 +1521,12 @@ const AdminUsers = () => {
                           <div className="rounded-xl bg-secondary/30 border border-border p-3">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
                             <p className="text-lg font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
-                            <p className="text-[10px] text-muted-foreground">{workedCompleted.length} completed</p>
+                            <p className="text-muted-foreground text-xs">{workedCompleted.length} completed</p>
                           </div>
                           <div className="rounded-xl bg-secondary/30 border border-border p-3">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
                             <p className="text-lg font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
-                            <p className="text-[10px] text-muted-foreground">{postedCompleted.length} completed</p>
+                            <p className="text-muted-foreground text-xs">{postedCompleted.length} completed</p>
                           </div>
                         </div>
 
@@ -1614,7 +1614,7 @@ const AdminUsers = () => {
                               </div>
                             </div>
                             {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                            {r.created_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                            {r.created_at && <p className="text-muted-foreground text-xs mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
                           </div>
                         ))}
                       </div>
@@ -1644,7 +1644,7 @@ const AdminUsers = () => {
                               </div>
                             </div>
                             {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                            {r.created_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                            {r.created_at && <p className="text-muted-foreground text-xs mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
                           </div>
                         ))}
                       </div>
@@ -1717,7 +1717,7 @@ const AdminUsers = () => {
                           ) : (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
                               <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-                              <p className="text-[10px] text-muted-foreground text-center truncate w-full">{fileName}</p>
+                              <p className="text-muted-foreground text-xs text-center truncate w-full">{fileName}</p>
                             </a>
                           );
                         })}

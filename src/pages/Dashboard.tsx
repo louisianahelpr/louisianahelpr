@@ -373,7 +373,7 @@ const Dashboard = () => {
             transition={{ duration: 0.3 }}
             className="px-1 shrink-0"
           >
-            <h1 className="text-base font-display font-semibold tracking-tight text-foreground leading-tight truncate">
+            <h1 className="font-display font-semibold tracking-tight text-foreground leading-tight truncate text-2xl">
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
             </h1>
           </motion.div>
@@ -392,10 +392,10 @@ const Dashboard = () => {
                   <Briefcase className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-display font-bold text-foreground leading-tight">
+                  <h2 className="font-display font-bold text-foreground leading-tight text-base">
                     {filters.hasFilters ? "Filtered Results" : "Browse Tasks"}
                   </h2>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-muted-foreground text-xs">
                     {filters.filteredJobs.length} available
                   </span>
                 </div>
@@ -560,7 +560,7 @@ const Dashboard = () => {
                   <p className="text-lg font-display font-bold text-foreground">
                     {filters.hasFilters ? "No jobs match your filters" : "Nothing nearby just yet"}
                   </p>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed text-xs">
                     {filters.hasFilters
                       ? "Try widening your search or clearing a filter to see more jobs."
                       : "New jobs are posted every day across Louisiana. Check back soon."}

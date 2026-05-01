@@ -98,7 +98,7 @@ export function JobConfirmation({
         <p className="text-[10px] text-muted-foreground italic">
           This is a reminder — if you don't confirm, the job is still scheduled as planned. However, not confirming may signal to the other party that you're uncertain, and repeated no-shows or last-minute cancellations can result in warnings or account restrictions.
         </p>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Scheduled: {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>

@@ -312,7 +312,7 @@ const UserProfile = () => {
                   <Star className="w-3.5 h-3.5 text-primary fill-primary" />
                   <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
+                <p className="text-muted-foreground text-xs">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
               </button>
             );
 
@@ -332,7 +332,7 @@ const UserProfile = () => {
                   <ClipboardList className="w-3.5 h-3.5 text-primary" />
                   <p className="text-xl font-bold text-foreground">{postedJobs.length}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">Posted</p>
+                <p className="text-muted-foreground text-xs">Posted</p>
               </button>
             );
 
@@ -352,7 +352,7 @@ const UserProfile = () => {
                   <Hammer className="w-3.5 h-3.5 text-primary" />
                   <p className="text-xl font-bold text-foreground">{workedJobs.length}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">Completed</p>
+                <p className="text-muted-foreground text-xs">Completed</p>
               </button>
             );
 
@@ -400,7 +400,7 @@ const UserProfile = () => {
                       </div>
                       <span className="text-xs font-medium text-foreground">{r.reviewerName}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
+                    <span className="text-muted-foreground text-xs">{new Date(r.created_at).toLocaleDateString()}</span>
                   </div>
                   {(r.punctuality || r.quality || r.communication) && (
                     <div className="grid grid-cols-3 gap-2">
@@ -430,7 +430,7 @@ const UserProfile = () => {
                       )}
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground">For: {r.jobTitle}</p>
+                  <p className="text-muted-foreground text-xs">For: {r.jobTitle}</p>
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>
               )) : (
@@ -449,7 +449,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-xs">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-sm font-bold text-primary">${job.budget}</span>
@@ -472,7 +472,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-xs">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-sm font-bold text-primary">${job.budget}</span>

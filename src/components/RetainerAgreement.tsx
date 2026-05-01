@@ -206,7 +206,7 @@ export function RetainerAgreement({
               Cancel
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             10% discount applied automatically for retainer bookings.
           </p>
         </div>

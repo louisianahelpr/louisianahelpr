@@ -382,7 +382,7 @@ export const AppliedJobsTab = ({
                     </label>
                   )}
                   {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
-                    <p className="text-[10px] text-muted-foreground">No attachments yet</p>
+                    <p className="text-muted-foreground text-xs">No attachments yet</p>
                   )}
                 </div>
               </div>

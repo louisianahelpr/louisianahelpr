@@ -310,7 +310,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                       <span className="text-xs font-semibold text-foreground">Instant cash out</span>
                     </div>
                     <p className="text-base font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-[10px] text-muted-foreground">~30 min · 3% + $1 fee</p>
+                    <p className="text-muted-foreground text-xs">~30 min · 3% + $1 fee</p>
                   </div>
                   <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-xs gap-1.5 shrink-0">
                     <Zap className="w-3.5 h-3.5" /> Cash out
@@ -333,26 +333,26 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             <div className="rounded-xl border border-border bg-card px-3 py-2.5">
               <div className="flex items-center gap-1 mb-0.5">
                 <TrendingUp className="w-3 h-3 text-primary" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</span>
+                <span className="text-muted-foreground text-xs uppercase tracking-wide">Total</span>
               </div>
               <p className="text-base font-bold text-foreground leading-tight">${totalEarnings.toFixed(2)}</p>
-              <p className="text-[10px] text-muted-foreground">{completedJobs.length} jobs</p>
+              <p className="text-muted-foreground text-xs">{completedJobs.length} jobs</p>
             </div>
             <div className="rounded-xl border border-border bg-card px-3 py-2.5">
               <div className="flex items-center gap-1 mb-0.5">
                 <Gift className="w-3 h-3 text-primary" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Tips</span>
+                <span className="text-muted-foreground text-xs uppercase tracking-wide">Tips</span>
               </div>
               <p className="text-base font-bold text-foreground leading-tight">${totalTips.toFixed(2)}</p>
-              <p className="text-[10px] text-muted-foreground">{tips.length} tips</p>
+              <p className="text-muted-foreground text-xs">{tips.length} tips</p>
             </div>
             <div className="rounded-xl border border-border bg-card px-3 py-2.5">
               <div className="flex items-center gap-1 mb-0.5">
                 <Briefcase className="w-3 h-3 text-primary" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Active</span>
+                <span className="text-muted-foreground text-xs uppercase tracking-wide">Active</span>
               </div>
               <p className="text-base font-bold text-foreground leading-tight">{inProgressJobs.length}</p>
-              <p className="text-[10px] text-muted-foreground">in progress</p>
+              <p className="text-muted-foreground text-xs">in progress</p>
             </div>
           </div>
         )}

@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
+const DEBUG_AUTH = import.meta.env.DEV;
 
 type AuthSnapshot = { user: User | null; isReady: boolean };
 
@@ -12,6 +13,13 @@ const authListeners = new Set<(snapshot: AuthSnapshot) => void>();
 
 const emitAuthSnapshot = (snapshot: AuthSnapshot) => {
   authSnapshot = snapshot;
+  if (DEBUG_AUTH) {
+    console.log("[auth] snapshot", {
+      isReady: snapshot.isReady,
+      hasUser: !!snapshot.user,
+      userId: snapshot.user?.id ?? null,
+    });
+  }
   authListeners.forEach((listener) => listener(snapshot));
 };
 
@@ -47,13 +55,27 @@ export const useAuthReady = () => {
         emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
       };
 
-      supabase.auth.onAuthStateChange((_event, session) => {
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (DEBUG_AUTH) {
+          console.log("[auth] onAuthStateChange", {
+            event,
+            hasSession: !!session,
+            userId: session?.user?.id ?? null,
+          });
+        }
         initialized = true;
         emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
       });
 
       void getSessionWithTimeout().then((session) => {
-        if (!initialized) markReady(session);
+        if (DEBUG_AUTH) {
+          console.log("[auth] getSession", {
+            hasSession: !!session,
+            userId: session?.user?.id ?? null,
+            initialized,
+          });
+        }
+        if (session || !initialized || !authSnapshot.user) markReady(session);
       });
 
       window.setTimeout(() => {

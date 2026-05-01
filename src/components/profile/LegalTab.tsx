@@ -120,7 +120,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-display font-bold text-foreground">Legal & Policies</h1>
+        <h1 className="text-page-title text-foreground">Legal & Policies</h1>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">

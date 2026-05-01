@@ -121,7 +121,7 @@ const SupportPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <BackButton to="/" />
-              <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
+              <h1 className="text-page-title text-foreground">
                 Support & Help Center
               </h1>
             </div>

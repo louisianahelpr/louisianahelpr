@@ -566,7 +566,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               </div>
             ) : (
               <>
-                <h1 className="text-2xl font-display font-bold text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
+                <h1 className="text-page-title text-foreground">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
                 <button
                   type="button"
                   onClick={() => setSearchOpen(true)}

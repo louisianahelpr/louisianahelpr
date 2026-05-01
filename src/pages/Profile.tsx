@@ -533,11 +533,11 @@ const ProfilePage = () => {
     <>
     <AppShell
       header={<DashboardHeader />}
-      scrollable={tab !== "profile"}
-      contentClassName={tab === "profile" ? "overflow-hidden" : undefined}
+      scrollable={false}
+      contentClassName="overflow-hidden"
     >
-      <main className={tab === "profile" ? "mx-auto h-full max-w-5xl overflow-hidden px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]" : "mx-auto max-w-5xl px-5 py-4"}>
-        <div className={tab === "profile" ? "max-w-2xl mx-auto h-full overflow-hidden" : "max-w-2xl mx-auto space-y-4"}>
+      <main className="mx-auto h-full max-w-5xl overflow-hidden px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]">
+        <div className={tab === "profile" ? "max-w-2xl mx-auto h-full overflow-hidden" : "max-w-2xl mx-auto h-full min-h-0 overflow-hidden"}>
 
           {/* LANDING VIEW */}
           {tab === "landing" && (

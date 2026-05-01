@@ -1644,7 +1644,7 @@ const AdminUsers = () => {
                               </div>
                             </div>
                             {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                            {r.created_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                            {r.created_at && <p className="text-muted-foreground text-xs mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
                           </div>
                         ))}
                       </div>

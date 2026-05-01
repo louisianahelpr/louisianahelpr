@@ -1040,7 +1040,7 @@ const PostJob = () => {
                     <span className="font-semibold text-foreground">Subtotal (before tax)</span>
                     <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
+                  <p className="text-muted-foreground text-xs">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
                 </div>
               </div>
 

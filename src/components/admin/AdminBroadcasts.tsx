@@ -151,9 +151,9 @@ const AdminBroadcasts = () => {
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground text-xs">Loading...</div>
       ) : broadcasts.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">No broadcasts yet</div>
+        <div className="text-center py-8 text-muted-foreground text-xs">No broadcasts yet</div>
       ) : (
         <div className="space-y-2">
           {broadcasts.map(b => (

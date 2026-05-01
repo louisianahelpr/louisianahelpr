@@ -660,9 +660,6 @@ const ProfilePage = () => {
 
                   return (
                     <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-2 pl-1">
-                        {group.title}
-                      </p>
                       <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                         {group.items.map((item, idx) => (
                           <button
@@ -1107,7 +1104,7 @@ const ProfilePage = () => {
                 </button>
                 <div>
                   <h1 className="text-page-title text-foreground text-2xl">Licensed & Insured</h1>
-                  <p className="text-muted-foreground text-sm">Verify your professional credentials</p>
+                  <p className="text-muted-foreground text-xs">Verify your professional credentials</p>
                 </div>
               </div>
               <Suspense fallback={<TabFallback />}>

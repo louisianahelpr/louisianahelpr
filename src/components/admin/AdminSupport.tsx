@@ -101,7 +101,7 @@ const AdminSupport = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-muted-foreground text-sm py-8 text-center">Loading tickets…</p>
+        <p className="text-muted-foreground text-xs py-8 text-center">Loading tickets…</p>
       ) : tickets.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Mail className="w-8 h-8 mx-auto mb-2 opacity-40" />

@@ -1010,7 +1010,7 @@ const AdminUsers = () => {
                       {p.avatar_url ? (
                         <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-sm font-medium">
+                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-xs font-medium">
                           {formatName(p.full_name, "?")[0]?.toUpperCase()}
                         </div>
                       )}

@@ -312,7 +312,7 @@ const UserProfile = () => {
                   <Star className="w-3.5 h-3.5 text-primary fill-primary" />
                   <p className="text-xl font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
+                <p className="text-muted-foreground text-xs">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
               </button>
             );
 

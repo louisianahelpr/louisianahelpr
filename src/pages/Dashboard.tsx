@@ -560,7 +560,7 @@ const Dashboard = () => {
                   <p className="text-lg font-display font-bold text-foreground">
                     {filters.hasFilters ? "No jobs match your filters" : "Nothing nearby just yet"}
                   </p>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed text-xs">
                     {filters.hasFilters
                       ? "Try widening your search or clearing a filter to see more jobs."
                       : "New jobs are posted every day across Louisiana. Check back soon."}

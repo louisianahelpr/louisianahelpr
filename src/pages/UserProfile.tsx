@@ -332,27 +332,9 @@ const UserProfile = () => {
                   <ClipboardList className="w-3.5 h-3.5 text-primary" />
                   <p className="text-xl font-bold text-foreground">{postedJobs.length}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">Posted</p>
-              </button>
-            );
-
-            const workedBtn = (
-              <button
-                key="worked"
-                onClick={() => {
-                  if (workedJobs.length > 0) {
-                    setShowWorkedJobs(!showWorkedJobs);
-                    setShowReviews(false);
-                    setShowPostedJobs(false);
-                  }
-                }}
-                className={`rounded-xl border bg-card p-3 text-center transition-all ${workedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <Hammer className="w-3.5 h-3.5 text-primary" />
-                  <p className="text-xl font-bold text-foreground">{workedJobs.length}</p>
-                </div>
-                <p className="text-[10px] text-muted-foreground">Completed</p>
+                <p className="text-muted-foreground text-xs">Posted</p>
+...
+                <p className="text-muted-foreground text-xs">Completed</p>
               </button>
             );
 

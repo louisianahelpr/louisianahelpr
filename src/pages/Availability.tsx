@@ -42,7 +42,7 @@ const Availability = () => {
   return (
     <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
-        <div className="max-w-3xl w-full mx-auto flex-1 min-h-0 flex flex-col px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)] overflow-hidden">
+        <div className="max-w-3xl w-full mx-auto flex-1 min-h-0 flex flex-col px-3 pt-1 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)] overflow-hidden">
           <div className="flex items-center gap-2 shrink-0 mb-1">
             <Button
               variant="ghost"
@@ -56,7 +56,7 @@ const Availability = () => {
             <h1 className="font-display text-xl font-bold leading-tight text-foreground">Availability</h1>
           </div>
 
-          <p className="text-[11px] leading-snug text-muted-foreground mb-1.5 px-1 shrink-0">
+          <p className="text-[10.5px] leading-snug text-muted-foreground mb-1 px-1 shrink-0">
             Set your weekly hours so posters can match jobs to days you're free.
           </p>
 

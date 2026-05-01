@@ -31,8 +31,8 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle, hideBack = false }: Pa
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-5 pt-4 pb-3">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="mx-auto max-w-5xl px-5 pt-3 pb-2">
+        <div className="flex items-center gap-2 mb-1">
           {!hideBack && (
             <Button
               variant="ghost"
@@ -44,12 +44,12 @@ const PageHeader = ({ title, onBack, rightSlot, subtitle, hideBack = false }: Pa
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="font-display text-[28px] sm:text-[32px] font-bold leading-tight tracking-tight text-foreground">
+          <h1 className="text-page-title text-foreground">
             {title}
           </h1>
         </div>
         {subtitle ? (
-          <div className="mt-2 text-[15px] leading-relaxed text-muted-foreground max-w-prose">
+          <div className="mt-1 text-[14px] leading-relaxed text-muted-foreground max-w-prose">
             {subtitle}
           </div>
         ) : null}

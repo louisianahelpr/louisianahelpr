@@ -503,9 +503,11 @@ const ProfilePage = () => {
     {
       title: "Account",
       items: [
-        { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Name, bio, photo & details" },
-        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
-        { key: "credentials", label: "Credentials", icon: <ShieldCheck className="w-5 h-5" />, desc: "Licenses & insurance" },
+        { key: "credentials", label: "Licensed & Insured", icon: <ShieldCheck className="w-5 h-5" />, desc: "Add your license and insurance" },
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar and upcoming jobs" },
+        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Set your weekly working hours" },
+        { key: "landing" as Tab, label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
+        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
       ],
     },
     {
@@ -519,6 +521,7 @@ const ProfilePage = () => {
     {
       title: "Settings & Support",
       items: [
+        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
@@ -627,7 +630,7 @@ const ProfilePage = () => {
 
               {/* Category buttons replace the old always-expanded long list. */}
               <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-2.5 px-ds-1">
+                <div className="grid grid-cols-3 gap-2.5">
                   {menuGroups.map((group) => {
                     const isActive = activeMenuGroup === group.title;
                     const GroupIcon = group.title === "Account" ? Edit : group.title === "Money" ? DollarSign : HelpCircle;

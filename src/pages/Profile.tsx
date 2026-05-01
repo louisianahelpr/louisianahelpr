@@ -620,7 +620,7 @@ const ProfilePage = () => {
 
               {/* Category buttons replace the old always-expanded long list. */}
               <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 gap-2.5">
                   {menuGroups.map((group) => {
                     const isActive = activeMenuGroup === group.title;
                     const GroupIcon = group.title === "Account" ? Edit : group.title === "Money" ? DollarSign : HelpCircle;

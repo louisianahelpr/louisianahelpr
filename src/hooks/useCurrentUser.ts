@@ -7,6 +7,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const PROFILE_QUERY_TIMEOUT_MS = 10000;
+const DEBUG_AUTH = import.meta.env.DEV;
 
 const withTimeout = async <T,>(promise: Promise<T>, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -103,6 +104,18 @@ export const useCurrentUser = (): CurrentUser => {
     if (!user?.id) return;
     await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
   };
+
+  useEffect(() => {
+    if (!DEBUG_AUTH) return;
+    console.log("[auth] useCurrentUser", {
+      isReady,
+      hasUser: !!user,
+      userId: user?.id ?? null,
+      queryLoading: isLoading,
+      hasProfile: !!data?.profile,
+      route: window.location.pathname,
+    });
+  }, [data?.profile, isLoading, isReady, user?.id]);
 
   return {
     user,

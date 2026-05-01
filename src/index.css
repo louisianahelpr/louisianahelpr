@@ -264,6 +264,43 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
     box-shadow: var(--card-hover-shadow);
     transform: translateY(-2px);
   }
+
+  .card-premium {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.6);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow:
+      0 1px 0 hsl(var(--foreground) / 0.02),
+      0 4px 12px -4px hsl(var(--foreground) / 0.08);
+    transition: box-shadow 200ms ease, transform 150ms ease;
+  }
+  .card-premium:active {
+    transform: scale(0.995);
+  }
+
+  .text-page-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .text-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  .text-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .text-body-relaxed {
+    font-size: 15px;
+    line-height: 1.6;
+  }
 }
 
 @layer utilities {

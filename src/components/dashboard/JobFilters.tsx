@@ -66,7 +66,7 @@ const surfaceGradient =
 
 // Dropdown-trigger button used in the mobile filter bar.
 const triggerBase =
-  "inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold tracking-tight transition-all btn-press squircle border whitespace-nowrap";
+  "inline-flex items-center gap-2 h-9 px-4 rounded-full text-[13px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
 
 const sortOptions = [
   { value: "newest", label: "Newest" },

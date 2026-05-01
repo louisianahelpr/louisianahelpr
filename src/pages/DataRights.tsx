@@ -109,7 +109,7 @@ const DataRights = () => {
     <div className="min-h-screen bg-premium-page pb-24">
       <PageHeader title="Your Data Rights" />
       <main className="container mx-auto px-5 py-6 max-w-2xl space-y-6">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
           Use the controls below to exercise them. For all other privacy questions email{" "}
           <a href="mailto:privacy@louisianahelpr.com" className="text-primary underline">privacy@louisianahelpr.com</a>.
@@ -121,7 +121,7 @@ const DataRights = () => {
             <Download className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
               <h2 className="font-display font-semibold text-lg">Download your data</h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
               </p>
             </div>
@@ -137,7 +137,7 @@ const DataRights = () => {
             <ShieldOff className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
               <h2 className="font-display font-semibold text-lg">Do not sell or share my personal information</h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Helpr does not sell your data. This toggle additionally opts you out of any cross-context behavioral
                 advertising that may be enabled in the future.
               </p>
@@ -152,7 +152,7 @@ const DataRights = () => {
             <Trash2 className="w-5 h-5 text-destructive mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
               <h2 className="font-display font-semibold text-lg">Delete my account</h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Permanently removes your profile, posted jobs, applications, messages, and personal information.
                 Financial records (completed payouts, tax records) are retained as required by IRS regulations.
                 <strong className="text-foreground"> This cannot be undone.</strong>
@@ -182,7 +182,7 @@ const DataRights = () => {
         </section>
 
         <div className="text-center pt-4">
-          <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+          <Link to="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" /> Back to Privacy Policy
           </Link>
         </div>

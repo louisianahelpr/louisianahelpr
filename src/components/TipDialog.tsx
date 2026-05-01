@@ -47,7 +47,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Show your appreciation{helperName ? ` to ${helperName}` : ""} with a tip!
           </p>
 

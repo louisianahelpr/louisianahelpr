@@ -107,7 +107,7 @@ const JobDetailDialog = ({ job, effectiveFee, onClose, onApply, onReport }: JobD
           )}
 
           <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Posted by <a href={`/user/${job.customer_id}`} className="font-medium text-primary hover:underline">{job.posterName}</a>
             </span>
             <a href={`/user/${job.customer_id}`} className="flex items-center gap-0.5 text-sm hover:underline">

@@ -71,7 +71,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading reviews...</p>
+        <p className="text-xs text-muted-foreground">Loading reviews...</p>
       ) : reviews.length === 0 ? (
         <div className="text-center py-12">
           <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />

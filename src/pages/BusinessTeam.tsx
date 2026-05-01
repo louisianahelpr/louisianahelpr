@@ -123,7 +123,7 @@ const BusinessTeam = () => {
         <Card className="p-8 max-w-md text-center">
           <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h1 className="text-xl font-bold mb-2">No business account</h1>
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-xs text-muted-foreground mb-6">
             You're not part of a business. Sign up as a business to manage a team.
           </p>
           <Button onClick={() => navigate("/for-business")}>Learn more</Button>
@@ -225,7 +225,7 @@ const BusinessTeam = () => {
       <div className="container mx-auto px-5 py-6 max-w-3xl">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -241,7 +241,7 @@ const BusinessTeam = () => {
                 <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {totalSlots} of {SEAT_LIMIT} seats used · {remainingSlots} remaining
             </p>
           </div>

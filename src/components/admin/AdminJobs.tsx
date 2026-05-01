@@ -471,7 +471,7 @@ const AdminJobs = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:
             </p>
             <Textarea

@@ -277,7 +277,7 @@ const UserProfile = () => {
                   <Phone className="w-3 h-3" />{profile.phone}
                 </p>
               )}
-              {profile.bio && <p className="text-sm text-muted-foreground mt-2">{profile.bio}</p>}
+              {profile.bio && <p className="text-xs text-muted-foreground mt-2">{profile.bio}</p>}
               {profile.skills && (
                 <div className="flex flex-wrap gap-1.5 justify-center mt-2">
                   {profile.skills.split(",").map((s, i) => (
@@ -436,7 +436,7 @@ const UserProfile = () => {
               )) : (
                 <div className="rounded-xl border border-border bg-card p-6 text-center">
                   <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No reviews yet</p>
+                  <p className="text-xs text-muted-foreground">No reviews yet</p>
                 </div>
               )}
             </div>
@@ -459,7 +459,7 @@ const UserProfile = () => {
               )) : (
                 <div className="rounded-xl border border-border bg-card p-6 text-center">
                   <ClipboardList className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No posted jobs yet</p>
+                  <p className="text-xs text-muted-foreground">No posted jobs yet</p>
                 </div>
               )}
             </div>
@@ -482,7 +482,7 @@ const UserProfile = () => {
               )) : (
                 <div className="rounded-xl border border-border bg-card p-6 text-center">
                   <Hammer className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No completed jobs yet</p>
+                  <p className="text-xs text-muted-foreground">No completed jobs yet</p>
                 </div>
               )}
             </div>

@@ -96,7 +96,7 @@ const Schedule = () => {
       >
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-sm text-muted-foreground">Your calendar and upcoming jobs.</p>
+            <p className="text-xs text-muted-foreground">Your calendar and upcoming jobs.</p>
             <Button variant="outline" size="sm" onClick={() => navigate("/availability")} className="gap-2">
               <Clock className="w-4 h-4" /> Set availability
             </Button>
@@ -170,7 +170,7 @@ const Schedule = () => {
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
                 {selectedJobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+                  <p className="text-xs text-muted-foreground">No jobs scheduled for this day.</p>
                 ) : (
                   selectedJobs.map((job) => (
                     <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
@@ -181,7 +181,7 @@ const Schedule = () => {
               <div className="space-y-3">
                 <h3 className="font-display font-semibold text-foreground">Upcoming</h3>
                 {upcomingJobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
+                  <p className="text-xs text-muted-foreground">No upcoming jobs scheduled.</p>
                 ) : (
                   upcomingJobs.map((job) => (
                     <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />

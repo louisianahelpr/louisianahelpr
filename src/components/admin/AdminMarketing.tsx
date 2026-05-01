@@ -82,7 +82,7 @@ const AdminMarketing = () => {
         </div>
         <div>
           <h2 className="text-2xl font-display font-bold">Marketing Campaigns</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             One-off announcement emails to segmented users. Honors promotional opt-out.
           </p>
         </div>

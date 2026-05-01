@@ -166,9 +166,9 @@ const AdminParishTaxRates = () => {
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading parishes…</p>
+        <p className="text-xs text-muted-foreground">Loading parishes…</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">No parishes match.</p>
+        <p className="text-xs text-muted-foreground text-center py-8">No parishes match.</p>
       ) : (
         <div className="space-y-2">
           {filtered.map((rate) => {

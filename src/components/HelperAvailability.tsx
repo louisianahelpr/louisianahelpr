@@ -101,7 +101,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     }
   };
 
-  if (!loaded) return <p className="text-sm text-muted-foreground p-3">Loading availability...</p>;
+  if (!loaded) return <p className="text-xs text-muted-foreground p-3">Loading availability...</p>;
 
   if (compact) {
     return (

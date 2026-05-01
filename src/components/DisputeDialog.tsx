@@ -138,7 +138,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             You've already requested a revision. If the issue still isn't resolved, filing a dispute will put the payment on hold for <strong>72 hours</strong> while you and the helpr try to work it out.
           </p>
 

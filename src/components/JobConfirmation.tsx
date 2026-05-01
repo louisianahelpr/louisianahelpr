@@ -139,7 +139,7 @@ export function JobConfirmation({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               By confirming, you're letting the other party know this job is still on and you'll be ready on the scheduled date.
             </p>
             <div className="rounded-lg bg-muted/50 p-3 space-y-1">

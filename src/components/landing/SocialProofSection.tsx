@@ -91,7 +91,7 @@ const SocialProofSection = () => {
                   <AnimatedNumber value={item.value} suffix={item.suffix} />
                 )}
               </p>
-              <p className="text-sm text-muted-foreground mt-0.5">{item.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{item.label}</p>
             </div>
           ))}
         </div>

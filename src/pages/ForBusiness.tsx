@@ -131,7 +131,7 @@ const ForBusiness = () => {
                   <h2 className="text-2xl font-display font-bold mb-1.5">
                     Get started in minutes
                   </h2>
-                  <p className="text-sm text-muted-foreground mb-5">
+                  <p className="text-xs text-muted-foreground mb-5">
                     Sign up, invite your team, start posting. No sales calls.
                   </p>
 

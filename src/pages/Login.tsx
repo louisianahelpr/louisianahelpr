@@ -89,7 +89,7 @@ const Login = () => {
         <div className="mb-4">
           <Link
             to={isNativePlatform ? "/browse" : "/"}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             {isNativePlatform ? "Back" : "Back to home"}
@@ -99,7 +99,7 @@ const Login = () => {
           <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
             Helpr
           </Link>
-          <p className="mt-2 text-sm text-muted-foreground">Your Local Task Partner</p>
+          <p className="mt-2 text-xs text-muted-foreground">Your Local Task Partner</p>
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
@@ -135,7 +135,7 @@ const Login = () => {
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               Forgot password?
             </Link>
           </div>
@@ -158,7 +158,7 @@ const Login = () => {
           <AppleSignInButton label="Log in with Apple" />
         </div>
 
-        <p className="text-center text-sm text-muted-foreground pt-1">
+        <p className="text-center text-xs text-muted-foreground pt-1">
           Don't have an account?{" "}
           <Link to="/signup" className="text-primary font-semibold hover:underline">
             Sign up

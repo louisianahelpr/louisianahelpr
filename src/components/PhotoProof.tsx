@@ -259,7 +259,7 @@ export const PhotoProofGroup = ({
               </div>
             )}
             {!hasBefore && !hasAfter && (
-              <p className="text-sm text-muted-foreground text-center py-6">No photos uploaded yet.</p>
+              <p className="text-xs text-muted-foreground text-center py-6">No photos uploaded yet.</p>
             )}
           </div>
         </DialogContent>

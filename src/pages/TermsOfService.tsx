@@ -45,7 +45,7 @@ const RowItem = ({ icon: Icon, title, body, warning }: PolicyRow) => {
         />
       </CollapsibleTrigger>
       <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-        <div className="px-3 pt-2 pb-3 text-sm text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 my-1">
+        <div className="px-3 pt-2 pb-3 text-xs text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 my-1">
           {body}
         </div>
       </CollapsibleContent>

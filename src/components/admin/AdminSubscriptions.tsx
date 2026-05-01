@@ -67,7 +67,7 @@ const AdminSubscriptions = () => {
   });
 
   if (isInitialLoading) {
-    return <div className="text-center py-12 text-sm text-muted-foreground">Loading subscription data…</div>;
+    return <div className="text-center py-12 text-xs text-muted-foreground">Loading subscription data…</div>;
   }
 
   const tierColor = (tier: string | null) => {
@@ -166,7 +166,7 @@ const AdminSubscriptions = () => {
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">No subscriptions found</p>
+          <p className="text-xs text-muted-foreground text-center py-8">No subscriptions found</p>
         )}
       </div>
     </div>

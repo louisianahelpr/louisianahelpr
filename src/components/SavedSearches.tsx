@@ -161,7 +161,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           ) : searches.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
+            <p className="text-xs text-muted-foreground text-center py-6">
               No saved searches yet. Save your first one above.
             </p>
           ) : (

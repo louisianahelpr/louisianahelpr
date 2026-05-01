@@ -174,7 +174,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-display font-bold text-foreground">Professional credentials</h2>
+            <h2 className="font-display font-bold text-foreground text-base">Professional credentials</h2>
             <p className="text-xs text-muted-foreground">
               Add proof of your license and insurance to earn the verified Seal of Trust on your profile.
             </p>

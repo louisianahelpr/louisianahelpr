@@ -110,7 +110,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Every alert sent via in-app or email. Failed deliveries are highlighted in red.
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>

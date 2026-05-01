@@ -193,7 +193,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Are you sure you want to cancel <strong className="text-foreground">"{jobTitle}"</strong>?
           </p>
 

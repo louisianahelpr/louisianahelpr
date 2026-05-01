@@ -54,7 +54,7 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-5">
           <div className="flex items-center gap-2 min-w-0">
             {title ? (
-              <span className="text-lg font-display font-bold text-foreground truncate">{title}</span>
+              <span className="font-display font-bold text-foreground text-base truncate">{title}</span>
             ) : (
               <Link to="/dashboard" className="flex items-center gap-2 group">
                 <span className="w-8 h-8 rounded-xl bg-white shadow-md flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">

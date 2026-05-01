@@ -994,7 +994,7 @@ const AdminUsers = () => {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">No users in this category.</p>
+        <p className="text-xs text-muted-foreground text-center py-8">No users in this category.</p>
       ) : (
         <div className="space-y-2">
           {filtered.map((p) => (
@@ -1276,7 +1276,7 @@ const AdminUsers = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
+                    <p className="text-xs sm:text-xs text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
                     <button
                       onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
                       className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
@@ -1400,7 +1400,7 @@ const AdminUsers = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                      <p className="text-xs text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
 
@@ -1545,7 +1545,7 @@ const AdminUsers = () => {
 
                         {/* List */}
                         {sorted.length === 0 ? (
-                          <p className="text-sm text-muted-foreground italic">No jobs found.</p>
+                          <p className="text-xs text-muted-foreground italic">No jobs found.</p>
                         ) : (
                           <div className="space-y-2">
                             {sorted.map((j: any) => {
@@ -1597,7 +1597,7 @@ const AdminUsers = () => {
                       <Star className="w-4 h-4" /> Reviews Received ({profileReviews.length})
                     </h4>
                     {profileReviews.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">No reviews received yet.</p>
+                      <p className="text-xs text-muted-foreground italic">No reviews received yet.</p>
                     ) : (
                       <div className="space-y-2">
                         {profileReviews.map((r, i) => (
@@ -1627,7 +1627,7 @@ const AdminUsers = () => {
                       <Star className="w-4 h-4" /> Reviews Left ({profileReviewsLeft.length})
                     </h4>
                     {profileReviewsLeft.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">Hasn't left any reviews yet.</p>
+                      <p className="text-xs text-muted-foreground italic">Hasn't left any reviews yet.</p>
                     ) : (
                       <div className="space-y-2">
                         {profileReviewsLeft.map((r, i) => (
@@ -1679,12 +1679,12 @@ const AdminUsers = () => {
                           )
                         ) : (
                           <div className="p-4 text-center">
-                            <p className="text-sm text-muted-foreground">Loading document…</p>
+                            <p className="text-xs text-muted-foreground">Loading document…</p>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                      <p className="text-xs text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
 
@@ -1696,7 +1696,7 @@ const AdminUsers = () => {
                         <img src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
                       </a>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                      <p className="text-xs text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
 
@@ -1723,7 +1723,7 @@ const AdminUsers = () => {
                         })}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">Not provided</p>
+                      <p className="text-xs text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
                 </TabsContent>
@@ -1886,7 +1886,7 @@ const AdminUsers = () => {
                       )}
                     </h4>
                     {emailSendStats.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">No emails on record</p>
+                      <p className="text-xs text-muted-foreground italic">No emails on record</p>
                     ) : (
                       <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
                         {emailSendStats.map((s) => (
@@ -2003,7 +2003,7 @@ const AdminUsers = () => {
             <DialogTitle className="font-display">Deny {formatName(denyProfile?.full_name)}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Provide a reason for denying this application.</p>
+            <p className="text-xs text-muted-foreground">Provide a reason for denying this application.</p>
             <Textarea value={denyReason} onChange={(e) => setDenyReason(e.target.value)} placeholder="Reason for denial (optional)…" rows={3} />
           </div>
           <DialogFooter>
@@ -2143,7 +2143,7 @@ const AdminUsers = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Are you sure you want to permanently delete <strong className="text-foreground">{formatName(deleteProfile?.full_name)}</strong>'s account?
             </p>
             <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
@@ -2170,7 +2170,7 @@ const AdminUsers = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Use this for someone you know personally, or whose ID is valid but our system couldn't read it.
               Their identity status will be set to <strong className="text-foreground">verified</strong> and approval will be set to <strong className="text-foreground">approved</strong>, bypassing automated checks.
             </p>
@@ -2196,7 +2196,7 @@ const AdminUsers = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Send {formatName(reuploadProfile?.full_name)} a friendly email asking for a clearer ID photo. Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
             </p>
             <div className="space-y-2">
@@ -2222,7 +2222,7 @@ const AdminUsers = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Email a one-time password reset link to <strong className="text-foreground">{(resetPwProfile as any)?.email || "this user"}</strong>. The link expires in 1 hour.
             </p>
           </div>
@@ -2245,7 +2245,7 @@ const AdminUsers = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
             </p>
             <div className="space-y-2">

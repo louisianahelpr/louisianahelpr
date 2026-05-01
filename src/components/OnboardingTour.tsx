@@ -175,7 +175,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-display font-bold text-foreground">{currentStep.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{currentStep.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{currentStep.description}</p>
             </div>
 
             {/* Step indicators */}

@@ -237,7 +237,7 @@ const AdminAnalytics = () => {
         </div>
 
         {drillLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground py-8 justify-center">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
           </div>
         ) : drillDown === "users" ? (
@@ -374,7 +374,7 @@ const AdminAnalytics = () => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No subscribers yet</p>
+            <p className="text-xs text-muted-foreground text-center py-8">No subscribers yet</p>
           )}
         </div>
       </div>
@@ -446,7 +446,7 @@ const AdminAnalytics = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="text-sm text-muted-foreground">In Escrow</span>
+                <span className="text-xs text-muted-foreground">In Escrow</span>
               </div>
               <div className="text-right">
                 <span className="text-sm font-semibold text-foreground">${escrowTotal.toFixed(2)}</span>
@@ -456,7 +456,7 @@ const AdminAnalytics = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-sm text-muted-foreground">Payout Pending</span>
+                <span className="text-xs text-muted-foreground">Payout Pending</span>
               </div>
               <div className="text-right">
                 <span className="text-sm font-semibold text-foreground">${pendingPayoutTotal.toFixed(2)}</span>
@@ -466,7 +466,7 @@ const AdminAnalytics = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-sm text-muted-foreground">Released</span>
+                <span className="text-xs text-muted-foreground">Released</span>
               </div>
               <div className="text-right">
                 <span className="text-sm font-semibold text-foreground">{releasedPayouts.length} jobs</span>
@@ -564,7 +564,7 @@ const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick }:
     } ${warning ? "border-amber-500/30" : "border-border"}`}
   >
     <div className="flex items-center justify-between mb-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <Icon className={`w-5 h-5 ${accent ? "text-primary" : warning ? "text-amber-500" : "text-primary"} group-hover:scale-110 transition-transform`} />
     </div>
     <p className={`text-2xl font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
@@ -577,7 +577,7 @@ const StatusRow = ({ icon: Icon, label, count, color }: { icon: any; label: stri
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
       <Icon className={`w-3.5 h-3.5 ${color}`} />
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
     </div>
     <span className="text-sm font-semibold text-foreground">{count}</span>
   </div>
@@ -751,7 +751,7 @@ const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Total for filter ({filtered.length} jobs)</span>
+        <span className="text-xs text-muted-foreground">Total for filter ({filtered.length} jobs)</span>
         <span className="text-lg font-bold text-foreground">
           ${filtered.reduce((s, j) => s + (j.budget || 0), 0).toFixed(2)}
         </span>
@@ -811,7 +811,7 @@ const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFi
 
       {showFinancials && (
         <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} jobs)</span>
+          <span className="text-xs text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} jobs)</span>
           <span className="text-lg font-bold text-foreground">${total.toFixed(2)}</span>
         </div>
       )}

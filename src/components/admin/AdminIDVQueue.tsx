@@ -180,7 +180,7 @@ const AdminIDVQueue = () => {
         <h2 className="text-page-title text-foreground text-2xl flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-primary" /> Identity Verification
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land here.
         </p>
       </div>
@@ -249,7 +249,7 @@ const AdminIDVQueue = () => {
         </div>
       ) : profiles.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">No users in this status.</p>
+          <p className="text-xs text-muted-foreground">No users in this status.</p>
         </div>
       ) : (
         <div className="space-y-2">

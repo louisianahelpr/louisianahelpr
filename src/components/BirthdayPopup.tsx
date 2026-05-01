@@ -66,7 +66,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
             <h2 className="text-page-title text-foreground text-2xl">
               Happy Birthday, {firstName}! 🎉
             </h2>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Wishing you an amazing day! Thank you for being part of the Helpr community.
             </p>
             <div className="flex items-center justify-center gap-1 mt-4 text-primary">

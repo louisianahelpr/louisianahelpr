@@ -175,7 +175,7 @@ export const AppliedJobsTab = ({
           <p className="text-base font-display font-semibold text-foreground">
             No applications in this view
           </p>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
             Browse the dashboard for open tasks near you and apply with one tap.
           </p>
         </div>
@@ -758,7 +758,7 @@ export const AppliedJobsTab = ({
             <SheetTitle className="font-display text-2xl font-bold tracking-tight">
               Withdraw Application?
             </SheetTitle>
-            <SheetDescription className="text-sm text-muted-foreground leading-relaxed">
+            <SheetDescription className="text-xs text-muted-foreground leading-relaxed">
               Withdrawing will remove you from consideration for{" "}
               <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
               You can re-apply later if the position is still open.

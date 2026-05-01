@@ -125,7 +125,7 @@ const SupportPage = () => {
                 Support & Help Center
               </h1>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 pl-12">
+            <p className="text-xs sm:text-xs text-muted-foreground mt-1 pl-12">
               Find answers, get help, or contact our team
             </p>
           </div>
@@ -192,7 +192,7 @@ const SupportPage = () => {
                     {item.q}
                     <span className="text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
                   </summary>
-                  <p className="px-4 pb-3 text-sm text-muted-foreground">{item.a}</p>
+                  <p className="px-4 pb-3 text-xs text-muted-foreground">{item.a}</p>
                 </details>
               ))}
             </div>
@@ -204,7 +204,7 @@ const SupportPage = () => {
 
           {!user && (
             <section className="rounded-2xl border border-border bg-card p-4 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Sign in to send a message directly, or email us at{" "}
                 <a href="mailto:admin@louisianahelpr.com" className="text-primary hover:underline">
                   admin@louisianahelpr.com

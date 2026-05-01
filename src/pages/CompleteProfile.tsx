@@ -319,7 +319,7 @@ const CompleteProfile = () => {
         <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 text-center shadow-[var(--card-shadow)]">
           <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin text-primary" />
           <h1 className="text-xl font-display font-bold text-foreground">Checking your saved profile</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             Hang tight — we’re making sure your previous submission is loaded before asking for anything again.
           </p>
           <Button
@@ -353,7 +353,7 @@ const CompleteProfile = () => {
         <div className="w-full max-w-md pb-12">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-display font-bold text-primary">Almost there</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -522,7 +522,7 @@ const CompleteProfile = () => {
               </label>
             </div>
 
-            <label className="flex items-start gap-2.5 text-sm text-muted-foreground">
+            <label className="flex items-start gap-2.5 text-xs text-muted-foreground">
               <Checkbox
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}

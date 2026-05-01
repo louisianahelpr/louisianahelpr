@@ -41,7 +41,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             How long should <span className="font-medium text-foreground">{helperName}</span> have to accept or decline this job?
           </p>
           <div className="space-y-2">

@@ -277,7 +277,7 @@ const AccountPending = () => {
             <h1 className="font-display text-[26px] leading-tight font-semibold tracking-tight text-foreground mb-3">
               Check your email
             </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+            <p className="text-xs text-muted-foreground leading-relaxed mb-6">
               We sent a verification link to{" "}
               <span className="font-medium text-foreground break-all">{userEmail}</span>
             </p>

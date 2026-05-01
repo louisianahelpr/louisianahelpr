@@ -35,7 +35,7 @@ const ForgotPassword = () => {
         <div className="mb-4">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to login
@@ -45,7 +45,7 @@ const ForgotPassword = () => {
           <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
             Helpr
           </Link>
-          <p className="mt-2 text-sm text-muted-foreground">Reset your password</p>
+          <p className="mt-2 text-xs text-muted-foreground">Reset your password</p>
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
@@ -55,7 +55,7 @@ const ForgotPassword = () => {
               <Mail className="w-8 h-8 text-primary" />
             </div>
             <p className="text-foreground font-medium">Check your inbox</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               We sent a reset link to <span className="font-medium text-foreground">{email}</span>. It expires in 1 hour.
             </p>
             <p className="text-xs text-muted-foreground/80">
@@ -85,7 +85,7 @@ const ForgotPassword = () => {
           </form>
         )}
 
-        <p className="text-center text-sm text-muted-foreground pt-1">
+        <p className="text-center text-xs text-muted-foreground pt-1">
           <Link to="/login" className="text-primary font-semibold hover:underline inline-flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Back to login
           </Link>

@@ -339,8 +339,16 @@ const JobFilters = ({
   return (
     <div className={`overflow-hidden ${surfaceGradient}`}>
       {/* ============ MOBILE: horizontal dropdown bar ============ */}
-      <div className="md:hidden px-3 py-3">
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+      <div className="md:hidden py-3">
+        <div
+          className="flex gap-2 overflow-x-auto no-scrollbar pb-1"
+          style={{
+            paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0px))",
+            paddingRight: "max(0.75rem, env(safe-area-inset-right, 0px))",
+            scrollPaddingLeft: "0.75rem",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
             <SortContent sortBy={sortBy} setSortBy={setSortBy} />

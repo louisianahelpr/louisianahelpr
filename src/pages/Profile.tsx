@@ -75,7 +75,7 @@ const ProfilePage = () => {
   const [justSaved, setJustSaved] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>("Money");
+  const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>("Account");
 
   // Sync tab to URL for bookmarkability and browser back
   useEffect(() => {
@@ -501,6 +501,14 @@ const ProfilePage = () => {
 
   const menuGroups: { title: string; items: { key: Tab; label: string; icon: React.ReactNode; desc: string; href?: string }[] }[] = [
     {
+      title: "Account",
+      items: [
+        { key: "profile", label: "Edit Profile", icon: <Edit className="w-5 h-5" />, desc: "Name, bio, photo & details" },
+        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
+        { key: "credentials", label: "Credentials", icon: <ShieldCheck className="w-5 h-5" />, desc: "Licenses & insurance" },
+      ],
+    },
+    {
       title: "Money",
       items: [
         { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account, payment methods & summary" },
@@ -511,7 +519,6 @@ const ProfilePage = () => {
     {
       title: "Settings & Support",
       items: [
-        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },

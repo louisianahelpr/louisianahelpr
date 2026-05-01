@@ -376,7 +376,7 @@ const JobFilters = ({
             <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
           </MobileDropdown>
 
-          <MobileDropdown icon={Clock} label={matchAvailability ? "My hours" : "Availability"} active={matchAvailability}>
+          <MobileDropdown icon={Clock} label="Availability" active={matchAvailability}>
             <AvailabilityContent
               matchAvailability={matchAvailability}
               setMatchAvailability={setMatchAvailability}

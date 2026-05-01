@@ -27,7 +27,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-page-title text-foreground flex items-center gap-2">
+          <h1 className="text-page-title text-foreground text-2xl flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-accent" /> Warnings & Strikes
           </h1>
           <p className="text-sm text-muted-foreground">Your account standing and violation history</p>

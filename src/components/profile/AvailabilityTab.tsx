@@ -17,7 +17,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-page-title text-foreground">Availability</h1>
+          <h1 className="text-page-title text-foreground text-2xl">Availability</h1>
           <p className="text-muted-foreground text-sm">Set your weekly working hours so posters can match jobs to your schedule</p>
         </div>
       </div>

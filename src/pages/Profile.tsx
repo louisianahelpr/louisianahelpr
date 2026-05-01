@@ -894,7 +894,7 @@ const ProfilePage = () => {
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-page-title text-foreground">Payment Settings</h1>
+                <h1 className="text-page-title text-foreground text-2xl">Payment Settings</h1>
               </div>
               <PaymentTab role={role} earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
             </div>
@@ -912,7 +912,7 @@ const ProfilePage = () => {
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-page-title text-foreground">Posted Jobs</h1>
+                <h1 className="text-page-title text-foreground text-2xl">Posted Jobs</h1>
               </div>
               {inlinePostedJobs.length === 0 ? (
                 <div className="text-center py-12">
@@ -950,7 +950,7 @@ const ProfilePage = () => {
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-page-title text-foreground">Completed Jobs</h1>
+                <h1 className="text-page-title text-foreground text-2xl">Completed Jobs</h1>
               </div>
               {inlineCompletedJobs.length === 0 ? (
                 <div className="text-center py-12">
@@ -992,7 +992,7 @@ const ProfilePage = () => {
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-page-title text-foreground">Notifications</h1>
+                <h1 className="text-page-title text-foreground text-2xl">Notifications</h1>
               </div>
               <NotificationPreferences />
             </div>
@@ -1004,7 +1004,7 @@ const ProfilePage = () => {
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-page-title text-foreground">Account Security</h1>
+                <h1 className="text-page-title text-foreground text-2xl">Account Security</h1>
               </div>
 
               <div className="rounded-xl border border-border bg-card p-4 space-y-4">
@@ -1079,7 +1079,7 @@ const ProfilePage = () => {
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-page-title text-foreground">Referral Program</h1>
+                <h1 className="text-page-title text-foreground text-2xl">Referral Program</h1>
               </div>
               <div className="flex-1 min-h-0">
                 <ReferralSection userId={user.id} />
@@ -1106,7 +1106,7 @@ const ProfilePage = () => {
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div>
-                  <h1 className="text-page-title text-foreground">Licensed & Insured</h1>
+                  <h1 className="text-page-title text-foreground text-2xl">Licensed & Insured</h1>
                   <p className="text-muted-foreground text-sm">Verify your professional credentials</p>
                 </div>
               </div>

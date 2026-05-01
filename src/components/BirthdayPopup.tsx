@@ -63,7 +63,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
             </button>
 
             <div className="text-6xl mb-4">🎂</div>
-            <h2 className="text-page-title text-foreground">
+            <h2 className="text-page-title text-foreground text-2xl">
               Happy Birthday, {firstName}! 🎉
             </h2>
             <p className="text-sm text-muted-foreground mt-2">

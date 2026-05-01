@@ -196,7 +196,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
           <CheckCircle2 className="w-8 h-8 text-primary" />
         </div>
-        <h1 className="text-page-title text-foreground">Message Sent!</h1>
+        <h1 className="text-page-title text-foreground text-2xl">Message Sent!</h1>
         <p className="text-muted-foreground">
           Our team will review your message and get back to you soon.
         </p>
@@ -218,7 +218,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="min-w-0">
-          <h1 className="text-page-title text-foreground leading-tight">Help & Support</h1>
+          <h1 className="text-page-title text-foreground text-2xl leading-tight">Help & Support</h1>
           <p className="text-xs text-muted-foreground truncate">
             {selected ? `Sending as: ${selected.label}` : "Pick a category to get started."}
           </p>

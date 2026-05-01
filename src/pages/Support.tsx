@@ -121,7 +121,7 @@ const SupportPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <BackButton to="/" />
-              <h1 className="text-page-title text-foreground">
+              <h1 className="text-page-title text-foreground text-2xl">
                 Support & Help Center
               </h1>
             </div>

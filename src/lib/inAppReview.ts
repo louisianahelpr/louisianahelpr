@@ -28,8 +28,8 @@ export async function maybeRequestInAppReview(opts?: { force?: boolean }) {
     // @capacitor-community/in-app-review is added at native build time
     // (Xcode/Capacitor sync). It's intentionally not in the web bundle, so
     // we resolve it dynamically and silently no-op if unavailable.
-    // @ts-expect-error — optional native-only module, no types in web build
-    const mod = await import(/* @vite-ignore */ "@capacitor-community/in-app-review").catch(() => null);
+    const moduleName = "@capacitor-community/in-app-review";
+    const mod: any = await import(/* @vite-ignore */ moduleName).catch(() => null);
     if (!mod?.InAppReview) {
       // Plugin not installed in this build — silent no-op.
       return;

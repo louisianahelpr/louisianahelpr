@@ -557,7 +557,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-lg font-display font-bold text-foreground">
+                  <p className="font-display font-bold text-foreground text-base">
                     {filters.hasFilters ? "No jobs match your filters" : "Nothing nearby just yet"}
                   </p>
                   <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed text-xs">

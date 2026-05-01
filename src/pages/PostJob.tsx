@@ -949,7 +949,7 @@ const PostJob = () => {
                 <div className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-lg font-display font-bold text-foreground">{title}</h2>
+                      <h2 className="font-display font-bold text-foreground text-base">{title}</h2>
                       <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
                         {categoryLabel}
                       </span>

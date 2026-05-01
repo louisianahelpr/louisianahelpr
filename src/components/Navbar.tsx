@@ -55,7 +55,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             alt="Helpr"
             width={36}
             height={36}
-            fetchPriority="high"
+            fetchpriority="high"
             decoding="async"
             className="w-9 h-9 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
           />

@@ -108,7 +108,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
       <div className="h-full flex flex-col min-h-0">
         <div
           data-allow-scroll="true"
-          className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5"
+          className="flex-1 min-h-0 overflow-hidden p-2 space-y-1"
         >
           {DAYS.map((day, i) => {
             const slot = slots[i];
@@ -117,11 +117,11 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
               <div
                 key={day}
                 className={cn(
-                  "rounded-lg border px-2 py-1.5 transition-all",
+                  "rounded-lg border px-2 py-1 transition-all",
                   off ? "border-border/60 bg-muted/30" : "border-border bg-card shadow-sm",
                 )}
               >
-                <div className="flex items-center justify-between gap-1.5 min-h-10">
+                <div className="flex items-center justify-between gap-1.5 min-h-9">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Switch
                       checked={slot.is_available}
@@ -146,7 +146,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                         updateSlot(i, "start_time", start);
                         updateSlot(i, "end_time", end);
                       }}
-                      className="h-9 px-2.5 rounded-lg text-xs gap-1.5"
+                      className="h-8 px-2 rounded-lg text-[11px] gap-1.5"
                     />
                   ) : (
                     <span className="text-xs font-medium text-muted-foreground">Unavailable</span>
@@ -161,7 +161,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="w-full h-10 rounded-lg text-sm font-semibold"
+            className="w-full h-9 rounded-lg text-sm font-semibold"
           >
             {saving ? "Saving..." : "Save Availability"}
           </Button>

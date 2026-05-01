@@ -108,14 +108,14 @@ const TermsOfService = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
+      <div aria-hidden className="h-14" />
 
       <main className="mx-auto max-w-3xl px-5 pt-1 pb-6">
         <div className="space-y-3">
           <div>
             <div className="flex items-center gap-2">
               <BackButton to="/profile?tab=legal" />
-              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-tight">
+              <h1 className="text-page-title text-foreground leading-tight">
                 Terms &amp; Policies
               </h1>
             </div>

@@ -113,7 +113,7 @@ const SupportPage = () => {
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
       <main
         data-allow-scroll="true"
-        className="container mx-auto px-5 pt-2 pb-6 flex-1 min-h-0 overflow-y-auto"
+        className="container mx-auto px-5 pt-2 pb-6 flex-1 min-h-0 overflow-hidden"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
         <div className="max-w-2xl mx-auto space-y-3 sm:space-y-5">

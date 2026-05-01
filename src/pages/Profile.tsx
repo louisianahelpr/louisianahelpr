@@ -533,15 +533,15 @@ const ProfilePage = () => {
     <>
     <AppShell
       header={<DashboardHeader />}
-      scrollable={tab !== "profile"}
-      contentClassName={tab === "profile" ? "overflow-hidden" : undefined}
+      scrollable={false}
+      contentClassName="overflow-hidden"
     >
-      <main className={tab === "profile" ? "mx-auto h-full max-w-5xl overflow-hidden px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]" : "mx-auto max-w-5xl px-5 py-4"}>
-        <div className={tab === "profile" ? "max-w-2xl mx-auto h-full overflow-hidden" : "max-w-2xl mx-auto space-y-4"}>
+      <main className="mx-auto h-full max-w-5xl overflow-hidden px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]">
+        <div className={tab === "profile" ? "max-w-2xl mx-auto h-full overflow-hidden" : "max-w-2xl mx-auto h-full min-h-0 overflow-hidden"}>
 
           {/* LANDING VIEW */}
           {tab === "landing" && (
-            <div className="space-y-3">
+            <div className="h-full min-h-0 overflow-hidden space-y-3">
 
 
               {/* Compact Hero — single horizontal row, half-height */}
@@ -987,7 +987,7 @@ const ProfilePage = () => {
           )}
 
           {tab === "notifications" && (
-            <div className="space-y-4">
+            <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
               <div className="flex items-center gap-3">
                 <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="w-5 h-5" />

@@ -73,7 +73,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
     <div
       data-allow-scroll="true"
       className={cn(
-        "relative flex-1 overflow-hidden rounded-2xl border border-input bg-background/70 touch-pan-y",
+        "relative flex-1 overflow-hidden rounded-2xl border border-input bg-background/70 touch-pan-y native-scroll-area",
         disabled && "opacity-50 pointer-events-none",
       )}
       style={{ height: ITEM_HEIGHT * 3 }}
@@ -89,7 +89,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
         ref={ref}
         onScroll={handleScroll}
         data-allow-scroll="true"
-        className="h-full overflow-y-auto scroll-smooth no-scrollbar snap-y snap-mandatory overscroll-contain touch-pan-y"
+        className="h-full overflow-y-auto scroll-smooth no-scrollbar snap-y snap-mandatory overscroll-contain touch-pan-y native-scroll-area"
         style={{
           scrollSnapType: "y mandatory",
           scrollPaddingTop: ITEM_HEIGHT,
@@ -133,7 +133,7 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div data-allow-scroll="true" className={cn("space-y-3 native-scroll-area", className)}>
       <div className="flex items-stretch gap-2">
         <Wheel
           ariaLabel="Hour"

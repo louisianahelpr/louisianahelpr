@@ -429,7 +429,7 @@ input, textarea, [contenteditable="true"], .prose, pre, code {
 html.app-shell main.app-shell-scroll {
   height: 100dvh;
   max-height: 100dvh;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -484,6 +484,11 @@ html, body {
 
 button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
   touch-action: manipulation;
+}
+
+.native-scroll-area,
+.native-scroll-area * {
+  touch-action: pan-y;
 }
 
 input, select, textarea {

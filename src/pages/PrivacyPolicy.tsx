@@ -3,6 +3,7 @@ import { Shield, Database, Eye, Lock, Trash2, Cookie } from "lucide-react";
 import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
+import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 
 const PrivacyPolicy = () => {
 
@@ -14,31 +15,23 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
+      <div aria-hidden className="h-14" />
 
-      <main className="container mx-auto px-5 pt-2 pb-8">
-        <div className="max-w-2xl mx-auto space-y-8">
+      <main className="container mx-auto px-5 pt-1 pb-8">
+        <div className="max-w-2xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
             <BackButton to="/profile?tab=legal" />
-            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            <h1 className="text-page-title text-foreground">
               Privacy Policy
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
+          <p className="text-[11px] text-muted-foreground pl-12">Last updated: March 2026</p>
 
-          <section className="space-y-4">
-            <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
-              <Database className="w-5 h-5 text-primary" /> Information We Collect
-            </h2>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-sm text-muted-foreground">
-              <p><strong className="text-foreground">Account Information:</strong> Name, email address, phone number, date of birth, and profile photo when you create an account.</p>
-              <p><strong className="text-foreground">Identity Verification:</strong> Government-issued ID documents for helprs to ensure platform safety. These are stored securely and accessed only during verification.</p>
-              <p><strong className="text-foreground">Location Data:</strong> Address and GPS coordinates when you post or check in to jobs, used for matching and proximity verification.</p>
-              <p><strong className="text-foreground">Payment Information:</strong> Payment details are processed securely by Stripe. Helpr does not store your full credit card number.</p>
-              <p><strong className="text-foreground">Usage Data:</strong> Device information, IP address, browser type, and interaction data to improve platform performance.</p>
-              <p><strong className="text-foreground">Communications:</strong> Messages sent through the in-app chat system are stored to facilitate job coordination and dispute resolution.</p>
-            </div>
-          </section>
+          <PolicySection icon={Database} title="Information We Collect" subtitle="Account, ID, location, payments, and messages" defaultOpen>
+            <PolicyRowItem icon={Database} title="Account & ID Data" body={<><p><strong className="text-foreground">Account Information:</strong> Name, email address, phone number, date of birth, and profile photo.</p><p><strong className="text-foreground">Identity Verification:</strong> Government-issued ID documents are stored securely and accessed only during verification.</p></>} />
+            <PolicyRowItem icon={Eye} title="Activity & Location Data" body={<><p><strong className="text-foreground">Location Data:</strong> Address and GPS coordinates for matching and proximity verification.</p><p><strong className="text-foreground">Usage Data:</strong> Device information, IP address, browser type, and platform interaction data.</p></>} />
+            <PolicyRowItem icon={Lock} title="Payments & Communications" body={<><p><strong className="text-foreground">Payment Information:</strong> Processed securely by Stripe. Helpr does not store full card numbers.</p><p><strong className="text-foreground">Communications:</strong> In-app messages are stored for coordination and dispute resolution.</p></>} />
+          </PolicySection>
 
           <section className="space-y-4">
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">

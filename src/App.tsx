@@ -1,6 +1,7 @@
 import { lazy, Suspense, forwardRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PageTransition from "@/components/PageTransition";
@@ -177,6 +178,7 @@ const SessionManager = () => {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
+      <SpeedInsights />
       <Suspense fallback={null}>
         <Toaster />
         <Sonner />

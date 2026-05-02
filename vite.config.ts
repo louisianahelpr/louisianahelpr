@@ -249,7 +249,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       // Native-only Capacitor plugins that aren't installed in the web build.
       // They're loaded via dynamic import() and silently no-op on web.
-      external: ["@capacitor-community/in-app-review"],
+      external: ["@capacitor-community/in-app-review", "react-is"],
       output: {
         // Bundle all lucide icons into a single chunk so we don't ship 40+
         // tiny per-icon files (HTTP overhead > byte savings).

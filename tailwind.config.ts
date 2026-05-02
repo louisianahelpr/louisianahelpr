@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "sans-serif"],
-        display: ["Fraunces", "serif"],
+        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -61,18 +61,26 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Semantic color tokens
+        success: "hsl(var(--success))",
+        "success-foreground": "hsl(var(--success-foreground))",
+        warning: "hsl(var(--warning))",
+        "warning-foreground": "hsl(var(--warning-foreground))",
+        error: "hsl(var(--error))",
+        "error-foreground": "hsl(var(--error-foreground))",
+        info: "hsl(var(--info))",
+        "info-foreground": "hsl(var(--info-foreground))",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        // 2026 radii system — use these for new components
-        "ds-sm": "8px",   // small components: chips, tags, inline buttons
-        "ds-md": "14px",  // cards, list items
-        "ds-lg": "20px",  // sheets, modals
-        "ds-pill": "28px", // full pills
+        // Design system radii
+        "ds-sm": "8px",
+        "ds-md": "14px",
+        "ds-lg": "20px",
+        "ds-pill": "28px",
       },
-      // 2026 type scale — use text-ds-* for new components
       fontSize: {
         "ds-11": ["11px", { lineHeight: "1.45", letterSpacing: "0" }],
         "ds-13": ["13px", { lineHeight: "1.45", letterSpacing: "0" }],
@@ -83,7 +91,6 @@ export default {
         "ds-32": ["32px", { lineHeight: "1.15", letterSpacing: "-0.02em" }],
         "ds-40": ["40px", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
       },
-      // 4pt grid spacing — additive to Tailwind's defaults
       spacing: {
         "ds-1": "4px",
         "ds-2": "8px",
@@ -94,7 +101,6 @@ export default {
         "ds-8": "32px",
         "ds-10": "40px",
         "ds-12": "48px",
-        // iOS / Android safe-area insets (no-op on web where env() = 0)
         "safe-top": "env(safe-area-inset-top)",
         "safe-bottom": "env(safe-area-inset-bottom)",
         "safe-left": "env(safe-area-inset-left)",

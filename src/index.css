@@ -1,515 +1,305 @@
-/* Fonts are preconnected + preloaded in index.html for faster LCP */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-  background-color: hsl(var(--background));
-}
-html::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
-  width: 0;
-  height: 0;
-}
-
-/* Native app feel for iOS wrapper */
-body {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-/* App-shell viewport lock: when <html> has the .app-shell class, the window
-   itself never scrolls. Pages opt-in by rendering inside AppShell, which
-   provides its own internal overflow-y:auto container. Public marketing/legal
-   pages omit the class so document-scroll keeps working for SEO + long content. */
-html.app-shell,
-html.app-shell body,
-html.app-shell #root {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-/* Default (non-shell) state still allows normal vertical scroll. */
-html:not(.app-shell),
-html:not(.app-shell) body {
-  overflow-y: auto;
-  min-height: 100%;
-}
-body::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-/* Hide ALL scrollbars globally — every scrollable element, not just the page.
-   Scroll behavior is preserved; only the visual scrollbar chrome is removed. */
-* {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-*::-webkit-scrollbar,
-*::-webkit-scrollbar-track,
-*::-webkit-scrollbar-thumb {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
-}
-
-/* Allow text selection in inputs and textareas */
-input, textarea, [contenteditable="true"], .prose, pre, code {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-@layer base {
-  :root {
-    /* Ultra-light tint of Helpr Green (hsl 158 67% 27%) — barely-there
-       brand wash that pairs with the vibrant green CTAs. */
-    --background: 158 45% 98%;
-    --foreground: 160 10% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 160 10% 12%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 160 10% 12%;
-
-    --primary: 158 67% 27%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 150 20% 94%;
-    --secondary-foreground: 160 10% 20%;
-
-    --muted: 150 12% 93%;
-    --muted-foreground: 160 8% 39%;
-
-    --accent: 40 80% 58%;
-    --accent-foreground: 40 80% 15%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 150 12% 90%;
-    --input: 150 12% 88%;
-    --ring: 158 67% 37%;
-
-    --radius: 1.25rem;
-
-    --sidebar-background: 150 15% 97%;
-    --sidebar-foreground: 160 10% 20%;
-    --sidebar-primary: 158 67% 37%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 20% 94%;
-    --sidebar-accent-foreground: 160 10% 20%;
-    --sidebar-border: 150 12% 90%;
-    --sidebar-ring: 158 67% 37%;
-
-    /* Custom tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(158 67% 37%), hsl(159 43% 51%));
-    --soft-shadow: 0 4px 24px -4px hsl(160 10% 12% / 0.06);
-    --card-shadow: 0 2px 12px -2px hsl(160 10% 12% / 0.05);
-    --card-hover-shadow: 0 12px 40px -8px hsl(158 67% 37% / 0.15);
-    --dashboard-gradient: linear-gradient(135deg, hsl(158 67% 37% / 0.08), hsl(40 80% 58% / 0.06), hsl(260 50% 60% / 0.04));
-    --section-glow: 0 0 40px -10px hsl(158 67% 37% / 0.15);
-    --glass-bg: hsl(0 0% 100% / 0.7);
-    --glass-border: hsl(0 0% 100% / 0.3);
-
-    /* Premium design system tokens (Phase 1) */
-    --gradient-page: linear-gradient(180deg, hsl(150 30% 98%) 0%, hsl(150 20% 96%) 40%, hsl(40 30% 97%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100% / 0.85) 0%, hsl(150 20% 98% / 0.7) 100%);
-    --gradient-card-accent: linear-gradient(135deg, hsl(158 67% 37% / 0.06) 0%, hsl(40 80% 58% / 0.04) 100%);
-    --shadow-premium: 0 20px 60px -20px hsl(158 67% 37% / 0.18), 0 8px 24px -12px hsl(160 10% 12% / 0.08);
-    --shadow-card-soft: 0 1px 3px hsl(160 10% 12% / 0.04), 0 4px 16px -4px hsl(160 10% 12% / 0.06);
-    --shadow-elevated: 0 12px 40px -12px hsl(160 10% 12% / 0.12);
-
-    /* External brand tokens (Facebook official blue) */
-    --facebook: 213 83% 31%;
-    --facebook-hover: 213 83% 24%;
-
-    font-family: 'DM Sans', system-ui, sans-serif;
-  }
-
-  .dark {
-    --background: 160 10% 8%;
-    --foreground: 150 15% 95%;
-    --card: 160 10% 11%;
-    --card-foreground: 150 15% 95%;
-    --popover: 160 10% 11%;
-    --popover-foreground: 150 15% 95%;
-    --primary: 159 43% 51%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 160 10% 16%;
-    --secondary-foreground: 150 15% 90%;
-    --muted: 160 8% 18%;
-    --muted-foreground: 150 10% 68%;
-    --accent: 40 80% 58%;
-    --accent-foreground: 40 80% 95%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 160 8% 20%;
-    --input: 160 8% 20%;
-    --ring: 159 43% 51%;
-    --sidebar-background: 160 10% 10%;
-    --sidebar-foreground: 150 15% 90%;
-    --sidebar-primary: 159 43% 51%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 10% 16%;
-    --sidebar-accent-foreground: 150 15% 90%;
-    --sidebar-border: 160 8% 20%;
-    --sidebar-ring: 159 43% 51%;
-    --glass-bg: hsl(160 10% 11% / 0.7);
-    --glass-border: hsl(0 0% 100% / 0.08);
-
-    /* Premium dark variants */
-    --gradient-page: linear-gradient(180deg, hsl(160 12% 7%) 0%, hsl(160 10% 9%) 40%, hsl(160 10% 8%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(160 10% 13% / 0.85) 0%, hsl(160 10% 11% / 0.7) 100%);
-    --gradient-card-accent: linear-gradient(135deg, hsl(159 43% 51% / 0.08) 0%, hsl(40 80% 58% / 0.05) 100%);
-    --shadow-premium: 0 20px 60px -20px hsl(159 43% 51% / 0.22), 0 8px 24px -12px hsl(0 0% 0% / 0.4);
-    --shadow-card-soft: 0 1px 3px hsl(0 0% 0% / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.25);
-    --shadow-elevated: 0 12px 40px -12px hsl(0 0% 0% / 0.5);
-  }
-}
+/* Garden District Stone Color System */
+/* "Trust lives in restraint" — Professional, neutral, high-end palette */
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground antialiased;
-  }
-  h1, h2, h3, h4 {
-    font-family: 'Fraunces', serif;
+    @apply bg-background text-foreground;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Light Mode (default) */
+:root {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 16%;
+  --card: 0 0% 97%;
+  --card-foreground: 0 0% 16%;
+  --popover: 0 0% 98%;
+  --popover-foreground: 0 0% 16%;
+  --muted: 0 0% 52%;
+  --muted-foreground: 0 0% 96%;
+  --accent: 78 9% 43%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 77% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 85%;
+  --input: 0 0% 96%;
+  --ring: 78 9% 43%;
+  --primary: 78 9% 43%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 93%;
+  --secondary-foreground: 0 0% 16%;
+  --success: 78 8% 61%;
+  --success-foreground: 0 0% 100%;
+  --warning: 26 28% 54%;
+  --warning-foreground: 0 0% 100%;
+  --error: 0 18% 52%;
+  --error-foreground: 0 0% 100%;
+  --info: 78 9% 43%;
+  --info-foreground: 0 0% 100%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 0 0% 16%;
+  --sidebar-primary: 78 9% 43%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 93%;
+  --sidebar-accent-foreground: 0 0% 16%;
+  --sidebar-border: 0 0% 85%;
+  --sidebar-ring: 78 9% 43%;
+  --radius: 0.5rem;
 
-  /* Premium page background — drop-in replacement for bg-background.
-     Uses a layered radial gradient that spans the full page for cohesive
-     ambient depth (no section seams), plus a subtle grain overlay for
-     premium texture. */
-  /* 2026 brand-green Mint-to-Seafoam canvas — no yellow accents.
-     Layered low-opacity primary-green orbs over a near-white mint base
-     create an airy, on-brand backdrop that lets dark text and vibrant
-     green CTAs pop without competing for attention. */
-  .bg-premium-page {
-    /* Solid ultra-light Helpr-green tint — pairs with vibrant green CTAs. */
-    background-color: hsl(158 45% 98%);
-    background-image: none;
-    position: relative;
-  }
-  .dark .bg-premium-page {
-    background-color: hsl(160 12% 7%);
-    background-image: none;
-  }
-  /* Grain overlay removed for the Fixed Soft-Mint Standard. */
-  .bg-premium-page::before {
-    content: none;
-  }
-  /* Ensure page content sits above the overlay */
-  .bg-premium-page > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Quieter premium surface for dense data screens (Admin, Messages, PostJob).
-     Same gradient, no ambient orbs, so heavy layouts stay scannable. */
-  .bg-premium-surface {
-    background-image: var(--gradient-page);
-    background-attachment: fixed;
-  }
+  /* Premium Shadow System */
+  --shadow-card-soft: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.12);
+  --shadow-elevated: 0 25px 50px rgba(0, 0, 0, 0.15);
 }
 
-/* Enhanced global styles */
-@layer components {
-  /* Glassmorphism utility */
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid var(--glass-border);
-  }
+/* Dark Mode */
+.dark {
+  --background: 0 0% 8%;
+  --foreground: 0 0% 93%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 93%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 93%;
+  --muted: 0 0% 52%;
+  --muted-foreground: 0 0% 24%;
+  --accent: 78 9% 43%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 77% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 20%;
+  --input: 0 0% 13%;
+  --ring: 78 9% 43%;
+  --primary: 78 9% 43%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 18%;
+  --secondary-foreground: 0 0% 93%;
+  --success: 78 8% 61%;
+  --success-foreground: 0 0% 100%;
+  --warning: 26 28% 54%;
+  --warning-foreground: 0 0% 100%;
+  --error: 0 18% 52%;
+  --error-foreground: 0 0% 100%;
+  --info: 78 9% 43%;
+  --info-foreground: 0 0% 100%;
+  --sidebar-background: 0 0% 8%;
+  --sidebar-foreground: 0 0% 93%;
+  --sidebar-primary: 78 9% 43%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 18%;
+  --sidebar-accent-foreground: 0 0% 93%;
+  --sidebar-border: 0 0% 20%;
+  --sidebar-ring: 78 9% 43%;
 
-  /* Smooth button press */
-  .btn-press {
-    @apply transition-all duration-150 active:scale-[0.97];
-  }
-
-  /* Section divider with gradient */
-  .section-divider {
-    @apply h-px bg-gradient-to-r from-transparent via-border to-transparent;
-  }
-
-  /* Card with enhanced hover */
-  .card-interactive {
-    @apply rounded-2xl border bg-card transition-all duration-300 ease-out;
-    box-shadow: var(--card-shadow);
-  }
-  .card-interactive:hover {
-    box-shadow: var(--card-hover-shadow);
-    transform: translateY(-2px);
-  }
-
-  .card-premium {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
-    border-radius: 20px;
-    padding: 16px;
-    box-shadow:
-      0 1px 0 hsl(var(--foreground) / 0.02),
-      0 4px 12px -4px hsl(var(--foreground) / 0.08);
-    transition: box-shadow 200ms ease, transform 150ms ease;
-  }
-  .card-premium:active {
-    transform: scale(0.995);
-  }
-
-  .text-page-title {
-    font-family: 'Fraunces', serif;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-  }
-  .text-section-title {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.005em;
-  }
-  .text-card-title {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-  }
-  .text-body-relaxed {
-    font-size: 15px;
-    line-height: 1.6;
-  }
+  --shadow-card-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-card-hover: 0 10px 15px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.12);
+  --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 25px 50px rgba(0, 0, 0, 0.35);
 }
 
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* 2026 motion utilities */
-  .ds-press {
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .ds-press:active {
-    transform: scale(0.97);
-  }
-
-  /* 2026 card surface — subtle border, no heavy shadow */
-  .ds-card {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: 14px;
-    padding: 16px;
-  }
-
-  /* 2026 Glassmorphic surface — semi-transparent white with blur and a
-     hairline highlight border. Pairs perfectly with the brand-mint canvas
-     and the .squircle utility for an organic, premium feel. */
-  .glass-card {
-    background: hsl(0 0% 100% / 0.5);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid hsl(0 0% 100% / 0.6);
-    box-shadow:
-      0 1px 0 hsl(0 0% 100% / 0.7) inset,
-      0 10px 40px -12px hsl(160 30% 20% / 0.12),
-      0 4px 16px -8px hsl(160 30% 20% / 0.08);
-  }
-  .dark .glass-card {
-    background: hsl(160 10% 14% / 0.55);
-    border: 1px solid hsl(0 0% 100% / 0.08);
-    box-shadow:
-      0 1px 0 hsl(0 0% 100% / 0.05) inset,
-      0 10px 40px -12px hsl(0 0% 0% / 0.5);
-  }
-
-  /* ---------------------------------------------------------------------
-     iOS HIG safe-area utilities
-     Apply on any full-bleed container so content never touches the notch,
-     Dynamic Island, home indicator, or landscape rounded-corner cutouts.
-     --------------------------------------------------------------------- */
-  .safe-pt {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  .safe-pb {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .safe-px {
-    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
-  }
-  /* iOS HIG "gold standard" 20px horizontal gutter — apply to any block
-     (page main, headers, description copy) that should align to the global
-     left/right margin used across every screen. Honors landscape safe areas. */
-  .app-gutter {
-    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
-  }
-  /* Clear the floating bottom nav (h-14 + 8px margin + safe inset). */
-  /* Clear the floating bottom nav with generous breathing room
-     (nav pill ~56px + 16px margin + 64px buffer + safe inset ≈ 140px). */
-  .pb-safe-nav {
-    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
-  }
-  .mb-safe-nav {
-    margin-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-/* ---------------------------------------------------------------------
-   HIG: minimum 44×44pt touch targets for primary interactive elements
-   on coarse-pointer (touch) devices. Excludes elements explicitly opted
-   out via data-no-min-tap (e.g. compact inline link chips, badges).
-   --------------------------------------------------------------------- */
-@media (pointer: coarse) {
-  button:not([data-no-min-tap]):not(.no-min-tap),
-  a[role="button"]:not([data-no-min-tap]):not(.no-min-tap),
-  [role="button"]:not([data-no-min-tap]):not(.no-min-tap),
-  input[type="button"],
-  input[type="submit"],
-  input[type="checkbox"],
-  input[type="radio"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
-/* Container respects horizontal safe-area on landscape iOS so the
-   `container mx-auto px-4` pattern used app-wide automatically gains
-   left/right notch insets. */
+/* iOS Safe Area Support */
 @supports (padding: max(0px)) {
-  .container {
-    padding-left: max(1.25rem, env(safe-area-inset-left));
-    padding-right: max(1.25rem, env(safe-area-inset-right));
+  body {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
   }
 }
 
-/* Hide scrollbar for wheel-style pickers while keeping native scroll/snap. */
-.no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* Utility Classes */
+.safe-pt {
+  padding-top: env(safe-area-inset-top);
 }
 
-/* App-shell internal scroll container.
-   - On app-shell routes (html.app-shell): the <main> becomes a fixed-height
-     scroll box that fills the viewport. The MobileNav (rendered as a sibling,
-     position:fixed, z-50) floats above it and never moves.
-   - On document-scroll routes (no .app-shell on html): this class is a no-op
-     so marketing/legal pages keep their normal page scroll.
-*/
-html.app-shell main.app-shell-scroll {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow-y: hidden;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-html.availability-screen-lock,
-html.availability-screen-lock body,
-html.availability-screen-lock #root,
-html.availability-screen-lock main.app-shell-scroll,
-html.edit-profile-screen-lock,
-html.edit-profile-screen-lock body,
-html.edit-profile-screen-lock #root,
-html.edit-profile-screen-lock main.app-shell-scroll {
+.safe-px {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* App Shell Viewport Lock */
+html.app-shell {
   height: 100dvh;
-  max-height: 100dvh;
   overflow: hidden;
-  width: 100%;
 }
 
-html.availability-screen-lock body,
-html.edit-profile-screen-lock body {
-  position: fixed;
-  inset: 0;
+html.app-shell body {
+  height: 100dvh;
+  overflow: hidden;
 }
 
-/* ---------------------------------------------------------------------
-   2026 Squircle (superellipse) corners.
-   Progressive enhancement — uses the new CSS `corner-shape` property
-   (Chrome/Safari Tech Preview 2025+). Browsers without support fall
-   back to the element's existing `border-radius` arc, which still
-   looks great. Apply via the `.squircle` utility class.
-   --------------------------------------------------------------------- */
-@supports (corner-shape: squircle) {
-  .squircle {
-    corner-shape: squircle;
-    /* 0.6 corner-smoothing — the iOS-like organic curvature */
-    --corner-smoothing: 0.6;
-    corner-shape: superellipse(1.6);
-  }
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* Tactile press: subtle inset highlight on active for primary surfaces */
-.squircle:active {
-  filter: brightness(0.98);
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
 }
 
-
-html.app-shell, html.app-shell body {
-  overscroll-behavior: none;
-}
-html:not(.app-shell), html:not(.app-shell) body {
-  touch-action: pan-y;
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
 }
 
-button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted));
+}
+
+/* Component Styles */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+  background: rgba(20, 20, 20, 0.8);
+}
+
+.card-interactive {
+  transition: box-shadow 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.card-interactive:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.card-premium {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.ds-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--shadow-card-soft);
+}
+
+.glass-card {
+  @apply glass;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.dark .glass-card {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Typography Utilities */
+.text-page-title {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.text-section-title {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.text-card-title {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.text-body-relaxed {
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+/* Touch Target Support (HIG 44x44pt minimum) */
+button,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Disable Unwanted Touch Gestures */
+input[type="range"] {
   touch-action: manipulation;
 }
 
-.native-scroll-area,
-.native-scroll-area * {
-  touch-action: pan-y;
+button {
+  touch-action: manipulation;
 }
 
-input, select, textarea {
-  font-size: 16px;
+/* Focus Visible for Accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
-@media (min-width: 768px) {
-  input, select, textarea {
-    font-size: inherit;
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-.image-square {
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  background: hsl(var(--muted));
+@keyframes slideUp {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
-.image-avatar {
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: 9999px;
-  background: hsl(var(--muted));
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }

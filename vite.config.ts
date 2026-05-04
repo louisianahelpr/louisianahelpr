@@ -36,6 +36,25 @@ export default defineConfig(({ mode }) => ({
       brotliSize: true,
       template: "treemap",
     }) as Plugin,
+    // Strip the <meta http-equiv="Content-Security-Policy"> tag from the
+    // web build. The meta exists for Capacitor (file:// loads can't get
+    // HTTP headers), but on web Vercel injects a CSP header from
+    // vercel.json. When BOTH are present the browser intersects them per
+    // W3C CSP spec — the meta is more restrictive, so it silently blocks
+    // resources the header allows (PostHog ingestion, OpenAI, Stripe
+    // checkout iframes, blob: workers, unsafe-eval). This plugin keeps
+    // the meta only for the Capacitor bundle where it's actually needed.
+    !isCapacitorBuild && {
+      name: "html-strip-meta-csp",
+      apply: "build",
+      enforce: "post",
+      transformIndexHtml(html: string) {
+        return html.replace(
+          /\s*<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>\s*/gi,
+          "\n",
+        );
+      },
+    } satisfies Plugin,
     // Avoid the main app stylesheet blocking first paint. Vite emits the entry
     // CSS as a synchronous <link rel="stylesheet">, which Lighthouse flagged as
     // a ~150ms render-blocking request on the critical path. We rewrite that

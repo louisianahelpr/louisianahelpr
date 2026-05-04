@@ -18,6 +18,9 @@ dist-ssr
 # Supabase CLI scratch dir
 supabase/.temp/
 
+# Vercel CLI metadata (project + token)
+.vercel
+
 # Environment variables (never commit secrets)
 .env
 .env.local

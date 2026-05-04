@@ -84,60 +84,26 @@ jobs:
           exit 1
 
       - name: Belt-and-suspenders schema/role bootstrap
-        # The supabase/postgres image already provides auth/storage schemas
-        # and the standard roles, but a few rare migrations still expect
-        # specific objects to pre-exist (e.g. publications). We make these
-        # idempotent so the migrations can layer on top cleanly.
+        # The supabase/postgres image already provides auth/storage/realtime
+        # schemas and the standard roles, but column shape and permissions
+        # vary by image tag. Each block below is wrapped in a DO with
+        # EXCEPTION WHEN OTHERS THEN NULL so that any single shim failing
+        # (e.g. realtime schema is owned by a role we can't write to)
+        # doesn't block the rest. The migrations themselves do the real
+        # heavy lifting.
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
-          -- supabase_realtime publication (some migrations ALTER it).
-          DO $$
-          BEGIN
+          -- 1. supabase_realtime publication
+          DO $$ BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
               CREATE PUBLICATION supabase_realtime;
             END IF;
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'realtime publication shim skipped: %', SQLERRM;
           END $$;
 
-          -- Storage shims. The supabase/postgres image ships storage.buckets,
-          -- but its column shape varies by image tag (newer tags renamed
-          -- `public` → `bucket_type`/`type` and added file_size_limit etc).
-          -- Ensure the columns the migrations write exist, idempotently.
-          CREATE SCHEMA IF NOT EXISTS storage;
-          CREATE TABLE IF NOT EXISTS storage.buckets (
-            id text PRIMARY KEY,
-            name text NOT NULL UNIQUE,
-            owner uuid,
-            created_at timestamptz DEFAULT now(),
-            updated_at timestamptz DEFAULT now()
-          );
-          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS public boolean DEFAULT false;
-          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS avif_autodetection boolean DEFAULT false;
-          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS file_size_limit bigint;
-          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS allowed_mime_types text[];
-
-          -- Realtime shims for the few migrations that touch realtime.messages
-          -- or realtime.topic(). Real Supabase wires these via its own
-          -- realtime extension; here we make them no-ops so migrations can run.
-          CREATE SCHEMA IF NOT EXISTS realtime;
-          CREATE TABLE IF NOT EXISTS realtime.messages (
-            id bigserial PRIMARY KEY,
-            topic text,
-            extension text,
-            payload jsonb,
-            event text,
-            private boolean,
-            updated_at timestamptz DEFAULT now(),
-            inserted_at timestamptz DEFAULT now()
-          );
-          CREATE OR REPLACE FUNCTION realtime.topic() RETURNS text
-            LANGUAGE sql STABLE AS $rt$ SELECT current_setting('realtime.topic', true) $rt$;
-          CREATE OR REPLACE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT false)
-            RETURNS void LANGUAGE sql AS $rt$ SELECT NULL::void $rt$;
-
-          -- Reserved roles — the supabase/postgres image ships these, but
-          -- be defensive for older image tags.
-          DO $$
-          BEGIN
+          -- 2. Reserved roles (newer images already have them)
+          DO $$ BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
               CREATE ROLE authenticated NOLOGIN;
             END IF;
@@ -147,6 +113,51 @@ jobs:
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN
               CREATE ROLE service_role NOLOGIN BYPASSRLS;
             END IF;
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'role shim skipped: %', SQLERRM;
+          END $$;
+
+          -- 3. storage.buckets columns (idempotent ADD COLUMN IF NOT EXISTS)
+          DO $$ BEGIN
+            CREATE SCHEMA IF NOT EXISTS storage;
+            CREATE TABLE IF NOT EXISTS storage.buckets (
+              id text PRIMARY KEY,
+              name text NOT NULL UNIQUE,
+              owner uuid,
+              created_at timestamptz DEFAULT now(),
+              updated_at timestamptz DEFAULT now()
+            );
+            ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS public boolean DEFAULT false;
+            ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS avif_autodetection boolean DEFAULT false;
+            ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS file_size_limit bigint;
+            ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS allowed_mime_types text[];
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'storage shim skipped: %', SQLERRM;
+          END $$;
+
+          -- 4. Realtime shims (best-effort; image often owns these as supabase_admin)
+          DO $$ BEGIN
+            CREATE SCHEMA IF NOT EXISTS realtime;
+            CREATE TABLE IF NOT EXISTS realtime.messages (
+              id bigserial PRIMARY KEY,
+              topic text,
+              extension text,
+              payload jsonb,
+              event text,
+              private boolean,
+              updated_at timestamptz DEFAULT now(),
+              inserted_at timestamptz DEFAULT now()
+            );
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'realtime.messages shim skipped: %', SQLERRM;
+          END $$;
+          DO $$ BEGIN
+            CREATE OR REPLACE FUNCTION realtime.topic() RETURNS text
+              LANGUAGE sql STABLE AS $rt$ SELECT current_setting('realtime.topic', true) $rt$;
+            CREATE OR REPLACE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT false)
+              RETURNS void LANGUAGE sql AS $rt$ SELECT NULL::void $rt$;
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'realtime function shim skipped: %', SQLERRM;
           END $$;
           SQL
 

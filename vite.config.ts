@@ -106,7 +106,12 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
+        // Deliberately exclude `html` from precache. When index.html was
+        // precached, a stale SW kept serving the old HTML (which references
+        // old hashed bundle URLs) for hours after a deploy — users had to
+        // manually unregister the SW to see updates. The navigation handler
+        // below now NetworkFirst's HTML so deploys take effect on next reload.
+        globPatterns: ["**/*.{js,css,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
         // Don't precache heavy admin-only chunks. They're lazy-loaded behind
         // an auth gate and would otherwise bloat the SW cache for every
         // public visitor (Lighthouse flags them as unused JS on landing).
@@ -126,6 +131,19 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         clientsClaim: true,
         runtimeCaching: [
+          // Always try network first for HTML page navigations so a new deploy
+          // is picked up on the next reload. Falls back to cache only when the
+          // network is slow/offline (3s timeout).
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-pages",
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",

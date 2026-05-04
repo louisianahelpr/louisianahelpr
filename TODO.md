@@ -1,15 +1,41 @@
 # TODO
 
-## Where We Left Off — 2026-05-03
+## Where We Left Off — 2026-05-04 (long hardening session)
 
-**QA smoke test pass (Cowork-driven). Full report:** `qa-report-2026-05-03.md` in this session's outputs.
+**P0 from 2026-05-03 is FIXED + many additional gaps closed.** See migrations
+20260504142454, 20260504153100, 20260504152414, 20260504154605, 20260504154800,
+20260504155115, 20260504164121 for the schema-side work.
 
-- 🔴 **P0 — job posting is broken end-to-end.** `notify_helpers_on_job_post()` and `notify_saved_searches_on_new_job()` reference `p.role = 'helper'`, but `profiles.role` no longer exists (unified accounts). Every `POST /rest/v1/jobs` 400s with `column p.role does not exist`. Fix: drop the role check in both trigger functions or re-route through `user_roles`/`has_role()`. Migration not applied — needs your sign-off.
-- ✅ **IDV gating works** at /post-job confirm step. Dialog copy matches spec; closing it then clicking Pay re-triggers it. Stripe Checkout was *not* reached because of the P0 above.
-- ⏭ **Test 1 (signup) skipped** — can't auto-create accounts / type passwords. Need human run.
-- ⏭ **Test 3 (Connect-at-applying) skipped** — session expired mid-test, no re-auth. Also: Test 3's seeded "Help with hurricane prep" job is owned by Lexi, so it never appears in Lexi's browse feed. Re-seed under a different user or rewrite the test.
-- ⚠️ **Tests 4 + 5 blocked by tooling.** Chrome's Claude panel reserves window width (inner viewport floors at 856), and the sandbox can't reach localhost for Lighthouse. Recommend Playwright viewport overrides in CI for Test 4 and `npx lighthouse` locally for Test 5.
-- 🧹 **Cleanup done:** Lexi's `idv_status` was flipped `verified` for the bypass step then reverted to `not_started`. No other DB writes.
+### Shipped to prod this session
+- ✅ **P0 trigger fix** — replaced `p.role = 'helper'` with `has_role()` in 8 functions. Job posting unblocked.
+- ✅ **Hidden P0** — `notifications.type` CHECK was rejecting 9 trigger-emitted types (work_status, job_match, etc.); `accepted → in_progress` was silently 500ing. Fixed.
+- ✅ **Job state machine** — BEFORE UPDATE OF status trigger enforces transitions; admins bypass with audit log entry.
+- ✅ **payment_status** — `'abandoned'` added to constraint (cleanup script no longer fails silently).
+- ✅ **Two-way reviews** — trigger blocks self-review, off-job review, pre-completion review.
+- ✅ **Admin audit trail** — every admin status override → admin_audit_log row.
+- ✅ **payout_transfers ledger table** — authoritative record of stripe.transfers.create() calls.
+- ✅ **`release-payout` edge function** — actually moves money. Gated behind `RELEASE_PAYOUT_AUTO=1` env var until first manual test.
+- ✅ **auto-release-payment** wired to invoke release-payout when gate is on.
+- ✅ **Stripe Connect idempotency** — no more orphan accounts on retry.
+- ✅ **5 missing hot-path indexes** — payout_scheduled_at, parent_job_id, messages thread, applications.status, user_roles.role.
+- ✅ **CSP + HSTS + security headers** via `vercel.json`.
+- ✅ **Rate limits** wired into create-payment, create-boost-payment, complete-signup.
+- ✅ **SW HTML cache fix** — deploys now show up on next reload (no more stuck-on-old-version).
+- ✅ **IDV retry UX** — failed/requires_input shows "Try again" CTA + Stripe failure reason.
+- ✅ **Signup.tsx refactor** — 1267 → 579 lines, split into Step1/Step2/Step3 components.
+- ✅ **AVIF image pipeline** — `npm run images:avif`, generated for current logo + hero-courtyard set.
+- ✅ **Bundle visualizer** — `ANALYZE=1 npm run build` writes dist/stats.html.
+- ✅ **Playwright smoke tests** — landing/browse/legal in `e2e/smoke.spec.ts`.
+- ✅ **npm vulns** — bumped serialize-javascript override to ^7.0.5; 4 high → 0.
+- ✅ **ESLint** — 58 → 0 warnings.
+
+### Pending YOUR action (only you can do these)
+- 🟠 **`gh auth refresh -s workflow`** then push `.github/workflows/db-smoke.yml` (file is in working tree). This is the workflow that catches the P0 class of bug before merge.
+- 🟠 **Sentry alert rule** — UI only at https://helpr-4m.sentry.io/projects/javascript/alerts/new/issue/. Conditions: error message matches `column .* does not exist` OR `violates check constraint .*notifications_type_check` OR `Invalid job status transition` OR `transfer sent but ledger write failed`.
+- 🟠 **CSP eyeball check** — incognito → www.louisianahelpr.com → DevTools console while clicking through login/post-job/payment/profile.
+- 🟠 **Stripe test-mode payout test + flip the gate** — manually invoke release-payout with a test job's id, verify Stripe transfer + ledger row + status flip + notification, then set `RELEASE_PAYOUT_AUTO=1` in Supabase Functions config. Cron picks it up next tick.
+- 🟠 **Deploy stripe-webhook** — `supabase functions deploy stripe-webhook` to activate the new transfer.failed/reversed handlers + payout_transfers ledger lifecycle updates.
+- 🟠 **Verify Stripe API version** — `2025-08-27.basil` is used in 10 functions but per stripe.com/docs/api/versioning, that's not a real version. Current is `2026-04-22.dahlia`. Confirm with Stripe support whether the string is silently substituted.
 
 ## Deployment Log
 
@@ -27,19 +53,20 @@
 ## Next Steps — Helpr Marketplace
 
 ### Jobs & matching
-- [ ] Define job-state machine end-to-end (post → applied → accepted → in-progress → completed → reviewed → paid) and audit `src/pages/PostJob` + `JobCard` against it
+- [x] Define job-state machine end-to-end (DB-level enforcement shipped 2026-05-04). UI side: still need to audit `src/pages/PostJob` + `JobCard` to surface state transitions explicitly to users
 - [ ] Helper discovery: location-aware ranking on the job feed (NOLA / Baton Rouge / Shreveport service areas)
-- [ ] Saved searches + push/email notifications when a matching job is posted
+- [ ] Saved searches + push/email notifications when a matching job is posted (DB triggers exist; need cron to actually send)
 
 ### Trust & safety
-- [ ] Helper verification flow (ID + background check vendor decision, RLS on verification artifacts in Supabase)
-- [ ] Two-way reviews surfaced on profile; review-after-completion enforcement
+- [ ] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. Still TODO: deprecate `legacy_manual_review` flag, add `helper_verifications` history table for audit
+- [x] Two-way reviews — DB enforcement trigger shipped 2026-05-04. UI side: surface reviews on profile + nag for review after completion
 - [ ] Dispute / report-issue path wired into `Admin` queue with SLA
 
 ### Payments
-- [ ] Stripe Connect onboarding for helpers (Express accounts) + payout ledger
-- [ ] Hold-and-release escrow on job acceptance; release on completion confirmation
-- [ ] Refund + partial-refund flows from `AdminJobs`
+- [x] Stripe Connect onboarding for helpers (Express accounts) — shipped + idempotency added 2026-05-04
+- [x] Hold-and-release escrow — release-payout function shipped, gated behind `RELEASE_PAYOUT_AUTO=1` until manual test confirms
+- [ ] Refund + partial-refund flows from `AdminJobs` — webhook handles `charge.refunded` but no admin UI to trigger
+- [ ] Surface payout_transfers ledger to helpers (earnings tab + admin reconciliation view)
 
 ### Messaging & realtime
 - [ ] Supabase Realtime channel per job thread; presence + typing indicators

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import helprIcon from "@/assets/helpr-icon-96.png";
+import HelprMark from "@/components/HelprMark";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -10,14 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, MapPin, Star, Briefcase, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2 } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import OnboardingTour from "@/components/OnboardingTour";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
-import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
@@ -129,6 +128,29 @@ const Dashboard = () => {
       return stored ? new Set(JSON.parse(stored)) : new Set();
     } catch { return new Set(); }
   });
+
+  // Prune stale dismissed IDs that no longer correspond to any live job.
+  // Stops the "I dismissed this 6 months ago and now it's silently hiding
+  // a new feed" failure mode AND keeps localStorage from growing forever.
+  // Runs once `allJobs` is populated.
+  useEffect(() => {
+    if (allJobs.length === 0 || dismissedJobIds.size === 0) return;
+    const liveIds = new Set(allJobs.map((j) => j.id));
+    const pruned = new Set<string>();
+    let didPrune = false;
+    for (const id of dismissedJobIds) {
+      if (liveIds.has(id)) {
+        pruned.add(id);
+      } else {
+        didPrune = true;
+      }
+    }
+    if (didPrune) {
+      setDismissedJobIds(pruned);
+      safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...pruned]));
+    }
+     
+  }, [allJobs.length]);
   const [showGreeting, setShowGreeting] = useState(() => {
     const dismissed = safeStorage.getItem("greeting_dismissed_at");
     if (dismissed && Date.now() - parseInt(dismissed, 10) < 30 * 24 * 60 * 60 * 1000) return false;
@@ -157,17 +179,16 @@ const Dashboard = () => {
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
-    // Hard gate: helprs must have a Stripe Connect payout account before applying.
-    // Surfaces a friendly popup instead of a silent toast.
-    if (profile?.role === "helper") {
-      const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) {
-        setPayoutSetupDialogOpen(true);
-        return;
-      }
+    // Anyone applying to a job needs a Stripe Connect payout account
+    // first — escrow can't release money to a user without one. Applies
+    // equally to every account (no role distinction).
+    const stripeCheck = await checkHelperStripeConnect();
+    if (!stripeCheck.ok) {
+      setPayoutSetupDialogOpen(true);
+      return;
     }
     setConfirmApplyJobId(jobId);
-  }, [user, allJobs, navigate, profile?.role, checkHelperStripeConnect]);
+  }, [user, allJobs, navigate, checkHelperStripeConnect]);
 
   const handleApplyConfirm = useCallback(async () => {
     if (!user || !confirmApplyJobId || applyLoading) return;
@@ -257,12 +278,11 @@ const Dashboard = () => {
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="container mx-auto flex items-center gap-2 h-16 px-4">
-            <img src={helprIcon} alt="Helpr" width={36} height={36} className="w-9 h-9 rounded-xl shadow-md" />
-            <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">Helpr</span>
+            <HelprMark to="/dashboard" size="md" />
           </div>
         </header>
-        <main className="container mx-auto px-5 py-4">
-          <div className="max-w-3xl mx-auto"><DashboardSkeleton /></div>
+        <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4">
+          <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto"><DashboardSkeleton /></div>
         </main>
       </div>
     );
@@ -356,49 +376,111 @@ const Dashboard = () => {
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div
       className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden"
-      style={{ paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))" }}
     >
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
 
-      <main className="container mx-auto px-5 py-3 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="max-w-3xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden">
 
           <BroadcastBanner />
-          <PushNotificationPrompt />
-          
+
+
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="px-1 shrink-0"
+            className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden"
+            style={{
+              // Material depth — soft copper glow in the upper-right and
+              // a faint verdigris cast in the lower-left so the wide
+              // greeting card reads as a textured pane rather than flat.
+              backgroundImage:
+                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
+                "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+            }}
           >
-            <h1 className="font-display font-semibold tracking-tight text-foreground leading-tight truncate text-2xl">
-              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName} 👋
+            <h1
+              className="font-display font-bold leading-tight truncate"
+              style={{
+                fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
+              <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
             </h1>
+            <p
+              className="mt-1 truncate font-sans font-semibold uppercase"
+              style={{
+                fontSize: "0.62rem",
+                letterSpacing: "0.16em",
+                color: "hsl(var(--olivewood) / 0.55)",
+              }}
+            >
+              {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+              {" · "}
+              {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
+              {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
+            </p>
           </motion.div>
-
 
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="rounded-2xl border border-border/50 bg-card shadow-[var(--card-shadow)] overflow-hidden flex-1 min-h-0 flex flex-col"
+            className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
+            style={{
+              // Browse Tasks card extends to the viewport bottom — bottom
+              // corners drop their radius and inset shadow so the panel
+              // reads as continuing under the floating dock instead of
+              // ending at a hard edge above it.
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: "none",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
+                "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+            }}
           >
             {/* Header row */}
-            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
-                  <Briefcase className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h2 className="font-display font-bold text-foreground leading-tight text-base">
-                    {filters.hasFilters ? "Filtered Results" : "Browse Tasks"}
-                  </h2>
-                  <span className="text-muted-foreground text-xs">
-                    {filters.filteredJobs.length} available
-                  </span>
-                </div>
+            <div
+              className="shrink-0 flex items-center justify-between px-4 py-3"
+              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+            >
+              <div className="flex flex-col leading-none">
+                <span
+                  className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+                >
+                  {filters.hasFilters ? "Filtered" : "For you, today"}
+                </span>
+                <h2
+                  className="font-display italic font-bold leading-tight mt-1"
+                  style={{
+                    fontSize: "1.25rem",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.018em",
+                  }}
+                >
+                  {filters.hasFilters ? "Filtered Results" : "Browse Tasks"}
+                </h2>
+                <span
+                  className="font-serif italic mt-0.5 text-[0.72rem]"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  {filters.filteredJobs.length}{" "}
+                  {filters.filteredJobs.length === 1 ? "job" : "jobs"}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 {filters.hasFilters && (
@@ -406,7 +488,7 @@ const Dashboard = () => {
                     <X className="w-3 h-3 mr-1" /> Clear
                   </Button>
                 )}
-                {profile?.role === "helper" && user && (
+                {user && (
                   <SavedSearches
                     userId={user.id}
                     currentFilters={{
@@ -474,7 +556,9 @@ const Dashboard = () => {
               )}
             </AnimatePresence>
 
-            {/* Expandable filters panel */}
+            {/* Expandable filters panel — capped at 50vh so it doesn't
+                push the job list off screen on small phones. The panel
+                scrolls internally if its content is taller than the cap. */}
             <AnimatePresence>
               {filters.filtersOpen && (
                 <motion.div
@@ -494,6 +578,7 @@ const Dashboard = () => {
                     expiresWithin={filters.expiresWithin} setExpiresWithin={filters.setExpiresWithin}
                     matchAvailability={filters.matchAvailability} setMatchAvailability={filters.setMatchAvailability}
                     hasAvailability={helperAvailability.length > 0}
+                    boostedOnly={filters.boostedOnly} setBoostedOnly={filters.setBoostedOnly}
                     userLocStatus={filters.userLoc?.status}
                     userLocMessage={filters.userLoc?.status === "error" ? filters.userLoc.message : undefined}
                   />
@@ -540,38 +625,141 @@ const Dashboard = () => {
               </div>
             )}
 
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+            >
+              {/* Always-visible elevated content box. Empty state and the
+                  job list both render INSIDE this box so the dashboard
+                  never reads as "bare rows on the page" — the box is the
+                  identity of the Browse Tasks area. Bottom corners
+                  drop their radius so the box reads as continuing under
+                  the floating dock. */}
+              <div
+                className="liquid-glass glass-paper-mesh min-h-full overflow-hidden"
+                style={{
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderBottom: "none",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                    "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
+                    "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+                }}
+              >
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-10 px-6 text-center gap-5">
-                <div className="relative w-24 h-24" aria-hidden>
+            <div className="px-4 pt-4 flex-1 min-h-0 flex">
+              {/* Empty-state white card — extends to the bottom of the
+                  screen, top corners rounded, bottom corners flat to merge
+                  with the dock. Same pattern as Posts/Jobs/Messages. */}
+              <div
+                className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                style={{
+                  backgroundColor: "hsl(0, 0%, 100%)",
+                  borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                  borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                  borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                  boxShadow:
+                    "0 1px 2px hsl(var(--olivewood) / 0.04), " +
+                    "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+                }}
+              >
+                  {/* Frosted glass circle — wraps the search icon so it
+                      reads as a clear focal point against the now-textured
+                      paper-mesh background. */}
                   <div
-                    className="absolute inset-0 squircle rounded-[24px] bg-gradient-to-br from-primary/25 via-primary/15 to-primary/5 shadow-[0_20px_50px_-15px_hsl(158_67%_37%/0.35)]"
-                    style={{ transform: "perspective(600px) rotateX(18deg) rotateZ(-8deg)" }}
-                  />
-                  <div
-                    className="absolute inset-3 squircle rounded-[20px] bg-gradient-to-br from-white/90 to-white/60 backdrop-blur flex items-center justify-center"
-                    style={{ transform: "perspective(600px) rotateX(18deg) rotateZ(-8deg)" }}
+                    className="w-20 h-20 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                      backdropFilter: "blur(16px) saturate(150%)",
+                      WebkitBackdropFilter: "blur(16px) saturate(150%)",
+                      border: "1px solid hsla(0, 0%, 100%, 0.7)",
+                      boxShadow:
+                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                        "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                        "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+                    }}
                   >
-                    <Search className="w-10 h-10 text-primary" strokeWidth={2.25} />
+                    <Search className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <p className="font-display font-bold text-foreground text-base">
-                    {filters.hasFilters ? "No jobs match your filters" : "Nothing nearby just yet"}
-                  </p>
-                  <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed text-xs">
-                    {filters.hasFilters
-                      ? "Try widening your search or clearing a filter to see more jobs."
-                      : "New jobs are posted every day across Louisiana. Check back soon."}
-                  </p>
-                </div>
-                {filters.hasFilters && (
-                  <Button variant="outline" onClick={filters.clearFilters} className="squircle rounded-2xl">
-                    Clear filters
-                  </Button>
-                )}
+                  <div className="space-y-1.5">
+                    <span className="text-display-eyebrow">
+                      {filters.hasFilters ? "No matches" : "Quiet right now"}
+                    </span>
+                    <p
+                      className="font-display italic font-bold leading-tight"
+                      style={{
+                        fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
+                        color: "hsl(var(--ink-deep))",
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {filters.hasFilters ? "No jobs match your filters." : "Nothing nearby just yet."}
+                    </p>
+                    <p
+                      className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    >
+                      {filters.hasFilters
+                        ? filters.boostedOnly
+                          ? "No boosted jobs right now — try clearing the filter to see all open work."
+                          : "Try widening your parish, raising your budget, or clearing a filter."
+                        : "New jobs are posted every day across Louisiana. Check back soon."}
+                    </p>
+                  </div>
+                  {filters.hasFilters ? (
+                    <Button variant="outline" onClick={filters.clearFilters} className="rounded-xl">
+                      Clear filters
+                    </Button>
+                  ) : (
+                    <button
+                      onClick={() => navigate("/post-job")}
+                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.96] z-10"
+                      style={{
+                        // Mesh gradient — radial highlight at upper-left
+                        // gives the button volume; falls off to a deeper
+                        // Bark at the lower-right edge for depth.
+                        background:
+                          "radial-gradient(120% 120% at 25% 20%, hsl(70 22% 44%) 0%, hsl(70 20% 33%) 55%, hsl(70 22% 24%) 100%)",
+                        color: "hsl(var(--parchment))",
+                        border: "1px solid hsl(70 20% 33%)",
+                        fontFamily: "Montserrat, system-ui, sans-serif",
+                        fontWeight: 600,
+                        letterSpacing: "0.01em",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
+                          "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.1), " +
+                          "0 10px 26px -6px hsl(var(--bark) / 0.55), " +
+                          "0 22px 44px -10px hsl(var(--bark) / 0.4)",
+                      }}
+                    >
+                      {/* Soft sweep — single restrained shimmer crosses
+                          the button on hover. */}
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[900ms] ease-out pointer-events-none"
+                        style={{
+                          background:
+                            "linear-gradient(90deg, transparent 0%, hsla(0, 0%, 100%, 0.22) 50%, transparent 100%)",
+                        }}
+                      />
+                      <Plus
+                        className="w-4 h-4 relative z-10"
+                        strokeWidth={2.75}
+                        style={{ color: "hsl(var(--parchment))" }}
+                      />
+                      <span className="relative z-10 text-[0.92rem]">Post the first job</span>
+                      <ArrowRight
+                        className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:translate-x-1"
+                        strokeWidth={2.5}
+                      />
+                    </button>
+                  )}
               </div>
+            </div>
             ) : (() => {
               const visibleJobs = filters.filteredJobs
                 .filter(j => !dismissedJobIds.has(j.id))
@@ -584,11 +772,74 @@ const Dashboard = () => {
                   }
                   return true;
                 });
+              const recommendedVisible = !filters.hasFilters
+                ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
+                : [];
               return (
                 <>
-                  <div className="divide-y divide-border/30">
+                  {recommendedVisible.length > 0 && (
+                    <>
+                      <div
+                        className="px-4 pt-3 pb-1.5 flex items-center justify-between"
+                        style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.06)" }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Star
+                            className="w-3.5 h-3.5"
+                            style={{ color: "hsl(var(--burnt-sienna))" }}
+                            strokeWidth={2}
+                            fill="hsl(var(--burnt-sienna) / 0.2)"
+                          />
+                          <span
+                            className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+                            style={{ color: "hsl(var(--burnt-sienna))" }}
+                          >
+                            Picked for you
+                          </span>
+                        </div>
+                        <span
+                          className="text-[0.7rem] font-sans"
+                          style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                        >
+                          {recommendedVisible.length}
+                        </span>
+                      </div>
+                      <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5">
+                        {recommendedVisible.map((job, i) => (
+                          <div key={`rec-${job.id}`}>
+                            <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                          </div>
+                        ))}
+                      </div>
+                      {visibleJobs.length > 0 && (
+                        <div
+                          className="px-4 pt-3 pb-1.5"
+                          style={{
+                            borderTop: "1px solid hsl(var(--olivewood) / 0.06)",
+                            borderBottom: "1px solid hsl(var(--olivewood) / 0.06)",
+                          }}
+                        >
+                          <span
+                            className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+                            style={{ color: "hsl(var(--burnt-sienna))" }}
+                          >
+                            Everything else
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <div
+                    className="px-3 pt-3 space-y-2.5 lg:space-y-4 xl:space-y-5"
+                    style={{
+                      // Dock clearance — last jobs scroll *under* the
+                      // floating bottom nav, so we add safe room below
+                      // the final card to let the user reach it.
+                      paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+                    }}
+                  >
                     {visibleJobs.map((job, i) => (
-                      <div key={job.id} className="px-3 py-2.5">
+                      <div key={job.id}>
                         <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                       </div>
                     ))}
@@ -621,12 +872,25 @@ const Dashboard = () => {
                 </>
               );
             })()}
+              </div>
             </div>
           </motion.section>
         </div>
       </main>
 
-      <JobDetailDialog job={detailJob} effectiveFee={effectiveFee} onClose={() => setDetailJob(null)} onApply={handleApplyRequest} onReport={setReportJobId} />
+      <JobDetailDialog
+        job={detailJob}
+        effectiveFee={effectiveFee}
+        allJobs={allJobs}
+        isSaved={detailJob ? savedJobIds.has(detailJob.id) : false}
+        onToggleSave={handleToggleSave}
+        userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
+        userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
+        onClose={() => setDetailJob(null)}
+        onApply={handleApplyRequest}
+        onReport={setReportJobId}
+        onSelect={setDetailJob}
+      />
 
       {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
 
@@ -661,7 +925,7 @@ const Dashboard = () => {
                              </div>
                             {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
                               <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Urgent tip</span>
+                                <span>Urgent bonus</span>
                                 <span className="text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
                               </div>
                             )}

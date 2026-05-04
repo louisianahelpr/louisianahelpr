@@ -168,7 +168,7 @@ const AdminJobs = () => {
           removal_reason: deleteReason,
           removed_at: new Date().toISOString(),
           removed_by: user?.id || null,
-        } as any)
+        })
         .eq("id", detailJob.id);
 
       if (error) throw error;

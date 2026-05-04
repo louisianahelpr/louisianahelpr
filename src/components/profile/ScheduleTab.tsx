@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, DollarSign, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import type { Database } from "@/integrations/supabase/types";
 
@@ -63,31 +64,30 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-page-title text-foreground text-2xl">My Schedule</h1>
-          <p className="text-muted-foreground text-xs">Your calendar and upcoming jobs</p>
-        </div>
-      </div>
+      <ProfileTabHeader
+        eyebrow="Calendar"
+        title="My schedule"
+        meta="Your upcoming jobs and bookings"
+        onBack={onBack}
+      />
 
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : (
         <>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-2xl liquid-glass p-5">
             <div className="flex items-center justify-between mb-4">
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}><ChevronLeft className="w-4 h-4" /></Button>
-              <h2 className="font-display font-semibold text-foreground text-sm">
+              <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                 {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h2>
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}><ChevronRight className="w-4 h-4" /></Button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-1">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+                <div key={d} className="text-center font-serif italic uppercase py-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  {d}
+                </div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -119,11 +119,18 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
 
           {selectedDate && (
             <div className="space-y-3">
-              <h3 className="font-display font-semibold text-foreground text-sm">
-                {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              </h3>
+              <div>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  Selected day
+                </p>
+                <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                  {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                </h3>
+              </div>
               {selectedJobs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No jobs scheduled for this day.</p>
+                <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  No jobs scheduled for this day.
+                </p>
               ) : (
                 selectedJobs.map((job) => (
                   <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
@@ -134,9 +141,18 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
 
           {!selectedDate && (
             <div className="space-y-3">
-              <h3 className="font-display font-semibold text-foreground text-sm">Upcoming</h3>
+              <div>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  Coming up
+                </p>
+                <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                  Upcoming jobs
+                </h3>
+              </div>
               {upcomingJobs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No upcoming jobs.</p>
+                <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  No upcoming jobs on the calendar.
+                </p>
               ) : (
                 upcomingJobs.map((job) => (
                   <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />

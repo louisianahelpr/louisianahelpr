@@ -103,7 +103,7 @@ const AdminBroadcasts = () => {
       </div>
 
       {showForm && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="rounded-xl liquid-glass p-4 space-y-3">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Scheduled Maintenance" maxLength={100} />
@@ -157,7 +157,7 @@ const AdminBroadcasts = () => {
       ) : (
         <div className="space-y-2">
           {broadcasts.map(b => (
-            <div key={b.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-start justify-between gap-3">
+            <div key={b.id} className="rounded-xl liquid-glass px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-foreground">{b.title}</p>

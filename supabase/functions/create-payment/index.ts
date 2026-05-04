@@ -93,12 +93,16 @@ serve(async (req) => {
       // Helper commission is deducted at payout time, not charged to poster
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
-      // ─── Louisiana Marketplace Facilitator tax logic ───
-      // Taxable categories: cleaning, yard_work, moving, handyman, painting, delivery, assembly
-      // Exempt categories: errands, pet_care, other (personal/professional services)
-      const TAXABLE_CATEGORIES = new Set([
-        "cleaning", "yard_work", "moving", "handyman", "painting", "delivery", "assembly",
-      ]);
+      // ─── Louisiana sales-tax classification ───
+      // LA R.S. 47:301(14) defines a narrow list of taxable services. Most
+      // labor services (cleaning, yard work, moving, painting houses, errands,
+      // pet care, delivery) are NOT subject to LA state sales tax. The clearest
+      // taxable case in this app is *assembly* — installation/assembly of
+      // tangible personal property (e.g. IKEA furniture). Handyman work is
+      // ambiguous (taxable if repairing a TV, exempt if repairing a doorframe);
+      // we default it to exempt and rely on operator judgment per-job. If LDR
+      // clarifies otherwise, add categories to TAXABLE_CATEGORIES below.
+      const TAXABLE_CATEGORIES = new Set(["assembly"]);
       const isLaborTaxable = TAXABLE_CATEGORIES.has(job.category);
 
       const lineItems: any[] = [
@@ -110,8 +114,8 @@ serve(async (req) => {
               description: isLaborTaxable
                 ? `Secure escrow payment for taxable labor (${job.category}). Funds release once both parties confirm completion.`
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
-              // Taxable services: apply LA repair/cleaning tax code so Stripe Tax computes parish tax on the labor
-              // Exempt services: pass-through (no tax on labor — only platform fee taxed)
+              // Assembly/installation of tangible personal property: LA repair/install code.
+              // All other categories: pass-through (no LA state tax on the labor).
               tax_code: isLaborTaxable ? "txcd_20030000" : "txcd_00000000",
             },
             unit_amount: Math.round(job.budget * 100),
@@ -120,7 +124,10 @@ serve(async (req) => {
         },
       ];
 
-      // Poster service fee — taxable (platform revenue from poster)
+      // Poster service fee — treated as a non-taxable platform commission
+      // until LA Dept. of Revenue clarifies B2C SaaS treatment post-Act 470.
+      // (Switch tax_code to "txcd_10103001" if a CPA confirms it should be
+      // taxed as a digital service.)
       if (customerFeeAmount > 0) {
         lineItems.push({
           price_data: {
@@ -128,7 +135,7 @@ serve(async (req) => {
             product_data: {
               name: "Service Fee",
               description: `${customerFeePercent}% platform service fee`,
-              tax_code: "txcd_10103001", // SaaS / electronic services — taxable
+              tax_code: "txcd_00000000", // Non-taxable until LDR clarifies
             },
             unit_amount: Math.round(customerFeeAmount * 100),
           },
@@ -152,7 +159,8 @@ serve(async (req) => {
         });
       }
 
-      // One-time onboarding fee — first job post only (taxable platform revenue)
+      // One-time onboarding fee — first job post only. Treated as a non-taxable
+      // platform setup fee (matching the service-fee treatment above).
       if (owesOnboardingFee) {
         lineItems.push({
           price_data: {
@@ -160,7 +168,7 @@ serve(async (req) => {
             product_data: {
               name: "One-time Account Setup",
               description: "One-time identity verification & account setup fee. Charged once per account.",
-              tax_code: "txcd_10103001",
+              tax_code: "txcd_00000000",
             },
             unit_amount: onboardingFeeCents,
           },

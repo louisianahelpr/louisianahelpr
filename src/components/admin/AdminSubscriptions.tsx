@@ -83,14 +83,14 @@ const AdminSubscriptions = () => {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl liquid-glass p-4">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-muted-foreground">Active Subs</span>
             <Crown className="w-4 h-4 text-primary opacity-60" />
           </div>
           <p className="text-2xl font-bold text-foreground">{activeCount}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl liquid-glass p-4">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-muted-foreground">Expired</span>
             <Clock className="w-4 h-4 text-muted-foreground opacity-60" />
@@ -98,7 +98,7 @@ const AdminSubscriptions = () => {
           <p className="text-2xl font-bold text-foreground">{expiredCount}</p>
         </div>
         {Object.entries(tierCounts).map(([tier, count]) => (
-          <div key={tier} className="rounded-xl border border-border bg-card p-4">
+          <div key={tier} className="rounded-xl liquid-glass p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground capitalize">{tier}</span>
               <Users className="w-4 h-4 text-primary opacity-60" />
@@ -141,7 +141,7 @@ const AdminSubscriptions = () => {
         {filtered.map(p => {
           const status = getStatus(p);
           return (
-            <div key={p.user_id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+            <div key={p.user_id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">{p.full_name || "No name"}</p>
                 <p className="text-xs text-muted-foreground">{p.email}</p>

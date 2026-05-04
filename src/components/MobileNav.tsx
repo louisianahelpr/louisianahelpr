@@ -2,6 +2,7 @@ import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Send, MessageSquare, User, Plus, ClipboardList, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -34,6 +35,29 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const [, setUnreadNotifCount] = useState(0);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateLabel, setGateLabel] = useState("this feature");
+  // Scroll-aware shadow lift — when content is actually scrolled under the
+  // nav, deepen the drop shadow so the bar reads as floating above the
+  // page rather than glued to the bottom edge.
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const checkScroll = () => {
+      // Look at any scrollable region (window OR an internal AppShell scroll
+      // container — most app routes use the latter).
+      const winScrolled = window.scrollY > 8;
+      const internal = document.querySelector<HTMLElement>(".app-shell-scroll");
+      const internalScrolled = internal ? internal.scrollTop > 8 : false;
+      setScrolled(winScrolled || internalScrolled);
+    };
+    checkScroll();
+    window.addEventListener("scroll", checkScroll, { passive: true });
+    const internal = document.querySelector<HTMLElement>(".app-shell-scroll");
+    internal?.addEventListener("scroll", checkScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", checkScroll);
+      internal?.removeEventListener("scroll", checkScroll);
+    };
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!user) return;
@@ -177,15 +201,42 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onFocus={() => !locked && prefetchRoute(effectivePath)}
         onTouchStart={() => !locked && prefetchRoute(effectivePath)}
         aria-label={locked ? `${label} — locked until your account is approved` : label}
-        className={`relative flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] h-full text-[11px] transition-colors duration-200 btn-press ${
-          isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-colors duration-200 btn-press ${
+          isActive
+            ? ""
+            : "text-muted-foreground hover:text-foreground"
         }`}
+        style={isActive ? { color: "hsl(var(--bark))" } : undefined}
       >
-        <div className="relative">
+        {/* Sliding active pill — single shared layoutId across all items
+            so the pill animates between tabs when you switch. Sits BEHIND
+            the icon + label content. Uses the same elevated vocabulary
+            (inset rim light + layered Bark-tinted drop shadow) as the
+            Post button + FAB so the active tab reads as a lifted lens. */}
+        {isActive && (
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(120% 120% at 30% 25%, hsl(var(--bark) / 0.18) 0%, hsl(var(--bark) / 0.1) 70%, hsl(var(--bark) / 0.06) 100%)",
+              border: "0.5px solid hsl(var(--bark) / 0.22)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
+                "inset 0 -1px 1px 0 hsl(var(--bark) / 0.1), " +
+                "0 1px 2px hsl(var(--bark) / 0.12), " +
+                "0 6px 14px -4px hsl(var(--bark) / 0.25), " +
+                "0 12px 22px -8px hsl(var(--bark) / 0.18)",
+            }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            aria-hidden
+          />
+        )}
+        <div className="relative z-10">
           <Icon
             className="w-[22px] h-[22px] transition-all duration-200"
-            strokeWidth={isActive ? 2.25 : 2}
-            fill={isActive ? "hsl(var(--primary) / 0.2)" : "none"}
+            strokeWidth={isActive ? 2.25 : 1.85}
+            fill={isActive ? "hsl(var(--bark) / 0.18)" : "none"}
           />
           {locked && (
             <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
@@ -193,12 +244,45 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
           {showBadge && (
-            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold px-1">
+            <span
+              className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-[10px] flex items-center justify-center font-bold px-1"
+              style={{
+                background: "hsl(var(--burnt-sienna))",
+                color: "hsl(var(--parchment))",
+              }}
+            >
               {badgeCount > 9 ? "9+" : badgeCount}
             </span>
           )}
         </div>
-        <span className={`font-medium tracking-tight transition-all duration-200 ${isActive ? "font-semibold" : ""}`}>{label}</span>
+        {/* Italic Bodoni microtype label — matches the eyebrow style on
+            the rest of the app. Slightly tighter tracking than Montserrat
+            so 5 tabs still fit on a 320px viewport. */}
+        <span
+          className="relative z-10 font-serif italic leading-none tracking-tight"
+          style={{
+            fontSize: "0.66rem",
+            fontWeight: isActive ? 600 : 500,
+            letterSpacing: "0.02em",
+          }}
+        >
+          {label}
+        </span>
+        {/* Burnt-Sienna underline accent — 4px wide × 1.5px tall dot
+            below the active label. Only renders for active so the
+            non-active tabs stay clean. */}
+        {isActive && (
+          <motion.span
+            layoutId="mobile-nav-underline"
+            className="absolute bottom-0.5 w-1 h-[2px] rounded-full pointer-events-none"
+            style={{
+              background: "hsl(var(--burnt-sienna))",
+              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.45)",
+            }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            aria-hidden
+          />
+        )}
       </button>
     );
   };
@@ -214,31 +298,148 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   return (
     <>
       <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div className="mx-3 mb-2 flex items-end gap-2 max-w-lg md:max-w-xl lg:max-w-2xl md:mx-auto">
-          {/* Main nav pill — glassmorphic: blur(12px), white border 20% */}
-          <div className="flex-1 squircle rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 border border-white/20 shadow-[0_8px_28px_-8px_hsl(0_0%_0%/0.12)]" style={{ WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}>
-            <div className="flex items-center justify-around h-14 px-2">
-              {leftItems.map(renderItem)}
-              {rightItems.map(renderItem)}
+        {/* Frosted curtain — full-width backdrop-blur layer behind the
+            nav so any content scrolling up the page softly blurs as it
+            passes through this band, not just under the centered pill.
+            The mask gradient fades the blur to zero at the top so the
+            transition into clear content above is smooth. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            top: "-16px",
+            backdropFilter: "blur(32px) saturate(170%)",
+            WebkitBackdropFilter: "blur(32px) saturate(170%)",
+            maskImage: "linear-gradient(to top, black 55%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to top, black 55%, transparent 100%)",
+            background: "linear-gradient(to top, hsla(38, 18%, 97%, 0.55), hsla(38, 18%, 97%, 0))",
+          }}
+        />
+        <div className="relative mx-3 mb-3 flex items-end gap-2.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
+          {/* Main nav pill — liquid glass. Shadow stack switches to the
+              deeper "lifted" variant when the page is scrolled, so the bar
+              reads as floating above content rather than glued to the
+              bottom. */}
+          <div
+            className="flex-1 rounded-full transition-shadow duration-300"
+            style={{
+              backgroundColor: "hsla(0, 0%, 100%, 0.4)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              // Stronger high-contrast white edge along the top — mimics
+              // the Apple Dock's "glass-catching-light" rim. Sides + bottom
+              // stay softer.
+              borderTop: "1px solid hsla(0, 0%, 100%, 0.85)",
+              borderLeft: "1px solid hsla(0, 0%, 100%, 0.55)",
+              borderRight: "1px solid hsla(0, 0%, 100%, 0.55)",
+              borderBottom: "1px solid hsla(0, 0%, 100%, 0.45)",
+              // Bumped to match the elevated treatment used on the Post
+              // button + FAB — bright top rim, subtle inset bottom, and
+              // a more pronounced multi-stop spreading drop shadow.
+              // Top-of-dock soft glow lifts the bar off the page, plus
+              // a big ambient drop. No hard line — all very soft, very
+              // wide spreads.
+              boxShadow: scrolled
+                ? "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.20), 0 50px 90px -20px hsl(var(--olivewood) / 0.24)"
+                : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
+            }}
+          >
+            <div className="flex items-stretch h-14 px-2">
+              {[...leftItems, ...rightItems].map((item, i, arr) => (
+                <div key={item.path} className="flex flex-1 items-stretch relative">
+                  {/* Hairline divider before each item except the first */}
+                  {i > 0 && (
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-px h-5"
+                      style={{ background: "hsl(var(--olivewood) / 0.08)" }}
+                    />
+                  )}
+                  {renderItem(item)}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Post FAB — hidden entirely while a user is in the pending-approval lock */}
+          {/* Post FAB — Bark green from the landing CTAs. Now with two
+              restrained effects:
+                · Slow rotating breathing halo behind the button (single
+                  conic-gradient ring, 8 s rotation, 18 s pulse) — gives
+                  the page a gentle "alive" focal point.
+                · Plus icon rotates 90° on hover/press for tactile feedback. */}
           {!isPendingApproval && (
-            <button
-              onClick={handlePostClick}
-              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-              onFocus={() => !isGuest && prefetchRoute("/post-job")}
-              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-              className="relative w-14 h-14 squircle rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_0_0_4px_hsl(158_67%_37%/0.12),0_8px_28px_-4px_hsl(158_67%_37%/0.55),0_2px_8px_-2px_hsl(158_67%_37%/0.4)] flex items-center justify-center shrink-0 border border-white/25 active:scale-95 transition-all duration-200 hover:shadow-[0_0_0_6px_hsl(158_67%_37%/0.15),0_12px_32px_-4px_hsl(158_67%_37%/0.65)]"
-            >
-              <Plus className="w-7 h-7" strokeWidth={2.5} />
-              {isGuest && (
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-primary/20 flex items-center justify-center">
-                  <Lock className="w-2.5 h-2.5 text-primary" strokeWidth={3} />
-                </span>
-              )}
-            </button>
+            <div className="relative shrink-0 w-14 h-14">
+              {/* Breathing halo — rotates slowly + scales subtly. Behind the
+                  button, pointer-events disabled so it never intercepts the
+                  tap. */}
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full pointer-events-none mobile-fab-halo"
+                style={{
+                  background:
+                    "conic-gradient(from 0deg, hsl(var(--bark) / 0.55), hsl(var(--burnt-sienna) / 0.4), hsl(var(--bark) / 0.55))",
+                  filter: "blur(7px)",
+                }}
+              />
+              <button
+                onClick={handlePostClick}
+                onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
+                onFocus={() => !isGuest && prefetchRoute("/post-job")}
+                aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+                className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-all duration-200 overflow-hidden"
+                style={{
+                  // Top-to-bottom gradient — soft forest green at the
+                  // crown shifts into a deeper charcoal-green at the base.
+                  // Pairs with the inset rim light + bottom shadow to
+                  // sell the "lit from above" sphere illusion.
+                  background:
+                    "linear-gradient(180deg, hsl(78 22% 40%) 0%, hsl(70 20% 32%) 50%, hsl(64 22% 22%) 100%)",
+                  color: "hsl(var(--parchment))",
+                  border: "1px solid hsl(70 20% 30%)",
+                  backdropFilter: "blur(20px) saturate(160%)",
+                  WebkitBackdropFilter: "blur(20px) saturate(160%)",
+                  boxShadow:
+                    // Top inner rim — bright white pressed-glass highlight
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                    // Bottom inner shadow — sealed-bottom realism
+                    "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
+                    // Tight contact shadow under button
+                    "0 1px 2px hsl(var(--olivewood) / 0.12), " +
+                    // Wide soft spreading halo (Bark-tinted)
+                    "0 12px 28px -6px hsl(var(--bark) / 0.45), " +
+                    "0 28px 56px -14px hsl(var(--bark) / 0.35)",
+                }}
+              >
+                {/* Top-arc light — a thin elliptical sheen on the upper
+                    quarter of the sphere, sells "lit from above" beyond
+                    the inset rim alone. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-x-2 top-1 h-3 rounded-full pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.45) 0%, transparent 75%)",
+                    filter: "blur(0.5px)",
+                  }}
+                />
+                <Plus
+                  className="w-7 h-7 transition-transform duration-300 group-hover:rotate-90 group-active:rotate-180"
+                  strokeWidth={2.5}
+                  style={{ color: "hsl(var(--parchment))" }}
+                />
+                {isGuest && (
+                  <span
+                    className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{
+                      background: "hsl(var(--parchment))",
+                      border: "1px solid hsl(var(--bark) / 0.3)",
+                    }}
+                  >
+                    <Lock className="w-2.5 h-2.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </nav>

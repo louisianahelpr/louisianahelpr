@@ -1,4 +1,5 @@
-import { ArrowLeft, AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 type Violation = {
   id: string;
@@ -22,17 +23,12 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-page-title text-foreground text-2xl flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-accent" /> Warnings & Strikes
-          </h1>
-          <p className="text-xs text-muted-foreground">Your account standing and violation history</p>
-        </div>
-      </div>
+      <ProfileTabHeader
+        eyebrow="Account standing"
+        title="Warnings &amp; strikes"
+        meta="Your record and violation history"
+        onBack={onBack}
+      />
 
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
@@ -40,52 +36,58 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
         <>
           {/* Status overview */}
           {(() => {
-            if (hasBan) {
+            const renderHero = (
+              icon: typeof Shield,
+              tone: "destructive" | "orange" | "amber" | "primary",
+              eyebrow: string,
+              title: string,
+              body: string,
+            ) => {
+              const palette = {
+                destructive: { ring: "border-destructive/40", icon: "text-destructive", title: "hsl(var(--destructive))" },
+                orange: { ring: "border-orange-500/30", icon: "text-orange-500", title: "hsl(25 90% 45%)" },
+                amber: { ring: "border-amber-500/30", icon: "text-amber-500", title: "hsl(38 92% 45%)" },
+                primary: { ring: "border-primary/30", icon: "text-primary", title: "hsl(var(--primary))" },
+              }[tone];
+              const Icon = icon;
               return (
-                <div className="rounded-xl border-2 border-destructive bg-destructive/5 p-5 text-center space-y-2">
-                  <Shield className="w-10 h-10 text-destructive mx-auto" />
-                  <h2 className="text-lg font-bold text-destructive">Account Banned</h2>
-                  <p className="text-xs text-muted-foreground">Your account has been permanently banned due to policy violations.</p>
-                </div>
-              );
-            }
-            if (hasSuspension) {
-              return (
-                <div className="rounded-xl border-2 border-orange-500/30 bg-orange-500/5 p-5 text-center space-y-2">
-                  <AlertTriangle className="w-10 h-10 text-orange-500 mx-auto" />
-                  <h2 className="text-lg font-bold text-orange-600">Account Suspended</h2>
-                  <p className="text-xs text-muted-foreground">Your account is under temporary suspension.</p>
-                </div>
-              );
-            }
-            if (strikeCount > 0) {
-              return (
-                <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-2">
-                  <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
-                  <h2 className="text-lg font-bold text-amber-600">Strike {strikeCount}/2</h2>
-                  <p className="text-xs text-muted-foreground">
-                    {strikeCount === 1 ? "You have 1 warning. A second strike may lead to suspension." : "Final warning. Another violation will result in a permanent ban."}
+                <div className={`rounded-2xl liquid-glass border-2 ${palette.ring} p-6 text-center space-y-3`}>
+                  <div className={`w-14 h-14 rounded-full bg-white/60 mx-auto flex items-center justify-center`}>
+                    <Icon className={`w-7 h-7 ${palette.icon}`} />
+                  </div>
+                  <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                    {eyebrow}
+                  </p>
+                  <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.4rem", color: palette.title, letterSpacing: "-0.02em" }}>
+                    {title}
+                  </h2>
+                  <p className="font-serif italic max-w-sm mx-auto" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                    {body}
                   </p>
                 </div>
               );
-            }
-            return (
-              <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 text-center space-y-2">
-                <CheckCircle2 className="w-10 h-10 text-primary mx-auto" />
-                <h2 className="text-lg font-bold text-primary">Good Standing</h2>
-                <p className="text-xs text-muted-foreground">Your account has no warnings or violations. Keep it up!</p>
-              </div>
+            };
+            if (hasBan) return renderHero(Shield, "destructive", "Status", "Account banned", "Permanently banned due to policy violations.");
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Status", "Suspended", "Your account is under temporary suspension.");
+            if (strikeCount > 0) return renderHero(
+              AlertTriangle, "amber", "Status", `Strike ${strikeCount}/2`,
+              strikeCount === 1 ? "One warning on file. A second strike may lead to suspension." : "Final warning. Another violation will result in a permanent ban."
             );
+            return renderHero(CheckCircle2, "primary", "Status", "Good standing", "No warnings or violations on record. Keep it up.");
           })()}
 
           {/* Violation history */}
-          <div className="space-y-2">
-            <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">History</h2>
+          <div className="space-y-2 pt-2">
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              History
+            </p>
             {violations.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">No violations on record.</p>
+              <p className="font-serif italic py-4 text-center" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                No violations on record.
+              </p>
             ) : (
               violations.map((v) => (
-                <div key={v.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                <div key={v.id} className="rounded-xl liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
@@ -99,12 +101,14 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                         {v.violation_type.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                    <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                       {v.created_at ? new Date(v.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </span>
                   </div>
                   {v.description && (
-                    <p className="text-xs text-muted-foreground leading-relaxed">{v.description}</p>
+                    <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))" }}>
+                      {v.description}
+                    </p>
                   )}
                 </div>
               ))

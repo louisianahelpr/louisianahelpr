@@ -134,7 +134,7 @@ const AdminReports = () => {
       ) : (
         <div className="space-y-3">
           {reports.map(report => (
-            <div key={report.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div key={report.id} className="rounded-xl liquid-glass p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {typeIcon(report.reported_type)}

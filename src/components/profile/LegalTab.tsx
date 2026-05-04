@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, DollarSign, Shield, FileText, ExternalLink, Clock,
+  DollarSign, Shield, FileText, ExternalLink, Clock,
   Crown, XCircle, AlertTriangle, Ban, Scale, ChevronDown, ChevronRight,
   Building2, Wallet, HeartPulse, Siren,
   type LucideIcon,
 } from "lucide-react";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
   Collapsible,
   CollapsibleContent,
@@ -76,10 +77,10 @@ const Section = ({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div
-        className={`rounded-2xl border squircle overflow-hidden transition-colors ${
+        className={`rounded-2xl squircle overflow-hidden transition-colors ${
           warning
-            ? "border-destructive/20 bg-destructive/5"
-            : "border-border bg-card"
+            ? "border-2 border-destructive/20 bg-destructive/5"
+            : "liquid-glass"
         }`}
       >
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
@@ -92,8 +93,10 @@ const Section = ({
               <Icon className="w-4 h-4" strokeWidth={2.25} />
             </span>
             <span className="min-w-0">
-              <p className="font-display font-bold text-foreground leading-tight text-base">{title}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
+              <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1rem", color: warning ? "hsl(var(--destructive))" : "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                {title}
+              </p>
+              <p className="font-serif italic truncate" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>{subtitle}</p>
             </span>
           </span>
           <ChevronDown
@@ -112,82 +115,70 @@ const Section = ({
 
 export function LegalTab({ onBack }: { onBack: () => void }) {
   return (
-    <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
-      <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-page-title text-foreground text-2xl">Legal & Policies</h1>
-      </div>
+    <div className="space-y-5 pb-24">
+      <ProfileTabHeader
+        eyebrow="Documents"
+        title="Legal &amp; policies"
+        meta="Terms, privacy, and platform rules"
+        onBack={onBack}
+      />
 
-      <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
-      {/* Sticky Quick Access chip bar */}
-      <div className="sticky top-0 z-10 -mx-1 px-1 py-1 bg-background/80 backdrop-blur-md">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          <Link
-            to="/rules"
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors btn-press"
-          >
-            <FileText className="w-3.5 h-3.5" /> Full Platform Rules
-            <ExternalLink className="w-3 h-3" />
-          </Link>
-          <Link
-            to="/terms"
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-secondary text-secondary-foreground text-xs font-semibold hover:bg-secondary/80 transition-colors btn-press"
-          >
-            Terms of Service <ExternalLink className="w-3 h-3" />
-          </Link>
-          <Link
-            to="/privacy"
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-secondary text-secondary-foreground text-xs font-semibold hover:bg-secondary/80 transition-colors btn-press"
-          >
-            Privacy Policy <ExternalLink className="w-3 h-3" />
-          </Link>
+      {/* Anchor docs — dedicated full-text pages */}
+      <div>
+        <p className="font-serif italic uppercase mb-2" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          The full text
+        </p>
+        <div className="space-y-2">
+          {([
+            { to: "/rules", icon: FileText, title: "Platform rules", body: "How Helpr works — every guideline that governs jobs, payments, and conduct." },
+            { to: "/terms", icon: Scale, title: "Terms of service", body: "The contract between you and Helpr when you use the platform." },
+            { to: "/privacy", icon: Shield, title: "Privacy policy", body: "What we collect, how we use it, and how we keep it safe." },
+          ]).map(({ to, icon: Icon, title, body }) => (
+            <Link
+              key={to}
+              to={to}
+              className="block rounded-2xl liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                    {title}
+                  </p>
+                  <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                    {body}
+                  </p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 
-      {/* 1. Foundation */}
+      {/* Quick reference — concise summaries of platform-specific policies */}
+      <div className="space-y-3">
+        <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          Quick reference
+        </p>
+
+      {/* Community Guidelines */}
       <Section
         icon={Building2}
-        title="Foundation"
-        subtitle="Terms, privacy, and community basics"
+        title="Community guidelines"
+        subtitle="Respect, honesty, safety, and reporting"
       >
         <RowItem
-          icon={FileText}
-          title="Terms of Service"
-          body={
-            <>
-              <p><strong className="text-foreground">Account Responsibility:</strong> You are responsible for maintaining the security of your account and all activity under it.</p>
-              <p><strong className="text-foreground">Task Agreements:</strong> When you accept a task or hire a helpr, you enter a binding agreement to complete the work as described and to release payment upon satisfactory completion.</p>
-              <p><strong className="text-foreground">Prohibited Conduct:</strong> You may not use Helpr for illegal activities, harassment, fraud, or any conduct that violates the rights of others.</p>
-              <p><strong className="text-foreground">Account Termination:</strong> Helpr reserves the right to suspend or terminate accounts that violate these terms.</p>
-            </>
-          }
-        />
-        <RowItem
           icon={Shield}
-          title="Privacy Policy"
+          title="The basics"
           body={
             <>
-              <p><strong className="text-foreground">Data Collection:</strong> We collect information you provide (name, email, location) and usage data to improve the platform.</p>
-              <p><strong className="text-foreground">Data Usage:</strong> Your data is used to match you with tasks, process payments, and communicate important updates.</p>
-              <p><strong className="text-foreground">Data Sharing:</strong> We share limited information (first name, reviews) with other users. Payment data is handled securely by Stripe. We never sell your personal information.</p>
-              <p><strong className="text-foreground">Data Retention:</strong> Your data is retained while your account is active. You can request deletion by contacting support.</p>
-            </>
-          }
-        />
-        <RowItem
-          icon={Shield}
-          title="Community Guidelines"
-          body={
-            <>
-              <p><strong className="text-foreground">Respect:</strong> Treat all users with respect and professionalism.</p>
-              <p><strong className="text-foreground">Honesty:</strong> Provide accurate information in your profile and job descriptions.</p>
-              <p><strong className="text-foreground">Safety:</strong> Never share personal information like home addresses or financial details through messages.</p>
-              <p><strong className="text-foreground">Reporting:</strong> Report any suspicious or inappropriate behavior using the report feature.</p>
+              <p><strong className="text-foreground">Respect:</strong> Treat every user with professionalism.</p>
+              <p><strong className="text-foreground">Honesty:</strong> Accurate profiles and job descriptions only.</p>
+              <p><strong className="text-foreground">Safety:</strong> Never share home addresses or financial details through messages.</p>
+              <p><strong className="text-foreground">Reporting:</strong> Use the report button for anything suspicious.</p>
             </>
           }
         />

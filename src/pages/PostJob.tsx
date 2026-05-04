@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
 import PageHeader from "@/components/PageHeader";
+import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const PostJob = () => {
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+  const [idvDialogOpen, setIdvDialogOpen] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -171,7 +173,7 @@ const PostJob = () => {
   const autoSave = useCallback(() => {
     const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded } as any);
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded });
     }
   }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, saveDraft]);
 
@@ -268,7 +270,7 @@ const PostJob = () => {
     // special_requirements is optional — no validation needed
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
     if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }
-    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent tip must be at least $5"); return; }
+    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); return; }
     setConfirmed(false);
     setStep("checkout");
   };
@@ -297,6 +299,24 @@ const PostJob = () => {
       setSaving(false);
       submittingRef.current = false;
       return;
+    }
+
+    // Identity verification gate — required before posting. Same Stripe
+    // IDV used at job-acceptance, applied here so posters can't onboard
+    // strangers under a fake identity.
+    {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("idv_status")
+        .eq("user_id", user.id)
+        .single();
+      const idvStatus = (prof as any)?.idv_status;
+      if (idvStatus !== "verified") {
+        setIdvDialogOpen(true);
+        setSaving(false);
+        submittingRef.current = false;
+        return;
+      }
     }
 
     // Check open job limit (server enforces too, but show friendly message)
@@ -359,7 +379,7 @@ const PostJob = () => {
             direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           }
         : {}),
-    } as any).select("id").single();
+    }).select("id").single();
 
     if (error || !jobData) {
       toast.error(error?.message || "Failed to create job");
@@ -467,9 +487,11 @@ const PostJob = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-surface" style={{ paddingBottom: "calc(11.5rem + env(safe-area-inset-bottom, 0px))" }}>
+    <div className="min-h-screen bg-premium-page relative" style={{ paddingBottom: "calc(11.5rem + env(safe-area-inset-bottom, 0px))" }}>
       <PageHeader
-        title={step === "checkout" ? "Order Summary" : "Post a task"}
+        eyebrow={step === "checkout" ? "Almost there" : "New request"}
+        title={step === "checkout" ? "Order summary" : "What do you need done?"}
+        meta={step === "checkout" ? "Review and pay to publish" : "The more detail, the better."}
         onBack={handlePostJobBack}
       />
 
@@ -479,8 +501,6 @@ const PostJob = () => {
           {/* STEP 1: FORM */}
           {step === "form" && (
             <>
-              <p className="text-muted-foreground text-xs">Describe what you need help with</p>
-
               {offerToHelperId && (
                 <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
@@ -601,7 +621,7 @@ const PostJob = () => {
 
               <form onSubmit={handleReview} className="space-y-5">
                 {/* SECTION 1: DETAILS */}
-                <section className="rounded-2xl border border-border bg-card p-5 space-y-5 shadow-sm">
+                <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
@@ -668,7 +688,7 @@ const PostJob = () => {
                 </section>
 
                 {/* SECTION 2: LOGISTICS */}
-                <section className="rounded-2xl border border-border bg-card p-5 space-y-5 shadow-sm">
+                <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
@@ -795,7 +815,7 @@ const PostJob = () => {
                 </section>
 
                 {/* SECTION 3: BUDGET */}
-                <section className="rounded-2xl border border-border bg-card p-5 space-y-5 shadow-sm">
+                <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
@@ -872,9 +892,9 @@ const PostJob = () => {
                     {isUrgent && (
                       <div className="space-y-3">
                         <p className="text-xs text-muted-foreground">
-                          ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent tip goes directly to the helpr — no platform fee applied.
+                          ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent bonus goes directly to the helpr — no platform fee applied.
                         </p>
-                        <Label className="text-xs">Urgent tip ($5 minimum)</Label>
+                        <Label className="text-xs">Urgent bonus ($5 minimum)</Label>
                         <div className="flex flex-wrap gap-2">
                           {["5", "10", "15", "20"].map((amt) => (
                             <button
@@ -945,7 +965,7 @@ const PostJob = () => {
               <p className="text-muted-foreground text-xs">Review your task before paying</p>
 
               {/* Task Details Card */}
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="rounded-2xl liquid-glass overflow-hidden">
                 <div className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -1008,7 +1028,7 @@ const PostJob = () => {
               </div>
 
               {/* Payment Breakdown Card */}
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="rounded-2xl liquid-glass overflow-hidden">
                 <div className="px-5 py-4 border-b border-border">
                   <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
@@ -1027,7 +1047,7 @@ const PostJob = () => {
                   </div>
                   {isUrgent && urgentFeeNum > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent tip (goes to helpr)</span>
+                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to helpr)</span>
                       <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
                     </div>
                   )}
@@ -1045,7 +1065,7 @@ const PostJob = () => {
               </div>
 
               {/* Trust Signals */}
-              <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+              <div className="rounded-2xl liquid-glass p-5 space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <Shield className="w-5 h-5" />
@@ -1067,7 +1087,7 @@ const PostJob = () => {
               </div>
 
               {/* Confirmation Checkbox */}
-              <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start gap-3 rounded-xl liquid-glass p-4">
                 <Checkbox
                   id="confirm-details"
                   checked={confirmed}
@@ -1103,6 +1123,11 @@ const PostJob = () => {
           )}
         </div>
       </main>
+      <IDVPromptDialog
+        open={idvDialogOpen}
+        onOpenChange={setIdvDialogOpen}
+        reason="Helpr requires a quick ID + selfie check before you can post a job. This keeps the platform safe for the helprs you'll be hiring."
+      />
     </div>
   );
 };

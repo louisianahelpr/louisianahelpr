@@ -113,7 +113,7 @@ const AdminSupport = () => {
             const cat = categoryFromReason(ticket.reason);
             const subject = subjectFromReason(ticket.reason);
             return (
-              <div key={ticket.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div key={ticket.id} className="rounded-xl liquid-glass p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">

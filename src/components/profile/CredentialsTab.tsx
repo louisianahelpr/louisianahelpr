@@ -168,32 +168,40 @@ export function CredentialsTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
+      <div className="rounded-2xl liquid-glass p-5 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <div className="flex-1">
-            <h2 className="font-display font-bold text-foreground text-base">Professional credentials</h2>
-            <p className="text-xs text-muted-foreground">
-              Add proof of your license and insurance to earn the verified Seal of Trust on your profile.
+          <div className="flex-1 min-w-0">
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Seal of trust
+            </p>
+            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              Professional credentials
+            </h2>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              Proof of license and insurance earns the verified seal on your profile.
             </p>
           </div>
         </div>
-        <div className="pt-2">
+        <div className="pt-1">
           <CredentialBadge credentials={data} size="md" />
         </div>
       </div>
 
       {/* Licensed */}
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+      <div className="rounded-2xl liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex-1">
-            <Label htmlFor="lic-toggle" className="text-base font-semibold">
-              I am Licensed
+          <div className="flex-1 min-w-0">
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Document
+            </p>
+            <Label htmlFor="lic-toggle" className="font-display italic font-bold leading-tight cursor-pointer" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              I am licensed
             </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Upload your professional license. Document required when toggled on.
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              Upload your professional license — required when toggled on.
             </p>
           </div>
           <Switch
@@ -258,14 +266,17 @@ export function CredentialsTab({ userId }: { userId: string }) {
       </div>
 
       {/* Insured */}
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+      <div className="rounded-2xl liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex-1">
-            <Label htmlFor="ins-toggle" className="text-base font-semibold">
-              I am Insured
+          <div className="flex-1 min-w-0">
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Document
+            </p>
+            <Label htmlFor="ins-toggle" className="font-display italic font-bold leading-tight cursor-pointer" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              I am insured
             </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Upload your Certificate of Insurance (COI). Document required when toggled on.
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              Upload your Certificate of Insurance (COI) — required when toggled on.
             </p>
           </div>
           <Switch

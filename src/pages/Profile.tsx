@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import helprIcon from "@/assets/helpr-icon-96.png";
+import HelprMark from "@/components/HelprMark";
 import { formatName } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -33,6 +33,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 
 // Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
 // Each tab is only fetched the first time the user clicks it.
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
@@ -105,12 +106,6 @@ const ProfilePage = () => {
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
 
-  useEffect(() => {
-    if (tab === "profile") {
-      document.documentElement.classList.add("edit-profile-screen-lock");
-      return () => document.documentElement.classList.remove("edit-profile-screen-lock");
-    }
-  }, [tab]);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
   const [, setStripeConnectLoading] = useState(false);
   
@@ -166,7 +161,7 @@ const ProfilePage = () => {
   const loadViolations = async () => {
     if (!user || violationsLoaded) return;
     setViolationsLoading(true);
-    const { data } = await (supabase.from("user_violations" as any) as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("user_violations").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setViolations(data || []);
     setViolationsLoaded(true);
     setViolationsLoading(false);
@@ -374,7 +369,7 @@ const ProfilePage = () => {
       date_of_birth: dateOfBirth || null,
       zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
       parish: parish,
-    } as any).eq("user_id", user.id);
+    }).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
     else {
@@ -396,10 +391,10 @@ const ProfilePage = () => {
     const path = `${user.id}/id-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
     if (upErr) { toast.error("Upload failed: " + upErr.message); setIdUploading(false); return; }
-    const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" } as any).eq("user_id", user.id);
+    const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" }).eq("user_id", user.id);
     if (updErr) toast.error("Failed to save ID");
     else {
-      setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" } as any) : prev);
+      setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
       toast.success("ID submitted for review");
     }
     setIdUploading(false);
@@ -471,8 +466,7 @@ const ProfilePage = () => {
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="container mx-auto flex items-center gap-2 h-16 px-4">
-            <img src={helprIcon} alt="Helpr" width={36} height={36} className="w-9 h-9 rounded-xl shadow-md" />
-            <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">Helpr</span>
+            <HelprMark to="/dashboard" size="md" />
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-5 py-4">
@@ -484,7 +478,6 @@ const ProfilePage = () => {
     );
   }
 
-  const role = profile?.role || "customer";
   const displayName = profile?.full_name?.trim() || (user?.email ? user.email.split("@")[0] : "");
   const initials = (profile?.full_name?.trim() || user?.email || "?")
     .split(/[\s@.]/)
@@ -535,17 +528,32 @@ const ProfilePage = () => {
       header={<DashboardHeader />}
       scrollable={false}
       contentClassName="overflow-hidden"
+      className="bg-premium-page"
     >
-      <main className="mx-auto h-full max-w-5xl overflow-hidden px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]">
-        <div className={tab === "profile" ? "max-w-2xl mx-auto h-full overflow-hidden" : "max-w-2xl mx-auto h-full min-h-0 overflow-hidden"}>
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className={tab === "landing"
+          ? "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden"
+          : "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pb-32"}>
 
-          {/* LANDING VIEW */}
+          {/* LANDING VIEW — two-box layout matching Dashboard / Activity / Messages */}
           {tab === "landing" && (
-            <div className="h-full min-h-0 overflow-hidden space-y-3">
-
-
-              {/* Compact Hero — single horizontal row, half-height */}
-              <div className="relative rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] p-3.5">
+            <>
+              {/* Top box — hero with avatar + name + stats. Same radial
+                  Sienna→Verdigris backdrop as the Dashboard greeting card. */}
+              <div
+                className="relative liquid-glass shrink-0 p-3.5 overflow-hidden"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                    "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                    "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                    "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
+                    "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+                }}
+              >
                 <button
                   onClick={() => setTab("profile")}
                   aria-label="Edit profile"
@@ -562,7 +570,14 @@ const ProfilePage = () => {
                   </div>
                   {/* Identity + integrated stats, all stacked tight on the right */}
                   <div className="flex-1 min-w-0 text-left">
-                    <h1 className="font-display font-bold text-foreground truncate leading-tight text-2xl">
+                    <h1
+                      className="font-display italic font-bold truncate leading-tight"
+                      style={{
+                        fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
+                        color: "hsl(var(--ink-deep))",
+                        letterSpacing: "-0.025em",
+                      }}
+                    >
                       {displayName || "Welcome back"}
                     </h1>
                     {profile?.location && (
@@ -610,6 +625,26 @@ const ProfilePage = () => {
                 </div>
               </div>
 
+              {/* Bottom box — menu groups + account actions. Extends
+                  to viewport bottom with flat bottom corners. */}
+              <div
+                className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
+                style={{
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderBottom: "none",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                    "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
+                    "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+                }}
+              >
+                <div
+                  data-allow-scroll="true"
+                  className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 space-y-3"
+                  style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                >
               {/* Payout Banner */}
               {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
                 <div className="rounded-[24px] border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
@@ -713,7 +748,9 @@ const ProfilePage = () => {
                   <LogOut className="w-4 h-4" /> Sign out
                 </button>
               </div>
-            </div>
+                </div>
+              </div>
+            </>
           )}
 
           {/* PROFILE TAB */}
@@ -739,84 +776,118 @@ const ProfilePage = () => {
               return age >= 18;
             })();
               return (
-              <div className="edit-profile-screen h-full min-h-0 flex flex-col overflow-hidden">
-                <div className="flex items-center gap-2 shrink-0 mb-1.5">
-                  <button onClick={() => setTab("landing")} className="p-1 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground" aria-label="Back">
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <h1 className="text-base font-display font-bold text-foreground leading-tight">Edit profile</h1>
-                </div>
+              <div className="space-y-5 pb-24">
+                <ProfileTabHeader
+                  eyebrow="Identity"
+                  title="Edit profile"
+                  meta="Photo, contact, and verification"
+                  onBack={() => setTab("landing")}
+                />
 
-                <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2.5">
+                <form onSubmit={handleSave} className="space-y-4">
+                  {/* Photo + Name section */}
+                  <div className="rounded-2xl liquid-glass p-5 space-y-4">
+                    <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Photo &amp; name
+                    </p>
+                    <div className="flex items-center gap-4">
                       <div className="relative group shrink-0">
                         {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="Profile" className="w-12 h-12 rounded-full object-cover border-2 border-primary/20" />
+                          <img src={profile.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary/20" />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold border-2 border-primary/20">
+                          <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-display italic font-bold border-2 border-primary/20">
                             {initials}
                           </div>
                         )}
                         <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                          {avatarUploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
+                          {avatarUploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
                           <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
                         </label>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-foreground truncate">{`${firstName} ${lastName}`.trim() || "Your name"}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Tap photo to change · Name locked</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div className="col-span-3">
-                        <Label htmlFor="phone" className="text-[10px] leading-none mb-0.5">Phone</Label>
-                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-7 text-sm" />
-                      </div>
-                      <div className="col-span-2">
-                        <Label htmlFor="location" className="text-[10px] leading-none mb-0.5">City</Label>
-                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-7 text-sm" />
-                      </div>
-                      <div>
-                        <Label htmlFor="zipCode" className="text-[10px] leading-none mb-0.5">ZIP</Label>
-                        <Input
-                          id="zipCode"
-                          value={zipCode}
-                          onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                          placeholder="70801"
-                          inputMode="numeric"
-                          maxLength={5}
-                          className="h-7 text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 min-h-[64px] flex flex-col">
-                      <Label htmlFor="bio" className="text-[10px] leading-none mb-0.5 flex items-center justify-between">
-                        <span>About your work</span>
-                        <span className={bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}>{bio.trim().length}/20</span>
-                      </Label>
-                      <Textarea
-                        id="bio"
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        placeholder="What you do, tools you bring, what makes you reliable…"
-                        className="flex-1 min-h-0 resize-none text-sm leading-snug py-2"
-                      />
-                    </div>
-
-                    <div className="rounded-[16px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_24px_-12px_hsl(160_10%_12%/0.12)] p-2 flex items-center gap-2 shrink-0">
-                      <Shield className="w-4 h-4 text-primary shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-semibold text-foreground flex items-center gap-2 flex-wrap leading-tight">
-                          ID Verification
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${idBadge.cls}`}>{idBadge.label}</span>
+                        <p className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                          {`${firstName} ${lastName}`.trim() || "Your name"}
                         </p>
-                        <p className="text-[10px] text-muted-foreground leading-snug">Encrypted &amp; reviewed by Helpr.</p>
+                        <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                          Tap the photo to change. Your name is locked after signup.
+                        </p>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Contact section */}
+                  <div className="rounded-2xl liquid-glass p-5 space-y-4">
+                    <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Contact
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="phone" className="text-xs mb-1.5 block">Phone</Label>
+                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-2">
+                          <Label htmlFor="location" className="text-xs mb-1.5 block">City</Label>
+                          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                        </div>
+                        <div>
+                          <Label htmlFor="zipCode" className="text-xs mb-1.5 block">ZIP</Label>
+                          <Input
+                            id="zipCode"
+                            value={zipCode}
+                            onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                            placeholder="70801"
+                            inputMode="numeric"
+                            maxLength={5}
+                            className="h-10"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio section */}
+                  <div className="rounded-2xl liquid-glass p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                        About your work
+                      </p>
+                      <span className={`text-xs font-medium ${bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}`}>{bio.trim().length}/20</span>
+                    </div>
+                    <Textarea
+                      id="bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="What you do, tools you bring, what makes you reliable…"
+                      className="min-h-[112px] resize-none text-sm leading-relaxed"
+                    />
+                    <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Customers read this when deciding who to hire. The more specific, the better.
+                    </p>
+                  </div>
+
+                  {/* ID Verification section */}
+                  <div className="rounded-2xl liquid-glass p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Shield className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                          Trust
+                        </p>
+                        <h2 className="font-display italic font-bold leading-tight flex items-center gap-2 flex-wrap" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                          ID verification
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
+                        </h2>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="font-serif italic leading-snug flex-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        Upload a government-issued ID. Encrypted in transit and reviewed by Helpr.
+                      </p>
                       <label className="shrink-0">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 h-8 rounded-[14px] bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_1px_2px_hsl(160_10%_12%/0.06),0_6px_16px_-8px_hsl(var(--primary)/0.4)]">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 h-9 rounded-xl bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all">
                           {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                           {hasId ? "Replace" : "Upload"}
                         </span>
@@ -831,18 +902,19 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0 pt-2 grid grid-cols-3 gap-2.5">
+                  {/* Save / Cancel actions */}
+                  <div className="grid grid-cols-3 gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => setTab("landing")}
-                      className="rounded-[20px] bg-white border border-border/40 shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] h-12 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:scale-[0.98] transition-all"
+                      className="rounded-2xl liquid-glass h-12 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:scale-[0.98] transition-all"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={saving || justSaved}
-                      className={`col-span-2 rounded-[20px] h-12 inline-flex items-center justify-center gap-2 text-sm font-bold transition-all active:scale-[0.98] disabled:active:scale-100 shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] ${
+                      className={`col-span-2 rounded-2xl h-12 inline-flex items-center justify-center gap-2 text-sm font-bold transition-all active:scale-[0.98] disabled:active:scale-100 shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] ${
                         saving
                           ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : justSaved
@@ -850,7 +922,7 @@ const ProfilePage = () => {
                           : "bg-primary hover:bg-primary/90 text-primary-foreground"
                       }`}
                     >
-                      {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>) : justSaved ? "✓ Saved" : "Save Changes"}
+                      {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? "✓ Saved" : "Save changes"}
                     </button>
                   </div>
                 </form>
@@ -887,13 +959,13 @@ const ProfilePage = () => {
 
           {tab === "payment" && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-page-title text-foreground text-2xl">Payment Settings</h1>
-              </div>
-              <PaymentTab role={role} earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+              <ProfileTabHeader
+                eyebrow="Money"
+                title="Payment settings"
+                meta="Cards, bank accounts, payouts"
+                onBack={() => setTab("landing")}
+              />
+              <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
             </div>
           )}
 
@@ -905,32 +977,46 @@ const ProfilePage = () => {
 
           {tab === "posted_jobs" && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-page-title text-foreground text-2xl">Posted Jobs</h1>
-              </div>
+              <ProfileTabHeader
+                eyebrow="History"
+                title="Posted jobs"
+                meta={`${inlinePostedJobs.length} task${inlinePostedJobs.length === 1 ? "" : "s"} posted`}
+                onBack={() => setTab("landing")}
+              />
               {inlinePostedJobs.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">No posted jobs yet.</p>
+                <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Briefcase className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
+                      No posts yet
+                    </p>
+                    <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Tell a neighbor what you need done — they'll see it within minutes.
+                    </p>
+                  </div>
                   <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {inlinePostedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                    <div key={job.id} className="rounded-xl liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground">{job.title}</p>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <p className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                            {job.title}
+                          </p>
+                          <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap" style={{ color: "hsl(var(--olivewood) / 0.7)", fontSize: "0.78rem" }}>
                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                             <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                            <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                             <span className="capitalize">{job.category.replace("_", " ")}</span>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
-                          <span className="text-sm font-bold text-primary">${job.budget}</span>
+                          <span className="text-base font-bold text-primary tabular-nums">${job.budget}</span>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
                         </div>
                       </div>
@@ -943,31 +1029,45 @@ const ProfilePage = () => {
 
           {tab === "completed_jobs" && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-page-title text-foreground text-2xl">Completed Jobs</h1>
-              </div>
+              <ProfileTabHeader
+                eyebrow="Track record"
+                title="Completed jobs"
+                meta={`${inlineCompletedJobs.length} job${inlineCompletedJobs.length === 1 ? "" : "s"} delivered`}
+                onBack={() => setTab("landing")}
+              />
               {inlineCompletedJobs.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No completed jobs yet.</p>
+                <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Star className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
+                      No history yet
+                    </p>
+                    <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Every job you complete builds your record. Apply to one to get started.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {inlineCompletedJobs.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-4">
+                    <div key={job.id} className="rounded-xl liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground">{job.title}</p>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <p className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                            {job.title}
+                          </p>
+                          <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap" style={{ color: "hsl(var(--olivewood) / 0.7)", fontSize: "0.78rem" }}>
                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                             <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                            <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                             <span className="capitalize">{job.category.replace("_", " ")}</span>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5 shrink-0">
-                          <span className="text-sm font-bold text-primary">${job.budget}</span>
+                          <span className="text-base font-bold text-primary tabular-nums">${job.budget}</span>
                         </div>
                       </div>
                     </div>
@@ -985,37 +1085,50 @@ const ProfilePage = () => {
 
           {tab === "notifications" && (
             <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-page-title text-foreground text-2xl">Notifications</h1>
-              </div>
+              <ProfileTabHeader
+                eyebrow="Inbox"
+                title="Notifications"
+                meta="Email, push, and SMS preferences"
+                onBack={() => setTab("landing")}
+              />
               <NotificationPreferences />
             </div>
           )}
 
           {tab === "security" && (
             <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-page-title text-foreground text-2xl">Account Security</h1>
-              </div>
+              <ProfileTabHeader
+                eyebrow="Account"
+                title="Security"
+                meta="Email, password, sign-in"
+                onBack={() => setTab("landing")}
+              />
 
-              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-primary" /> Email Address
-                </h2>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{user?.email}</p>
-                    <p className="text-xs text-muted-foreground">Your login email</p>
+              <div className="rounded-2xl liquid-glass p-5 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-serif italic uppercase text-[0.6rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Login email
+                    </p>
+                    <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                      Email address
+                    </h2>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{user?.email}</p>
+                    <p className="text-[11px] font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      We'll send a confirmation link to verify changes.
+                    </p>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="shrink-0"
                     onClick={async () => {
                       const newEmail = prompt("Enter new email address:");
                       if (!newEmail) return;
@@ -1027,23 +1140,36 @@ const ProfilePage = () => {
                       else toast.success("Confirmation sent to your new email!");
                     }}
                   >
-                    <Mail className="w-4 h-4 mr-1" /> Change
+                    Change
                   </Button>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-                <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-primary" /> Password
-                </h2>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">••••••••</p>
-                    <p className="text-xs text-muted-foreground">Reset via email link</p>
+              <div className="rounded-2xl liquid-glass p-5 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Lock className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-serif italic uppercase text-[0.6rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Sign-in
+                    </p>
+                    <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                      Password
+                    </h2>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground tracking-widest">••••••••</p>
+                    <p className="text-[11px] font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Reset via secure email link.
+                    </p>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="shrink-0"
                     onClick={async () => {
                       if (!user?.email) return;
                       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
@@ -1053,7 +1179,7 @@ const ProfilePage = () => {
                       else toast.success("Password reset link sent to your email!");
                     }}
                   >
-                    <Lock className="w-4 h-4 mr-1" /> Reset
+                    Reset
                   </Button>
                 </div>
               </div>
@@ -1071,16 +1197,14 @@ const ProfilePage = () => {
           )}
 
           {tab === "referral" && user && (
-            <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
-              <div className="flex items-center gap-3 shrink-0">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-page-title text-foreground text-2xl">Referral Program</h1>
-              </div>
-              <div className="flex-1 min-h-0">
-                <ReferralSection userId={user.id} />
-              </div>
+            <div className="space-y-5">
+              <ProfileTabHeader
+                eyebrow="Invite friends"
+                title="Referral program"
+                meta="Earn credits when neighbors join"
+                onBack={() => setTab("landing")}
+              />
+              <ReferralSection userId={user.id} />
             </div>
           )}
 
@@ -1098,15 +1222,12 @@ const ProfilePage = () => {
 
           {tab === "credentials" && user && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setTab("landing")} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                  <h1 className="text-page-title text-foreground text-2xl">Licensed & Insured</h1>
-                  <p className="text-muted-foreground text-xs">Verify your professional credentials</p>
-                </div>
-              </div>
+              <ProfileTabHeader
+                eyebrow="Trust"
+                title="Licensed &amp; insured"
+                meta="Verify your professional credentials"
+                onBack={() => setTab("landing")}
+              />
               <Suspense fallback={<TabFallback />}>
                 <CredentialsTab userId={user.id} />
               </Suspense>

@@ -158,7 +158,7 @@ export function JobTracking({
           latitude: loc?.lat || null,
           longitude: loc?.lng || null,
           updated_at: now,
-        } as any)
+        })
         .eq("id", tracking.id);
     } else {
       await supabase.from("job_tracking").insert({
@@ -167,22 +167,22 @@ export function JobTracking({
         status: newStatus,
         latitude: loc?.lat || null,
         longitude: loc?.lng || null,
-      } as any);
+      });
     }
 
     // Auto-transition job status
     if (newStatus === "done") {
-      await supabase.from("jobs").update({ helper_completed_at: now } as any).eq("id", jobId);
+      await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);
     } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
       const { data: job } = await supabase.from("jobs").select("status").eq("id", jobId).single();
       if (job && job.status === "accepted") {
-        await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+        await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
       }
       if (newStatus === "arrived") {
-        await supabase.from("jobs").update({ helper_arrived_at: now } as any).eq("id", jobId);
+        await supabase.from("jobs").update({ helper_arrived_at: now }).eq("id", jobId);
       }
       if (newStatus === "on_the_way") {
-        await supabase.from("jobs").update({ helper_on_the_way_at: now } as any).eq("id", jobId);
+        await supabase.from("jobs").update({ helper_on_the_way_at: now }).eq("id", jobId);
       }
     }
 
@@ -222,7 +222,7 @@ export function JobTracking({
   if (!helperId) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+    <div className="rounded-xl liquid-glass p-4 space-y-4">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
         <Navigation className="w-4 h-4 text-primary" /> Live Job Tracking
       </h3>

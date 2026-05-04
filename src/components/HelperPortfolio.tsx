@@ -51,7 +51,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
       </h2>
       <div className="grid grid-cols-2 gap-3">
         {items.map((item, idx) => (
-          <div key={idx} className="rounded-xl border border-border bg-card overflow-hidden group">
+          <div key={idx} className="rounded-xl liquid-glass overflow-hidden group">
             {/* Show the first after photo as the main image */}
             <div className="relative aspect-[4/3]">
               <img

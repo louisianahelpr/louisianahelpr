@@ -116,9 +116,13 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Bookmark className="w-4 h-4" />
-          Saved
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Saved searches"
+          className="h-8 w-8 rounded-xl btn-press text-muted-foreground hover:text-foreground"
+        >
+          <Bookmark className="w-4 h-4" strokeWidth={2} />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
@@ -168,7 +172,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             searches.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2 rounded-lg border border-border bg-card p-3"
+                className="flex items-center gap-2 rounded-lg liquid-glass p-3"
               >
                 <button
                   type="button"

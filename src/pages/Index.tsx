@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 
 // Navbar lazy-loaded so it doesn't compete with the LCP hero image for the
 // main thread. The hero image preload + inline shell paint instantly;
@@ -22,11 +23,8 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 // past 3s. Below-the-fold sections stay lazy so they don't compete for
 // bandwidth with the hero image during initial paint.
 import HeroSection from "@/components/landing/HeroSection";
-const SocialProofSection = lazy(() => import("@/components/landing/SocialProofSection"));
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
-
-const JobStoriesSection = lazy(() => import("@/components/landing/JobStoriesSection"));
-const PublicJobsPreview = lazy(() => import("@/components/landing/PublicJobsPreview"));
+const CommunityVoice = lazy(() => import("@/components/landing/CommunityVoice"));
 
 const SITE_URL = "https://louisianahelpr.com";
 
@@ -120,6 +118,11 @@ const Index = () => {
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const location = useLocation();
 
+  // Stagger fade-up on every `.observe-fade-up` element as it scrolls into
+  // view. Honors prefers-reduced-motion. Picks up newly-mounted lazy
+  // sections via the hook's mount-time DOM query.
+  useScrollFadeUp();
+
   usePageMeta({
     title: "Helpr — Louisiana's #1 Local Help Marketplace | Cleaning, Moving, Errands & More",
     description:
@@ -163,7 +166,10 @@ const Index = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen page-warmth relative">
+      {/* Global mesh — fixed-position behind every section so glass surfaces
+          have refracting motion all the way down the page. Subtle. */}
+      <div aria-hidden className="mesh-gradient-global" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
@@ -180,18 +186,31 @@ const Index = () => {
         <Navbar />
       </Suspense>
       <HeroSection />
-      <Suspense fallback={<div className="h-32" />}>
-        <SocialProofSection />
-      </Suspense>
+
+      {/* City strip — sense-of-place transition between hero and process,
+          replacing the previous "hugs the marquee" placement inside the
+          hero with proper breathing room above the Three Steps section. */}
+      <div className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-4 sm:pb-6">
+        <p
+          className="text-center font-serif italic text-xs sm:text-sm tracking-[0.18em] uppercase"
+          style={{ color: "hsl(var(--burnt-sienna))", opacity: 0.55 }}
+        >
+          Serving New Orleans · Baton Rouge · Lafayette · Shreveport · Lake
+          Charles
+        </p>
+      </div>
+
       <Suspense fallback={<div className="h-64" />}>
         <HowItWorksSection />
       </Suspense>
-      <Suspense fallback={<div className="h-64" />}>
-        <PublicJobsPreview />
+      <Suspense fallback={<div className="h-96" />}>
+        <CommunityVoice />
       </Suspense>
-      <Suspense fallback={<div className="h-64" />}>
-        <JobStoriesSection />
-      </Suspense>
+
+      {/* 120px breathing room before the footer so the FAQ accordion
+          doesn't crash into the footer surface. */}
+      <div aria-hidden className="h-30" style={{ height: "120px" }} />
+
       <Footer />
     </div>
   );

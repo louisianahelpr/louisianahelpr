@@ -18,24 +18,17 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   const handleBoost = async () => {
     setBoosting(true);
     try {
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-
-      const { error } = await supabase
-        .from("jobs")
-        .update({
-          boosted_at: now.toISOString(),
-          boost_expires_at: expiresAt.toISOString(),
-        } as any)
-        .eq("id", jobId);
-
+      const { data, error } = await supabase.functions.invoke("create-boost-payment", {
+        body: { job_id: jobId },
+      });
       if (error) throw error;
-      toast.success("Job boosted! It will appear at the top of the feed for 24 hours.");
-      onBoosted();
-      onClose();
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error("No checkout URL returned");
+      // Redirect to Stripe Checkout. The webhook will flip the boost flags
+      // on the job once payment captures, so we don't update the DB here.
+      window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to boost job");
-    } finally {
+      toast.error(err.message || "Failed to start boost checkout");
       setBoosting(false);
     }
   };

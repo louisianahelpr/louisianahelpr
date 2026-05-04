@@ -115,7 +115,7 @@ const AdminNotifications = () => {
 
     const { error } = await supabase
       .from("notification_preferences")
-      .update({ [key]: value } as any)
+      .update({ [key]: value })
       .eq("id", prefs.id);
 
     if (error) {
@@ -175,7 +175,7 @@ const AdminNotifications = () => {
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Master toggles */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="rounded-xl liquid-glass p-5 space-y-4">
         <h3 className="font-display font-bold text-foreground flex items-center gap-2">
           <Bell className="w-5 h-5 text-primary" /> Master Controls
         </h3>
@@ -204,7 +204,7 @@ const AdminNotifications = () => {
       </div>
 
       {/* Per-category controls */}
-      <div className="rounded-xl border border-border bg-card divide-y divide-border">
+      <div className="rounded-xl liquid-glass divide-y divide-border">
         <div className="p-5">
           <h3 className="font-display font-bold text-foreground">Per-Category Settings</h3>
           <p className="text-xs text-muted-foreground mt-1">Fine-tune which notifications you receive and how.</p>
@@ -249,7 +249,7 @@ const AdminNotifications = () => {
       </div>
 
       {/* Info */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+      <div className="rounded-xl liquid-glass p-5 space-y-2">
         <div className="flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
           <div>

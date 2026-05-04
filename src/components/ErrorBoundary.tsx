@@ -39,6 +39,36 @@ const isChunkLoadError = (err: unknown): boolean => {
 
 const RELOAD_FLAG = "helpr_chunk_reload_at";
 
+/**
+ * Force-reload that purges any cached service-worker / Cache Storage entry
+ * before navigating. Required when a chunk load error happens because the
+ * SW is serving a stale module map; a plain `location.reload()` would just
+ * hand back the same stale page.
+ */
+const hardReloadBypassCache = async () => {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => null)));
+    }
+  } catch (_) {
+    /* swallow — proceed to caches + reload */
+  }
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k).catch(() => null)));
+    }
+  } catch (_) {
+    /* swallow — proceed to reload */
+  }
+  // Add a cache-buster query param so the browser fetches fresh HTML
+  // instead of serving the cached response.
+  const url = new URL(window.location.href);
+  url.searchParams.set("_v", String(Date.now()));
+  window.location.replace(url.toString());
+};
+
 class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -59,21 +89,23 @@ class ErrorBoundary extends React.Component<Props, State> {
       });
     }
 
-    // Auto-recover from stale chunk errors with a single hard reload.
+    // Auto-recover from stale chunk errors. Purge SW + caches first so
+    // the reload actually picks up the new bundle.
     if (isChunkLoadError(error)) {
       const last = Number(sessionStorage.getItem(RELOAD_FLAG) || "0");
       // Only reload if we haven't already tried in the last 10s.
       if (Date.now() - last > 10_000) {
         sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
-        window.location.reload();
+        void hardReloadBypassCache();
       }
     }
   }
 
   handleReset = () => {
     if (isChunkLoadError(this.state.error)) {
-      // Hard reload bypasses the cached module map.
-      window.location.reload();
+      // Purge SW caches and reload with a cache-buster query param so
+      // the browser definitely fetches the new HTML + chunks.
+      void hardReloadBypassCache();
       return;
     }
     this.setState({ hasError: false, error: null });

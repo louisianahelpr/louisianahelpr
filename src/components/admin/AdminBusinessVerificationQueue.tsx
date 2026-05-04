@@ -52,7 +52,7 @@ const AdminBusinessVerificationQueue = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_pending_business_verifications");
+      const { data, error } = await supabase.rpc("get_pending_business_verifications");
       if (error) {
         toast.error(error.message);
         return [];
@@ -67,7 +67,7 @@ const AdminBusinessVerificationQueue = () => {
     reason?: string
   ) => {
     setBusy(businessId);
-    const { error } = await (supabase.rpc as any)("review_business_verification", {
+    const { error } = await supabase.rpc("review_business_verification", {
       _business_id: businessId,
       _decision: decision,
       _rejection_reason: reason ?? null,
@@ -106,13 +106,13 @@ const AdminBusinessVerificationQueue = () => {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center text-xs text-muted-foreground">
+        <div className="rounded-2xl liquid-glass p-10 text-center text-xs text-muted-foreground">
           No pending business verifications. 🎉
         </div>
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={r.business_id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div key={r.business_id} className="rounded-2xl liquid-glass p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Building2 className="w-5 h-5" />

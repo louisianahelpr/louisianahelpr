@@ -1,5 +1,16 @@
 # TODO
 
+## Where We Left Off — 2026-05-03
+
+**QA smoke test pass (Cowork-driven). Full report:** `qa-report-2026-05-03.md` in this session's outputs.
+
+- 🔴 **P0 — job posting is broken end-to-end.** `notify_helpers_on_job_post()` and `notify_saved_searches_on_new_job()` reference `p.role = 'helper'`, but `profiles.role` no longer exists (unified accounts). Every `POST /rest/v1/jobs` 400s with `column p.role does not exist`. Fix: drop the role check in both trigger functions or re-route through `user_roles`/`has_role()`. Migration not applied — needs your sign-off.
+- ✅ **IDV gating works** at /post-job confirm step. Dialog copy matches spec; closing it then clicking Pay re-triggers it. Stripe Checkout was *not* reached because of the P0 above.
+- ⏭ **Test 1 (signup) skipped** — can't auto-create accounts / type passwords. Need human run.
+- ⏭ **Test 3 (Connect-at-applying) skipped** — session expired mid-test, no re-auth. Also: Test 3's seeded "Help with hurricane prep" job is owned by Lexi, so it never appears in Lexi's browse feed. Re-seed under a different user or rewrite the test.
+- ⚠️ **Tests 4 + 5 blocked by tooling.** Chrome's Claude panel reserves window width (inner viewport floors at 856), and the sandbox can't reach localhost for Lighthouse. Recommend Playwright viewport overrides in CI for Test 4 and `npx lighthouse` locally for Test 5.
+- 🧹 **Cleanup done:** Lexi's `idv_status` was flipped `verified` for the bypass step then reverted to `not_started`. No other DB writes.
+
 ## Deployment Log
 
 ### 2026-05-02 — Production deploy + Supabase MCP wiring

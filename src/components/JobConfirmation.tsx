@@ -47,7 +47,7 @@ export function JobConfirmation({
     const field = isOwner ? "poster_confirmed_at" : "helper_confirmed_at";
     const { error } = await supabase
       .from("jobs")
-      .update({ [field]: new Date().toISOString() } as any)
+      .update({ [field]: new Date().toISOString() })
       .eq("id", jobId);
     if (error) {
       toast.error("Failed to confirm");

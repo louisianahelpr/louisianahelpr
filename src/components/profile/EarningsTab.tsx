@@ -17,7 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info } from "lucide-react";
+import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info } from "lucide-react";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -204,13 +205,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-page-title text-foreground text-2xl flex-1">My Earnings</h1>
-        <DropdownMenu>
+      <ProfileTabHeader
+        eyebrow="Wallet"
+        title="My earnings"
+        meta="Payouts, tips, and tax exports"
+        onBack={onBack}
+        rightSlot={
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -234,42 +235,60 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {/* Hidden controlled export dialog (PDF + CSV by date range) */}
-        <EarningsExport
-          helperId={helperId}
-          helperName={helperName}
-          open={exportDialogOpen}
-          onOpenChange={setExportDialogOpen}
-          hideTrigger
-        />
-      </div>
+        }
+      />
+      {/* Hidden controlled export dialog (PDF + CSV by date range) */}
+      <EarningsExport
+        helperId={helperId}
+        helperName={helperName}
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        hideTrigger
+      />
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">
         {/* Wallet card (Available + Pending side-by-side) */}
         {stripeLoading ? (
-          <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
+          <div className="rounded-2xl liquid-glass p-4 flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             <p className="text-xs text-muted-foreground">Loading live payout data…</p>
           </div>
         ) : !stripeData?.connected ? (
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">Wallet</h2>
+          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Wallet className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  Balance
+                </p>
+                <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+                  Wallet
+                </h2>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
               Connect your payout account to see your live balance.
             </p>
             <Button size="sm" onClick={() => navigate("/profile?tab=payment")}>Set up payouts</Button>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-2xl liquid-glass p-5">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">Wallet</h2>
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide">Live</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Wallet className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-serif italic uppercase flex items-center gap-1.5" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                    Balance <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary not-italic" style={{ letterSpacing: "0.05em" }}>LIVE</span>
+                  </p>
+                  <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+                    Wallet
+                  </h2>
+                </div>
               </div>
               <button
                 onClick={handleRefresh}
@@ -283,19 +302,31 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Banknote className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Available</span>
+                  <Banknote className="w-3 h-3 text-primary" />
+                  <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                    Available
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{formatCents(availableTotal)}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">ready to pay out</p>
+                <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+                  {formatCents(availableTotal)}
+                </p>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  ready to pay out
+                </p>
               </div>
-              <div className="border-l border-border pl-4">
+              <div className="border-l border-border/40 pl-4">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Loader2 className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Pending</span>
+                  <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+                  <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                    Pending
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{formatCents(pendingTotal)}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">clearing soon</p>
+                <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+                  {formatCents(pendingTotal)}
+                </p>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  clearing soon
+                </p>
               </div>
             </div>
 
@@ -330,38 +361,41 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {/* Compact secondary stats — 3-up tiny tiles */}
         {!loading && (
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-              <div className="flex items-center gap-1 mb-0.5">
-                <TrendingUp className="w-3 h-3 text-primary" />
-                <span className="text-muted-foreground text-xs uppercase tracking-wide">Total</span>
+            {[
+              { icon: TrendingUp, label: "Total", value: `$${totalEarnings.toFixed(2)}`, sub: `${completedJobs.length} jobs` },
+              { icon: Gift, label: "Tips", value: `$${totalTips.toFixed(2)}`, sub: `${tips.length} tips` },
+              { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
+            ].map(({ icon: Icon, label, value, sub }) => (
+              <div key={label} className="rounded-xl liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
+                <div className="flex items-center gap-1 mb-1">
+                  <Icon className="w-3 h-3 text-primary" />
+                  <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                    {label}
+                  </span>
+                </div>
+                <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                  {value}
+                </p>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  {sub}
+                </p>
               </div>
-              <p className="text-base font-bold text-foreground leading-tight">${totalEarnings.toFixed(2)}</p>
-              <p className="text-muted-foreground text-xs">{completedJobs.length} jobs</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-              <div className="flex items-center gap-1 mb-0.5">
-                <Gift className="w-3 h-3 text-primary" />
-                <span className="text-muted-foreground text-xs uppercase tracking-wide">Tips</span>
-              </div>
-              <p className="text-base font-bold text-foreground leading-tight">${totalTips.toFixed(2)}</p>
-              <p className="text-muted-foreground text-xs">{tips.length} tips</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-              <div className="flex items-center gap-1 mb-0.5">
-                <Briefcase className="w-3 h-3 text-primary" />
-                <span className="text-muted-foreground text-xs uppercase tracking-wide">Active</span>
-              </div>
-              <p className="text-base font-bold text-foreground leading-tight">{inProgressJobs.length}</p>
-              <p className="text-muted-foreground text-xs">in progress</p>
-            </div>
+            ))}
           </div>
         )}
 
         {/* Payout history — inline year picker, no big empty box */}
         {stripeData?.connected && (
-          <div>
+          <div className="pt-2">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <h3 className="text-sm font-semibold text-foreground">Payout History</h3>
+              <div>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  Ledger
+                </p>
+                <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+                  Payout history
+                </h3>
+              </div>
               <Select value={exportYear} onValueChange={setExportYear}>
                 <SelectTrigger className="h-7 w-[88px] text-xs">
                   <SelectValue />
@@ -374,20 +408,24 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               </Select>
             </div>
             {stripeData.payouts.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No payouts recorded for {exportYear}.</p>
+              <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                No payouts recorded for {exportYear}.
+              </p>
             ) : (
               <div className="space-y-2">
                 {stripeData.payouts.map((p) => (
-                  <div key={p.id} className="rounded-xl border border-border bg-card p-3">
+                  <div key={p.id} className="rounded-xl liquid-glass p-3 transition-all hover:-translate-y-0.5">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-foreground text-sm">{formatCents(p.amount, p.currency)}</span>
+                          <span className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
+                            {formatCents(p.amount, p.currency)}
+                          </span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
                             {p.status.replace("_", " ")}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                           Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
                         </p>
                       </div>
@@ -402,13 +440,28 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* ─── EARNING HISTORY ─── */}
       {loading ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>Loading…</p>
       ) : (
         <div>
-          <h2 className="text-lg font-display font-semibold text-foreground mb-3">Earning History</h2>
+          <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            History
+          </p>
+          <h2 className="font-display italic font-bold leading-tight mb-3" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+            Earning history
+          </h2>
           {earningsJobs.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">No jobs yet.</p>
+            <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
+                  No jobs yet
+                </p>
+                <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  Apply to a task and your earnings will land here.
+                </p>
+              </div>
               <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
             </div>
           ) : (
@@ -422,19 +475,31 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 const jobTips = tips.filter((t) => t.job_id === job.id);
                 const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                 return (
-                  <div key={job.id} className="rounded-xl border border-border bg-card p-3">
+                  <div key={job.id} className="rounded-xl liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                            {job.title}
+                          </h3>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{job.location} · {new Date(job.date_needed).toLocaleDateString()}</p>
+                        <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                          {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {new Date(job.date_needed).toLocaleDateString()}
+                        </p>
                       </div>
-                      <div className="text-right">
-                        {payout !== null && <p className="font-bold text-foreground text-sm">${payout.toFixed(2)}</p>}
+                      <div className="text-right shrink-0">
+                        {payout !== null && (
+                          <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
+                            ${payout.toFixed(2)}
+                          </p>
+                        )}
                         {tipTotal > 0 && <p className="text-xs text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
-                        {job.status === "in_progress" && <p className="text-xs text-muted-foreground">${job.budget} budget</p>}
+                        {job.status === "in_progress" && (
+                          <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                            ${job.budget} budget
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

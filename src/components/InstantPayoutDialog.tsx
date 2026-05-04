@@ -83,7 +83,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
           </div>
         ) : quote ? (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+            <div className="rounded-xl liquid-glass p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Available balance</span>
                 <span className="font-medium text-foreground">{fmt(quote.gross_cents)}</span>

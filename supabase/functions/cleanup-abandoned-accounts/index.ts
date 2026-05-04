@@ -97,15 +97,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Decide: abandoned?
+        // Decide: abandoned? Role-agnostic — same rules apply to every
+        // account regardless of legacy customer/helper value.
         // 1. Email never verified after 30d → delete
-        // 2. Helper with no Stripe account after 30d → delete
-        // 3. Customer still pending after 30d → delete
+        // 2. Approval still pending after 30d → delete (admin never reviewed
+        //    OR user never finished onboarding)
+        // 3. No Stripe Connect after 30d → delete (can never be paid out,
+        //    so the account has no path to participating in transactions)
         const emailUnverified = !u.email_confirmed_at;
-        const helperNoStripe = profile.role === "helper" && !profile.stripe_account_id;
-        const customerStillPending = profile.role === "customer" && profile.approval_status === "pending";
+        const stillPending = profile.approval_status === "pending";
+        const noStripeConnect = !profile.stripe_account_id;
 
-        if (!emailUnverified && !helperNoStripe && !customerStillPending) {
+        if (!emailUnverified && !stillPending && !noStripeConnect) {
           skipped.push(u.id);
           continue;
         }

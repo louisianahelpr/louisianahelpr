@@ -35,10 +35,11 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
     }),
   );
 
-  if (window.location.pathname !== "/admin") {
-    return { profile: profileRes.data, isAdmin: false };
-  }
-
+  // Always check admin role — the Dashboard navbar and other surfaces use
+  // `isAdmin` to decide whether to render the admin Shield button. Gating
+  // this query behind `pathname === "/admin"` (the previous behavior)
+  // meant the button was permanently invisible on every other page, so
+  // admins had no way to *reach* /admin in the first place.
   const rolesRes = await withTimeout(
     Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data, error }) => {
       if (error) throw error;

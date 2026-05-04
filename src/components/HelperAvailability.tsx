@@ -172,7 +172,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {DAYS.map((day, i) => {
           const slot = slots[i];
           const off = !slot.is_available;
@@ -180,10 +180,8 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             <div
               key={day}
               className={cn(
-                "rounded-2xl border p-4 transition-all",
-                off
-                  ? "border-border/60 bg-muted/30"
-                  : "border-border bg-card shadow-sm",
+                "rounded-2xl liquid-glass p-4 transition-all",
+                off && "opacity-70",
               )}
             >
               <div className="flex items-center justify-between gap-3">
@@ -194,10 +192,12 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     aria-label={`Toggle ${day}`}
                   />
                   <span
-                    className={cn(
-                      "font-display text-[15px] font-bold tracking-tight w-10",
-                      off ? "text-muted-foreground" : "text-foreground",
-                    )}
+                    className="font-display italic font-bold w-10"
+                    style={{
+                      fontSize: "1rem",
+                      color: off ? "hsl(var(--olivewood) / 0.6)" : "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.01em",
+                    }}
                   >
                     {day.slice(0, 3)}
                   </span>
@@ -213,7 +213,9 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     }}
                   />
                 ) : (
-                  <span className="text-sm font-medium text-muted-foreground">Unavailable</span>
+                  <span className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                    Off
+                  </span>
                 )}
               </div>
             </div>
@@ -226,7 +228,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         size="lg"
         className="w-full h-12 rounded-2xl text-[15px] font-semibold"
       >
-        {saving ? "Saving..." : "Save Availability"}
+        {saving ? "Saving…" : "Save availability"}
       </Button>
     </div>
   );

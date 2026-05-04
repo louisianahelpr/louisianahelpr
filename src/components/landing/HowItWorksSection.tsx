@@ -1,59 +1,146 @@
-import { ClipboardList, Users, CheckCircle } from "lucide-react";
+import {
+  ClipboardList,
+  Users,
+  CheckCircle,
+  Lock,
+  Shield,
+  Check,
+} from "lucide-react";
 
 const steps = [
   {
     icon: ClipboardList,
     title: "Post the job",
-    description: "Tell us what you need, set your budget, and pick a date. Takes about a minute.",
+    description:
+      "Tell us what you need, set your budget, and pick a date. Takes about a minute — no wizard, no friction.",
+    accent: "Step 01",
   },
   {
     icon: Users,
     title: "Pick your helpr",
-    description: "Local applicants come to you. Compare profiles and ratings — choose with confidence.",
+    description:
+      "Local applicants come to you. Compare profiles, ratings, and verifications — choose with confidence.",
+    accent: "Step 02",
   },
   {
     icon: CheckCircle,
     title: "Pay when it's done",
-    description: "Funds sit in escrow until you confirm the work. No upfront risk, no awkward cash handoffs.",
+    description:
+      "Funds sit in escrow until you confirm the work. No upfront risk, no awkward cash handoffs.",
+    accent: "Step 03",
   },
 ];
 
-const HowItWorksSection = () => {
-  return (
-    <section id="how-it-works" className="py-16 md:py-20 px-4 scroll-mt-24">
-      <div className="container mx-auto text-center">
-        <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-4">
-          How Helpr works
-        </h2>
-        <p className="text-muted-foreground max-w-md mx-auto mb-8">
-          Three steps. No back-and-forth. No surprises.
-        </p>
+const trustFacts = [
+  { icon: Lock, label: "Escrow-protected payment" },
+  { icon: Shield, label: "Verified helprs" },
+  { icon: Check, label: "Free to post" },
+];
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          {steps.map((step, i) => (
-            <div
-              key={step.title}
-              className="flex flex-col items-center text-center p-6 animate-fade-in opacity-0"
-              style={{ animationDelay: `${i * 150}ms` }}
-            >
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                <step.icon className="w-7 h-7 text-primary" />
-              </div>
-              <span className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">
-                Step {i + 1}
-              </span>
-              <h3 className="text-xl font-display font-semibold text-foreground mb-2">
-                {step.title}
-              </h3>
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                {step.description}
-              </p>
-            </div>
-          ))}
+const HowItWorksSection = () => (
+  <section
+    id="how-it-works"
+    className="py-6 sm:py-10 lg:py-14 px-4 sm:px-6 lg:px-8 scroll-mt-24"
+  >
+    <div className="container mx-auto max-w-6xl">
+      {/* Eyebrow + headline live OUTSIDE the glass — same pattern as the FAQ,
+          so the title acts as a section ribbon and the box below is
+          read as the answer. */}
+      <div className="max-w-2xl mb-6 sm:mb-8 px-2 sm:px-4">
+        <span className="text-display-eyebrow mb-4">How it works</span>
+        <h2 className="text-display-xl mt-4 text-balance">
+          Three steps. Zero surprises.
+        </h2>
+        <p className="subhead-serif text-foreground text-xl sm:text-2xl mt-5 leading-snug text-balance">
+          Every Helpr job follows the same calm rhythm — post, pick, pay. No
+          back-and-forth, no awkward cash handoffs, no guesswork.
+        </p>
+      </div>
+
+      {/* Liquid-glass container — gives the steps a defined surface that
+          reads as one continuous "this is how it works" panel rather than
+          three orphaned cards floating on the champagne canvas. */}
+      <div className="liquid-glass px-5 sm:px-8 lg:px-10 py-7 sm:py-9 lg:py-10">
+
+        {/* Three transparent step cards — faint white hairline + content,
+            mesh gradient bleeds through. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {steps.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <article
+                key={step.title}
+                className="observe-fade-up p-6 sm:p-7 flex flex-col justify-between gap-5 min-h-[14rem] sm:min-h-[16rem] rounded-[2rem]"
+                style={{
+                  transitionDelay: `${i * 100}ms`,
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
+                }}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-primary" strokeWidth={1.25} />
+                  </div>
+                  <span className="text-display-eyebrow">{step.accent}</span>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl sm:text-2xl font-display font-semibold text-foreground tracking-tight leading-tight">
+                    {step.title}
+                  </h3>
+                  <p className="font-sans text-foreground text-sm sm:text-base leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {/* Trust strip — sits below the step cards. We're inside a glass
+            container now, so we use a hairline rule + transparent row
+            instead of a nested glass-in-glass which read as visually noisy. */}
+        <div
+          className="mt-8 sm:mt-10 pt-6 sm:pt-7"
+          style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.1)" }}
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+            {trustFacts.map((fact, i) => {
+              const Icon = fact.icon;
+              return (
+                <div
+                  key={fact.label}
+                  className="flex items-center gap-3 observe-fade-up"
+                  style={{ transitionDelay: `${i * 100}ms` }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: "hsl(var(--sage))" }}
+                      strokeWidth={1.5}
+                    />
+                    <span
+                      className="text-xs sm:text-sm font-sans font-medium tracking-tight"
+                      style={{ color: "hsl(var(--olivewood))" }}
+                    >
+                      {fact.label}
+                    </span>
+                  </div>
+                  {i < trustFacts.length - 1 && (
+                    <span
+                      className="hidden sm:block w-1 h-1 rounded-full"
+                      style={{
+                        backgroundColor: "hsl(var(--burnt-sienna) / 0.5)",
+                      }}
+                      aria-hidden
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export default HowItWorksSection;

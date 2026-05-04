@@ -17,7 +17,19 @@ import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
-import { isNativePlatform } from "@/lib/nativeInit";
+import AuthShell from "@/components/auth/AuthShell";
+import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
+
+const barkButtonStyle = {
+  background: "hsl(var(--bark))",
+  backgroundImage: "none",
+  border: "1px solid hsl(var(--bark))",
+  color: "hsl(var(--parchment))",
+  fontFamily: "Montserrat, system-ui, sans-serif",
+  fontWeight: 600,
+  letterSpacing: "0.01em",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
+} as const;
 
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
@@ -326,7 +338,7 @@ const Signup = () => {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/account-pending`,
-          data: { full_name: fullName, role: "customer" },
+          data: { full_name: fullName },
         },
       });
 
@@ -387,30 +399,35 @@ const Signup = () => {
 
   const totalSteps = 3;
   const stepLabels = ["Account", "About you", "Optional"];
-  const inputCls = "rounded-xl";
-  const labelCls = "text-base font-medium";
+  const inputCls = "rounded-xl bg-white/60 border-white/70";
+  const labelCls = "text-sm font-sans font-medium";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <div className="flex items-start sm:items-center justify-center px-5 pb-8 sm:px-8 sm:py-12 pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12">
-        <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl pb-12">
-          <div className="mb-4">
-            <Link
-              to={isNativePlatform ? "/browse" : "/"}
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {isNativePlatform ? "Back" : "Back to home"}
-            </Link>
-          </div>
-          <div className="text-center mb-6">
-            <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
-              Helpr
-            </Link>
-            <p className="mt-1.5 text-xs text-muted-foreground">Join your Louisiana neighbors</p>
-          </div>
-
-          <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-6">
+    <AuthShell eyebrow="Join your Louisiana neighbors" maxWidth="2xl">
+      <div className="text-center mb-5 space-y-2">
+        <span className="text-display-eyebrow">Create account</span>
+        <h1
+          className="font-display italic font-bold leading-tight mt-2"
+          style={{
+            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.03em",
+          }}
+        >
+          Welcome to the neighborhood.
+        </h1>
+        <p
+          className="font-serif italic"
+          style={{
+            fontSize: "1rem",
+            color: "hsl(var(--olivewood) / 0.7)",
+          }}
+        >
+          A few minutes now — then everything's set.
+        </p>
+      </div>
+      <div className="pb-12">
+          <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-6">
             {/* Step progress */}
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
@@ -471,8 +488,16 @@ const Signup = () => {
             )}
 
             <div>
-              <h1 className="text-xl font-display font-bold text-foreground">
-                {step === 1 ? "Create your account" : step === 2 ? "Tell us about you" : "Make your profile stand out"}
+              <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
+              <h1
+                className="font-display italic font-bold leading-tight mt-1"
+                style={{
+                  fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                {step === 1 ? "Create your account." : step === 2 ? "Tell us about you." : "Make your profile stand out."}
               </h1>
             </div>
 
@@ -552,8 +577,8 @@ const Signup = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
-                <Input id="dob" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} autoComplete="bday" className={inputCls} />
-                <p className="text-xs text-muted-foreground">You must be at least 18 years old</p>
+                <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
+                <p className="text-xs" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
@@ -595,7 +620,7 @@ const Signup = () => {
                   </div>
                 </div>
                 {idFile ? (
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center justify-between gap-3 rounded-xl liquid-glass p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {idPreview ? (
                         <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
@@ -693,23 +718,25 @@ const Signup = () => {
               </div>
             </section>
 
-            <section className="space-y-3">
-              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
-                <Checkbox
-                  id="policies"
-                  checked={acceptedPolicies}
-                  onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
-                  className="mt-0.5"
-                />
-                <label htmlFor="policies" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-                  I agree to the{" "}
-                  <Link to="/rules" target="_blank" className="text-primary hover:underline font-medium">Platform Rules</Link>,{" "}
-                  <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">Terms of Service</Link>, and{" "}
-                  <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
-                  I understand the cancellation, no-show, and dispute policies.
-                </label>
-              </div>
-            </section>
+            <div className="flex items-start gap-2.5 px-1">
+              <Checkbox
+                id="policies"
+                checked={acceptedPolicies}
+                onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
+                className="h-3.5 w-3.5 mt-[3px] [&_svg]:h-3 [&_svg]:w-3"
+              />
+              <label
+                htmlFor="policies"
+                className="text-xs leading-relaxed cursor-pointer font-sans"
+                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              >
+                I agree to the{" "}
+                <Link to="/rules" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
+                <Link to="/terms" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms of Service</Link>, and{" "}
+                <Link to="/privacy" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
+                I understand the cancellation, no-show, and dispute policies.
+              </label>
+            </div>
 
             <Button
               className="w-full"
@@ -1025,7 +1052,7 @@ const Signup = () => {
               </div>
 
               {/* Licensed toggle */}
-              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="rounded-xl liquid-glass p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-0.5">
                     <Label htmlFor="is-licensed" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
@@ -1083,7 +1110,7 @@ const Signup = () => {
               </div>
 
               {/* Insured toggle */}
-              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="rounded-xl liquid-glass p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-0.5">
                     <Label htmlFor="is-insured" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
@@ -1146,7 +1173,7 @@ const Signup = () => {
             </div>
 
             {/* Portfolio — optional */}
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="rounded-xl liquid-glass p-5 space-y-4">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-primary mx-auto" />
                 <h3 className="font-semibold text-foreground">Portfolio (optional)</h3>
@@ -1239,13 +1266,12 @@ const Signup = () => {
         )}
           </div>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-xs font-sans mt-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Already have an account?{" "}
-            <Link to="/login" className="text-primary font-semibold hover:underline">Log in</Link>
+            <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Sign in</Link>
           </p>
-        </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

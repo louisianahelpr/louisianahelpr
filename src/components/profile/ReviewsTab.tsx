@@ -1,4 +1,5 @@
-import { ArrowLeft, Star } from "lucide-react";
+import { Star } from "lucide-react";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 interface Review {
   rating: number;
@@ -42,45 +43,53 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-page-title text-foreground text-2xl">My Reviews</h1>
-          <p className="text-muted-foreground text-xs">
-            {avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
-          </p>
-        </div>
-      </div>
+      <ProfileTabHeader
+        eyebrow="Reputation"
+        title="My reviews"
+        meta={avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
+        onBack={onBack}
+      />
 
       {hasCategoryData && (
-        <div className="rounded-xl border border-border bg-card p-4 grid grid-cols-3 gap-2">
+        <div className="rounded-2xl liquid-glass p-5 grid grid-cols-3 gap-3">
           {[
             { label: "Punctuality", v: punctualityAvg },
             { label: "Quality", v: qualityAvg },
             { label: "Communication", v: communicationAvg },
           ].map((cat) => (
             <div key={cat.label} className="text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{cat.label}</p>
+              <p className="font-serif italic uppercase mb-1.5" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                {cat.label}
+              </p>
               <div className="flex justify-center mb-1"><MiniStars value={cat.v} /></div>
-              <p className="text-xs font-semibold text-foreground">{cat.v > 0 ? cat.v.toFixed(1) : "—"}</p>
+              <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))" }}>
+                {cat.v > 0 ? cat.v.toFixed(1) : "—"}
+              </p>
             </div>
           ))}
         </div>
       )}
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading reviews...</p>
+        <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>Loading reviews…</p>
       ) : reviews.length === 0 ? (
-        <div className="text-center py-12">
-          <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground">No reviews yet. Complete jobs to receive reviews!</p>
+        <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+            <Star className="w-6 h-6 text-primary" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
+              No reviews yet
+            </p>
+            <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              Complete a job and your customer's words will land here.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
           {reviews.map((review, i) => (
-            <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
+            <div key={i} className="rounded-xl liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-0.5">
@@ -91,9 +100,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-semibold text-foreground">{review.rating}/5</span>
+                  <span className="font-display italic font-bold tabular-nums" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
+                    {review.rating}/5
+                  </span>
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                   {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
@@ -101,30 +112,32 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   {review.punctuality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>Punctuality</span>
                       <MiniStars value={review.punctuality} size="xs" />
                     </div>
                   )}
                   {review.quality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>Quality</span>
                       <MiniStars value={review.quality} size="xs" />
                     </div>
                   )}
                   {review.communication && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>Comms</span>
                       <MiniStars value={review.communication} size="xs" />
                     </div>
                   )}
                 </div>
               )}
               {review.feedback && (
-                <p className="text-sm text-foreground">{review.feedback}</p>
+                <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))" }}>
+                  &ldquo;{review.feedback}&rdquo;
+                </p>
               )}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>By <span className="font-medium text-foreground">{review.reviewerName}</span></span>
-                <span>·</span>
+              <div className="flex items-center gap-2 font-serif italic pt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <span>By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                 <span>{review.jobTitle}</span>
               </div>
             </div>

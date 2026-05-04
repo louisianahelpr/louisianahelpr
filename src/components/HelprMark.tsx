@@ -1,0 +1,93 @@
+import { Link } from "react-router-dom";
+import helprLogoSm from "@/assets/helpr-logo-96.webp";
+import helprLogoMd from "@/assets/helpr-logo-256.webp";
+
+interface HelprMarkProps {
+  /** Optional link target. Pass `null` to render as a static span (e.g. inside dialogs). */
+  to?: string | null;
+  /** "sm" (~h-7) for compact navbars, "md" (~h-9) for primary nav, "lg" (~h-11) for splash. */
+  size?: "sm" | "md" | "lg";
+  /** Hide the "·LA" suffix when space is tight. */
+  hideSuffix?: boolean;
+  className?: string;
+}
+
+const sizeMap = {
+  sm: { logo: "h-5", helpr: "1.15rem", la: "0.8rem" },
+  md: { logo: "h-6", helpr: "1.45rem", la: "0.95rem" },
+  lg: { logo: "h-9", helpr: "1.85rem", la: "1.2rem" },
+};
+
+/**
+ * Helpr·LA wordmark — wrought-iron H emblem (Garden District ironwork
+ * with a verdigris fleur-de-lis center) followed by italic EB Garamond
+ * "Helpr" and a Burnt-Sienna "·LA" tail.
+ *
+ * The H emblem is a real photograph; we use the trimmed transparent PNG
+ * via webp at the right resolution per size. No surrounding frosted-glass
+ * tile — the wrought iron is detailed enough to hold its own.
+ */
+export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, className = "" }: HelprMarkProps) => {
+  const s = sizeMap[size];
+  const inner = (
+    <>
+      <img
+        src={size === "lg" ? helprLogoMd : helprLogoSm}
+        srcSet={`${helprLogoSm} 96w, ${helprLogoMd} 256w`}
+        sizes={size === "lg" ? "56px" : size === "md" ? "40px" : "32px"}
+        alt="Helpr"
+        className={`${s.logo} w-auto select-none transition-transform duration-200 group-hover:scale-105`}
+        style={{
+          // Subtle drop shadow so the wrought iron lifts off the
+          // parchment / glass canvas instead of reading as a flat
+          // sticker. Soft Olivewood tint keeps it on-brand.
+          filter:
+            "drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18)) drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1))",
+        }}
+        draggable={false}
+      />
+      <span className="inline-flex items-baseline gap-0.5">
+        <span
+          className="font-serif italic leading-none"
+          style={{
+            fontSize: s.helpr,
+            fontWeight: 500,
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          Helpr
+        </span>
+        {!hideSuffix && (
+          <span
+            className="font-serif italic leading-none"
+            style={{
+              fontSize: s.la,
+              fontWeight: 400,
+              color: "hsl(var(--burnt-sienna) / 0.85)",
+              // Same airy small-caps tracking we use for metadata
+              // throughout the app — high-end editorial feel.
+              letterSpacing: "0.22em",
+              marginLeft: "0.18em",
+            }}
+          >
+            · LA
+          </span>
+        )}
+      </span>
+    </>
+  );
+
+  const cls = `flex items-center gap-2.5 group ${className}`.trim();
+
+  if (to === null) {
+    return <span className={cls}>{inner}</span>;
+  }
+  return (
+    <Link to={to} className={cls}>
+      {inner}
+    </Link>
+  );
+};
+
+export default HelprMark;

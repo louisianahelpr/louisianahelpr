@@ -17,7 +17,7 @@ const AdminParishActivity = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.rpc("get_parish_activity", { p_limit: 5 } as any);
+      const { data } = await supabase.rpc("get_parish_activity", { p_limit: 5 });
       setRows((data as ParishRow[]) || []);
       setLoading(false);
     };
@@ -25,7 +25,7 @@ const AdminParishActivity = () => {
   }, []);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-xl liquid-glass p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
@@ -56,7 +56,7 @@ const AdminParishActivity = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{r.parish}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {r.active_jobs} active · {r.helper_count} helpers
+                  {r.active_jobs} active · {r.helper_count} helprs
                 </p>
               </div>
               <div className="text-right">

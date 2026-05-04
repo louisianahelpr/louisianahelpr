@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
-import helprIcon from "@/assets/helpr-icon-96.png";
 
 type ProfileSnapshot = {
   approval_status?: string | null;
@@ -243,14 +242,31 @@ const AccountPending = () => {
   const progressPct = Math.round((completed / steps.length) * 100);
   const firstName = (profile?.full_name || "").split(" ")[0];
 
-  // Solid white top header — matches the global app shell pattern.
+  // Helpr-branded top header.
   const header = (
     <header className="flex items-center justify-between px-5 h-14 bg-white dark:bg-background border-b border-border/40">
-      <Link to="/" className="flex items-center gap-2 group" aria-label="Helpr home">
-        <span className="w-8 h-8 rounded-xl bg-white shadow-md flex items-center justify-center overflow-hidden">
-          <img src={helprIcon} alt="Helpr" className="w-8 h-8 object-contain translate-y-[3px]" />
+      <Link to="/" className="inline-flex items-baseline gap-1 group" aria-label="Helpr home">
+        <span
+          className="font-display italic font-bold leading-none"
+          style={{
+            fontSize: "1.4rem",
+            color: "hsl(var(--olivewood))",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Helpr
         </span>
-        <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none">Helpr</span>
+        <span
+          className="font-display italic font-bold leading-none"
+          style={{
+            fontSize: "0.95rem",
+            color: "hsl(var(--burnt-sienna))",
+            letterSpacing: "0.22em",
+            marginLeft: "0.12em",
+          }}
+        >
+          · LA
+        </span>
       </Link>
       <Button
         variant="ghost"
@@ -274,7 +290,15 @@ const AccountPending = () => {
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-5">
               <MailCheck className="w-8 h-8 text-amber-500" />
             </div>
-            <h1 className="font-display text-[26px] leading-tight font-semibold tracking-tight text-foreground mb-3">
+            <span className="text-display-eyebrow mb-2">One more step</span>
+            <h1
+              className="font-display italic font-bold leading-tight mb-3 mt-1"
+              style={{
+                fontSize: "1.65rem",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.02em",
+              }}
+            >
               Check your email
             </h1>
             <p className="text-xs text-muted-foreground leading-relaxed mb-6">
@@ -304,7 +328,15 @@ const AccountPending = () => {
                   <Clock className="w-8 h-8 text-primary" />
                   <span className="absolute inset-0 rounded-2xl ring-2 ring-primary/20 animate-ping" />
                 </div>
-                <h1 className="font-display text-[22px] sm:text-[24px] leading-tight font-bold tracking-tight text-primary mb-1.5">
+                <span className="text-display-eyebrow mb-1">Almost ready</span>
+                <h1
+                  className="font-display italic font-bold leading-tight mb-1.5 mt-1"
+                  style={{
+                    fontSize: "1.5rem",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
                   We&apos;re verifying your details
                 </h1>
                 <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[28ch]">
@@ -343,7 +375,16 @@ const AccountPending = () => {
               <Button
                 onClick={() => navigate("/dashboard")}
                 size="lg"
-                className="w-full gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.55)]"
+                className="w-full gap-2 rounded-2xl"
+                style={{
+                  background: "hsl(var(--bark))",
+                  backgroundImage: "none",
+                  border: "1px solid hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  fontFamily: "Montserrat, system-ui, sans-serif",
+                  fontWeight: 600,
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px hsl(var(--bark) / 0.45)",
+                }}
               >
                 Explore Jobs While You Wait <ArrowRight className="w-4 h-4" />
               </Button>

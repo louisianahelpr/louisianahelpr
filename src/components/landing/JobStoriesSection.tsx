@@ -104,7 +104,7 @@ const JobStoriesSection = () => {
           {stories.map((story, i) => (
             <div
               key={story.jobId}
-              className="rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg transition-shadow animate-fade-in opacity-0"
+              className="rounded-2xl liquid-glass overflow-hidden hover:shadow-lg transition-shadow animate-fade-in opacity-0"
               style={{ animationDelay: `${i * 150}ms` }}
             >
               {/* Before/After Photos */}

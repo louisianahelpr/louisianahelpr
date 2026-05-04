@@ -162,7 +162,7 @@ export function PayoutSetupForm() {
         {!methodsLoading && methods.length > 0 && (
           <div className="space-y-2">
             {methods.map((m) => (
-              <div key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+              <div key={m.id} className="flex items-center justify-between rounded-lg liquid-glass p-3">
                 <div className="flex items-center gap-3">
                   {m.type === "bank_account" ? (
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -250,7 +250,7 @@ export function PayoutSetupForm() {
       {methods.length > 0 && (
         <div className="space-y-2">
           {methods.map((m) => (
-            <div key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+            <div key={m.id} className="flex items-center justify-between rounded-lg liquid-glass p-3">
               <div className="flex items-center gap-3">
                 {m.type === "bank_account" ? (
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">

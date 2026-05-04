@@ -58,12 +58,12 @@ export function BusinessBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full font-semibold border bg-primary/10 text-primary border-primary/30 shadow-sm",
+          "inline-flex items-center rounded-full font-semibold tier-gold-soft",
           sizeCls
         )}
         title="Verified Business — documentation confirmed by Helpr"
       >
-        <Building2 className={iconSize} />
+        <Building2 className={cn(iconSize, "verified-gold")} />
         Verified Business
       </span>
     );

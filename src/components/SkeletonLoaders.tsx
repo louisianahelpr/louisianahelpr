@@ -1,46 +1,58 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const JobCardSkeleton = () => (
-  <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-    {/* Top bar */}
-    <div className="px-4 py-2 border-b border-border/40 bg-muted/15 flex items-center justify-between">
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="h-4 w-14" />
-    </div>
-    {/* Content */}
-    <div className="px-4 py-3 space-y-2.5">
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-3 w-3/4" />
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-22" />
+  // Glass-tinted skeleton shaped like a real job card — chip row at top
+  // (urgent/category), title + price line, two columns of metadata, then
+  // bottom apply-button placeholder. Each surface uses the .skeleton-glass
+  // utility (champagne base + soft sweep) so the loading state matches
+  // the real liquid-glass card visual language.
+  <div className="rounded-2xl overflow-hidden skeleton-glass" style={{ borderRadius: "1rem" }}>
+    {/* Header row: title + price tile */}
+    <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-3">
+      <div className="flex-1 space-y-2">
+        <div className="flex gap-1.5">
+          <Skeleton className="h-3.5 w-14 rounded-full" />
+          <Skeleton className="h-3.5 w-16 rounded-full" />
+        </div>
+        <Skeleton className="h-4 w-3/4 rounded" />
       </div>
+      <Skeleton className="h-9 w-14 rounded-xl" />
     </div>
-    {/* Footer */}
-    <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-      <Skeleton className="h-3 w-28" />
-      <Skeleton className="h-4 w-16 rounded-full" />
+    {/* Metadata grid */}
+    <div className="px-4 pb-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+      <Skeleton className="h-3 w-24 rounded" />
+      <Skeleton className="h-3 w-20 rounded" />
+      <Skeleton className="h-3 w-28 rounded" />
+      <Skeleton className="h-3 w-16 rounded" />
+    </div>
+    {/* Footer: location + apply button */}
+    <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.08)" }}>
+      <Skeleton className="h-3 w-32 rounded" />
+      <Skeleton className="h-7 w-20 rounded-full" />
     </div>
   </div>
 );
 
 export const ConversationSkeleton = () => (
-  <div className="w-full p-4 rounded-xl border border-border bg-card space-y-2">
-    <div className="flex items-center justify-between">
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-3 w-48" />
+  // Frosted glass placeholder shaped like a real conversation row —
+  // avatar circle on the left, name + job + last-message lines on the
+  // right. Matches the brand's liquid-glass material so the loading
+  // state doesn't clash with the loaded UI.
+  <div className="rounded-xl skeleton-glass p-3 flex items-center gap-3">
+    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+    <div className="flex-1 space-y-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <Skeleton className="h-4 w-32 rounded" />
+        <Skeleton className="h-3 w-12 rounded" />
       </div>
-      <Skeleton className="h-3 w-16" />
+      <Skeleton className="h-3 w-24 rounded" />
+      <Skeleton className="h-3 w-44 rounded" />
     </div>
   </div>
 );
 
 export const ProfileCardSkeleton = () => (
-  <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
+  <div className="rounded-2xl skeleton-glass p-6 text-center space-y-3">
     <Skeleton className="w-20 h-20 rounded-full mx-auto" />
     <Skeleton className="h-5 w-40 mx-auto" />
     <Skeleton className="h-3 w-24 mx-auto" />
@@ -51,7 +63,7 @@ export const ProfileCardSkeleton = () => (
 export const StatsSkeleton = () => (
   <div className="grid grid-cols-3 gap-3">
     {[1, 2, 3].map((i) => (
-      <div key={i} className="rounded-xl border border-border bg-card p-3 text-center space-y-2">
+      <div key={i} className="rounded-xl skeleton-glass p-3 text-center space-y-2">
         <Skeleton className="h-8 w-12 mx-auto" />
         <Skeleton className="h-3 w-16 mx-auto" />
       </div>
@@ -60,10 +72,12 @@ export const StatsSkeleton = () => (
 );
 
 export const ActivityCardSkeleton = () => (
-  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+  // Glass-tinted skeleton shaped like a real activity card. Matches the
+  // brand's liquid-glass material instead of the previous bordered card.
+  <div className="rounded-xl skeleton-glass p-4 space-y-3">
     <div className="flex items-center justify-between">
       <div className="space-y-2 flex-1">
-        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-5 w-40 rounded" />
         <div className="flex gap-2">
           <Skeleton className="h-5 w-20 rounded-full" />
           <Skeleton className="h-5 w-16 rounded-full" />
@@ -72,8 +86,8 @@ export const ActivityCardSkeleton = () => (
       <Skeleton className="h-8 w-24 rounded-md" />
     </div>
     <div className="flex gap-3">
-      <Skeleton className="h-3 w-24" />
-      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-3 w-24 rounded" />
+      <Skeleton className="h-3 w-20 rounded" />
     </div>
   </div>
 );

@@ -156,7 +156,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
 
       {/* Tour card */}
       <div className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md animate-in fade-in-0 zoom-in-95 duration-300">
-        <div className="rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+        <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden">
           {/* Progress bar */}
           <div className="px-5 pt-4 pb-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">

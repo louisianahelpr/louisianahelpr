@@ -112,14 +112,14 @@ const AdminFraudDashboard = () => {
       {isInitialLoading ? (
         <p className="text-xs text-muted-foreground">Loading flags…</p>
       ) : flags.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="rounded-xl liquid-glass p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
           <p className="text-xs text-muted-foreground">{showResolved ? "No resolved flags" : "No unresolved fraud flags — looking good!"}</p>
         </div>
       ) : (
         <div className="space-y-2">
           {flags.map(flag => (
-            <div key={flag.id} className="rounded-xl border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div key={flag.id} className="rounded-xl liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm text-foreground">{flag.user_name}</span>

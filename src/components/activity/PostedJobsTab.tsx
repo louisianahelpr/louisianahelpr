@@ -605,7 +605,7 @@ export const PostedJobsTab = ({
                           <div className="grid grid-cols-2 gap-2">
                             <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={async (e) => {
                               e.stopPropagation();
-                              const { error } = await supabase.from("jobs").update({ status: "completed" as any, dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() } as any).eq("id", job.id);
+                              const { error } = await supabase.from("jobs").update({ status: "completed" as any, dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() }).eq("id", job.id);
                               if (error) { toast.error("Failed to resolve"); return; }
                               if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                               toast.success("Dispute resolved — payment released to helpr");
@@ -613,7 +613,7 @@ export const PostedJobsTab = ({
                             }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
                             <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={async (e) => {
                               e.stopPropagation();
-                              const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" } as any).eq("id", job.id);
+                              const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
                               if (error) { toast.error("Failed to escalate"); return; }
                               const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
                               if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
@@ -671,7 +671,7 @@ export const PostedJobsTab = ({
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">
                 {applications.map((app) => (
-                  <div key={app.id} className="p-4 rounded-xl border border-border bg-card space-y-3">
+                  <div key={app.id} className="p-4 rounded-xl liquid-glass space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>

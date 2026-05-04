@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import helprIcon from "@/assets/helpr-icon-96.png";
+import HelprMark from "@/components/HelprMark";
 
 /**
  * DashboardGuest — the read-only "home dashboard" iOS guests land on.
@@ -137,16 +137,7 @@ const DashboardGuest = () => {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="container mx-auto flex items-center justify-between h-14 px-4">
-          <Link to="/" className="flex items-center gap-2 group">
-            <img
-              src={helprIcon}
-              alt="Helpr"
-              className="w-8 h-8 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
-            />
-            <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Helpr
-            </span>
-          </Link>
+          <HelprMark to="/" size="sm" />
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -176,10 +167,19 @@ const DashboardGuest = () => {
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-base font-display font-semibold text-foreground">
+              <span
+                className="font-serif italic uppercase text-[0.62rem] block"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                A first look
+              </span>
+              <h1
+                className="font-display italic font-bold leading-tight mt-1"
+                style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+              >
                 Welcome to Helpr
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              <p className="font-serif italic text-[0.78rem] mt-1 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Browse what your Louisiana neighbors need. Sign up free to apply or post your own task.
               </p>
             </div>

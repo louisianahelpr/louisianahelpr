@@ -100,7 +100,7 @@ const AdminIDVQueue = () => {
       .update({
         hybrid_idv_enabled: hybridEnabled,
         idv_auto_approve_threshold: t,
-      } as any)
+      })
       .eq("id", settingsId);
     setSavingSettings(false);
     if (error) toast.error(error.message);
@@ -120,7 +120,7 @@ const AdminIDVQueue = () => {
       .update({
         idv_status: "verified",
         approval_status: "approved",
-      } as any)
+      })
       .eq("user_id", p.user_id);
 
     if (error) {
@@ -136,7 +136,7 @@ const AdminIDVQueue = () => {
       message: "An admin verified your identity. You're cleared to start using Helpr!",
       type: "success",
       link: "/dashboard",
-    } as any);
+    });
 
     // Branded "Verification Successful" email
     try {
@@ -162,7 +162,7 @@ const AdminIDVQueue = () => {
         idv_status: "failed",
         approval_status: "denied",
         denial_reason: "Identity verification could not be confirmed.",
-      } as any)
+      })
       .eq("user_id", p.user_id);
     setActioning(null);
     if (error) toast.error(error.message);
@@ -186,7 +186,7 @@ const AdminIDVQueue = () => {
       </div>
 
       {/* Settings card */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4 max-w-2xl">
+      <div className="rounded-xl liquid-glass p-5 space-y-4 max-w-2xl">
         <h3 className="font-semibold text-foreground">Settings</h3>
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
@@ -248,7 +248,7 @@ const AdminIDVQueue = () => {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : profiles.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="rounded-xl liquid-glass p-8 text-center">
           <p className="text-xs text-muted-foreground">No users in this status.</p>
         </div>
       ) : (
@@ -258,7 +258,7 @@ const AdminIDVQueue = () => {
               t.key === p.idv_status || (t.key === "pending" && (p.idv_status === "pending" || p.idv_status === "processing"))
             );
             return (
-              <div key={p.user_id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-3">
+              <div key={p.user_id} className="rounded-xl liquid-glass p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>

@@ -89,7 +89,7 @@ const AdminHealth = () => {
 
       {/* Status overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+        <div className="rounded-xl liquid-glass p-5 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
               <Database className="w-4 h-4" /> Backend Functions
@@ -98,7 +98,7 @@ const AdminHealth = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+        <div className="rounded-xl liquid-glass p-5 space-y-2">
           <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
@@ -109,7 +109,7 @@ const AdminHealth = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+        <div className="rounded-xl liquid-glass p-5 space-y-2">
           <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4" /> Fraud Flags
           </span>
@@ -120,7 +120,7 @@ const AdminHealth = () => {
       </div>
 
       {/* Sentry test — admin-only sanity check */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+      <div className="rounded-xl liquid-glass p-5 space-y-3">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
@@ -162,7 +162,7 @@ const AdminHealth = () => {
       </div>
 
       {/* Job activity (7 days) */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+      <div className="rounded-xl liquid-glass p-5 space-y-3">
         <h3 className="font-semibold text-foreground text-sm">Job Activity (Last 7 Days)</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="text-center">

@@ -4,22 +4,53 @@ import { Apple, Facebook, Heart, Mail, MapPin } from "lucide-react";
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 
+/**
+ * Signature footer — Jasper Green ground with Heritage Gold category titles
+ * and white links. Multi-column dense layout to keep the vertical footprint
+ * tight. Reads as the closing seal of the page rather than a utility strip.
+ */
 const Footer = () => (
-  <footer className="border-t border-border py-10 md:py-12 px-4">
-    <div className="container mx-auto max-w-6xl">
+  <footer
+    className="px-4 sm:px-6 lg:px-8 relative"
+    style={{
+      /* Floating-glass footer — minimal tint, blur-only, NO horizontal line.
+         The page's mesh gradient flows continuously into the footer area
+         so there's no visible cut between page and footer. */
+      backgroundColor: "rgba(255, 255, 255, 0.08)",
+      backdropFilter: "blur(20px) saturate(170%)",
+      WebkitBackdropFilter: "blur(20px) saturate(170%)",
+      color: "hsl(var(--olivewood))",
+    }}
+  >
+    <div className="container mx-auto max-w-6xl py-7 md:py-9">
       <div className="grid gap-8 md:gap-10 md:grid-cols-12">
         {/* Brand */}
         <div className="md:col-span-5 space-y-3">
-          <Link to="/" className="inline-block text-2xl font-display font-bold text-primary tracking-tight">
+          <Link
+            to="/"
+            className="inline-flex items-baseline gap-2 text-2xl font-serif font-extrabold tracking-[-0.025em]"
+            style={{ color: "hsl(var(--heritage-gold))" }}
+          >
             Helpr
+            {/* "· LA" gold echo of the wax-seal monogram. Gives the brand mark
+                a second appearance at the bottom of the page, tying the
+                hero seal to the footer wordmark. */}
+            <span
+              className="text-base font-serif font-bold tracking-[0.05em]"
+              style={{ color: "hsl(var(--heritage-gold) / 0.7)" }}
+              aria-hidden
+            >
+              · LA
+            </span>
           </Link>
-          <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-            Hire a Helpr or find local work — your trusted Louisiana partner for everyday tasks.
+          <p className="text-xs text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
+            Hire a Helpr or find local work — your trusted Louisiana partner for
+            everyday tasks.
           </p>
-          <div className="flex flex-col gap-1.5 text-xs text-muted-foreground pt-1">
+          <div className="flex flex-col gap-1.5 text-xs text-[hsl(var(--olivewood))]/80 pt-1">
             <a
               href="mailto:admin@louisianahelpr.com"
-              className="inline-flex items-center gap-2 hover:text-primary transition-colors w-fit"
+              className="inline-flex items-center gap-2 hover:text-[hsl(var(--olivewood))] transition-colors w-fit"
             >
               <Mail className="w-3.5 h-3.5" />
               admin@louisianahelpr.com
@@ -32,59 +63,123 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div className="md:col-span-3">
-          <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Company</h3>
-          <ul className="space-y-2 text-xs text-muted-foreground">
-            <li><Link to="/for-business" className="hover:text-primary transition-colors">Business</Link></li>
-            <li><Link to="/support" className="hover:text-primary transition-colors">Contact / Support</Link></li>
+        <div className="md:col-span-2">
+          <h3
+            className="text-[11px] font-semibold mb-3 uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--heritage-gold))" }}
+          >
+            Company
+          </h3>
+          <ul className="space-y-2 text-xs text-[hsl(var(--olivewood))]/85">
+            <li>
+              <Link to="/for-business" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Business
+              </Link>
+            </li>
+            <li>
+              <Link to="/support" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Contact / Support
+              </Link>
+            </li>
           </ul>
         </div>
 
         {/* Legal */}
         <div className="md:col-span-2">
-          <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Legal</h3>
-          <ul className="space-y-2 text-xs text-muted-foreground">
-            <li><Link to="/rules" className="hover:text-primary transition-colors">Rules & Pricing</Link></li>
-            <li><Link to="/terms" className="hover:text-primary transition-colors">Terms</Link></li>
-            <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy</Link></li>
+          <h3
+            className="text-[11px] font-semibold mb-3 uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--heritage-gold))" }}
+          >
+            Legal
+          </h3>
+          <ul className="space-y-2 text-xs text-[hsl(var(--olivewood))]/85">
+            <li>
+              <Link to="/rules" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Rules &amp; Pricing
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Terms
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Privacy
+              </Link>
+            </li>
           </ul>
         </div>
 
         {/* Connect */}
-        <div className="md:col-span-2">
-          <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Connect</h3>
+        <div className="md:col-span-3">
+          <h3
+            className="text-[11px] font-semibold mb-3 uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--heritage-gold))" }}
+          >
+            Connect
+          </h3>
           <div className="flex items-center gap-2">
             <a
               href={APP_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
+              className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Download on the App Store (opens in a new tab)"
               title="Download on the App Store"
             >
-              <Apple className="h-[16px] w-[16px] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+              <Apple
+                className="h-[15px] w-[15px] transition-transform duration-300 group-hover:scale-110"
+                strokeWidth={1.5}
+                fill="currentColor"
+              />
             </a>
             <a
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5"
+              className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Follow us on Facebook (opens in a new tab)"
               title="Follow us on Facebook"
             >
-              <Facebook className="h-[16px] w-[16px] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} fill="currentColor" />
+              <Facebook
+                className="h-[15px] w-[15px] transition-transform duration-300 group-hover:scale-110"
+                strokeWidth={1.5}
+                fill="currentColor"
+              />
             </a>
           </div>
         </div>
       </div>
 
+      {/* Motto — EB Garamond italic. Print-era flourish that establishes the
+          "established institution" feel above the standard copyright row. */}
+      <p
+        className="mt-6 text-center font-serif italic text-sm sm:text-base"
+        style={{
+          color: "hsl(var(--heritage-gold))",
+          fontWeight: 400,
+          letterSpacing: "0.02em",
+        }}
+      >
+        Quietly serving Louisiana since 2026.
+      </p>
+
       {/* Bottom: copyright */}
-      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border/50 pt-5">
-        <p className="text-xs text-muted-foreground">
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-[hsl(var(--olivewood))]/15">
+        <p className="text-xs text-[hsl(var(--olivewood))]/70">
           © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
         </p>
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          Made with <Heart className="w-3 h-3 text-primary fill-primary" /> for Louisiana communities
+        <p className="text-xs text-[hsl(var(--olivewood))]/70 flex items-center gap-1.5">
+          Made with{" "}
+          <Heart
+            className="w-3 h-3"
+            style={{
+              color: "hsl(var(--heritage-gold))",
+              fill: "hsl(var(--heritage-gold))",
+            }}
+          />{" "}
+          for Louisiana communities
         </p>
       </div>
     </div>

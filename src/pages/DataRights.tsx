@@ -107,7 +107,11 @@ const DataRights = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-24">
-      <PageHeader title="Your Data Rights" />
+      <PageHeader
+        eyebrow="Privacy controls"
+        title="Your Data Rights"
+        meta="Export, correct, or delete your information at any time"
+      />
       <main className="container mx-auto px-5 py-6 max-w-2xl space-y-6">
         <p className="text-xs text-muted-foreground">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
@@ -116,7 +120,7 @@ const DataRights = () => {
         </p>
 
         {/* Export */}
-        <section className="rounded-2xl border border-border bg-card p-5 space-y-3">
+        <section className="rounded-2xl liquid-glass p-5 space-y-3">
           <div className="flex items-start gap-3">
             <Download className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
@@ -132,7 +136,7 @@ const DataRights = () => {
         </section>
 
         {/* Do not sell — CCPA */}
-        <section className="rounded-2xl border border-border bg-card p-5 space-y-3">
+        <section className="rounded-2xl liquid-glass p-5 space-y-3">
           <div className="flex items-start gap-3">
             <ShieldOff className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">

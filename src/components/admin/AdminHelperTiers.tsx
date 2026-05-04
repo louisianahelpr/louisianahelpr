@@ -53,7 +53,7 @@ const AdminHelperTiers = () => {
     key: ["admin-helper-tiers"],
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_helper_tiers", { p_limit: 50 });
+      const { data, error } = await supabase.rpc("get_helper_tiers", { p_limit: 50 });
       if (error) return [];
       return (data as any) || [];
     },
@@ -73,7 +73,7 @@ const AdminHelperTiers = () => {
           <Crown className="w-5 h-5 text-primary" /> Helpr Tiers
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Performance-tiered view of approved helpers. "Rising Stars" = recent review momentum (last 30 days). Reach out to feature them.
+          Performance-tiered view of approved helprs. "Rising Stars" = recent review momentum (last 30 days). Reach out to feature them.
         </p>
       </div>
 
@@ -106,7 +106,7 @@ const AdminHelperTiers = () => {
           {visible.map((helper) => {
             const Icon = TIER_ICON[helper.tier];
             return (
-              <div key={helper.user_id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+              <div key={helper.user_id} className="rounded-xl liquid-glass p-4 flex items-center gap-3">
                 <Avatar className="w-10 h-10 shrink-0">
                   <AvatarImage src={helper.avatar_url || undefined} />
                   <AvatarFallback>{getInitials(helper.full_name)}</AvatarFallback>

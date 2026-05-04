@@ -38,13 +38,33 @@ const AdminSidebar = ({
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border h-14 flex flex-row items-center px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-destructive to-destructive/70 flex items-center justify-center shadow-sm shrink-0">
-            <Shield className="w-4 h-4 text-destructive-foreground" />
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              background: "linear-gradient(135deg, hsl(var(--ink-deep)) 0%, hsl(var(--bark)) 100%)",
+            }}
+          >
+            <Shield className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} />
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-sm font-display font-bold leading-tight truncate">Helpr Admin</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">Command Center</p>
+              <p
+                className="font-display italic font-bold leading-tight truncate"
+                style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+              >
+                Helpr Admin
+              </p>
+              <p
+                className="font-serif italic uppercase leading-tight"
+                style={{
+                  fontSize: "0.58rem",
+                  color: "hsl(var(--burnt-sienna) / 0.78)",
+                  letterSpacing: "0.18em",
+                  marginTop: "1px",
+                }}
+              >
+                Operations
+              </p>
             </div>
           )}
         </div>

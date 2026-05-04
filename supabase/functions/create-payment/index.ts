@@ -610,7 +610,19 @@ serve(async (req) => {
 
     throw new Error("Invalid action");
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    // Defensive logging: Supabase log API only surfaces status codes, not
+    // response bodies. Without console.error, every 500 here would be
+    // diagnosable only by reproducing the call. Same pattern shipped in
+    // stripe-connect after that function had hours of opaque 500s.
+    const err = error as Error & { type?: string; code?: string; statusCode?: number };
+    console.error("[create-payment] 500 — full error:", {
+      message: err.message,
+      stripe_type: err.type,
+      stripe_code: err.code,
+      stripe_status: err.statusCode,
+      stack: err.stack?.split("\n").slice(0, 5).join("\n"),
+    });
+    return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
   }

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,16 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Throttle: 5 completions per IP per 5 min. Each call uploads avatar/ID/
+  // license/insurance/portfolio files to storage and writes a profile row, so
+  // a script abusing this can fill storage quota fast.
+  const rl = await checkRateLimit(req, {
+    windowMs: 5 * 60_000,
+    maxRequests: 5,
+    keyPrefix: "complete-signup",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
   try {
     const supabase = createClient(

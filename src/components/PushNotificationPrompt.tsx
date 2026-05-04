@@ -62,7 +62,7 @@ export const PushNotificationPrompt = () => {
   if (!show) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 mb-3 relative animate-in fade-in duration-300">
+    <div className="rounded-lg liquid-glass px-3 py-2 mb-3 relative animate-in fade-in duration-300">
       <button
         onClick={handleDismiss}
         className="absolute top-1.5 right-1.5 text-muted-foreground hover:text-foreground transition-colors"

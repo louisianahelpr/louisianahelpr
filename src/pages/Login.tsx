@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQueryClient } from "@tanstack/react-query";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
-import { isNativePlatform } from "@/lib/nativeInit";
+import AuthShell from "@/components/auth/AuthShell";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -42,7 +42,6 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Rate limiting: lock after 5 failed attempts for 60 seconds
     if (lockedUntil && Date.now() < lockedUntil) {
       const secondsLeft = Math.ceil((lockedUntil - Date.now()) / 1000);
       toast.error(`Too many attempts. Try again in ${secondsLeft}s`);
@@ -66,7 +65,6 @@ const Login = () => {
     }
     setLoginAttempts(0);
 
-    // Block unverified emails
     const sessionUser = data.session?.user;
     if (sessionUser && !sessionUser.email_confirmed_at) {
       await supabase.auth.signOut();
@@ -75,8 +73,6 @@ const Login = () => {
       return;
     }
 
-    // Fire-and-forget cache invalidation; don't await — ProtectedRoute will
-    // refetch the profile and route to the correct gate (pending/denied/banned).
     void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     setLoading(false);
     toast.success("Welcome back!");
@@ -84,28 +80,34 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-start sm:items-center justify-center bg-gradient-to-b from-background to-secondary/20 px-5 pb-10 sm:px-8 sm:py-16 pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-16">
-      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg">
-        <div className="mb-4">
-          <Link
-            to={isNativePlatform ? "/browse" : "/"}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {isNativePlatform ? "Back" : "Back to home"}
-          </Link>
-        </div>
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block text-3xl font-display font-bold text-primary">
-            Helpr
-          </Link>
-          <p className="mt-2 text-xs text-muted-foreground">Your Local Task Partner</p>
-        </div>
+    <AuthShell hideHeader>
+      <div className="text-center mb-5 space-y-2">
+        <span className="text-display-eyebrow">Sign in</span>
+        <h1
+          className="font-display italic font-bold leading-tight mt-2"
+          style={{
+            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.03em",
+          }}
+        >
+          Glad you're back.
+        </h1>
+        <p
+          className="font-serif italic"
+          style={{
+            fontSize: "1rem",
+            color: "hsl(var(--olivewood) / 0.7)",
+          }}
+        >
+          Pick up right where you left off.
+        </p>
+      </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5">
+      <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-5">
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm font-sans font-medium">Email</Label>
             <Input
               id="email"
               type="email"
@@ -114,10 +116,11 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              className="rounded-xl bg-white/60 border-white/70"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm font-sans font-medium">Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -127,7 +130,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pr-10"
+                className="pr-10 rounded-xl bg-white/60 border-white/70"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -135,49 +138,75 @@ const Login = () => {
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              to="/forgot-password"
+              className="text-xs font-sans tracking-wide hover:opacity-70 transition-opacity"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
               Forgot password?
             </Link>
           </div>
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging in…</> : "Log in"}
+          <Button
+            type="submit"
+            className="w-full rounded-xl"
+            size="lg"
+            disabled={loading}
+            style={{
+              background: "hsl(var(--bark))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
+            }}
+          >
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign in"}
           </Button>
         </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border/60" />
+            <span className="w-full border-t" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }} />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
+          <div className="relative flex justify-center">
+            <span
+              className="px-3 text-[0.7rem] tracking-[0.2em] uppercase font-serif italic"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.42)",
+                color: "hsl(var(--burnt-sienna) / 0.7)",
+              }}
+            >
+              or
+            </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <GoogleSignInButton label="Log in with Google" />
-          <AppleSignInButton label="Log in with Apple" />
+          <GoogleSignInButton label="Sign in with Google" />
+          <AppleSignInButton label="Sign in with Apple" />
         </div>
 
-        <p className="text-center text-xs text-muted-foreground pt-1">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-primary font-semibold hover:underline">
-            Sign up
-          </Link>
-        </p>
-        </div>
-
-        <p className="text-center text-xs text-muted-foreground/80 leading-relaxed px-2 mt-6">
-          By logging in you agree to our{" "}
-          <Link to="/terms" className="underline hover:text-foreground transition-colors">
-            Terms
-          </Link>{" "}
-          ·{" "}
-          <Link to="/privacy" className="underline hover:text-foreground transition-colors">
-            Privacy Policy
+        <p className="text-center text-xs font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          New to Helpr?{" "}
+          <Link
+            to="/signup"
+            className="font-semibold hover:underline"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Create an account
           </Link>
         </p>
       </div>
-    </div>
+
+      <p className="text-center text-[0.7rem] font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+        By signing in you agree to our{" "}
+        <Link to="/terms" className="underline hover:opacity-80 transition-opacity">Terms</Link>
+        {" · "}
+        <Link to="/privacy" className="underline hover:opacity-80 transition-opacity">Privacy Policy</Link>
+      </p>
+    </AuthShell>
   );
 };
 

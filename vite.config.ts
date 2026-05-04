@@ -92,7 +92,11 @@ export default defineConfig(({ mode }) => ({
         },
       },
     } satisfies Plugin,
-    !isCapacitorBuild && VitePWA({
+    // Service worker only ships in production. In dev it caused stale chunks
+    // to be served across HMR reloads — code edits "didn't appear" because a
+    // pre-cached bundle answered the request before Vite's transform pipeline
+    // even ran. Disabling in dev removes that whole class of bug.
+    mode === "production" && !isCapacitorBuild && VitePWA({
       registerType: "autoUpdate",
       // Defer the SW registration script so it doesn't block FCP.
       // Lighthouse flagged /registerSW.js as a ~150ms render-blocking request

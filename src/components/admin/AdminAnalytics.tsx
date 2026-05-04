@@ -211,7 +211,7 @@ const AdminAnalytics = () => {
       const { data } = await query;
       setDrillJobs(data || []);
     } else if (type === "subscriptions") {
-      const { data } = await supabase.from("profiles").select("*").eq("role", "helper").order("subscription_tier");
+      const { data } = await supabase.from("profiles").select("*").not("subscription_tier", "is", null).order("subscription_tier");
       setDrillUsers(data || []);
     }
     setDrillLoading(false);
@@ -294,7 +294,7 @@ const AdminAnalytics = () => {
 
       {/* Tips */}
       {totalTips > 0 && (
-        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+        <div className="rounded-xl liquid-glass p-4 flex items-center gap-3">
           <Star className="w-4 h-4 text-accent" />
           <div>
             <p className="text-sm font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
@@ -304,7 +304,7 @@ const AdminAnalytics = () => {
       )}
 
       {lateCancelRevenue > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl liquid-glass p-5">
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="w-4 h-4 text-destructive" />
             <h3 className="text-sm font-semibold text-foreground">Late Cancellation Revenue</h3>
@@ -326,7 +326,7 @@ const AdminAnalytics = () => {
 
       {/* ── Row 2: Subscription Revenue ── */}
       <div className="grid sm:grid-cols-2 gap-4">
-        <button onClick={() => openDrillDown("subscriptions")} className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("subscriptions")} className="rounded-xl liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" /> Subscription Revenue
@@ -355,7 +355,7 @@ const AdminAnalytics = () => {
         </button>
 
         {/* Subscription pie chart */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl liquid-glass p-5">
           <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" /> Subscriber Distribution
           </h3>
@@ -380,7 +380,7 @@ const AdminAnalytics = () => {
       </div>
 
       {/* ── Row 3: Revenue Trend Chart ── */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl liquid-glass p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-primary" /> Revenue &amp; Growth — Last 6 Months
         </h3>
@@ -437,7 +437,7 @@ const AdminAnalytics = () => {
       {/* ── Row 5: Payout Pipeline & Category Breakdown ── */}
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Payout pipeline */}
-        <button onClick={() => openDrillDown("payouts")} className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("payouts")} className="rounded-xl liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" /> Payout Pipeline
             <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
@@ -476,7 +476,7 @@ const AdminAnalytics = () => {
         </button>
 
         {/* Category breakdown */}
-        <button onClick={() => openDrillDown("categories")} className="rounded-xl border border-border bg-card p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("categories")} className="rounded-xl liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
           <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" /> Top Categories
             <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
@@ -496,7 +496,7 @@ const AdminAnalytics = () => {
 
       {/* ── Row 6: User Status & Quick Stats ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl liquid-glass p-5">
           <h3 className="text-sm font-semibold text-foreground mb-3">User Status</h3>
           <div className="space-y-2">
             <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
@@ -505,7 +505,7 @@ const AdminAnalytics = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl liquid-glass p-5">
           <h3 className="text-sm font-semibold text-foreground mb-3">Job Completion Funnel</h3>
           <div className="space-y-2">
             <StatusRow icon={Briefcase} label="Posted" count={allJobs.length} color="text-muted-foreground" />
@@ -516,7 +516,7 @@ const AdminAnalytics = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl liquid-glass p-5">
           <h3 className="text-sm font-semibold text-foreground mb-3">Monthly Recurring Revenue</h3>
           <p className="text-3xl font-bold text-foreground">${totalSubRevenue.toFixed(2)}</p>
           <p className="text-xs text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
@@ -529,7 +529,7 @@ const AdminAnalytics = () => {
       </div>
 
       {/* ── Row 7: Monthly Jobs Bar Chart ── */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl liquid-glass p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-primary" /> Jobs per Month
         </h3>
@@ -616,7 +616,7 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
       </div>
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
-          <div key={u.id} className="rounded-xl border border-border bg-card p-4">
+          <div key={u.id} className="rounded-xl liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-sm">{formatName(u.full_name, "—")}</p>
@@ -665,7 +665,7 @@ const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
       </div>
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
-          <div key={u.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+          <div key={u.id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
             <div>
               <p className="font-semibold text-foreground text-sm">{formatName(u.full_name, "—")}</p>
               <p className="text-xs text-muted-foreground">{u.email} · {u.location || "No location"}</p>
@@ -703,7 +703,7 @@ const CategoriesDrillDown = ({ data }: { data: { name: string; count: number; re
     </div>
     <div className="space-y-2">
       {data.map((cat, i) => (
-        <div key={cat.name} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+        <div key={cat.name} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
             <span className="text-sm font-medium text-foreground capitalize">{cat.name}</span>
@@ -750,7 +750,7 @@ const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+      <div className="rounded-xl liquid-glass p-4 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">Total for filter ({filtered.length} jobs)</span>
         <span className="text-lg font-bold text-foreground">
           ${filtered.reduce((s, j) => s + (j.budget || 0), 0).toFixed(2)}
@@ -759,7 +759,7 @@ const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
 
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
-          <div key={j.id} className="rounded-xl border border-border bg-card p-4">
+          <div key={j.id} className="rounded-xl liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-sm truncate">{j.title}</p>
@@ -810,7 +810,7 @@ const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFi
       </div>
 
       {showFinancials && (
-        <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+        <div className="rounded-xl liquid-glass p-4 flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} jobs)</span>
           <span className="text-lg font-bold text-foreground">${total.toFixed(2)}</span>
         </div>
@@ -818,7 +818,7 @@ const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFi
 
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
-          <div key={j.id} className="rounded-xl border border-border bg-card p-4">
+          <div key={j.id} className="rounded-xl liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-sm truncate">{j.title}</p>

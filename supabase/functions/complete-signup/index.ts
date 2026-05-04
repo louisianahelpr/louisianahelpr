@@ -283,9 +283,13 @@ serve(async (req) => {
       }
     }
 
-    // 5. Update profile
+    // 5. Update profile. Auto-approve — there's no manual admin review
+    // step anymore. As long as the user submitted all required fields
+    // (validated above), they're cleared the moment this function
+    // succeeds. Identity verification + payout setup happen later as
+    // separate Stripe-gated steps when posting / applying / accepting.
     const updateData: Record<string, unknown> = {
-      approval_status: "pending",
+      approval_status: "approved",
     };
 
     if (isResubmission) {
@@ -345,21 +349,20 @@ serve(async (req) => {
     try {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, location, role")
+        .select("full_name, location")
         .eq("user_id", userId)
         .single();
 
       const userName = profile?.full_name || "Someone";
       const userLocation = profile?.location ? ` from ${profile.location}` : "";
-      const userRole = profile?.role || "user";
-      const notifMessage = `${userName}${userLocation} just signed up as a ${userRole}. Tap to review their profile.`;
+      const notifMessage = `${userName}${userLocation} just joined. They're auto-approved and can start posting + applying right away.`;
 
       // Dedupe: skip if an identical notification was sent in the last 24h
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: existing } = await supabase
         .from("notifications")
         .select("id")
-        .eq("title", "👤 New signup pending review")
+        .eq("title", "👤 New member joined")
         .eq("message", notifMessage)
         .gte("created_at", since)
         .limit(1);
@@ -373,7 +376,7 @@ serve(async (req) => {
         if (admins?.length) {
           const adminNotifs = admins.map((admin: { user_id: string }) => ({
             user_id: admin.user_id,
-            title: "👤 New signup pending review",
+            title: "👤 New member joined",
             message: notifMessage,
             type: "info",
             link: "/admin",

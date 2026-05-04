@@ -62,7 +62,7 @@ const AdminSettings = () => {
     setSavingWebhook(true);
     const { error } = await supabase
       .from("platform_settings")
-      .update({ social_webhook_url: url || null } as any)
+      .update({ social_webhook_url: url || null })
       .eq("id", settingsId);
     setSavingWebhook(false);
     if (error) toast.error(error.message);
@@ -116,7 +116,7 @@ const AdminSettings = () => {
         platform_fee_percent: custVal,
         customer_fee_percent: custVal,
         helper_fee_percent: helpVal,
-      } as any)
+      })
       .eq("id", settingsId);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -190,7 +190,7 @@ const AdminSettings = () => {
       
 
       {/* Split Fee Settings */}
-      <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-5">
+      <div className="max-w-md rounded-xl liquid-glass p-6 space-y-5">
         <div className="space-y-1">
           <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
           <p className="text-xs text-muted-foreground">
@@ -239,7 +239,7 @@ const AdminSettings = () => {
       </div>
 
       {/* Social Webhook URL */}
-      <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="max-w-md rounded-xl liquid-glass p-6 space-y-4">
         <div className="space-y-1">
           <h3 className="font-display font-semibold text-foreground">Social Webhook URL</h3>
           <p className="text-xs text-muted-foreground">
@@ -279,13 +279,13 @@ const AdminSettings = () => {
         {adminsLoading ? (
           <p className="text-xs text-muted-foreground">Loading admins…</p>
         ) : admins.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-6 text-center">
+          <div className="rounded-xl liquid-glass p-6 text-center">
             <p className="text-xs text-muted-foreground">No admins found</p>
           </div>
         ) : (
           <div className="space-y-2">
             {admins.map((admin) => (
-              <div key={admin.role_id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-3">
+              <div key={admin.role_id} className="rounded-xl liquid-glass p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-foreground text-sm">{admin.name}</p>
@@ -309,11 +309,11 @@ const AdminSettings = () => {
       </div>
 
       {/* How fees work */}
-      <div className="max-w-md rounded-xl border border-border bg-card p-6 space-y-3">
+      <div className="max-w-md rounded-xl liquid-glass p-6 space-y-3">
         <h3 className="font-semibold text-foreground">How the split fee model works</h3>
         <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
           <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
-          <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent tip</li>
+          <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent bonus</li>
           <li>Platform keeps: service fee from customer + platform fee from helpr</li>
           <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
         </ul>
@@ -347,7 +347,6 @@ const AdminSettings = () => {
                     <div className="min-w-0">
                       <p className="font-medium text-foreground text-sm">{formatName(profile.full_name, "—")}</p>
                       <p className="text-xs text-muted-foreground">{(profile as any).email || "—"}</p>
-                      <Badge variant="secondary" className="text-xs capitalize mt-1">{profile.role}</Badge>
                     </div>
                     <Button
                       size="sm"

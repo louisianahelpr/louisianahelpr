@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
-import { categoryLabels } from "./JobFilters";
+import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { getCityState } from "@/lib/locationUtils";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,20 +27,12 @@ interface JobCardProps {
   onToggleSave?: (jobId: string, saved: boolean) => void;
 }
 
-const categoryColors: Record<string, { badge: string; title: string; accent: string }> = {
-  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700", accent: "from-sky-400/10 to-sky-500/5" },
-  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700", accent: "from-emerald-400/10 to-emerald-500/5" },
-  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700", accent: "from-violet-400/10 to-violet-500/5" },
-  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700", accent: "from-amber-400/10 to-amber-500/5" },
-  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", accent: "from-orange-400/10 to-orange-500/5" },
-  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700", accent: "from-pink-400/10 to-pink-500/5" },
-  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700", accent: "from-indigo-400/10 to-indigo-500/5" },
-  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700", accent: "from-rose-400/10 to-rose-500/5" },
-  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700", accent: "from-teal-400/10 to-teal-500/5" },
-  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", accent: "from-slate-400/10 to-slate-500/5" },
-};
-
-const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = true, onApply, onReport, onSelect: _onSelect, index = 0, isExpanded = false, onToggleExpand, isSaved = false, onToggleSave }: JobCardProps) => {
+// Category colors apply ONLY to the category badge pill at the top of
+// the card. The job title itself stays in `text-foreground` (deep
+// charcoal) across all categories so the brand reads consistently and
+// the colored badge stays the single accent in the row. The `accent`
+// gradient tints are kept for the boosted/recommended highlight strip.
+const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = true, onApply, onReport, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved = false, onToggleSave }: JobCardProps) => {
   const [savingBookmark, setSavingBookmark] = useState(false);
 
   const handleToggleSave = async (e: React.MouseEvent) => {
@@ -64,13 +56,16 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
     }
   };
 
+  // Per-helpr take-home: gross share minus the platform's commission, plus
+  // the customer-paid urgent bonus. Matches JobDetailDialog math 1:1.
+  // (The 10% sales tax on the platform commission is paid by the platform,
+  // not the helpr — historically deducted here, which made the card and
+  // dialog disagree by ~$1.)
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelperBudget = job.budget / helpersCount;
-  const feeAmt = perHelperBudget * (effectiveFee / 100);
-  const feeTax = feeAmt * 0.10; // 10% tax on platform fee
-  const netEarnings = perHelperBudget - feeAmt - feeTax;
+  const commission = perHelperBudget * (effectiveFee / 100);
+  const netEarnings = perHelperBudget - commission + (job.urgent_fee ?? 0);
   const earnings = netEarnings.toFixed(2);
-  const urgentTip = job.urgent_fee ?? 0;
   const catStyle = categoryColors[job.category] || categoryColors.other;
   const isOwnJob = currentUserId === job.customer_id;
   const photos = job.photos || [];
@@ -95,170 +90,228 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
   // the dashboard's hot list path (saves ~42KB on iOS cold start).
   const entryDelay = `${Math.min(index * 70, 500)}ms`;
+  // Poster initials for the avatar fallback (no avatar URL on the
+  // EnrichedJob shape — we keep this lightweight by deriving from name).
+  const posterInitials = (job.posterName || "User")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const ratingDisplay = (job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : null;
+
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
-      className={`animate-fade-in group relative rounded-2xl border bg-card overflow-hidden transition-shadow duration-300 cursor-pointer ${
-        job.isBoosted
-          ? "border-primary/30 ring-1 ring-primary/10 shadow-[0_4px_20px_-4px_hsl(158_45%_42%/0.12)]"
-          : job.is_urgent
-          ? "border-accent/30 shadow-[var(--card-shadow)]"
-          : isExpanded
-          ? "border-primary/30 shadow-[var(--card-hover-shadow)]"
-          : "border-border/60 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20"
-      }`}
-      onClick={() => onToggleExpand?.(job.id)}
+      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20"
+      onClick={() => onSelect(job)}
     >
-      {/* Header: title + price */}
-      <div className="w-full px-4 pt-3 pb-2.5 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="w-full px-3.5 py-3 flex items-center gap-3">
+        {/* Avatar with category icon badge — poster initials in a
+            Bark-tinted glass circle, with a small colored circle on
+            top-left that mirrors the category filter icon + color. */}
+        <div className="relative shrink-0">
+          <a
+            href={`/user/${job.customer_id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105"
+            style={{
+              backgroundColor: "hsl(var(--bark) / 0.12)",
+              border: "1px solid hsl(var(--bark) / 0.22)",
+              color: "hsl(var(--bark))",
+              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
+            }}
+            aria-label={`View ${job.posterName}'s profile`}
+          >
+            {posterInitials}
+          </a>
+          {(() => {
+            const CategoryIcon = categoryIcons[job.category] || categoryIcons.other;
+            return (
+              <span
+                aria-label={categoryLabels[job.category] || job.category}
+                className={`absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-card ${catStyle.dot}`}
+              >
+                <CategoryIcon className="w-2.5 h-2.5 text-white/85" strokeWidth={2.25} />
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Center: title · location · date · rating */}
+        <div className="min-w-0 flex-1 space-y-1">
+          <h3
+            className="font-display italic font-bold text-foreground leading-tight line-clamp-1"
+            style={{
+              fontSize: "0.95rem",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.012em",
+            }}
+          >
+            {job.title}
+          </h3>
+          <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
+            <span className="flex items-center gap-1">
+              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
+            </span>
+            <span className="opacity-30">·</span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-2.5 h-2.5 shrink-0" />
+              <span className="font-serif italic">
+                {!job.start_time && !job.date_needed
+                  ? "Flexible"
+                  : parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              </span>
+            </span>
+            {expiryText && (
+              <>
+                <span className="opacity-30">·</span>
+                <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+                  <Timer className="w-2.5 h-2.5 shrink-0" />
+                  <span className="font-serif italic">{expiryText}</span>
+                </span>
+              </>
+            )}
+            {ratingDisplay && (
+              <>
+                <span className="opacity-30">·</span>
+                <span className="flex items-center gap-0.5">
+                  <Star className="w-2.5 h-2.5 fill-accent text-accent shrink-0" />
+                  <span className="font-medium text-foreground">{ratingDisplay}</span>
+                </span>
+              </>
+            )}
+            <>
+              <span className="opacity-30">·</span>
+              <span className="flex items-center gap-1 opacity-80">
+                <Clock className="w-2.5 h-2.5 shrink-0" />
+                <span className="font-serif italic">
+                  {formatDistanceToNow(new Date(job.created_at), { addSuffix: false })} ago
+                </span>
+              </span>
+            </>
+            {job.is_group_job && (
+              <>
+                <span className="opacity-30">·</span>
+                <span
+                  className="flex items-center gap-1"
+                  style={{ color: "hsl(var(--primary))" }}
+                >
+                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  <span className="font-serif italic font-medium">
+                    needs {job.helpers_needed ?? 2} helprs
+                  </span>
+                </span>
+              </>
+            )}
+            {job.is_recurring && (
+              <>
+                <span className="opacity-30">·</span>
+                <span className="flex items-center gap-1">
+                  <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  <span className="font-serif italic">
+                    {(job as any).recurrence_interval || "Recurring"}
+                  </span>
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right column: price tile with Boosted / Urgent badges
+            overlapping its top edge — same notification-stamp pattern
+            as the category icon over the avatar. */}
+        <div className="relative shrink-0 flex flex-col items-end">
+        {/* Badge cluster — both Boosted and Urgent sit at the top-right
+            corner of the price tile. Stacked horizontally with Urgent
+            (alarm cue) inner-most so it reads first when both apply. */}
+        {(job.isBoosted || job.is_urgent) && (
+          <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1">
+            {job.isBoosted && (
+              <span
+                aria-label="Boosted"
+                className="boosted-shimmer boosted-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
+                style={{
+                  color: "hsl(38 60% 28%)",
+                  border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "inset 0 -1px 1px 0 hsl(var(--gold-warm) / 0.20), " +
+                    "0 1px 2px hsl(var(--gold-warm) / 0.20), " +
+                    "0 4px 10px -3px hsl(var(--gold-warm) / 0.34)",
+                }}
+              >
+                <Rocket className="w-2.5 h-2.5" strokeWidth={2.25}
+                  style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
+                Boosted
+              </span>
+            )}
             {job.is_urgent && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider">
+              <span
+                aria-label="Urgent"
+                className="urgent-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider"
+                style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
+              >
                 <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
               </span>
             )}
-            {job.isBoosted && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-wider">
-                <Rocket className="w-2.5 h-2.5" /> Boosted
-              </span>
-            )}
-            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${catStyle.badge}`}>
-              {categoryLabels[job.category] || job.category}
-            </span>
           </div>
-          <h3 className={`font-bold text-[15px] leading-snug ${catStyle.title} ${isExpanded ? "" : "line-clamp-2"}`}>
-            {job.title}
-          </h3>
-        </div>
-        <div className="flex flex-col items-end shrink-0">
-          <span className="flex items-center font-bold text-primary text-base leading-none">
-            <DollarSign className="w-3.5 h-3.5" />{earnings}
-          </span>
-          {urgentTip > 0 && (
-            <span className="text-[10px] text-accent font-semibold mt-0.5">+${Number(urgentTip).toFixed(0)} tip</span>
-          )}
-          <span className="text-[9px] text-muted-foreground uppercase tracking-wider mt-0.5">You earn</span>
-        </div>
-      </div>
-
-      {/* Meta row: date · location · expiry */}
-      <div className="px-4 pb-3 flex items-center gap-x-3 gap-y-1.5 flex-wrap text-xs text-muted-foreground">
-        {/* Date & Time */}
-        {!job.start_time && !job.date_needed ? (
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 shrink-0" /> Flexible
-          </span>
-        ) : (
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 shrink-0" />
-            {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            {!job.start_time ? " · Flexible" : formattedTime ? ` · ${formattedTime}` : ""}
-          </span>
         )}
-        {/* City, State */}
-        <a
-          onClick={(e) => e.stopPropagation()}
-          href={job.latitude && job.longitude
-            ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
-            : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 hover:text-primary transition-colors"
+        {/* Price tile — premium achievement-badge feel: warm parchment
+            translucency, double inner-shadow (bright top rim + soft
+            bottom seat), gold-warm hairline at the top edge for the
+            "earned" cue. */}
+        <div
+          className="flex flex-col items-center px-2.5 py-1.5 rounded-xl"
+          style={{
+            background: "linear-gradient(180deg, hsla(38, 50%, 96%, 0.78) 0%, hsla(38, 30%, 92%, 0.62) 100%)",
+            backdropFilter: "blur(20px) saturate(170%)",
+            WebkitBackdropFilter: "blur(20px) saturate(170%)",
+            border: "0.5px solid hsl(var(--bark) / 0.22)",
+            boxShadow:
+              "inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.85), " +
+              "inset 0 -1px 2px 0 hsl(var(--bark) / 0.10), " +
+              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.18), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+              "0 6px 14px -4px hsl(var(--bark) / 0.22)",
+          }}
         >
-          <MapPin className="w-3 h-3 shrink-0" />
-          <span className="truncate max-w-[140px]">{cityState}</span>
-        </a>
-        {job.estimated_hours && (
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h
+          <span
+            className="flex items-center font-display leading-none tabular-nums"
+            style={{
+              fontWeight: 800,
+              fontSize: "1.05rem",
+              color: "hsl(var(--bark))",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
+            {earnings}
           </span>
-        )}
-        {expiryText && (
-          <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
-            <Timer className="w-3 h-3 shrink-0" /> {expiryText}
-          </span>
-        )}
-        {job.is_recurring && (
-          <span className="flex items-center gap-1">
-            <Repeat className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}
-          </span>
-        )}
-        {job.is_group_job && (
-          <span className="flex items-center gap-1">
-            <Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group"}
-          </span>
-        )}
-      </div>
-
-
-      {/* Expandable section */}
-      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
-        <div className="px-4 pb-4 pt-3 space-y-4 border-t border-border/40 bg-muted/10">
-          {/* Description */}
-          {job.description && (
-            <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Description</p>
-              <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{job.description}</p>
-            </div>
+          {(job.urgent_fee ?? 0) > 0 && (
+            <span
+              className="font-sans font-semibold mt-0.5 text-[8.5px] tracking-[0.04em]"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
+            </span>
           )}
-
-          {/* Photos */}
-          {photos.length > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Photos</p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {photos.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Special requirements */}
-          {job.special_requirements?.trim() ? (
-            <div className="rounded-lg bg-secondary/40 border border-border/40 p-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Special Requirements</p>
-              <p className="text-sm text-foreground">{job.special_requirements}</p>
-            </div>
-          ) : null}
-
-          {/* Action bar — HIG: all buttons ≥44pt tap target */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-            <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-11 px-3" onClick={(e) => { e.stopPropagation(); onReport(job.id); }}>
-              <Flag className="w-4 h-4 mr-1.5" /> Report
-            </Button>
-            <div className="flex items-center gap-2">
-              {!isOwnJob && (
-                <Button size="sm" variant="outline" onClick={handleToggleSave} disabled={savingBookmark} className={`h-11 px-3 ${isSaved ? "border-primary text-primary" : ""}`}>
-                  <Bookmark className={`w-4 h-4 mr-1.5 ${isSaved ? "fill-primary" : ""}`} /> {isSaved ? "Saved" : "Save"}
-                </Button>
-              )}
-              {!isOwnJob && (
-                <Button size="sm" className="h-11 px-4 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" onClick={(e) => { e.stopPropagation(); onApply(job.id); }}>
-                  <Send className="w-4 h-4 mr-1.5" /> Apply
-                </Button>
-              )}
-            </div>
-          </div>
+          <span
+            className="text-[7.5px] uppercase mt-0.5 font-sans"
+            style={{
+              color: "hsl(var(--olivewood) / 0.6)",
+              letterSpacing: "0.16em",
+              fontWeight: 600,
+            }}
+          >
+            You earn
+          </span>
+        </div>
         </div>
       </div>
 
-      {/* Footer: poster + category badge */}
-      <div className="px-4 py-2 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{job.posterName}</a>
-            <a href={`/user/${job.customer_id}?tab=reviews`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5 hover:underline">
-            <Star className={`w-3 h-3 ${(job.posterReviewCount ?? 0) > 0 ? "fill-accent text-accent" : "text-muted-foreground/50"}`} />
-            <span className={`font-medium ${(job.posterReviewCount ?? 0) > 0 ? "text-foreground" : "text-muted-foreground"}`}>
-              {(job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : "0.0"}
-            </span>
-            <span className="text-muted-foreground">({job.posterReviewCount ?? 0})</span>
-          </a>
-        </span>
-      </div>
     </div>
   );
 };

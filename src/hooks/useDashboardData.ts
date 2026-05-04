@@ -90,7 +90,12 @@ export function useDashboardData() {
       const { data: rawJobsRes } = await supabase
         .from("open_jobs_browse" as any)
         .select(
-          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, latitude, longitude",
+          // NOTE: open_jobs_browse view does NOT expose latitude/longitude
+          // (the underlying jobs table has them, but the view masks them
+          // along with the precise location). Asking for them returned a
+          // PostgREST 400 that silently emptied the dashboard. The
+          // nearby-radius filter falls back to the location string match.
+          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status",
         )
         .neq("payment_status", "abandoned")
         .order("boosted_at", { ascending: false, nullsFirst: false })

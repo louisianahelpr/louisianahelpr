@@ -238,6 +238,28 @@ serve(async (req) => {
           }
         }
 
+        // Handle boost checkout completion — flip the boost flags now
+        // that payment captured. Created from create-boost-payment.
+        const kind = (session.metadata as any)?.kind;
+        if (kind === "job_boost") {
+          const boostJobId = (session.metadata as any)?.job_id;
+          const durationHours = parseInt((session.metadata as any)?.duration_hours || "24", 10);
+          if (boostJobId) {
+            const now = new Date();
+            const expires = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+            const { error: boostError } = await supabase
+              .from("jobs")
+              .update({
+                boosted_at: now.toISOString(),
+                boost_expires_at: expires.toISOString(),
+                boost_auto_extended: false,
+              })
+              .eq("id", boostJobId);
+            if (boostError) logStep("ERROR applying boost", { error: boostError.message });
+            else logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
+          }
+        }
+
         // Store payment intent ID on the job
         const jobId = (session.metadata as any)?.job_id;
         const piId = typeof session.payment_intent === "string"

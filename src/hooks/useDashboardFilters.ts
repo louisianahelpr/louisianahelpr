@@ -24,11 +24,12 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   const [searchOpen, setSearchOpen] = useState(false);
   const [expiresWithin, setExpiresWithin] = useState("");
   const [matchAvailability, setMatchAvailability] = useState(false);
+  const [boostedOnly, setBoostedOnly] = useState(false);
 
   const nearbyMiles = parseNearbyFilter(locationFilter);
   const userLoc = useUserLocation(nearbyMiles !== null);
 
-  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : ""].filter(Boolean).length;
+  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
 
   const clearFilters = () => {
@@ -38,11 +39,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     setLocationFilter("");
     setExpiresWithin("");
     setMatchAvailability(false);
+    setBoostedOnly(false);
   };
 
   const filteredJobs = useMemo(() => allJobs
     .filter((job) => {
       if (userId && job.customer_id === userId) return false;
+      if (boostedOnly && !job.isBoosted) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
@@ -63,12 +66,15 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         if (expiresWithin === "7d" && hoursLeft > 168) return false;
       }
       if (expiresWithin && !job.expires_at) return false;
-      if (profile?.role === "helper") {
-        const jobAge = Date.now() - new Date(job.created_at).getTime();
-        const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : helprTier === "basic" ? 5 : 0;
-        const delayMs = (20 - earlyMinutes) * 60 * 1000;
-        if (jobAge < delayMs) return false;
-      }
+      // Subscription-tier "early access" perk — applies to ALL users
+      // equally, regardless of role. Free/no-tier users see brand-new
+      // jobs after a 20-minute delay; Basic shaves 5 min off, Pro 10,
+      // Elite the full 20 (so subscribers see jobs immediately while
+      // free users wait). Encourages helpers AND posters to subscribe.
+      const jobAge = Date.now() - new Date(job.created_at).getTime();
+      const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : helprTier === "basic" ? 5 : 0;
+      const delayMs = (20 - earlyMinutes) * 60 * 1000;
+      if (jobAge < delayMs) return false;
       if (matchAvailability && helperAvailability.length > 0) {
         const jobDate = new Date(job.date_needed + "T12:00:00");
         const jobDow = jobDate.getDay();
@@ -101,7 +107,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, profile?.role, helprTier, matchAvailability, helperAvailability, sortBy]);
+    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
@@ -120,6 +126,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     searchOpen, setSearchOpen,
     expiresWithin, setExpiresWithin,
     matchAvailability, setMatchAvailability,
+    boostedOnly, setBoostedOnly,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs,
     userLoc, nearbyMiles,

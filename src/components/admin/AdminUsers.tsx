@@ -240,7 +240,7 @@ const AdminUsers = () => {
 
   const loadStrikesSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data } = await (supabase.from("user_violations" as any) as any)
+    const { data } = await supabase.from("user_violations")
       .select("user_id")
       .in("user_id", userIds);
     if (!data) return;
@@ -258,7 +258,7 @@ const AdminUsers = () => {
     const [jobsRes, appsRes, loginRes] = await Promise.all([
       supabase.from("jobs").select("customer_id, created_at, title").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),
       supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
-      (supabase.from("login_history" as any) as any).select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),
+      supabase.from("login_history").select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),
     ]);
     const consider = (uid: string, label: string, at?: string | null) => {
       if (!at) return;
@@ -287,7 +287,7 @@ const AdminUsers = () => {
 
   const loadNotesSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data } = await (supabase.from("admin_user_notes" as any) as any)
+    const { data } = await supabase.from("admin_user_notes")
       .select("user_id, note, created_at, category")
       .in("user_id", userIds)
       .order("created_at", { ascending: false });
@@ -317,11 +317,11 @@ const AdminUsers = () => {
     const [reviewsRes, reviewsLeftRes, violationsRes, bansRes, trackingRes, sendLogRes, jobsRes] = await Promise.all([
       supabase.from("reviews").select("rating, feedback, reviewer_id, created_at, job_id").eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
       supabase.from("reviews").select("rating, feedback, reviewee_id, created_at, job_id").eq("reviewer_id", profile.user_id).order("created_at", { ascending: false }),
-      (supabase.from("user_violations" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
-      (supabase.from("user_bans" as any) as any).select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
-      (supabase.from("email_tracking" as any) as any).select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      supabase.from("user_violations").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      supabase.from("user_bans").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
+      supabase.from("email_tracking").select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       profile.email
-        ? (supabase.from("email_send_log" as any) as any)
+        ? supabase.from("email_send_log")
             .select("template_name, message_id, status, created_at")
             .eq("recipient_email", profile.email)
             .order("created_at", { ascending: false })
@@ -418,7 +418,7 @@ const AdminUsers = () => {
       denial_reason: null,
       denial_email_count: 0,
       last_denial_email_at: null,
-    } as any).eq("id", profile.id);
+    }).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
       toast.success(`${formatName(profile.full_name)} approved!`);
@@ -448,7 +448,7 @@ const AdminUsers = () => {
       await supabase.from("profiles").update({
         approval_email_count: ((profile as any).approval_email_count || 0) + 1,
         last_approval_email_at: new Date().toISOString(),
-      } as any).eq("id", profile.id);
+      }).eq("id", profile.id);
 
       toast.success("Approval email resent");
       loadProfiles();
@@ -468,7 +468,7 @@ const AdminUsers = () => {
       denial_reason: denyReason.trim() || null,
       denial_email_count: 1,
       last_denial_email_at: new Date().toISOString(),
-    } as any).eq("id", denyProfile.id);
+    }).eq("id", denyProfile.id);
     if (error) {
       toast.error(error.message);
     } else {
@@ -527,7 +527,7 @@ const AdminUsers = () => {
       await supabase.from("profiles").update({
         denial_email_count: ((profile as any).denial_email_count || 0) + 1,
         last_denial_email_at: new Date().toISOString(),
-      } as any).eq("id", profile.id);
+      }).eq("id", profile.id);
 
       toast.success("Denial email resent");
       loadProfiles();
@@ -566,14 +566,14 @@ const AdminUsers = () => {
     try {
       if (banType === "warning") {
         // Issue warning
-        await (supabase.from("user_violations" as any) as any).insert({
+        await supabase.from("user_violations").insert({
           user_id: banProfile.user_id,
           violation_type: "admin_warning",
           description: banReason.trim(),
           action_taken: "warning",
           reported_by: user.id,
         });
-        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", banProfile.user_id);
+        await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", banProfile.user_id);
         await createNotification({
           user_id: banProfile.user_id, title: "⚠️ Warning from Admin",
           message: banReason.trim() || "You have received a warning for violating platform rules. Another violation may result in a ban.",
@@ -584,21 +584,21 @@ const AdminUsers = () => {
       } else if (banType === "temporary") {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(banDuration));
-        await (supabase.from("user_bans" as any) as any).insert({
+        await supabase.from("user_bans").insert({
           user_id: banProfile.user_id,
           ban_type: "temporary",
           reason: banReason.trim(),
           banned_by: user.id,
           expires_at: expiresAt.toISOString(),
         });
-        await (supabase.from("user_violations" as any) as any).insert({
+        await supabase.from("user_violations").insert({
           user_id: banProfile.user_id,
           violation_type: "admin_action",
           description: banReason.trim(),
           action_taken: "temp_ban",
           reported_by: user.id,
         });
-        await supabase.from("profiles").update({ ban_status: "temp_banned" } as any).eq("user_id", banProfile.user_id);
+        await supabase.from("profiles").update({ ban_status: "temp_banned" }).eq("user_id", banProfile.user_id);
         await createNotification({
           user_id: banProfile.user_id, title: "🚫 Temporary Ban",
           message: `Your account has been temporarily banned for ${banDuration} days. Reason: ${banReason.trim() || "Platform rule violation."}`,
@@ -606,20 +606,20 @@ const AdminUsers = () => {
         });
         toast.success(`User temporarily banned for ${banDuration} days.`);
       } else {
-        await (supabase.from("user_bans" as any) as any).insert({
+        await supabase.from("user_bans").insert({
           user_id: banProfile.user_id,
           ban_type: "permanent",
           reason: banReason.trim(),
           banned_by: user.id,
         });
-        await (supabase.from("user_violations" as any) as any).insert({
+        await supabase.from("user_violations").insert({
           user_id: banProfile.user_id,
           violation_type: "admin_action",
           description: banReason.trim(),
           action_taken: "permanent_ban",
           reported_by: user.id,
         });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", banProfile.user_id);
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", banProfile.user_id);
         await createNotification({
           user_id: banProfile.user_id, title: "⛔ Account Permanently Banned",
           message: `Your account has been permanently banned. Reason: ${banReason.trim() || "Severe platform rule violation."}`,
@@ -640,8 +640,8 @@ const AdminUsers = () => {
   };
 
   const unbanUser = async (profile: Profile) => {
-    await (supabase.from("user_bans" as any) as any).update({ is_active: false }).eq("user_id", profile.user_id).eq("is_active", true);
-    await supabase.from("profiles").update({ ban_status: "active" } as any).eq("user_id", profile.user_id);
+    await supabase.from("user_bans").update({ is_active: false }).eq("user_id", profile.user_id).eq("is_active", true);
+    await supabase.from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id);
     await supabase.from("notifications").insert({
       user_id: profile.user_id, title: "✅ Ban lifted",
       message: "Your account ban has been lifted. Please follow community guidelines going forward.",
@@ -839,19 +839,15 @@ const AdminUsers = () => {
     if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Temp Banned</Badge>;
     // "warned" status is intentionally not surfaced as a status badge — the strike chip
     // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
-    // Email not yet verified — applies to all roles
     if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Email Verification</Badge>;
-    // Customers: just show Active once email is verified
-    if (profile.role === "customer") return <Badge className="bg-primary/10 text-primary text-xs">Active</Badge>;
     if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-xs">Active</Badge>;
     if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-xs">Denied</Badge>;
     return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Review</Badge>;
   };
 
   // Stripe Identity verification badge — green / yellow / gray.
-  // Hidden for customer-only users (they don't go through helper IDV).
+  // Shown for all users since IDV is required before accepting any job.
   const stripeBadge = (profile: Profile) => {
-    if (profile.role === "customer") return null;
     const s = (profile as any).idv_status;
     if (s === "verified" || s === "approved" || (profile as any).legacy_manual_review) {
       return <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Stripe Verified</Badge>;
@@ -998,7 +994,7 @@ const AdminUsers = () => {
       ) : (
         <div className="space-y-2">
           {filtered.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
+            <div key={p.id} className="rounded-xl liquid-glass p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
               <div className="flex items-start gap-3">
                 {(() => {
                   const lastLogin = lastLoginSummary[p.user_id];
@@ -1297,7 +1293,7 @@ const AdminUsers = () => {
                             approval_status: "pending",
                             denial_reason: null,
                             application_count: currentCount + 1,
-                          } as any).eq("id", viewProfile.id);
+                          }).eq("id", viewProfile.id);
                           toast.success("User moved back to pending for re-review.");
                           loadProfiles();
                           setViewProfile(null);
@@ -1318,7 +1314,7 @@ const AdminUsers = () => {
                               onClick={async () => {
                                 await resendDenialEmail(viewProfile);
                                 // refresh local view state count
-                                setViewProfile({ ...(viewProfile as any), denial_email_count: sent + 1, last_denial_email_at: new Date().toISOString() } as any);
+                                setViewProfile({ ...(viewProfile as any), denial_email_count: sent + 1, last_denial_email_at: new Date().toISOString() });
                               }}
                               title={maxReached ? "Max 3 reminder emails reached" : "Send denial reminder email"}
                             >

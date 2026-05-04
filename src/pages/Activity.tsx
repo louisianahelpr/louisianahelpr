@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
-import { Search, X as XIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, Send, X as XIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -20,6 +21,8 @@ import { AppliedJobsTab } from "@/components/activity/AppliedJobsTab";
 import {
   type Job, type Application, type Tab, type EnrichedApplication,
 } from "@/components/activity/activityConstants";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SlidersHorizontal, ChevronDown } from "lucide-react";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 
@@ -30,6 +33,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const tab = defaultTab as Tab;
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const paramFilter = searchParams.get("filter");
@@ -139,8 +143,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
     if (!deadlineDialogApp || !selectedJob || !user) return;
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
-    await supabase.from("applications").update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) } as any).eq("id", deadlineDialogApp.id);
-    await supabase.from("jobs").update({ status: "accepted", helper_id: deadlineDialogApp.helper_id, response_deadline: deadline } as any).eq("id", selectedJob.id);
+    await supabase.from("applications").update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) }).eq("id", deadlineDialogApp.id);
+    await supabase.from("jobs").update({ status: "accepted", helper_id: deadlineDialogApp.helper_id, response_deadline: deadline }).eq("id", selectedJob.id);
     await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
     toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
@@ -170,7 +174,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         return;
       }
 
-      await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null } as any).eq("id", app.job_id);
+      await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null }).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       await refresh();
@@ -185,12 +189,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
-        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", user.id);
+        await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", user.id);
         await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
         toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
         await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", user.id);
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
         toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
@@ -202,7 +206,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         }
       }
       await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-      await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null } as any).eq("id", app.job_id);
+      await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
       toast.info("You declined the job. The poster can select someone else.");
       refresh();
     }
@@ -321,7 +325,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       }
     }
     await supabase.from("job_checkins").insert({ job_id: jobId, user_id: user.id, type: "start_request", note: "Helpr started the job" });
-    await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+    await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
     if (job) {
       await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
     }
@@ -332,7 +336,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const confirmStartJob = async (jobId: string) => {
-    const { error } = await supabase.from("jobs").update({ status: "in_progress" } as any).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
     if (error) toast.error("Failed to confirm start");
     else {
       const job = postedJobs.find(j => j.id === jobId);
@@ -346,7 +350,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const confirmArrival = async (jobId: string) => {
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: new Date().toISOString() } as any).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: new Date().toISOString() }).eq("id", jobId);
     if (error) { toast.error("Failed to confirm arrival"); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
@@ -357,7 +361,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const confirmWorking = async (jobId: string) => {
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: new Date().toISOString() } as any).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: new Date().toISOString() }).eq("id", jobId);
     if (error) { toast.error("Failed to confirm"); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
@@ -370,7 +374,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const markOnTheWay = async (jobId: string) => {
     if (!user || onTheWayLoading) return;
     setOnTheWayLoading(jobId);
-    const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: new Date().toISOString() } as any).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: new Date().toISOString() }).eq("id", jobId);
     if (error) { toast.error("Failed to update"); setOnTheWayLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
@@ -384,7 +388,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const markArrived = async (jobId: string) => {
     if (!user || arrivedLoading) return;
     setArrivedLoading(jobId);
-    const { error } = await supabase.from("jobs").update({ helper_arrived_at: new Date().toISOString(), status: "in_progress" } as any).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ helper_arrived_at: new Date().toISOString(), status: "in_progress" }).eq("id", jobId);
     if (error) { toast.error("Failed to update"); setArrivedLoading(null); return; }
     const job = appliedApps.find(a => a.job_id === jobId)?.job;
     if (job) {
@@ -401,14 +405,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     try {
       const job = postedJobs.find((j) => j.id === jobId);
       if (!job?.helper_id) return;
-      const { data: existing } = await (supabase.from("user_violations" as any) as any).select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
+      const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
       const priorCount = (existing as any[] | null)?.length || 0;
-      await (supabase.from("user_violations" as any) as any).insert({ user_id: job.helper_id, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning" });
+      await supabase.from("user_violations").insert({ user_id: job.helper_id, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning" });
       if (priorCount >= 1) {
-        await (supabase.from("user_bans" as any) as any).insert({ user_id: job.helper_id, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", job.helper_id);
+        await supabase.from("user_bans").insert({ user_id: job.helper_id, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
+        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", job.helper_id);
       } else {
-        await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", job.helper_id);
+        await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", job.helper_id);
       }
       await createNotification({ user_id: job.helper_id, title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: priorCount >= 1 ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
@@ -522,12 +526,29 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   }, [postedJobs]);
 
   if (loading) {
+    // Loading state mirrors the loaded layout: two-box stack on a
+    // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
         <DashboardHeader />
-        <main className="container mx-auto px-5 py-4">
-          <div className="max-w-3xl mx-auto space-y-3">
-            {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+        <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden">
+            <div className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5">
+              <Skeleton className="h-7 w-32 rounded" />
+              <Skeleton className="h-3 w-44 mt-2 rounded" />
+            </div>
+            <div
+              className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
+              style={{
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottom: "none",
+              }}
+            >
+              <div className="px-4 pt-3 space-y-2.5">
+                {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+              </div>
+            </div>
           </div>
         </main>
       </div>
@@ -538,12 +559,73 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <DashboardHeader />
-      <main className="container mx-auto px-5 pt-4 pb-4">
-        <div className="max-w-3xl mx-auto space-y-5 overflow-hidden">
-          {/* Title row with collapsible search trigger on the right */}
-          <div className="flex items-center justify-between gap-3">
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden">
+
+          {/* Top box — page-level title block on its own glass panel.
+              Mirrors the dashboard greeting card. */}
+          <div
+            className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden"
+            style={{
+              backgroundImage:
+                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
+                "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+            }}
+          >
+            <div className="flex flex-col leading-none">
+              <h1
+                className="font-display font-bold leading-tight"
+                style={{
+                  fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                {tab === "posted" ? "My Posts" : "My Jobs"}
+              </h1>
+              <p
+                className="mt-1 truncate font-sans font-semibold uppercase"
+                style={{
+                  fontSize: "0.62rem",
+                  letterSpacing: "0.16em",
+                  color: "hsl(var(--olivewood) / 0.55)",
+                }}
+              >
+                {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
+                {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
+                {" · "}
+                {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom box — content panel that extends to viewport bottom. */}
+          <div
+            className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: "none",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
+                "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+            }}
+          >
+          {/* Header row — search button + clear-filters button. */}
+          <div
+            className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
+            style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+          >
             {searchOpen ? (
               <div className="flex items-center gap-2 flex-1 animate-in fade-in slide-in-from-right-2 duration-200">
                 <div className="relative flex-1">
@@ -566,82 +648,211 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               </div>
             ) : (
               <>
-                <h1 className="text-page-title text-foreground text-2xl">{tab === "posted" ? "My Posts" : "My Jobs"}</h1>
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(true)}
-                  aria-label="Search tasks"
-                  className="h-10 w-10 rounded-full flex items-center justify-center text-foreground/80 hover:bg-secondary/60 active:scale-95 transition"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
+                <div className="flex flex-col leading-none min-w-0">
+                  <span
+                    className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+                  >
+                    {tab === "posted" ? "Posted tasks" : "Applied tasks"}
+                  </span>
+                  <h2
+                    className="font-display italic font-bold leading-tight mt-1 truncate"
+                    style={{
+                      fontSize: "1.25rem",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.018em",
+                    }}
+                  >
+                    {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
+                  </h2>
+                  <span
+                    className="font-serif italic mt-0.5 text-[0.72rem]"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
+                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    aria-label="Search tasks"
+                    className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                  {/* Filter button — opens a dropdown of status options
+                      (Open · Direct Offer · In Progress · etc.). Mirrors the
+                      dashboard's filter pill behavior. */}
+                  <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="Filter by status"
+                        className={`h-8 w-8 rounded-xl btn-press flex items-center justify-center relative transition ${
+                          filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        }`}
+                      >
+                        <SlidersHorizontal className="w-4 h-4" />
+                        {statusFilter !== (tab === "applied" ? "pending" : "open") && (
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-56 p-2">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">Filter by status</p>
+                      <div className="grid grid-cols-1 gap-1">
+                        {activeStatusFilters.map((f) => {
+                          const count = activeCounts[f.key] || 0;
+                          const isActive = statusFilter === f.key;
+                          return (
+                            <button
+                              key={f.key}
+                              onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
+                              className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition ${
+                                isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-foreground hover:bg-secondary/60"
+                              }`}
+                            >
+                              <span>{f.label}</span>
+                              {count > 0 && (
+                                <span className={`text-[10px] tabular-nums ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                                  {count}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </>
             )}
           </div>
 
-          {/* Chip bar — transparent w/ thin border, solid green active, dot for >0 */}
-          <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide -mx-5 px-5" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {activeStatusFilters.map((f) => {
-              const count = activeCounts[f.key] || 0;
-              const isActive = statusFilter === f.key;
+          {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
+            // Empty state — same pattern as the home page's empty state:
+            // content centered directly on the panel's glass surface,
+            // no inner white card so the bottom box reads as a single
+            // distinct surface separate from the top box above it.
+            (() => {
+              const isPosted = tab === "posted";
+              const totalCount = isPosted ? postedJobs.length : appliedApps.length;
+              const eyebrow = totalCount === 0 ? "Nothing yet" : "No matches";
+              const title = totalCount === 0
+                ? (isPosted ? "Nothing posted yet." : "No applications yet.")
+                : "No tasks in this view.";
+              const body = totalCount === 0
+                ? (isPosted
+                    ? "Post your first task and your local helprs will see it instantly."
+                    : "Browse open tasks near you and apply — your applications will land here.")
+                : "Try a different filter — there might be tasks in another status.";
+              const ctaLabel = isPosted ? "Post a Job" : "Browse tasks";
+              const ctaTo = isPosted ? "/post-job" : "/dashboard";
+              const Icon = isPosted ? Search : Send;
               return (
-                <button
-                  key={f.key}
-                  onClick={() => setStatusFilter(f.key)}
-                  className={`relative flex-shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-medium border transition-all duration-150 active:scale-95 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border/60 hover:text-foreground hover:border-border"
-                  }`}
-                >
-                  {f.label}
-                  {count > 0 && !isActive && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
-                  )}
-                </button>
+                <div className="px-4 pt-4 flex-1 min-h-0 flex">
+                  {/* Empty-state card — own white box that sits ON TOP of
+                      the bottom panel and stretches all the way down to
+                      the bottom of the screen. Bottom corners flat so it
+                      merges with the dock area like the panel itself. */}
+                  <div
+                    className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                    style={{
+                      backgroundColor: "hsl(0, 0%, 100%)",
+                      borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      boxShadow:
+                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
+                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
+                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+                    }}
+                  >
+                    <div
+                      className="w-20 h-20 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                        backdropFilter: "blur(16px) saturate(150%)",
+                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
+                        border: "1px solid hsl(var(--olivewood) / 0.10)",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+                      }}
+                    >
+                      <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-display-eyebrow">{eyebrow}</span>
+                      <p
+                        className="font-display italic font-bold leading-tight"
+                        style={{
+                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
+                          color: "hsl(var(--ink-deep))",
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        {title}
+                      </p>
+                      <p
+                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        {body}
+                      </p>
+                    </div>
+                    <Button onClick={() => navigate(ctaTo)} className="rounded-xl">
+                      {ctaLabel}
+                    </Button>
+                  </div>
+                </div>
               );
-            })}
-          </div>
-
+            })()
+          ) : (
+          <div
+            data-allow-scroll="true"
+            className="flex-1 min-h-0 overflow-y-auto px-4 pt-3"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+          >
           {tab === "posted" && (
-            filteredPostedJobs.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">{postedJobs.length === 0 ? "You haven't posted any tasks yet." : "No tasks match this filter."}</p>
-                <Button onClick={() => navigate("/post-job")}>Post a Job</Button>
-              </div>
-            ) : (
-              <PostedJobsTab
-                jobs={filteredPostedJobs}
-                applicantCounts={applicantCounts}
-                expandedJobId={expandedJobId}
-                setExpandedJobId={setExpandedJobId}
-                helperNames={helperNames}
-                completedJobMeta={completedJobMeta}
-                startRequestedJobIds={startRequestedJobIds}
-                userId={user!.id}
-                onBoost={setBoostJobId}
-                onEdit={setEditJob}
-                onCancel={tryCancelJob}
-                onComplete={completeJob}
-                completingJobId={completingJobId}
-                onRevision={setRevisionJobId}
-                onNoShow={setNoShowJobId}
-                onTip={(jobId, name) => { setEnhancedTipJobId(jobId); setEnhancedTipHelperName(name); }}
-                onReview={openReviewForPosted}
-                onDispute={setDisputeJob}
-                onConfirmStart={confirmStartJob}
-                onConfirmArrival={confirmArrival}
-                onConfirmWorking={confirmWorking}
-                onLoadApplications={loadApplications}
-                selectedJob={selectedJob}
-                setSelectedJob={setSelectedJob}
-                applications={applications}
-                onAcceptApplication={acceptApplication}
-                onLoadInlineApplicants={loadInlineApplicants}
-                inlineApplicants={inlineApplicants}
-                loadingApplicants={loadingApplicants}
-              />
-            )
+            <PostedJobsTab
+              jobs={filteredPostedJobs}
+              applicantCounts={applicantCounts}
+              expandedJobId={expandedJobId}
+              setExpandedJobId={setExpandedJobId}
+              helperNames={helperNames}
+              completedJobMeta={completedJobMeta}
+              startRequestedJobIds={startRequestedJobIds}
+              userId={user!.id}
+              onBoost={setBoostJobId}
+              onEdit={setEditJob}
+              onCancel={tryCancelJob}
+              onComplete={completeJob}
+              completingJobId={completingJobId}
+              onRevision={setRevisionJobId}
+              onNoShow={setNoShowJobId}
+              onTip={(jobId, name) => { setEnhancedTipJobId(jobId); setEnhancedTipHelperName(name); }}
+              onReview={openReviewForPosted}
+              onDispute={setDisputeJob}
+              onConfirmStart={confirmStartJob}
+              onConfirmArrival={confirmArrival}
+              onConfirmWorking={confirmWorking}
+              onLoadApplications={loadApplications}
+              selectedJob={selectedJob}
+              setSelectedJob={setSelectedJob}
+              applications={applications}
+              onAcceptApplication={acceptApplication}
+              onLoadInlineApplicants={loadInlineApplicants}
+              inlineApplicants={inlineApplicants}
+              loadingApplicants={loadingApplicants}
+            />
           )}
 
           {tab === "applied" && (
@@ -665,6 +876,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
             />
           )}
+          </div>
+          )}
+          </div>
         </div>
       </main>
 

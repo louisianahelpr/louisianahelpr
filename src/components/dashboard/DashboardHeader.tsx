@@ -8,7 +8,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import helprIcon from "@/assets/helpr-icon-96.png";
+import HelprMark from "@/components/HelprMark";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -51,23 +51,12 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
         className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
       >
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-5">
+        <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
           <div className="flex items-center gap-2 min-w-0">
             {title ? (
               <span className="font-display font-bold text-foreground text-base truncate">{title}</span>
             ) : (
-              <Link to="/dashboard" className="flex items-center gap-2 group">
-                <span className="w-8 h-8 rounded-xl bg-white shadow-md flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
-                  <img
-                    src={helprIcon}
-                    alt="Helpr"
-                    className="w-8 h-8 object-contain translate-y-[3px]"
-                  />
-                </span>
-                <span className="text-lg font-display font-bold text-primary leading-none">
-                  Helpr
-                </span>
-              </Link>
+              <HelprMark to="/dashboard" size="md" />
             )}
           </div>
           <div className="flex items-center gap-1 -mr-1">

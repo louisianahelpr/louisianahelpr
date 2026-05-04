@@ -20,7 +20,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import helprIcon from "@/assets/helpr-icon-96.png";
+import HelprMark from "@/components/HelprMark";
 
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
 const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
@@ -352,7 +352,7 @@ const Admin = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-premium-surface">
+      <div className="min-h-screen flex w-full bg-premium-page">
         <AdminSidebar
           navGroups={navGroups}
           activeView={view}
@@ -367,16 +367,7 @@ const Admin = () => {
           <header className="sticky top-0 z-40 glass border-b border-border/30" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
             <div className="container mx-auto flex items-center justify-between h-14 px-4">
               <div className="flex items-center gap-2 min-w-0">
-                <Link to="/dashboard" className="flex items-center gap-2 group" aria-label="Go to Helpr">
-                  <img
-                    src={helprIcon}
-                    alt="Helpr"
-                    className="w-8 h-8 rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
-                  />
-                  <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    Helpr
-                  </span>
-                </Link>
+                <HelprMark to="/dashboard" size="sm" />
               </div>
               <div className="flex items-center gap-1">
                 {/* Admin badge — click to open/close sidebar */}
@@ -396,19 +387,37 @@ const Admin = () => {
             className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(10rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
           >
             {view !== "home" && (
-              <div className="mb-5 sm:mb-6 flex items-center gap-2">
+              <div className="mb-5 sm:mb-6 flex items-start gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => handleViewChange("home")}
-                  className="h-9 w-9 rounded-xl -ml-2 hover:bg-muted"
+                  className="h-10 w-10 rounded-xl -ml-2 hover:bg-secondary/60 shrink-0 mt-0.5"
                   aria-label="Back to admin dashboard"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <h1 className="text-xl font-display font-bold text-foreground truncate">
-                  {viewLabels[view]}
-                </h1>
+                <div className="flex flex-col leading-none min-w-0">
+                  <span
+                    className="font-serif italic uppercase text-[0.62rem]"
+                    style={{
+                      color: "hsl(var(--burnt-sienna) / 0.78)",
+                      letterSpacing: "0.18em",
+                    }}
+                  >
+                    Operations
+                  </span>
+                  <h1
+                    className="font-display italic font-bold leading-tight mt-1 truncate"
+                    style={{
+                      fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.025em",
+                    }}
+                  >
+                    {viewLabels[view]}
+                  </h1>
+                </div>
               </div>
             )}
             <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
@@ -484,7 +493,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl border border-border bg-card p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-xl liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center", accentClasses)}>
@@ -536,10 +545,37 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
 
   return (
     <div className="space-y-5 sm:space-y-6 w-full">
-      {/* Greeting — desktop only, mobile saves space */}
-      <div className="hidden sm:block">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">Welcome back</h1>
-        <p className="text-xs sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Here's what's happening on the platform today.</p>
+      {/* Greeting — editorial 3-line header on its own glass plate.
+          Matches the dashboard / activity / messages top-box pattern. */}
+      <div
+        className="liquid-glass relative overflow-hidden px-5 py-4 sm:px-6 sm:py-5"
+        style={{
+          backgroundImage:
+            "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+            "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+          boxShadow:
+            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+            "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
+            "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+            "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
+            "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+        }}
+      >
+        <span
+          className="font-serif italic uppercase text-[0.62rem] block"
+          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          Operations
+        </span>
+        <h1
+          className="font-display italic font-bold leading-tight mt-1"
+          style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+        >
+          Welcome back
+        </h1>
+        <p className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
+        </p>
       </div>
 
       {/* KPI Summary cards */}

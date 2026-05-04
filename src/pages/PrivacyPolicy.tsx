@@ -21,11 +21,24 @@ const PrivacyPolicy = () => {
         <div className="max-w-2xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
             <BackButton to="/profile?tab=legal" />
-            <h1 className="text-page-title text-foreground text-2xl">
-              Privacy Policy
-            </h1>
+            <div className="flex flex-col leading-none">
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Your data, our promise
+              </span>
+              <h1
+                className="font-display italic font-bold leading-tight mt-1"
+                style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                Privacy Policy
+              </h1>
+              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Last updated · March 2026
+              </span>
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground pl-12">Last updated: March 2026</p>
 
           <PolicySection icon={Database} title="Information We Collect" subtitle="Account, ID, location, payments, and messages" defaultOpen>
             <PolicyRowItem icon={Database} title="Account & ID Data" body={<><p><strong className="text-foreground">Account Information:</strong> Name, email address, phone number, date of birth, and profile photo.</p><p><strong className="text-foreground">Identity Verification:</strong> Government-issued ID documents are stored securely and accessed only during verification.</p></>} />
@@ -37,7 +50,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" /> How We Use Your Information
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-xs text-muted-foreground">
+            <div className="rounded-xl liquid-glass p-5 space-y-3 text-xs text-muted-foreground">
               <p><strong className="text-foreground">Service Delivery:</strong> To match you with tasks, process payments, and facilitate communication between customers and helprs.</p>
               <p><strong className="text-foreground">Safety & Trust:</strong> To verify identities, prevent fraud, enforce community guidelines, and resolve disputes.</p>
               <p><strong className="text-foreground">Notifications:</strong> To send job updates, payment confirmations, and important account alerts via push notifications and email.</p>
@@ -49,7 +62,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" /> Information Sharing
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-xs text-muted-foreground">
+            <div className="rounded-xl liquid-glass p-5 space-y-3 text-xs text-muted-foreground">
               <p><strong className="text-foreground">With Other Users:</strong> Your first name, profile photo, ratings, and reviews are visible to other users. Full contact details are only shared after a job is confirmed.</p>
               <p><strong className="text-foreground">Payment Processors:</strong> Stripe processes all payments securely under their own privacy policy.</p>
               <p><strong className="text-foreground">Legal Requirements:</strong> We may disclose information when required by law, court order, or to protect the safety of our users.</p>
@@ -61,7 +74,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
               <Lock className="w-5 h-5 text-primary" /> Data Security
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-xs text-muted-foreground">
+            <div className="rounded-xl liquid-glass p-5 space-y-3 text-xs text-muted-foreground">
               <p>We use industry-standard security measures including encryption in transit (TLS) and at rest, secure authentication, and role-based access controls to protect your data.</p>
               <p>ID documents are stored in private, encrypted storage buckets accessible only to authorized verification personnel.</p>
               <p>In-app messages are monitored to prevent sharing of personal contact information to keep transactions safe on the platform.</p>
@@ -72,7 +85,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-primary" /> Your Rights
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-xs text-muted-foreground">
+            <div className="rounded-xl liquid-glass p-5 space-y-3 text-xs text-muted-foreground">
               <p><strong className="text-foreground">Access:</strong> You can view all your personal data through your profile settings.</p>
               <p><strong className="text-foreground">Correction:</strong> You can update your profile information at any time.</p>
               <p><strong className="text-foreground">Deletion:</strong> You can request complete account and data deletion by contacting support. We will process requests within 30 days.</p>
@@ -84,7 +97,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-display font-semibold text-foreground flex items-center gap-2">
               <Cookie className="w-5 h-5 text-primary" /> Cookies & Tracking
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3 text-xs text-muted-foreground">
+            <div className="rounded-xl liquid-glass p-5 space-y-3 text-xs text-muted-foreground">
               <p>We use essential cookies for authentication and session management. We use analytics cookies to understand how users interact with the platform.</p>
               <p>You can control cookie preferences through your browser settings, though disabling essential cookies may affect platform functionality.</p>
             </div>

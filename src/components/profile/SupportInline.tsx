@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft,
   MessageSquarePlus,
   Lightbulb,
   AlertTriangle,
@@ -17,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 type SupportCategory = "message" | "suggestion" | "report" | "help";
 
@@ -192,38 +192,36 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
   if (sent) {
     return (
-      <div className="text-center space-y-4 py-8 animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-8 h-8 text-primary" />
+      <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12 animate-in fade-in zoom-in-95 duration-300">
+        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+          <CheckCircle2 className="w-7 h-7 text-primary" />
         </div>
-        <h1 className="text-page-title text-foreground text-2xl">Message Sent!</h1>
-        <p className="text-muted-foreground">
-          Our team will review your message and get back to you soon.
-        </p>
+        <div className="space-y-1">
+          <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            Sent
+          </p>
+          <h1 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+            Message sent
+          </h1>
+          <p className="font-serif italic max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            Our team will review and get back to you soon.
+          </p>
+        </div>
         <Button variant="outline" onClick={reset}>
-          Send Another
+          Send another
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100dvh-8.5rem)] flex flex-col gap-3 overflow-hidden">
-      <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="min-w-0">
-          <h1 className="text-page-title text-foreground text-2xl leading-tight">Help & Support</h1>
-          <p className="text-xs text-muted-foreground truncate">
-            {selected ? `Sending as: ${selected.label}` : "Pick a category to get started."}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-4 pb-24">
+      <ProfileTabHeader
+        eyebrow="Concierge"
+        title="Help &amp; support"
+        meta={selected ? `Sending as: ${selected.label}` : "Pick a category to get started."}
+        onBack={onBack}
+      />
 
       {!selected ? (
         <div className="grid grid-cols-2 gap-3 shrink-0">
@@ -232,11 +230,15 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               key={c.key}
               type="button"
               onClick={() => setCategory(c.key)}
-              className="relative rounded-xl border-2 border-border bg-card hover:border-primary/40 p-4 text-left transition-all active:scale-[0.98]"
+              className="relative rounded-2xl liquid-glass hover:border-primary/40 p-4 text-left transition-all hover:-translate-y-0.5 active:scale-[0.98]"
             >
-              <div className="mb-2 text-muted-foreground">{c.icon}</div>
-              <p className="font-semibold text-sm text-foreground">{c.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center mb-2.5 text-primary">
+                {c.icon}
+              </div>
+              <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                {c.label}
+              </p>
+              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                 {c.description}
               </p>
             </button>
@@ -252,10 +254,10 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 type="button"
                 onClick={() => setCategory(c.key)}
                 aria-pressed={isActive}
-                className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 px-2 py-2 transition-all active:scale-[0.98] ${
+                className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 transition-all active:scale-[0.98] ${
                   isActive
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                    ? "border-2 border-primary bg-primary/10 text-primary"
+                    : "liquid-glass text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <div className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
@@ -275,11 +277,11 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           ref={formRef}
           key={selected.key}
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-border bg-card p-4 flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto"
+          className="rounded-2xl liquid-glass p-5 space-y-4"
         >
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label htmlFor="support-subject" className="text-xs">
-              Subject (optional)
+              Subject <span className="text-muted-foreground/60">(optional)</span>
             </Label>
             <Input
               id="support-subject"
@@ -287,11 +289,11 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Brief summary…"
               maxLength={120}
-              className="h-9"
+              className="h-10"
             />
           </div>
 
-          <div className="space-y-1 flex-1 min-h-0 flex flex-col">
+          <div className="space-y-1.5">
             <Label htmlFor="support-message" className="text-xs">
               {selected.key === "suggestion"
                 ? "Your idea *"
@@ -307,13 +309,13 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               onChange={(e) => setMessage(e.target.value)}
               placeholder={selected.messagePlaceholder}
               required
-              className="flex-1 min-h-[80px] resize-none"
+              className="min-h-[160px] resize-none text-sm leading-relaxed"
             />
           </div>
 
           {selected.key === "report" && (
-            <div className="space-y-1.5 shrink-0">
-              <Label className="text-xs">Screenshot (optional)</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Screenshot <span className="text-muted-foreground/60">(optional)</span></Label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -354,7 +356,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
           <Button
             type="submit"
-            className="w-full shrink-0"
+            className="w-full h-11"
             disabled={sending || uploadingScreenshot || !message.trim()}
           >
             {sending || uploadingScreenshot ? (

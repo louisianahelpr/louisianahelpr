@@ -221,7 +221,7 @@ const BusinessTeam = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+    <div className="min-h-screen bg-premium-page">
       <div className="container mx-auto px-5 py-6 max-w-3xl">
         <button
           onClick={() => navigate(-1)}
@@ -235,14 +235,22 @@ const BusinessTeam = () => {
             <Building2 className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-display font-bold">{business.business_name}</h1>
+            <span
+              className="font-serif italic uppercase text-[0.62rem] block"
+              style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Your team
+            </span>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <h1 className="font-display italic font-bold leading-tight" style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}>{business.business_name}</h1>
               <Badge variant="secondary" className="text-xs gap-1">
                 <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {totalSlots} of {SEAT_LIMIT} seats used · {remainingSlots} remaining
+            <p className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              {totalSlots} of {SEAT_LIMIT} seats used{" "}
+              <span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
+              {remainingSlots} remaining
             </p>
           </div>
         </div>

@@ -16,7 +16,8 @@ const ForBusiness = () => {
   usePageTitle("Helpr for Business — Louisiana Commercial Services");
 
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative min-h-screen page-warmth">
+      <div aria-hidden className="mesh-gradient-global" />
       <Navbar />
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
 
@@ -24,27 +25,25 @@ const ForBusiness = () => {
 
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 backdrop-blur text-secondary-foreground text-[11px] font-medium tracking-wide uppercase shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              For Business
+          <div className="lg:col-span-3 space-y-5">
+            <div className="flex items-center gap-3">
+              <BackButton to="/" />
+              <span className="text-display-eyebrow">For business</span>
             </div>
 
-            <div className="flex items-start gap-2">
-              <BackButton to="/" className="mt-1" />
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold leading-[1.05] text-balance">
-                The best help for{" "}
-                <span className="relative inline">
-                  <span className="relative z-10 text-primary">Louisiana businesses.</span>
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 bottom-1 h-3 bg-primary/20 -z-0 rounded"
-                  />
-                </span>
-              </h1>
-            </div>
+            <h1
+              className="font-display italic font-bold leading-[1.02] text-balance"
+              style={{
+                fontSize: "clamp(2.25rem, 5vw + 1rem, 4rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.03em",
+              }}
+            >
+              The best help for{" "}
+              <span style={{ color: "hsl(var(--burnt-sienna))" }}>Louisiana businesses.</span>
+            </h1>
 
-            <p className="text-base lg:text-lg text-muted-foreground leading-relaxed max-w-xl">
+            <p className="subhead-serif text-foreground text-lg lg:text-xl leading-relaxed max-w-xl">
               The simplest way to find, hire, and pay local pros for your business tasks.
             </p>
 
@@ -59,20 +58,23 @@ const ForBusiness = () => {
               ].map((row, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 rounded-xl border border-border/50 bg-card/50 backdrop-blur px-3 py-2.5 hover:border-primary/30 hover:bg-card transition-colors"
+                  className="liquid-glass flex items-start gap-3 px-4 py-3"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center shrink-0">
-                    <row.icon className="w-4 h-4" />
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: "hsl(var(--bark) / 0.1)" }}
+                  >
+                    <row.icon className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
-                  <p className="text-sm pt-1 leading-snug">{row.text}</p>
+                  <p className="text-sm font-sans pt-1.5 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>{row.text}</p>
                 </div>
               ))}
             </div>
 
             {/* Built for */}
-            <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card to-secondary/30 p-5">
-              <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 rounded-full bg-primary" />
+            <div className="liquid-glass p-5">
+              <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
+                <span className="w-1 h-4 rounded-full" style={{ background: "hsl(var(--burnt-sienna))" }} />
                 Built for
               </p>
               <ul className="text-xs text-muted-foreground grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
@@ -116,51 +118,70 @@ const ForBusiness = () => {
 
           {/* RIGHT — CTA card (2 cols) */}
           <div className="lg:col-span-2 lg:sticky lg:top-6">
-            <div className="relative rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 shadow-[0_20px_60px_-20px_hsl(var(--primary)/0.25)] overflow-hidden">
-              {/* Decorative accent */}
-              <div
-                aria-hidden
-                className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl"
-              />
-
+            <div className="liquid-glass relative overflow-hidden">
               <div className="relative p-6 lg:p-7">
                 <div className="text-center">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30">
-                    <Building2 className="w-7 h-7" />
+                  <div
+                    className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: "hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+                    }}
+                  >
+                    <Building2 className="w-7 h-7" strokeWidth={1.75} />
                   </div>
-                  <h2 className="text-2xl font-display font-bold mb-1.5">
-                    Get started in minutes
+                  <span className="text-display-eyebrow">Get started</span>
+                  <h2
+                    className="font-display italic font-bold mt-1.5 mb-2"
+                    style={{
+                      fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.025em",
+                    }}
+                  >
+                    Up and running in minutes.
                   </h2>
-                  <p className="text-xs text-muted-foreground mb-5">
+                  <p className="text-xs font-sans mb-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Sign up, invite your team, start posting. No sales calls.
                   </p>
 
                   <Button
-                    variant="hero"
                     size="xl"
-                    className="group w-full"
+                    className="group w-full rounded-xl"
                     onClick={() => {
                       window.location.href = "/signup?type=business";
+                    }}
+                    style={{
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px hsl(var(--bark) / 0.5)",
                     }}
                   >
                     <span>Sign up as a business</span>
                     <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
                   </Button>
 
-                  <p className="text-xs text-muted-foreground mt-3">
+                  <p className="text-xs mt-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Already have an account?{" "}
                     <a
                       href="/login"
-                      className="text-primary font-medium hover:underline"
+                      className="font-semibold hover:underline"
+                      style={{ color: "hsl(var(--bark))" }}
                     >
-                      Log in
+                      Sign in
                     </a>
                   </p>
                 </div>
 
-                <div className="mt-6 pt-5 border-t border-border/60">
-                  <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 rounded-full bg-primary" />
+                <div className="mt-6 pt-5 border-t" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+                  <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
+                    <span className="w-1 h-4 rounded-full" style={{ background: "hsl(var(--burnt-sienna))" }} />
                     Team seats
                   </p>
                   <div className="grid grid-cols-1 gap-2">

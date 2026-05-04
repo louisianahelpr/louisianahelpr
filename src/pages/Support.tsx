@@ -121,16 +121,34 @@ const SupportPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <BackButton to="/" />
-              <h1 className="text-page-title text-foreground text-2xl">
-                Support & Help Center
-              </h1>
+              <div className="flex flex-col leading-none">
+                <span
+                  className="font-serif italic uppercase text-[0.62rem]"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                >
+                  We're here to help
+                </span>
+                <h1
+                  className="font-display italic font-bold leading-tight mt-1"
+                  style={{
+                    fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Support
+                </h1>
+                <span
+                  className="font-serif italic mt-0.5 text-[0.78rem]"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  Avg reply within ~2 hours
+                </span>
+              </div>
             </div>
-            <p className="text-xs sm:text-xs text-muted-foreground mt-1 pl-12">
-              Find answers, get help, or contact our team
-            </p>
           </div>
 
-          <section className="rounded-2xl border border-border bg-card px-4 py-2.5 sm:py-3">
+          <section className="rounded-2xl liquid-glass px-4 py-2.5 sm:py-3">
             <h2 className="text-sm font-semibold text-foreground mb-2">Contact Us</h2>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               <div className="flex items-center gap-2">
@@ -168,7 +186,7 @@ const SupportPage = () => {
                   <button
                     key={c.key}
                     onClick={() => setOpenCategory(c.key)}
-                    className="rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5"
+                    className="rounded-2xl liquid-glass hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5"
                   >
                     <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${c.accent} flex items-center justify-center shrink-0`}>
                       {c.icon}
@@ -187,7 +205,7 @@ const SupportPage = () => {
             <h2 className="text-sm font-semibold text-foreground">Frequently Asked Questions</h2>
             <div className="space-y-2">
               {faqItems.map((item, i) => (
-                <details key={i} className="rounded-2xl border border-border bg-card group">
+                <details key={i} className="rounded-2xl liquid-glass group">
                   <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-foreground hover:text-primary transition-colors list-none flex items-center justify-between">
                     {item.q}
                     <span className="text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
@@ -203,7 +221,7 @@ const SupportPage = () => {
           </p>
 
           {!user && (
-            <section className="rounded-2xl border border-border bg-card p-4 text-center space-y-3">
+            <section className="rounded-2xl liquid-glass p-4 text-center space-y-3">
               <p className="text-xs text-muted-foreground">
                 Sign in to send a message directly, or email us at{" "}
                 <a href="mailto:admin@louisianahelpr.com" className="text-primary hover:underline">

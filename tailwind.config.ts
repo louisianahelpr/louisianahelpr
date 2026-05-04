@@ -14,8 +14,15 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-        display: ["Inter", "system-ui", "sans-serif"],
+        // Brand system (Louisiana Helpr, 2026):
+        //   - Display: Bodoni Moda (architectural authority — large hero headlines)
+        //   - Serif:   EB Garamond (timeless trustworthy — body text)
+        //   - Sans:    Montserrat (modern professional — UI + buttons)
+        //   - Script:  Beth Ellen (personal authentic — micro-accents / signatures)
+        sans: ["Montserrat", "system-ui", "-apple-system", "sans-serif"],
+        display: ["\"Bodoni Moda\"", "Georgia", "serif"],
+        serif: ["\"EB Garamond\"", "Georgia", "Cambria", "serif"],
+        script: ["\"Beth Ellen\"", "cursive"],
       },
       colors: {
         border: "hsl(var(--border))",

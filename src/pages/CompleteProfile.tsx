@@ -84,7 +84,7 @@ const CompleteProfile = () => {
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
     if ((profile as any).accepted_terms_at) setAcceptedPolicies(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [profile?.user_id]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
@@ -163,7 +163,7 @@ const CompleteProfile = () => {
     void refresh();
     const retry = window.setInterval(() => void refresh(), 2500);
     return () => window.clearInterval(retry);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.id, Boolean(profile), isLoading]);
 
   const recoverCompletedProfile = async () => {
@@ -348,16 +348,27 @@ const CompleteProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <div className="flex items-start justify-center px-5 py-8 sm:py-12">
+    <div className="min-h-screen page-warmth relative">
+      <div aria-hidden className="mesh-gradient-global" />
+      <div className="relative z-10 flex items-start justify-center px-5 py-8 sm:py-12 pt-[calc(env(safe-area-inset-top)+24px)]">
         <div className="w-full max-w-md pb-12">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-display font-bold text-primary">Almost there</h1>
-            <p className="mt-2 text-xs text-muted-foreground">
+          <div className="text-center mb-7">
+            <span className="text-display-eyebrow">Welcome aboard</span>
+            <h1
+              className="font-display italic font-bold leading-tight mt-2"
+              style={{
+                fontSize: "clamp(2rem, 4vw + 0.5rem, 2.75rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Almost there.
+            </h1>
+            <p className="mt-3 font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              All fields marked <span className="text-destructive">*</span> are required.
+            <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+              All fields marked <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span> are required.
             </p>
           </div>
 
@@ -522,17 +533,17 @@ const CompleteProfile = () => {
               </label>
             </div>
 
-            <label className="flex items-start gap-2.5 text-xs text-muted-foreground">
+            <label className="flex items-start gap-2.5 text-xs cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
               <Checkbox
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}
-                className="mt-0.5"
+                className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
               />
-              <span>
+              <span className="leading-relaxed">
                 I agree to the{" "}
-                <a href="/rules" target="_blank" rel="noreferrer" className="text-primary underline">platform rules</a>,{" "}
-                <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">terms</a>, and{" "}
-                <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">privacy policy</a>. <span className="text-destructive">*</span>
+                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>platform rules</a>,{" "}
+                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>terms</a>, and{" "}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>privacy policy</a>. <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span>
               </span>
             </label>
 
@@ -541,6 +552,21 @@ const CompleteProfile = () => {
               size="lg"
               className="w-full rounded-xl"
               disabled={submitting || !allComplete}
+              style={
+                allComplete && !submitting
+                  ? {
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow:
+                        "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px hsl(var(--bark) / 0.5)",
+                    }
+                  : undefined
+              }
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
               {submitting ? "Saving…" : allComplete ? "Enter app" : "Complete all items above"}

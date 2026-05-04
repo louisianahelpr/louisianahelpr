@@ -29,7 +29,7 @@ const AdminPayoutBatches = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_payout_batches");
+      const { data, error } = await supabase.rpc("get_payout_batches");
       if (error) {
         toast.error(error.message);
         return [];
@@ -86,11 +86,11 @@ const AdminPayoutBatches = () => {
 
       {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl liquid-glass p-4">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
             <p className="text-2xl font-bold text-foreground mt-1">{batches.length}</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl liquid-glass p-4">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total jobs</p>
             <p className="text-2xl font-bold text-foreground mt-1">{totalJobs}</p>
           </div>
@@ -104,7 +104,7 @@ const AdminPayoutBatches = () => {
       {isInitialLoading ? (
         <p className="text-xs text-muted-foreground">Loading payout batches…</p>
       ) : batches.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="rounded-xl liquid-glass p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
           <p className="text-xs text-muted-foreground">All payouts are settled. Nothing to send.</p>
         </div>
@@ -114,7 +114,7 @@ const AdminPayoutBatches = () => {
             const ageDays = Math.floor((Date.now() - new Date(batch.oldest_completed_at).getTime()) / 86_400_000);
             const isStale = ageDays >= 3;
             return (
-              <div key={batch.helper_id} className="rounded-xl border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div key={batch.helper_id} className="rounded-xl liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm text-foreground truncate">{batch.helper_name}</span>

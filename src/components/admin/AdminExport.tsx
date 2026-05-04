@@ -60,7 +60,7 @@ const AdminExport = () => {
       <p className="text-xs text-muted-foreground">Export platform data as CSV files for reporting, accounting, and compliance.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div className="rounded-xl liquid-glass p-5 space-y-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <Users className="w-4 h-4 text-primary" />
           </div>
@@ -72,7 +72,7 @@ const AdminExport = () => {
           </Button>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div className="rounded-xl liquid-glass p-5 space-y-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <Briefcase className="w-4 h-4 text-primary" />
           </div>
@@ -84,7 +84,7 @@ const AdminExport = () => {
           </Button>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div className="rounded-xl liquid-glass p-5 space-y-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <DollarSign className="w-4 h-4 text-primary" />
           </div>

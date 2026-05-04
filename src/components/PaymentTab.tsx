@@ -8,12 +8,11 @@ import type { Database } from "@/integrations/supabase/types";
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 interface PaymentTabProps {
-  role: string;
   earningsJobs: Job[];
   totalEarnings: number;
 }
 
-export function PaymentTab({ role: _role, earningsJobs, totalEarnings }: PaymentTabProps) {
+export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
   const [searchParams] = useSearchParams();
 
   // Surface Stripe redirect outcomes; the live status is rendered inside
@@ -31,41 +30,69 @@ export function PaymentTab({ role: _role, earningsJobs, totalEarnings }: Payment
 
   const isHelper = true;
 
+  const totalSpent = earningsJobs.length > 0 ? earningsJobs.filter(j => j.status === "completed").reduce((s, j) => s + j.budget, 0) : 0;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {isHelper && (
         <section className="space-y-2">
-          <div className="flex items-center gap-2">
-            <BanknoteIcon className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-display font-bold text-foreground">Payout Account</h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <BanknoteIcon className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Stripe Connect
+              </p>
+              <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                Payout account
+              </h2>
+            </div>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="rounded-2xl liquid-glass p-5">
             <PayoutSetupForm />
           </div>
         </section>
       )}
 
       <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-display font-bold text-foreground">Payment Summary</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <DollarSign className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Lifetime totals
+            </p>
+            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              Payment summary
+            </h2>
+          </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-2xl liquid-glass p-5">
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-secondary/30 p-3">
-              <p className="text-xs text-muted-foreground">Total Spent</p>
-              <p className="text-lg font-bold text-foreground">
-                ${earningsJobs.length > 0 ? earningsJobs.filter(j => j.status === "completed").reduce((s, j) => s + j.budget, 0).toFixed(2) : "0.00"}
+            <div>
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Total spent
+              </p>
+              <p className="font-display italic font-bold tabular-nums leading-none mt-1" style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+                ${totalSpent.toFixed(2)}
               </p>
             </div>
-            <div className="rounded-lg bg-secondary/30 p-3">
-              <p className="text-xs text-muted-foreground">Total Earned</p>
-              <p className="text-lg font-bold text-foreground">${totalEarnings.toFixed(2)}</p>
+            <div className="border-l border-border/40 pl-4">
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Total earned
+              </p>
+              <p className="font-display italic font-bold tabular-nums leading-none mt-1" style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+                ${totalEarnings.toFixed(2)}
+              </p>
             </div>
           </div>
-          <div className="mt-3 rounded-lg bg-secondary/20 border border-border p-3 flex items-center gap-3">
-            <CreditCard className="w-5 h-5 text-muted-foreground shrink-0" />
-            <p className="text-xs text-muted-foreground">Your payment methods are managed securely through Stripe during checkout.</p>
+          <div className="mt-4 rounded-xl flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
+            <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+            <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              Payment methods are managed securely through Stripe at checkout.
+            </p>
           </div>
         </div>
       </section>

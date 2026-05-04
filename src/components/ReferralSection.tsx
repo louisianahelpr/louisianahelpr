@@ -72,7 +72,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Skeleton className="h-16 rounded-xl" />
           <Skeleton className="h-16 rounded-xl" />
         </div>
-        <div className="rounded-xl border border-border bg-card p-3 space-y-2 flex-1 min-h-0">
+        <div className="rounded-xl liquid-glass p-3 space-y-2 flex-1 min-h-0">
           <Skeleton className="h-4 w-28" />
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-5/6" />
@@ -83,81 +83,91 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   }
 
   return (
-    <div className="h-full flex flex-col gap-3 overflow-y-auto overscroll-contain pb-2">
-      <p className="text-xs text-muted-foreground leading-relaxed shrink-0">
-        Invite friends — they enter your code at sign-up. When they complete their first job, <strong>you both earn $5</strong> (max 5 = $25).
-      </p>
-
-      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3 shrink-0">
-        <div className="text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Your referral code</p>
-          <p className="text-3xl font-bold font-display text-primary tracking-[0.2em] leading-none mt-2">{referralCode}</p>
-        </div>
-        <Button variant="default" size="sm" className="w-full h-10" onClick={copyCode}>
+    <div className="space-y-4 pb-24">
+      {/* Code card — hero of the page */}
+      <div className="rounded-2xl liquid-glass border-2 border-primary/30 p-6 space-y-4 text-center"
+        style={{
+          background: "radial-gradient(70% 90% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%), hsl(var(--parchment) / 0.5)",
+        }}
+      >
+        <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          Your referral code
+        </p>
+        <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "2.5rem", color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
+          {referralCode}
+        </p>
+        <Button variant="default" size="sm" className="w-full h-11" onClick={copyCode}>
           {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-          {copied ? "Copied!" : "Copy code"}
+          {copied ? "Copied" : "Copy code"}
         </Button>
-        <p className="text-[10px] text-center text-muted-foreground leading-snug">
-          Share your code with friends in any app — they enter it on the sign-up screen.
+        <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>. Up to 5 friends ($25 max).
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 shrink-0">
-        <div className="rounded-xl border border-border bg-card p-3 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <Users className="w-3.5 h-3.5 text-primary" />
-            <p className="text-lg font-bold text-foreground leading-none">{referralCount}</p>
+      {/* Stat tiles */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { icon: Users, label: "Referrals", value: String(referralCount) },
+          { icon: DollarSign, label: "Earned", value: `$${totalCredits}` },
+          { icon: Gift, label: "Available", value: `$${unredeemedCredits}` },
+        ].map(({ icon: Icon, label, value }) => (
+          <div key={label} className="rounded-xl liquid-glass p-3 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Icon className="w-3 h-3 text-primary" />
+              <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                {label}
+              </span>
+            </div>
+            <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              {value}
+            </p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Referrals</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <DollarSign className="w-3.5 h-3.5 text-primary" />
-            <p className="text-lg font-bold text-foreground leading-none">${totalCredits}</p>
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Earned</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <Gift className="w-3.5 h-3.5 text-primary" />
-            <p className="text-lg font-bold text-foreground leading-none">${unredeemedCredits}</p>
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Available</p>
-        </div>
+        ))}
       </div>
 
       {unredeemedCredits > 0 && (
-        <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-2 shrink-0">
+        <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">Cash out credits</p>
-            <p className="text-[11px] text-muted-foreground truncate">
-              {hasStripeAccount ? `$${unredeemedCredits.toFixed(2)} → Stripe` : "Connect Stripe to cash out"}
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Ready to withdraw
+            </p>
+            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+              Cash out credits
+            </p>
+            <p className="font-serif italic leading-snug truncate" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              {hasStripeAccount ? `$${unredeemedCredits.toFixed(2)} → Stripe payout account` : "Connect Stripe to cash out"}
             </p>
           </div>
-          <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-9">
+          <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-10 shrink-0">
             {cashingOut ? (
-              <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> …</>
+              <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Cashing out</>
             ) : (
-              <><Banknote className="w-4 h-4 mr-1" /> ${unredeemedCredits.toFixed(2)}</>
+              <><Banknote className="w-4 h-4 mr-1.5" /> ${unredeemedCredits.toFixed(2)}</>
             )}
           </Button>
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card p-3 shrink-0">
-        <h3 className="text-xs font-semibold text-foreground mb-2">How it works</h3>
-        <div className="space-y-2">
+      {/* How it works */}
+      <div className="rounded-2xl liquid-glass p-5">
+        <p className="font-serif italic uppercase mb-3" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          How it works
+        </p>
+        <div className="space-y-3">
           {[
             "Share your code with friends",
             "They enter it at sign-up",
             "They complete their first job — you both earn $5",
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="w-4 h-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center shrink-0 font-bold mt-0.5">
+            <div key={i} className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-display italic font-bold" style={{ fontSize: "0.78rem" }}>
                 {i + 1}
               </span>
-              <p className="text-xs text-muted-foreground leading-snug">{step}</p>
+              <p className="font-serif italic leading-snug pt-0.5" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
+                {step}
+              </p>
             </div>
           ))}
         </div>

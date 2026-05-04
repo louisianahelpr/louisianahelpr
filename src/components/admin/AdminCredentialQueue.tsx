@@ -42,7 +42,7 @@ const AdminCredentialQueue = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_pending_credentials");
+      const { data, error } = await supabase.rpc("get_pending_credentials");
       if (error) {
         toast.error(error.message);
         return [];
@@ -58,7 +58,7 @@ const AdminCredentialQueue = () => {
     reason?: string
   ) => {
     setBusy(`${userId}:${credential}`);
-    const { error } = await (supabase.rpc as any)("review_credential", {
+    const { error } = await supabase.rpc("review_credential", {
       _user_id: userId,
       _credential: credential,
       _decision: decision,
@@ -96,13 +96,13 @@ const AdminCredentialQueue = () => {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center text-xs text-muted-foreground">
+        <div className="rounded-2xl liquid-glass p-10 text-center text-xs text-muted-foreground">
           No pending credentials. 🎉
         </div>
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={r.user_id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div key={r.user_id} className="rounded-2xl liquid-glass p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
                   {r.avatar_url ? (

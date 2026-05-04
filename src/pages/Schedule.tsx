@@ -87,7 +87,11 @@ const Schedule = () => {
 
   return (
     <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
-      <PageHeader title="My Schedule" />
+      <PageHeader
+        eyebrow="Your week"
+        title="My Schedule"
+        meta={`${assignedJobs.length} ${assignedJobs.length === 1 ? "job" : "jobs"} on the books`}
+      />
 
       <main
         data-allow-scroll="true"
@@ -102,7 +106,7 @@ const Schedule = () => {
             </Button>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl liquid-glass p-4">
             <div className="flex items-center justify-between mb-4">
               <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}><ChevronLeft className="w-4 h-4" /></Button>
               <h2 className="font-display font-semibold text-foreground">
@@ -170,7 +174,9 @@ const Schedule = () => {
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
                 {selectedJobs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No jobs scheduled for this day.</p>
+                  <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    Nothing on the calendar for this day.
+                  </p>
                 ) : (
                   selectedJobs.map((job) => (
                     <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />

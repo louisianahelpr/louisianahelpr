@@ -35,7 +35,7 @@ export function HelperAvailabilityDisplay({ helperId }: { helperId: string }) {
   if (available.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="rounded-xl liquid-glass p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Clock className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Availability</h3>

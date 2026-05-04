@@ -7,17 +7,48 @@ import { useLocation } from "react-router-dom";
  */
 const DOCUMENT_SCROLL_ROUTES = [
   "/",
-  
+
   "/for-business",
-  
+
+  "/legal",
   "/terms",
   "/privacy",
-  "/data-rights",
-  
   "/rules",
+  "/data-rights",
+
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/browse", // guest dashboard preview
   "/support",
+
+  // Auth + onboarding flow — these now live inside AuthShell which uses
+  // document scroll (min-h-screen + natural overflow), so the html-level
+  // viewport lock would prevent the user from reaching fields below the
+  // fold (Signup is multi-step + tall on phones).
+  "/login",
+  "/signup",
+  "/signup-pending",
+  "/complete-profile",
+  "/account-pending",
+  "/account-denied",
+  "/account-banned",
+  "/forgot-password",
+  "/reset-password",
+  "/payment-success",
+
+  // In-app pages built around a tall `min-h-screen` layout. Without
+  // document scroll the html-level lock clips anything below the fold —
+  // Profile's tab list, Activity's job stream, PostJob's multi-step form,
+  // etc. Pages that have their own internal scroll container (Dashboard,
+  // Schedule, Availability, SavedHelpers, Messages) deliberately stay
+  // OFF this list so the bottom nav stays pinned.
+  "/profile",
+  "/user",        // /user/:userId
+  "/my-jobs",
+  "/my-posts",
+  "/activity",
+  "/post-job",
+  "/job-history",
+  "/business",    // /business/team
 ];
 
 const isDocumentScrollRoute = (pathname: string) => {

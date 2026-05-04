@@ -59,7 +59,7 @@ export function GroupJobHelpers({
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="rounded-xl liquid-glass p-4 space-y-3">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
         <Users className="w-4 h-4 text-primary" /> Group Job
       </h3>

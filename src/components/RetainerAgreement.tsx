@@ -54,7 +54,7 @@ export function RetainerAgreement({
 
   const createRetainer = async () => {
     if (!budget || !nextDate) return;
-    const { error } = await (supabase.from("retainer_agreements" as any) as any).insert({
+    const { error } = await supabase.from("retainer_agreements").insert({
       customer_id: customerId,
       helper_id: helperId,
       category,
@@ -76,7 +76,7 @@ export function RetainerAgreement({
   };
 
   const updateStatus = async (id: string, status: string) => {
-    await (supabase.from("retainer_agreements" as any) as any)
+    await supabase.from("retainer_agreements")
       .update({ status })
       .eq("id", id);
     toast.success(`Retainer ${status}`);
@@ -90,7 +90,7 @@ export function RetainerAgreement({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="rounded-xl liquid-glass p-4 space-y-3">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
         <CalendarHeart className="w-4 h-4 text-primary" /> Retainer with {helperName}
       </h3>

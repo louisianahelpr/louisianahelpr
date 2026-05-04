@@ -12,47 +12,97 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Prevent horizontal scrollbars from the .full-bleed nuclear margin trick.
+       Any section using .full-bleed extends to 100vw via negative -50vw
+       margins, which can spill 1-2 px past the viewport on platforms where
+       100vw includes the scrollbar width. */
+    overflow-x: hidden;
   }
 }
 
-/* Light Mode (default) */
+/* Light Mode (default) — Louisiana Helpr 2026 brand palette
+ *
+ * Earthy organic system. Warm cream parchment ground, sage green primary,
+ * burnt sienna warm accent, stormy sky muted secondary, olivewood deep
+ * grounding. All values from the user-supplied moodboards.
+ */
 :root {
-  --background: 60 11% 97%;
-  --foreground: 60 4% 16%;
-  --card: 36 14% 95%;
-  --card-foreground: 60 4% 16%;
-  --popover: 60 11% 97%;
-  --popover-foreground: 60 4% 16%;
-  --muted: 45 3% 52%;
-  --muted-foreground: 36 14% 95%;
-  --secondary: 34 18% 92%;
-  --secondary-foreground: 60 4% 16%;
-  --border: 90 9% 83%;
-  --input: 36 14% 95%;
-  --accent: 83 7% 47%;
-  --accent-foreground: 0 0% 100%;
-  --primary: 83 7% 47%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 83 7% 47%;
+  /* Named brand tokens — referenced directly by components. */
+  --parchment:    38 18% 97%;   /* paper white / alabaster — barely-warm cream
+                                    that reads as light without going pure white */
+  --ivory-sand:   36 35% 84%;   /* #E4D6C5 — surface (cards) */
+  --sand:         38 39% 76%;   /* #D6C7AD — soft border / quiet surface */
+  --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
+  --sage:         78 9% 53%;    /* #8C947D — primary accent */
+  --bark:         70 20% 33%;   /* #5E6544 — deep olive */
+  --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
+  --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
+  --stormy-sky:   198 9% 51%;   /* #78898F — secondary text */
+  --gold-warm:    38 60% 48%;   /* #C28B2E — antique gold (matches the
+                                    wrought-iron logo's fleur-de-lis finials).
+                                    SCOPED to status / prestige roles only:
+                                    Pro+Elite subscription badges, verified
+                                    flag, top-rated helpr star. Never used
+                                    for body, hover, links, or general
+                                    accents — Burnt Sienna does that work. */
+
+  /* shadcn-style aliases mapped onto the brand palette. */
+  --background:           var(--parchment);
+  --foreground:           var(--olivewood);
+  --card:                 var(--ivory-sand);
+  --card-foreground:      var(--olivewood);
+  --popover:              var(--parchment);
+  --popover-foreground:   var(--olivewood);
+  --muted:                var(--sand);
+  --muted-foreground:     var(--stormy-sky);
+  --secondary:            var(--sand);
+  --secondary-foreground: var(--olivewood);
+  --border:               38 25% 65%;
+  --input:                var(--ivory-sand);
+  --accent:               var(--burnt-sienna);
+  --accent-foreground:    0 0% 100%;
+  /* App primary = Bark (the bolder olive-green from the landing CTAs). The
+     previous --sage was muted and read washed-out next to the parchment +
+     glass surfaces. Bark gives every button, ring, and active-state badge
+     across the in-app surfaces the same authority as the marketing CTAs. */
+  --primary:              var(--bark);
+  --primary-foreground:   var(--parchment);
+  --ring:                 var(--bark);
   --success: 110 5% 65%;
   --success-foreground: 0 0% 100%;
   --warning: 33 26% 53%;
   --warning-foreground: 0 0% 100%;
   --error: 0 13% 48%;
   --error-foreground: 0 0% 100%;
-  --info: 83 7% 47%;
+  --info: 78 9% 53%;
   --info-foreground: 0 0% 100%;
   --destructive: 0 13% 48%;
   --destructive-foreground: 0 0% 100%;
-  --sidebar-background: 60 11% 97%;
-  --sidebar-foreground: 60 4% 16%;
-  --sidebar-primary: 83 7% 47%;
+  --sidebar-background:         var(--parchment);
+  --sidebar-foreground:         var(--olivewood);
+  --sidebar-primary:            var(--sage);
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 34 18% 92%;
-  --sidebar-accent-foreground: 60 4% 16%;
-  --sidebar-border: 90 9% 83%;
-  --sidebar-ring: 83 7% 47%;
+  --sidebar-accent:             var(--sand);
+  --sidebar-accent-foreground:  var(--olivewood);
+  --sidebar-border:             38 25% 65%;
+  --sidebar-ring:               var(--sage);
   --radius: 0.5rem;
+
+  /* Legacy token names kept as aliases so existing components don't need
+     a sweeping rewrite. They now resolve to the new brand palette. */
+  --ink-deep:       64 16% 12%;        /* deep Olivewood for headlines */
+  --oak-deep:       var(--olivewood);  /* dark ground (footer, scrims) */
+  --oak-foreground: var(--parchment);
+  --heritage-gold:  var(--burnt-sienna); /* warm accent role */
+  --jasper-green:   var(--bark);         /* primary CTA — deeper olive for
+                                            authority against the champagne
+                                            canvas (was --sage which read
+                                            washed-out) */
+  --jasper-deep:    var(--olivewood);    /* hover deepens further */
+  --copper:         var(--bark);         /* hairline tint */
+
+  /* Brand color tokens for third-party social marks. */
+  --facebook: 215 90% 52%;
 
   /* Premium Shadow System */
   --shadow-card-soft: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -60,6 +110,17 @@
   --shadow-card-hover: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
   --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.12);
   --shadow-elevated: 0 25px 50px rgba(0, 0, 0, 0.15);
+
+  /* Floating-card shadow stack — 3-stop, soft, restrained.
+     Used by .bento-tile, .card-floating, and the home-page job cards. */
+  --shadow-floating:
+    0 1px 2px rgba(20, 20, 18, 0.04),
+    0 8px 16px -4px rgba(20, 20, 18, 0.06),
+    0 24px 48px -12px rgba(20, 20, 18, 0.08);
+  --shadow-floating-hover:
+    0 1px 2px rgba(20, 20, 18, 0.04),
+    0 12px 24px -6px rgba(20, 20, 18, 0.08),
+    0 32px 64px -16px rgba(20, 20, 18, 0.12);
 }
 
 /* Dark Mode */
@@ -100,6 +161,8 @@
   --sidebar-border: 90 5% 28%;
   --sidebar-ring: 83 7% 47%;
 
+  --ink-deep: 60 4% 95%;
+
   --shadow-card-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-card-hover: 0 10px 15px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.12);
@@ -107,11 +170,18 @@
   --shadow-elevated: 0 25px 50px rgba(0, 0, 0, 0.35);
 }
 
-/* iOS Safe Area Support */
+/* iOS Safe Area Support
+   Use the env() value directly (0 on browsers without notches; the actual
+   inset on iOS Safari / Capacitor). The previous `max(12px, ...)` floor
+   was creating a 12 px linen sliver on every left/right edge of full-bleed
+   sections in regular browsers — that was the source of the white margins
+   around the hero photo. Per-section horizontal padding still lives on the
+   sections themselves, so no content goes flush to the viewport edge except
+   where it's intended to (the hero). */
 @supports (padding: max(0px)) {
   body {
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 
@@ -206,21 +276,29 @@ html.app-shell body {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Typography Utilities */
+/* Typography Utilities — page titles use the editorial Bodoni Moda italic
+   treatment so internal pages match the landing's typographic voice. The
+   `!important` on font-size beats the trailing Tailwind `text-2xl` that
+   appears on most call sites; without it the legacy size class wins because
+   Tailwind utilities are loaded after this layer. */
 .text-page-title {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 32px;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-family: "Bodoni Moda", Georgia, serif !important;
+  font-style: italic !important;
+  font-weight: 700 !important;
+  font-size: clamp(1.4rem, 2vw + 0.4rem, 1.85rem) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.025em !important;
+  color: hsl(var(--ink-deep));
 }
 
 .text-section-title {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-family: "Bodoni Moda", Georgia, serif !important;
+  font-style: italic !important;
+  font-weight: 700 !important;
+  font-size: clamp(1.15rem, 1.5vw + 0.4rem, 1.5rem) !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.022em !important;
+  color: hsl(var(--ink-deep));
 }
 
 .text-card-title {
@@ -236,8 +314,11 @@ html.app-shell body {
   letter-spacing: 0;
 }
 
-/* Touch Target Support (HIG 44x44pt minimum) */
-button,
+/* Touch Target Support (HIG 44x44pt minimum) — scoped so it does NOT
+   inflate Radix-rendered checkboxes / radios / switches, which use
+   <button> with a role attribute and provide their own sizing. The
+   tap target is reached via the surrounding <label> instead. */
+button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
 [role="button"],
 input[type="checkbox"],
 input[type="radio"] {
@@ -302,4 +383,1053 @@ button {
 
 .animate-slide-down {
   animation: slideDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Living seal — Louisiana Verified badge slowly rotates one full turn per
+   minute. Slow enough to feel "alive" without distracting. Honors the user's
+   reduced-motion preference. */
+@keyframes seal-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.seal-spin {
+  animation: seal-rotate 60s linear infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal-spin {
+    animation: none;
+    transform: rotate(-3deg);
+  }
+}
+
+/* ----- 2026 premium surface system (Garden District Stone, restrained) ----- */
+
+/* Transparent top nav — image bleeds to the very top behind it. The
+   backdrop-filter blurs the hero photo just enough for legibility without
+   ever feeling like a card sitting on top. No border, no fill. */
+.glass-nav {
+  /* Gallery aesthetic — no more dark scrim, no more cream-on-photo state.
+     Nav sits on the alabaster page surface; a whisper-thin linen tint +
+     faint blur lets it read as a distinct material without looking like a
+     card. Single state — `.is-scrolled` only adds the gold rule + a small
+     opacity bump for stronger separation past the hero. */
+  background-color: hsl(var(--background) / 0.72);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+/* Subtle scroll-state — only kicks in once the user scrolls past the hero,
+   when the nav is over the page-warmth surface instead of the photo. Toggle
+   `.is-scrolled` on the nav element to enable. (Intentionally not wired by
+   default — we want the hero to flow uninterrupted to the top edge.) */
+.glass-nav.is-scrolled {
+  /* SCROLLED STATE — frosted glass per spec: white/80 + 12 px blur, plus a
+     full-strength Heritage Gold 1 px hairline along the bottom. The
+     gradient from the top state is overridden by this solid background. */
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px solid hsl(var(--heritage-gold));
+  box-shadow: 0 1px 0 0 hsl(var(--heritage-gold) / 0.18);
+}
+
+.dark .glass-nav.is-scrolled {
+  background: hsl(var(--background) / 0.78);
+  border-bottom: 1px solid hsl(var(--heritage-gold));
+}
+
+/* Bento tile — 32px radius. Faint copper/iron-ore hairline replaces the
+   standard grey border so edges read as warm wrought-iron. Shape is also
+   defined by the soft 3-stop floating shadow + an inner top highlight. */
+/* Glassmorphism — semi-transparent over the page mesh, 1 px light hairline,
+   heavy backdrop-blur. Reads as "etched glass floating" rather than a solid
+   card. Soft low-opacity drop shadow only (no heavy multi-stop). */
+.bento-tile {
+  position: relative;
+  border-radius: 2rem;
+  /* Glass per spec: 40% white + 12 px backdrop blur + 50% white edge. */
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  /* Effortless-float shadow — single large soft drop, very low opacity. */
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
+    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.05),
+    0 20px 40px rgba(0, 0, 0, 0.04);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bento-tile:hover {
+  transform: translateY(-4px);
+  border-color: hsla(0, 0%, 100%, 0.8);
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.85),
+    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.06),
+    0 0 0 1px hsl(var(--sage) / 0.18),
+    0 28px 56px rgba(0, 0, 0, 0.05);
+}
+
+/* Feature variant — slightly warmer base. Same border-less treatment. */
+.bento-tile-feature {
+  background:
+    linear-gradient(180deg, hsl(var(--secondary) / 0.55) 0%, hsl(var(--card)) 100%);
+}
+
+/* Floating job card — same shadow + texture treatment, tighter radius. */
+.card-floating {
+  position: relative;
+  border-radius: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
+    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.05),
+    0 20px 40px rgba(0, 0, 0, 0.04);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-floating:hover {
+  transform: translateY(-4px);
+  border-color: hsla(0, 0%, 100%, 0.8);
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.85),
+    0 0 0 1px hsl(var(--sage) / 0.18),
+    0 28px 56px rgba(0, 0, 0, 0.05);
+}
+
+/* GALLERY FRAME — substantial rounded container for the hero photograph in
+   the new 2-column gallery layout. Photo reads as a piece of art rather
+   than wallpaper. Soft 1 px copper hairline (matching bento tiles) + multi-
+   stop drop shadow that suggests it's hung on the wall. */
+.gallery-frame {
+  position: relative;
+  border-radius: 1.5rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--copper) / 0.32);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+    0 1px 2px rgba(20, 20, 18, 0.05),
+    0 12px 28px -6px rgba(20, 20, 18, 0.1),
+    0 32px 64px -16px rgba(20, 20, 18, 0.14);
+  overflow: hidden;
+}
+
+/* GLASS ISLAND — heavy frosted plate that sits OVER the hero photograph.
+   Reads as a window into the scene rather than a card on a page. Generous
+   blur, low-opacity linen tint, restrained inner highlight, deep soft shadow
+   (shadow is heavier here than .bento-tile because it's floating over a
+   photograph, not over warm linen, and needs to anchor visually). */
+.glass-island {
+  position: relative;
+  border-radius: 2rem;
+  /* Bumped surface opacity to 88 % — combined with the lighter blur below,
+     the island reads as a frosted plate but stops washing out the photo
+     behind it. Architectural scrim on the hero now does the legibility
+     job that heavy backdrop-blur was doing previously. */
+  background-color: hsl(var(--background) / 0.88);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  /* Stack: 1px white inner-stroke (full perimeter, restrained at 20%) +
+     subtle inner top highlight + bottom shadow line + deep multi-stop drop
+     shadow that anchors the island to the photograph. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 0 rgba(20, 20, 18, 0.05),
+    0 1px 2px rgba(20, 20, 18, 0.08),
+    0 24px 48px -12px rgba(20, 20, 18, 0.28),
+    0 56px 112px -24px rgba(20, 20, 18, 0.22);
+}
+
+/* Primary button — Jasper Green fill in editorial serif (Fraunces 700).
+   1px inner top-edge highlight, soft Jasper-tinted shadow. Hover deepens
+   to Forest tone and a subtle white "glint" sweeps across the surface. */
+.btn-premium {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--jasper-green));
+  color: #ffffff;
+  border: 1px solid hsl(var(--jasper-green));
+  font-family: Fraunces, Georgia, Cambria, serif;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    0 1px 2px rgba(20, 20, 18, 0.06),
+    0 8px 24px -8px hsl(var(--jasper-green) / 0.45);
+  transition: transform 0.25s ease-out,
+              box-shadow 0.25s ease-out,
+              background-color 0.4s ease-out,
+              text-shadow 0.4s ease-out;
+}
+
+.btn-premium:hover {
+  background: hsl(var(--jasper-deep));
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 0 0 1px hsl(var(--jasper-green) / 0.18),
+    0 1px 2px rgba(20, 20, 18, 0.08),
+    0 12px 32px -8px hsl(var(--jasper-deep) / 0.55);
+  transform: translateY(-1px);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 1px 2px rgba(20, 20, 18, 0.08),
+    0 1px 2px rgba(20, 20, 18, 0.06);
+}
+
+/* Outline counterpart — same restraint, paper surface. */
+.btn-premium-outline {
+  position: relative;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(20, 20, 18, 0.04),
+    0 8px 16px -8px rgba(20, 20, 18, 0.08);
+  transition: transform 0.2s ease-out,
+              box-shadow 0.2s ease-out,
+              border-color 0.2s ease-out;
+}
+
+.btn-premium-outline:hover {
+  border-color: hsl(var(--primary));
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+    0 1px 2px rgba(20, 20, 18, 0.06),
+    0 12px 24px -8px rgba(20, 20, 18, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Oversized fluid display headline — used for the marquee marketing headers.
+   Editorial serif (Fraunces) on near-black `--ink-deep`. Body text stays
+   warm-charcoal `--foreground`; only headlines reach for the deep ink. */
+.text-display-xl {
+  /* Section H2 — Bodoni Moda 700 italic. Lighter weight + italic style
+     keeps section headings distinct from the hero H1 (which uses inline
+     Bodoni 900 upright) so the page has clear typographic hierarchy.
+     Italic full-text reads as editorial print rather than display tech. */
+  font-family: "Bodoni Moda", Georgia, serif;
+  font-size: clamp(2.25rem, 4vw + 0.75rem, 3.5rem);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: hsl(var(--ink-deep));
+}
+
+/* "Blueprint label" — tiny EB Garamond small-caps in Burnt Sienna for step
+   numbers and category eyebrows. Reads like an architect's drawing label or
+   the date line in a journal rather than a web tagline. */
+.text-display-eyebrow {
+  display: inline-block;
+  font-family: "EB Garamond", Georgia, Cambria, serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--burnt-sienna));
+}
+
+/* Hide scrollbars on horizontal carousels (jobs preview, etc.). */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* ----- Texture surfaces (asset-free) ----- */
+
+/* Warm "stone" texture for category bento tiles — radial warmth gradient
+   layered with subtle SVG turbulence noise via background-blend-mode. No
+   asset dependency, no overlay element. Reads as cut linen/stone, not flat. */
+.bg-stone-texture {
+  background-color: hsl(var(--card));
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.27 0 0 0 0 0.26 0 0 0 0 0.24 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse 120% 80% at 30% 0%, hsl(var(--secondary) / 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 70% at 85% 100%, hsl(var(--secondary) / 0.35) 0%, transparent 65%);
+  background-blend-mode: multiply, normal, normal;
+  background-size: 160px 160px, auto, auto;
+}
+
+/* Linen surface for the "How it works" section — now treated as a frosted
+   glass layer rather than a tinted block. Subtle noise still adds grain,
+   but the warm tan tint is dropped almost entirely so the panel reads as
+   a soft pane of glass over the parchment + mesh-gradient. */
+.section-linen {
+  background-color: hsla(0, 0%, 100%, 0.28);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid hsla(0, 0%, 100%, 0.5);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.27 0 0 0 0 0.26 0 0 0 0 0.24 0 0 0 0.025 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 220px 220px;
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.65),
+    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02),
+    0 12px 36px -8px rgba(0, 0, 0, 0.04);
+}
+
+/* Ghost CTA — frosted-blur secondary button. Reads as a separate material
+   without competing with the sage-filled primary. */
+.btn-ghost-blur {
+  position: relative;
+  background-color: hsl(var(--background) / 0.4);
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border) / 0.55);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(20, 20, 18, 0.04),
+    0 8px 16px -8px rgba(20, 20, 18, 0.08);
+  transition: transform 0.2s ease-out,
+              background-color 0.2s ease-out,
+              border-color 0.2s ease-out,
+              box-shadow 0.2s ease-out;
+}
+
+.btn-ghost-blur:hover {
+  background-color: hsl(var(--background) / 0.6);
+  border-color: hsl(var(--border));
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+    0 1px 2px rgba(20, 20, 18, 0.06),
+    0 12px 24px -8px rgba(20, 20, 18, 0.12);
+}
+
+.btn-ghost-blur:active {
+  transform: translateY(0);
+}
+
+/* Estate-pressed effect — applied to the Navbar logo (icon + wordmark) so
+   the mark reads as debossed/embossed into the header rather than printed
+   on top. The 1px white drop-shadow below catches an imagined overhead
+   light source, the matching 1px dark inset on top gives the recess depth.
+   Restraint-compatible: it's one effect, not stacked. */
+.estate-pressed-icon {
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55))
+    drop-shadow(0 -0.5px 0 rgba(20, 20, 18, 0.18));
+}
+
+.estate-pressed-text {
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45),
+    0 -0.5px 0 rgba(20, 20, 18, 0.12);
+}
+
+/* Nuclear full-bleed — escapes any parent padding by anchoring the element
+   to the viewport edges via negative -50vw margins. Use sparingly (hero only).
+   Combined with body { overflow-x: hidden } so the trick can't cause a
+   horizontal scroll on platforms where 100vw includes the scrollbar width. */
+.full-bleed {
+  position: relative;
+  width: 100vw;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  left: 50%;
+  right: 50%;
+}
+
+/* Image-rendering hints for the hero. Tells the browser to use the
+   highest-quality scaler available — both the modern `high-quality` value
+   and the older WebKit-prefixed `-webkit-optimize-contrast` so Safari and
+   Chrome both pick the best path. Important now that the source asset is
+   1376w native and gets upscaled on retina laptops. */
+.img-crisp {
+  image-rendering: high-quality;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Editorial serif italic for subheadlines that sit under the Fraunces 900
+   display headlines. The contrast (900 upright vs 500 italic) gives the
+   page a magazine-spread feel. */
+.subhead-serif {
+  font-family: "EB Garamond", Georgia, Cambria, serif;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Beth Ellen handwritten signature — restrained, used for micro-accents
+   ("personal & authentic" tone). Never use as body copy. */
+.signature {
+  font-family: "Beth Ellen", cursive;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+/* Editorial pull quote — large EB Garamond italic, centered, no card chrome.
+   Print-era typographic flourish. Used between sections to break the page
+   rhythm with a human voice. text-wrap: balance keeps line ends elegant. */
+.editorial-quote {
+  font-family: "EB Garamond", Georgia, Cambria, serif;
+  font-style: italic;
+  font-weight: 400;
+  /* Reduced ~30 % from the previous 1.875–3rem. Compact pull quote that
+     fits cleanly beside the FAQ in the side-by-side Trust Center layout. */
+  font-size: clamp(1.3rem, 2.1vw + 0.5rem, 2.1rem);
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: hsl(var(--olivewood));
+  text-wrap: balance;
+}
+
+/* Liquid glass surface — frosted parchment over the page bg. Heavy backdrop
+   blur + saturation for the Apple "liquid glass" depth. White inner stroke
+   + soft drop shadow give physical weight. Use on stat cards, frosted CTAs,
+   anywhere a card needs to "lift" off the parchment. */
+.liquid-glass {
+  background-color: hsla(0, 0%, 100%, 0.42);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid hsla(0, 0%, 100%, 0.55);
+  border-radius: 1.5rem;
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
+    0 1px 2px hsl(var(--olivewood) / 0.04),
+    0 12px 24px -6px hsl(var(--olivewood) / 0.08),
+    0 28px 56px -14px hsl(var(--olivewood) / 0.1);
+}
+
+/* Glass-panel utility — single source of truth for liquid-glass surfaces
+   across web + native (Capacitor) builds. Shares the exact same blur,
+   border, and shadow stops as `.liquid-glass` so the dashboard, the
+   TestFlight app's panes, dialogs, and any new surfaces all read as
+   one consistent material. Use this when you'd otherwise inline 4-5
+   style props on a div. */
+.glass-panel {
+  background-color: hsla(0, 0%, 100%, 0.42);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid hsla(0, 0%, 100%, 0.55);
+  border-radius: 1.5rem;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.06),
+    0 1px 2px hsl(var(--olivewood) / 0.06),
+    0 14px 30px -8px hsl(var(--olivewood) / 0.14),
+    0 36px 64px -16px hsl(var(--olivewood) / 0.18);
+}
+
+/* Subtle paper-like depth for empty-state surfaces — barely-there
+   radial verdigris-tinted gradient + a fine warm-charcoal pinpoint
+   pattern. Together they read as light falling on a subtly-textured
+   linen panel — keeps the surface alive even when the list is short
+   and the panel is mostly empty. Layered on top of the
+   `.liquid-glass` background, so call sites just add this class. */
+.glass-paper-mesh {
+  background-image:
+    /* Tiny pinpoint dots — 1px stipple, barely visible up close, gives
+       the surface a calm "pressed linen" texture when glanced at. */
+    radial-gradient(circle at 1px 1px, hsl(var(--olivewood) / 0.045) 0.6px, transparent 1.2px),
+    /* Verdigris-tinted radial in the upper-left corner. */
+    radial-gradient(80% 60% at 12% 8%, hsla(165, 18%, 92%, 0.55) 0%, transparent 60%),
+    /* Warm sand radial in the lower-right corner. */
+    radial-gradient(60% 50% at 92% 95%, hsla(38, 35%, 88%, 0.4) 0%, transparent 65%),
+    /* Soft white center bloom. */
+    radial-gradient(40% 35% at 50% 50%, hsla(0, 0%, 100%, 0.18) 0%, transparent 70%);
+  background-size: 14px 14px, 100% 100%, 100% 100%, 100% 100%;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   GLOBAL liquid-glass for `bg-card` surfaces
+   ─────────────────────────────────────────────────────────────────
+   The user asked to see what an everywhere-liquid-glass app feels
+   like. Rather than refactoring 100+ component files, we promote
+   the existing `bg-card` utility to a glass surface. `:where()`
+   gives this rule zero specificity so any explicit override
+   (popover/tooltip/dialog with `bg-popover` etc.) still wins.
+
+   IMPORTANT scope decisions:
+   - Tooltips / popovers / dropdown menus use `--popover`, not
+     `--card`, so they keep their solid background — important
+     for legibility on hover-only chrome.
+   - AlertDialog / Dialog / Sheet content surfaces ALSO use
+     `--popover` via shadcn's defaults, so they're unaffected.
+   - Toast / Sonner notifications have their own bg utilities.
+   - Inputs / textareas / selects use `--input`, not `--card`. */
+:where(.bg-card) {
+  background-color: hsla(0, 0%, 100%, 0.42);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border-color: hsla(0, 0%, 100%, 0.55);
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
+    0 1px 2px hsl(var(--olivewood) / 0.04),
+    0 12px 24px -6px hsl(var(--olivewood) / 0.08),
+    0 28px 56px -14px hsl(var(--olivewood) / 0.1);
+}
+
+/* Keep the bento-tile feature card opaque — it's already glass-y
+   internally and double-glassing it muddies the icon contrast. */
+:where(.bento-tile-feature),
+:where(.section-linen) {
+  /* explicit reset (zero-specificity rule above already loses, but
+     this makes the intent obvious to a reader). */
+}
+
+.liquid-glass-hover {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liquid-glass-hover:hover {
+  transform: translateY(-3px);
+  border-color: hsla(0, 0%, 100%, 0.7);
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.85),
+    0 0 0 1px hsl(var(--sage) / 0.18),
+    0 1px 2px hsl(var(--olivewood) / 0.06),
+    0 16px 32px -6px hsl(var(--olivewood) / 0.12),
+    0 36px 72px -16px hsl(var(--olivewood) / 0.15);
+}
+
+/* Category marquee — continuous left-scroll loop. The track contains the
+   list of pills duplicated twice; animating translateX from 0 to -50%
+   creates a seamless loop because the second copy reaches the viewport
+   exactly when the first copy ends. Pauses on hover. Reduced-motion
+   skips the animation entirely. */
+@keyframes category-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.category-marquee {
+  display: flex;
+  width: max-content;
+  animation: category-marquee-scroll 40s linear infinite;
+}
+
+/* Subtle vertical float on the wrapper — composes cleanly with the
+   horizontal scroll on the inner track because they're on separate
+   elements. Both pause on hover via the parent container. */
+.category-marquee-float {
+  animation: category-marquee-float 6s ease-in-out infinite alternate;
+}
+
+@keyframes category-marquee-float {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+.category-marquee-container:hover .category-marquee-float {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-marquee-float {
+    animation: none;
+  }
+}
+
+.category-marquee-container:hover .category-marquee {
+  animation-play-state: paused;
+}
+
+/* Soft fade at the left + right edges so pills don't hard-cut at the
+   container border — they appear to drift in and out of the visible area.
+   Wider fade zone (12 % / 88 %) hides any clipping of pill drop shadows
+   at the container edges. Vertical padding gives shadows room. */
+.category-marquee-container {
+  padding-block: 1rem;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 12%,
+    black 88%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 12%,
+    black 88%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-marquee {
+    animation: none;
+  }
+}
+
+/* Scroll-stagger fade-up — elements enter the viewport with a soft upward
+   shift + opacity rise. Toggled by the `is-visible` class which the
+   useScrollFadeUp hook adds via IntersectionObserver. Per-element stagger
+   is set inline via `style={{ transitionDelay: '${i * 60}ms' }}`. */
+.observe-fade-up {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.observe-fade-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .observe-fade-up {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* FAQ accordion item — uses native <details>/<summary>. Removes default
+   browser chevron, adds our own + a smooth open/close. Border + spacing
+   live on the parent .faq-list. */
+.faq-item {
+  list-style: none;
+  border-bottom: 1px solid hsl(var(--olivewood) / 0.12);
+}
+
+.faq-item:last-child {
+  border-bottom: none;
+}
+
+.faq-item > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  user-select: none;
+}
+
+.faq-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item > summary::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-right: 1.5px solid hsl(var(--bark));
+  border-bottom: 1.5px solid hsl(var(--bark));
+  transform: rotate(45deg);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.faq-item[open] > summary::after {
+  transform: rotate(-135deg);
+  margin-bottom: -4px;
+}
+
+.faq-item > .faq-answer {
+  padding: 0 0 1.25rem 0;
+}
+
+/* Liquid-fill hover — a deeper-tone wash pours across the button face from
+   left to right when hovered. Replaces the previous glint sweep / color
+   step. The label stays positioned via z-index above the fill. */
+.btn-liquid-fill {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-liquid-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--bark));
+  transform: translateX(-101%);
+  transition: transform 0.55s cubic-bezier(0.7, 0, 0.3, 1);
+  z-index: -1;
+}
+
+.btn-liquid-fill:hover::before {
+  transform: translateX(0);
+}
+
+/* Liquid pulse — inner white glow appears on hover, paired with the
+   left-to-right Bark wash. Subtle "pressing into glass" feel. */
+.btn-liquid-fill {
+  transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-liquid-fill:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+    inset 0 0 16px rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 12px 32px -8px hsl(var(--bark) / 0.35);
+}
+
+/* Mesh gradient — multiple soft radial washes that drift slowly. The
+   "moving liquid" mood for the page background, restrained colors so it
+   never distracts from content. Honors prefers-reduced-motion. */
+/* Global mesh — sits FIXED behind every section so glass cards have motion
+   to refract no matter where the user scrolls. Lower opacity than the
+   hero-internal mesh; subtle enough to never compete with content. */
+.mesh-gradient-global {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  /* Champagne flow — soft linear gradient from warm white (#F5F5F0) to
+     soft sand (#E8E2D9). Replaces the previous radial tan glow that was
+     reading as "spotlight." Desaturated 20 % overall — the olive + white
+     glass cards now have proper contrast against this calmer canvas. */
+  background: linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+  z-index: 0;
+}
+
+/* Status-pill pulse glow — breathing white halo + faint green ring that
+   expands and fades. Reads as a "live" heartbeat without being noisy. */
+@keyframes status-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 22px rgba(255, 255, 255, 0.5),
+      0 0 0 0 hsl(120, 50%, 55%, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 1px 2px rgba(46, 47, 34, 0.06);
+  }
+  50% {
+    box-shadow:
+      0 0 38px rgba(255, 255, 255, 0.85),
+      0 0 0 8px hsl(120, 50%, 55%, 0),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 1px 2px rgba(46, 47, 34, 0.06);
+  }
+}
+
+.status-pill-glow {
+  animation: status-glow-pulse 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-pill-glow {
+    animation: none;
+  }
+}
+
+/* Phone float animations — three different durations per phone so the
+   trio bobs at different speeds, like floating in water. Composes with
+   each phone's static rotation because they're applied on a wrapper. */
+@keyframes phone-float-a {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes phone-float-b {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+@keyframes phone-float-c {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.phone-float-a {
+  animation: phone-float-a 5.5s ease-in-out infinite;
+}
+
+.phone-float-b {
+  animation: phone-float-b 7.5s ease-in-out infinite;
+}
+
+.phone-float-c {
+  animation: phone-float-c 6.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-float-a,
+  .phone-float-b,
+  .phone-float-c {
+    animation: none;
+  }
+}
+
+/* (Auto-shimmer pseudo-element removed — was acting as a "film" over the
+   primary button, dulling the true bark color. Hover still triggers the
+   liquid fill via .btn-liquid-fill::before.) */
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-gradient-global {
+    animation: none;
+  }
+}
+
+.mesh-gradient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Hero-internal mesh — desaturated 50 % from the previous boosted version.
+     Just a faint warm wash on the right side; the global mesh already pins
+     the dominant glow in the top-right corner. */
+  background:
+    radial-gradient(at 95% 18%, hsl(var(--burnt-sienna) / 0.09) 0px, transparent 50%),
+    radial-gradient(at 88% 32%, hsl(var(--sand) / 0.18) 0px, transparent 55%);
+  filter: blur(60px);
+  animation: mesh-drift 28s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+@keyframes mesh-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-20px, 16px, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(18px, -10px, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-gradient {
+    animation: none;
+  }
+}
+
+/* Bookmark "pop" — small spring scale when a user toggles save on a job
+   card. The component re-keys the icon by isSaved boolean, so this anim
+   replays on every toggle. */
+@keyframes bookmark-pop {
+  0% { transform: scale(0.6); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.bookmark-pop {
+  animation: bookmark-pop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bookmark-pop {
+    animation: none;
+  }
+}
+
+/* Boosted shimmer — slow horizontal sweep using gold-warm. Reads as
+   "promoted/premium" without bloom. Distinct rhythm from urgent-pulse
+   so the two effects don't read as the same signal. */
+@keyframes boosted-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.boosted-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--gold-warm) / 0.20) 0%,
+    hsl(var(--gold-warm) / 0.42) 50%,
+    hsl(var(--gold-warm) / 0.20) 100%
+  );
+  background-size: 200% 100%;
+  animation: boosted-shimmer 2.8s linear infinite;
+}
+/* Companion scale pulse for the boosted badge — slower than urgent
+   (2.4s vs 1.6s) and gentler amplitude so the two motions read as
+   distinct signals rather than competing. */
+@keyframes boosted-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(var(--gold-warm) / 0.55);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 5px hsl(var(--gold-warm) / 0);
+  }
+}
+.boosted-pulse {
+  animation:
+    boosted-shimmer 2.8s linear infinite,
+    boosted-pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .boosted-shimmer,
+  .boosted-pulse {
+    animation: none;
+    background-image: linear-gradient(90deg, hsl(var(--gold-warm) / 0.22), hsl(var(--gold-warm) / 0.32));
+  }
+}
+
+/* Urgent pulse — gentle heartbeat on the urgent chip so it reads as
+   "live" without strobing or glowing. Scale + opacity only, no shadow
+   bloom. Restraint over effects. */
+@keyframes urgent-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(var(--burnt-sienna) / 0.45);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 4px hsl(var(--burnt-sienna) / 0);
+  }
+}
+.urgent-pulse {
+  animation: urgent-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .urgent-pulse {
+    animation: none;
+  }
+}
+
+/* Skeleton placeholder card — champagne-tinted glass surface. The
+   shimmer animation lives on the inner <Skeleton> children, NOT on
+   this parent — overlapping sweeps were reading as "weird lines"
+   crossing the card during refresh. The card itself stays static. */
+.skeleton-glass {
+  background-color: hsla(0, 0%, 100%, 0.42);
+  border: 0.5px solid hsla(0, 0%, 100%, 0.55);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+}
+
+/* Ambient sparkle — single drifting Burnt-Sienna pinpoint moves slowly
+   diagonally across the dashboard background once per minute. Not in any
+   one place, just an "atmosphere" cue that the page is alive. */
+@keyframes ambient-sparkle {
+  0%   { opacity: 0; transform: translate3d(-10vw, -10vh, 0) scale(0.6); }
+  10%  { opacity: 0.8; }
+  50%  { opacity: 0.6; }
+  90%  { opacity: 0.5; }
+  100% { opacity: 0; transform: translate3d(110vw, 110vh, 0) scale(1.1); }
+}
+.ambient-sparkle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: hsl(var(--burnt-sienna));
+  filter: blur(0.5px);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  animation: ambient-sparkle 60s linear infinite;
+  box-shadow: 0 0 8px hsl(var(--burnt-sienna) / 0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-sparkle { display: none; }
+}
+
+/* Status-tier gold treatments — used by Pro / Elite subscription
+   badges and by earned prestige (Top Rated, Elite Helpr). Matches the
+   wrought-iron logo's gold finials. Burnt-Sienna text for contrast on
+   the warm background; gold border + faint inner gradient. */
+.tier-gold-pro {
+  background: linear-gradient(135deg, hsl(var(--gold-warm) / 0.2), hsl(var(--gold-warm) / 0.08));
+  color: hsl(var(--ink-deep));
+  border: 1px solid hsl(var(--gold-warm) / 0.55);
+  box-shadow: inset 0 1px 0 0 hsla(0, 0%, 100%, 0.25), 0 1px 1.5px hsl(var(--gold-warm) / 0.18);
+}
+
+.tier-gold-elite {
+  background: linear-gradient(135deg, hsl(var(--gold-warm) / 0.28), hsl(var(--gold-warm) / 0.12));
+  color: hsl(var(--ink-deep));
+  border: 1px solid hsl(var(--gold-warm) / 0.7);
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.3),
+    0 1px 2px hsl(var(--gold-warm) / 0.25),
+    0 4px 10px -3px hsl(var(--gold-warm) / 0.3);
+}
+
+.tier-gold-soft {
+  background: hsl(var(--gold-warm) / 0.1);
+  color: hsl(var(--ink-deep));
+  border: 1px solid hsl(var(--gold-warm) / 0.3);
+}
+
+/* Verified-flag affordance — small gold underline / border for the
+   "Verified" check across helpr profile pages, business pages, and
+   admin queues. Subtle so it complements the existing checkmark icon. */
+.verified-gold {
+  color: hsl(var(--gold-warm));
+}
+
+/* MobileNav FAB breathing halo — slow conic gradient rotation +
+   subtle scale pulse. Single restrained effect on the page's primary
+   "post a job" affordance. Honors prefers-reduced-motion. */
+@keyframes mobile-fab-halo-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes mobile-fab-halo-pulse {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(1.04);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.18);
+  }
+}
+.mobile-fab-halo {
+  animation:
+    mobile-fab-halo-rotate 8s linear infinite,
+    mobile-fab-halo-pulse 4.5s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-fab-halo {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* Page-level ambient warmth — applied at the Index.tsx wrapper. Adds a barely-
+   perceptible linen wash across the whole landing page so individual sections
+   read as carved out of the same paper, not pasted on a flat background. */
+.page-warmth {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% 0%, hsl(var(--secondary) / 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 100%, hsl(var(--secondary) / 0.25) 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+/* App-page surface — the equivalent of `.page-warmth` for non-landing routes
+   (Dashboard, Profile, Activity, etc.). Champagne gradient — soft warm
+   white at top-left to soft sand at bottom-right. Used by every signed-in
+   page so they share the same canvas. */
+.bg-premium-page {
+  background-color: hsl(var(--background));
+  background-image:
+    linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+  background-attachment: fixed;
 }

@@ -20,9 +20,24 @@ const PlatformRules = () => {
         <div className="max-w-2xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
             <BackButton to="/profile?tab=legal" />
-            <h1 className="text-page-title text-foreground text-2xl">Platform Rules &amp; Pricing</h1>
+            <div className="flex flex-col leading-none">
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                The fine print
+              </span>
+              <h1
+                className="font-display italic font-bold leading-tight mt-1"
+                style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                Platform Rules &amp; Pricing
+              </h1>
+              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Last updated · March 2026
+              </span>
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground pl-12">Last updated: March 2026</p>
 
           <p className="text-xs text-muted-foreground px-1">
             These rules keep Helpr safe, fair, and reliable for everyone. By using Helpr, you agree to follow these policies.

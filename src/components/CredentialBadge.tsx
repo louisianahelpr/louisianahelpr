@@ -49,17 +49,19 @@ export function CredentialBadge({
 
   const iconSize = size === "lg" ? "w-4 h-4" : size === "md" ? "w-3.5 h-3.5" : "w-3 h-3";
 
-  // Tier 1 — Both verified: gold seal of trust
+  // Tier 1 — Both verified: literal gold seal. Top prestige across the
+  // app, so it gets the heaviest gold treatment (matches the tier-gold-elite
+  // tier badge for visual consistency).
   if (licenseVerified && insuranceVerified) {
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full font-semibold border bg-gradient-to-r from-accent/30 to-accent/10 text-accent-foreground border-accent shadow-sm",
+          "inline-flex items-center rounded-full font-semibold tier-gold-elite",
           sizeCls
         )}
         title="Licensed & Insured — verified by Helpr"
       >
-        <ShieldCheck className={cn(iconSize, "fill-accent/30")} />
+        <ShieldCheck className={cn(iconSize, "verified-gold")} />
         Licensed & Insured
       </span>
     );

@@ -66,18 +66,72 @@ const SwipeableJobCard = ({
     setSwiping(false);
   };
 
+  // "Just in" pulsing dot for jobs posted in the last 30 minutes — gives
+  // browsing helprs a live signal that the marketplace is active.
+  const isJustIn = (() => {
+    const createdRaw = (job as any).created_at;
+    if (!createdRaw) return false;
+    const ageMs = Date.now() - new Date(createdRaw).getTime();
+    return ageMs > 0 && ageMs < 30 * 60 * 1000;
+  })();
+
   return (
     <div ref={containerRef} className="relative overflow-hidden rounded-2xl">
+      {isJustIn && (
+        <span
+          aria-label="Just posted"
+          className="absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full pointer-events-none"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.12)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.3)",
+          }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{
+              background: "hsl(var(--burnt-sienna))",
+              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.6)",
+            }}
+            aria-hidden
+          />
+          <span
+            className="text-[0.62rem] font-serif italic uppercase tracking-[0.16em]"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            Just in
+          </span>
+        </span>
+      )}
+      {/* Swipe-to-dismiss trail — gradient deepens from the right edge as
+          you pull left, so you feel the action growing rather than just
+          a flat tinted background. */}
       <motion.div
-        className="absolute inset-0 flex items-center justify-end pr-6 rounded-2xl bg-destructive/10"
+        className="absolute inset-0 rounded-2xl"
+        style={{
+          opacity: backgroundOpacity,
+          background:
+            "linear-gradient(to right, transparent 0%, hsl(var(--burnt-sienna) / 0.04) 40%, hsl(var(--burnt-sienna) / 0.16) 100%)",
+        }}
+      />
+      <motion.div
+        className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 rounded-2xl"
         style={{ opacity: backgroundOpacity }}
       >
         <motion.div
-          className="flex flex-col items-center gap-1"
-          style={{ scale: iconScale }}
+          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl"
+          style={{
+            scale: iconScale,
+            background: "hsl(var(--burnt-sienna) / 0.15)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.35)",
+          }}
         >
-          <X className="w-6 h-6 text-destructive" />
-          <span className="text-xs font-semibold text-destructive">Not Interested</span>
+          <X className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.5} />
+          <span
+            className="text-[0.62rem] font-serif italic uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            Not interested
+          </span>
         </motion.div>
       </motion.div>
 

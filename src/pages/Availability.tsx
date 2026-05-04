@@ -53,14 +53,27 @@ const Availability = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="font-display text-xl font-bold leading-tight text-foreground">Availability</h1>
+            <div className="flex flex-col leading-none">
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Your weekly hours
+              </span>
+              <h1
+                className="font-display italic font-bold leading-tight mt-1"
+                style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                Availability
+              </h1>
+            </div>
           </div>
 
-          <p className="text-[10.5px] leading-snug text-muted-foreground mb-1 px-1 shrink-0">
+          <p className="font-serif italic text-[0.78rem] leading-snug mb-1 px-1 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Set your weekly hours so posters can match jobs to days you're free.
           </p>
 
-          <div className="flex-1 min-h-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 rounded-xl liquid-glass overflow-hidden flex flex-col">
             {loading || !userId ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

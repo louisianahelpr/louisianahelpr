@@ -19,47 +19,53 @@ export function computeBadges(stats: {
 }): HelperBadge[] {
   const badges: HelperBadge[] = [];
 
-  // Tier badges — always first
+  // Tier badges — always first. Pro + Elite are paid prestige tiers, so
+  // they wear the antique gold (matches the wrought-iron logo finials).
+  // Basic stays neutral so the gold reads as something earned.
+  const goldBadge =
+    "border" /* color injected via inline style below */;
   if (stats.helprTier === "elite") {
     badges.push({
       key: "elite_sub",
-      label: "Elite Helpr",
-      icon: <Crown className="w-3 h-3" />,
-      color: "bg-accent/20 text-accent-foreground border border-accent/30",
+      label: "Elite",
+      icon: <Crown className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
+      color: "tier-gold-elite",
     });
   } else if (stats.helprTier === "pro" || stats.isPro) {
     badges.push({
       key: "pro",
-      label: "Pro Helpr",
-      icon: <Sparkles className="w-3 h-3" />,
-      color: "bg-primary/20 text-primary border border-primary/30",
+      label: "Pro",
+      icon: <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
+      color: "tier-gold-pro",
     });
   } else if (stats.helprTier === "basic") {
     badges.push({
       key: "basic_sub",
-      label: "Basic Helpr",
+      label: "Basic",
       icon: <Star className="w-3 h-3" />,
       color: "bg-secondary/80 text-secondary-foreground border border-border",
     });
   }
 
-  // 👑 Elite Helpr: 25+ completed jobs, 4.8+ rating, 10+ reviews
+  // 👑 Earned Elite Helpr: 25+ completed jobs, 4.8+ rating, 10+ reviews
+  // Earned-tier shares the gold treatment (it's a prestige status, just
+  // achieved via performance instead of subscription).
   if (stats.completedJobs >= 25 && stats.avgRating >= 4.8 && stats.reviewCount >= 10) {
     badges.push({
       key: "elite",
-      label: "Elite Helpr",
-      icon: <Crown className="w-3 h-3" />,
-      color: "bg-primary/15 text-primary border border-primary/20",
+      label: "Elite",
+      icon: <Crown className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
+      color: "tier-gold-elite",
     });
   }
 
-  // 🏆 Top Rated: 4.8+ rating with 3+ reviews
+  // 🏆 Top Rated: 4.8+ rating with 3+ reviews — gold-trimmed trophy.
   if (stats.avgRating >= 4.8 && stats.reviewCount >= 3) {
     badges.push({
       key: "top_rated",
       label: "Top Rated",
-      icon: <Trophy className="w-3 h-3" />,
-      color: "bg-accent/15 text-accent-foreground",
+      icon: <Trophy className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
+      color: "tier-gold-soft",
     });
   }
 

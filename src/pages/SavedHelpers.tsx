@@ -115,12 +115,35 @@ const SavedHelpers = () => {
           <div>
             <div className="flex items-center gap-2">
               <BackButton to="/profile" />
-              <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-foreground">
-                Saved Helprs
-              </h1>
+              <div className="flex flex-col leading-none">
+                <span
+                  className="font-serif italic uppercase text-[0.62rem]"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                >
+                  Your shortlist
+                </span>
+                <h1
+                  className="font-display italic font-bold leading-tight mt-1"
+                  style={{
+                    fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Saved helprs
+                </h1>
+                {helpers.length > 0 && (
+                  <span
+                    className="font-serif italic mt-0.5 text-[0.78rem]"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    {helpers.length} {helpers.length === 1 ? "helpr" : "helprs"} saved
+                  </span>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 pl-12">
-              Your favorite helprs. Send a job offer directly — they get a 24-hour window before your task opens to everyone.
+            <p className="font-serif italic text-[0.78rem] mt-1.5 pl-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              Send a job offer directly — they get a 24-hour window before your task opens to everyone.
             </p>
           </div>
           {helpers.length > 0 && (
@@ -140,7 +163,7 @@ const SavedHelpers = () => {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3 animate-pulse"
+                  className="rounded-2xl liquid-glass p-4 flex items-center gap-3 animate-pulse"
                 >
                   <div className="w-12 h-12 rounded-full bg-muted" />
                   <div className="flex-1 space-y-2">
@@ -151,17 +174,17 @@ const SavedHelpers = () => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center space-y-3">
-              <Heart className="w-10 h-10 text-muted-foreground/40 mx-auto" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {helpers.length === 0
-                    ? "No saved helprs yet"
-                    : "No matches"}
+            <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <Heart className="w-6 h-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
+                  {helpers.length === 0 ? "No saved helprs yet" : "No matches"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                   {helpers.length === 0
-                    ? "Tap the heart on any helpr's profile to save them here for fast rebooking."
+                    ? "Tap the heart on any helpr's profile to save them for fast rebooking."
                     : "Try a different search term."}
                 </p>
               </div>
@@ -178,7 +201,7 @@ const SavedHelpers = () => {
                 return (
                   <div
                     key={h.helper_id}
-                    className="rounded-2xl border border-border bg-card p-4 space-y-3 hover:shadow-sm transition-shadow"
+                    className="rounded-2xl liquid-glass p-4 space-y-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="flex items-start gap-3">
                       <Link
@@ -193,7 +216,7 @@ const SavedHelpers = () => {
                             className="w-12 h-12 rounded-full object-cover border border-border"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-display italic font-bold">
                             {initials}
                           </div>
                         )}
@@ -201,45 +224,43 @@ const SavedHelpers = () => {
                       <div className="flex-1 min-w-0">
                         <Link
                           to={`/user/${h.helper_id}`}
-                          className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                          className="font-display italic font-bold leading-tight hover:text-primary transition-colors block truncate"
+                          style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
                         >
                           {formatName(h.full_name)}
                         </Link>
-                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                           {h.completed_jobs_together > 0 && (
                             <span className="flex items-center gap-1 text-primary">
                               <Star className="w-3 h-3 fill-primary" />
-                              {h.completed_jobs_together} job
-                              {h.completed_jobs_together === 1 ? "" : "s"} together
+                              {h.completed_jobs_together} job{h.completed_jobs_together === 1 ? "" : "s"} together
                             </span>
+                          )}
+                          {h.completed_jobs_together > 0 && h.last_job_at && (
+                            <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                           )}
                           {h.last_job_at && (
                             <span>
-                              Last:{" "}
-                              {formatDistanceToNow(new Date(h.last_job_at), {
-                                addSuffix: true,
-                              })}
+                              Last {formatDistanceToNow(new Date(h.last_job_at), { addSuffix: true })}
                             </span>
                           )}
                         </div>
                         {h.skills && (
-                          <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-1">
+                          <p className="font-serif italic mt-1.5 line-clamp-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                             {h.skills}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2">
                       <Button
                         size="sm"
-                        onClick={() =>
-                          navigate(`/post-job?offerTo=${h.helper_id}`)
-                        }
+                        onClick={() => navigate(`/post-job?offerTo=${h.helper_id}`)}
                         className="flex-1 rounded-xl"
                       >
                         <Send className="w-3.5 h-3.5 mr-1.5" />
-                        Offer a Job
+                        Offer a job
                       </Button>
                       <Button
                         size="sm"

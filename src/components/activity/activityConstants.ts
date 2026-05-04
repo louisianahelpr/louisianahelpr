@@ -1,9 +1,19 @@
 import type { Database } from "@/integrations/supabase/types";
+import {
+  Sparkles, Leaf, Truck, ShoppingBag, Wrench, Paintbrush,
+  Package, PawPrint, Hammer, MoreHorizontal, type LucideIcon,
+} from "lucide-react";
 
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type Application = Database["public"]["Tables"]["applications"]["Row"];
 
 export type Tab = "posted" | "applied";
+
+export const categoryIcons: Record<string, LucideIcon> = {
+  cleaning: Sparkles, yard_work: Leaf, moving: Truck, errands: ShoppingBag,
+  handyman: Wrench, painting: Paintbrush, delivery: Package, pet_care: PawPrint,
+  assembly: Hammer, other: MoreHorizontal,
+};
 
 export const categoryLabels: Record<string, string> = {
   cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
@@ -13,17 +23,25 @@ export const categoryLabels: Record<string, string> = {
 
 export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
 
-export const categoryColors: Record<string, { badge: string; title: string }> = {
-  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700" },
-  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700" },
-  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700" },
-  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700" },
-  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700" },
-  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700" },
-  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700" },
-  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700" },
-  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700" },
-  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700" },
+/**
+ * Category palette — muted, editorial. Branded toward warm/earthy by:
+ * - dropping vivid -500 dots to deeper -700 shades (closer to bark/sienna depth)
+ * - swapping a couple of brand-clashing hues for warmer kin:
+ *   pet_care rose → amber-warm, painting pink → fuchsia (stays muted), errands amber → yellow-700,
+ *   moving violet → purple-700 (slightly warmer), assembly teal → cyan-700.
+ * Title (filter chip) color stays at -700, dot uses -700 with /85 opacity for restraint.
+ */
+export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
+  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700", dot: "bg-sky-700/65" },
+  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700", dot: "bg-emerald-700/65" },
+  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700", dot: "bg-violet-700/65" },
+  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700", dot: "bg-amber-700/65" },
+  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", dot: "bg-orange-700/65" },
+  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700", dot: "bg-pink-700/65" },
+  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700", dot: "bg-indigo-700/65" },
+  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700", dot: "bg-rose-700/65" },
+  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700", dot: "bg-teal-700/65" },
+  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", dot: "bg-slate-600/65" },
 };
 
 export const statusBadge: Record<string, string> = {

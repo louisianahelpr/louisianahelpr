@@ -154,7 +154,7 @@ const UserProfile = () => {
         <main className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
             <div className="h-9 w-32 rounded-xl bg-muted animate-pulse" />
-            <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
+            <div className="rounded-2xl liquid-glass p-6 text-center space-y-3">
               <div className="w-20 h-20 rounded-full bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
@@ -162,7 +162,7 @@ const UserProfile = () => {
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[1, 2, 3].map(i => (
-                <div key={i} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                <div key={i} className="rounded-xl liquid-glass p-3 space-y-2">
                   <div className="h-7 w-10 bg-muted animate-pulse mx-auto rounded" />
                   <div className="h-3 w-12 bg-muted animate-pulse mx-auto rounded" />
                 </div>
@@ -193,13 +193,13 @@ const UserProfile = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
-        title="Profile Review"
+        eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+        title={isOwnProfile ? "Profile Review" : "Profile"}
+        meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
         rightSlot={
           !isOwnProfile && currentUserId ? (
             <div className="flex items-center gap-1">
-              {profile.role === "helper" && (
-                <SaveHelperButton helperId={userId!} customerId={currentUserId} />
-              )}
+              <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 shrink-0" aria-label="More options">
@@ -207,11 +207,9 @@ const UserProfile = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {profile.role === "helper" && (
-                    <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
-                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
+                    <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
                     <Flag className="w-4 h-4 mr-2" /> Report user
                   </DropdownMenuItem>
@@ -228,7 +226,7 @@ const UserProfile = () => {
       <main className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-5">
           {/* Profile Card */}
-          <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
+          <div className="rounded-2xl liquid-glass p-6 text-center space-y-3">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-border" />
             ) : (
@@ -267,7 +265,6 @@ const UserProfile = () => {
                 </div>
               )}
               <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                {profile.role !== "customer" && <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize">{profile.role}</span>}
                 {profile.location && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
                 )}
@@ -390,7 +387,7 @@ const UserProfile = () => {
           {showReviews && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
               {reviews.length > 0 ? reviews.map((r, i) => (
-                <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                <div key={i} className="rounded-xl liquid-glass p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
@@ -434,7 +431,7 @@ const UserProfile = () => {
                   {r.feedback && <p className="text-sm text-foreground leading-relaxed">{r.feedback}</p>}
                 </div>
               )) : (
-                <div className="rounded-xl border border-border bg-card p-6 text-center">
+                <div className="rounded-xl liquid-glass p-6 text-center">
                   <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">No reviews yet</p>
                 </div>
@@ -446,7 +443,7 @@ const UserProfile = () => {
           {showPostedJobs && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
               {postedJobs.length > 0 ? postedJobs.map((job) => (
-                <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                <div key={job.id} className="rounded-xl liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
                     <p className="text-muted-foreground text-xs">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
@@ -457,7 +454,7 @@ const UserProfile = () => {
                   </div>
                 </div>
               )) : (
-                <div className="rounded-xl border border-border bg-card p-6 text-center">
+                <div className="rounded-xl liquid-glass p-6 text-center">
                   <ClipboardList className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">No posted jobs yet</p>
                 </div>
@@ -469,7 +466,7 @@ const UserProfile = () => {
           {showWorkedJobs && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
               {workedJobs.length > 0 ? workedJobs.map((job) => (
-                <div key={job.id} className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                <div key={job.id} className="rounded-xl liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{job.title}</p>
                     <p className="text-muted-foreground text-xs">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
@@ -480,7 +477,7 @@ const UserProfile = () => {
                   </div>
                 </div>
               )) : (
-                <div className="rounded-xl border border-border bg-card p-6 text-center">
+                <div className="rounded-xl liquid-glass p-6 text-center">
                   <Hammer className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">No completed jobs yet</p>
                 </div>
@@ -489,7 +486,7 @@ const UserProfile = () => {
           )}
 
           {profile.hourly_rate && (
-            <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+            <div className="rounded-xl liquid-glass p-4 flex items-center gap-3">
               <Clock className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm font-semibold text-foreground">${profile.hourly_rate}/hr</p>
@@ -499,13 +496,13 @@ const UserProfile = () => {
           )}
 
           {/* Availability */}
-          {profile.role === "helper" && <HelperAvailabilityDisplay helperId={userId!} />}
+          <HelperAvailabilityDisplay helperId={userId!} />
 
           {/* Portfolio — Pro+ only */}
-          {profile.role === "helper" && (profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
+          {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
 
           {/* Retainer */}
-          {!isOwnProfile && currentUserId && profile.role === "helper" && (
+          {!isOwnProfile && currentUserId && (
             <RetainerAgreement
               customerId={currentUserId}
               helperId={userId!}

@@ -44,7 +44,7 @@ export default function BusinessVerificationCard() {
   const { data, isInitialLoading } = useInstantQuery<Verification | null>({
     key: queryKey,
     fetcher: async () => {
-      const { data: rows, error } = await (supabase.rpc as any)("get_my_business_verification");
+      const { data: rows, error } = await supabase.rpc("get_my_business_verification");
       if (error) {
         console.error(error);
         return null;

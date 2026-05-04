@@ -56,11 +56,8 @@ const Activity = lazy(() => import("./pages/Activity"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Support = lazy(() => import("./pages/Support"));
 
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Legal = lazy(() => import("./pages/Legal"));
 const DataRights = lazy(() => import("./pages/DataRights"));
-
-const PlatformRules = lazy(() => import("./pages/PlatformRules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
@@ -140,8 +137,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/support" element={<PageTransition><Support /></PageTransition>} />
       
-      <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
-      <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+      <Route path="/legal" element={<PageTransition><Legal /></PageTransition>} />
+      <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
+      <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
       <Route path="/data-rights" element={<PageTransition><DataRights /></PageTransition>} />
       
       <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
@@ -150,7 +148,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           routes to /signup. Public web visitors can hit it too if they want
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<PageTransition><DashboardGuest /></PageTransition>} />
-      <Route path="/rules" element={<PageTransition><PlatformRules /></PageTransition>} />
+      <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
       
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
       <Route path="/availability" element={<ProtectedRoute><Availability /></ProtectedRoute>} />

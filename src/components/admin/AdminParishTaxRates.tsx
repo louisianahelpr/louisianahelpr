@@ -131,7 +131,7 @@ const AdminParishTaxRates = () => {
       </div>
 
       {/* Add new parish */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="rounded-xl liquid-glass p-4 space-y-3">
         <p className="text-sm font-semibold text-foreground">Add new parish</p>
         <div className="flex gap-2 flex-wrap">
           <Input
@@ -179,7 +179,7 @@ const AdminParishTaxRates = () => {
             const isDirty = !!edit && (edit.state_rate !== "" || edit.local_rate !== "");
 
             return (
-              <div key={rate.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div key={rate.id} className="rounded-xl liquid-glass p-4 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="font-semibold text-foreground">{rate.parish_name} Parish</p>
                   <Badge className="bg-primary/10 text-primary">

@@ -39,7 +39,7 @@ const StarRow = ({
 }) => {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+    <div className="flex items-center justify-between gap-3 rounded-lg liquid-glass p-3">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">{sublabel}</p>
@@ -245,7 +245,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="rounded-xl liquid-glass p-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -277,7 +277,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       </div>
       <div className="space-y-3">
         {reviews.map((r) => (
-          <div key={r.id} className="rounded-lg border border-border bg-card p-4">
+          <div key={r.id} className="rounded-lg liquid-glass p-4">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <div className="flex">

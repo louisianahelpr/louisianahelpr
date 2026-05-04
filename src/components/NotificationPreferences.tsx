@@ -119,13 +119,13 @@ const NotificationPreferences = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card overflow-hidden shadow-sm flex flex-col">
-      <div className="flex items-center justify-end gap-6 px-4 py-2 border-b border-border bg-muted/40 relative shrink-0">
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-2" />}
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="flex-1 min-h-0 rounded-2xl liquid-glass overflow-hidden shadow-sm flex flex-col">
+      <div className="flex items-center justify-end gap-6 px-4 py-2 border-b border-border/40 relative shrink-0" style={{ background: "hsl(var(--ivory-sand) / 0.3)" }}>
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-2.5" />}
+        <div className="flex items-center gap-1.5 font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
           <Smartphone className="w-3.5 h-3.5" /> App
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center gap-1.5 font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
           <Mail className="w-3.5 h-3.5" /> Email
         </div>
       </div>
@@ -170,10 +170,10 @@ const NotificationPreferences = () => {
         />
       </div>
 
-      <div className="flex items-start gap-2 px-4 py-2 border-t border-border bg-muted/20 shrink-0">
-        <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-[11px] text-muted-foreground leading-snug">
-          Critical security alerts (logins, disputes) cannot be disabled.
+      <div className="flex items-start gap-2 px-4 py-2.5 border-t border-border/40 shrink-0" style={{ background: "hsl(var(--ivory-sand) / 0.25)" }}>
+        <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+        <p className="font-serif italic leading-snug" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          Critical security alerts — logins, disputes — can't be turned off.
         </p>
       </div>
     </div>

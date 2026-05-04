@@ -1,125 +1,76 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Leaf,
-  Sparkles,
-  Truck,
-  Heart,
-  MapPin,
-  Wrench,
-  Paintbrush,
-  Package,
-  PawPrint,
-  Hammer,
-  ShoppingBag,
-  MoreHorizontal,
-  ArrowRight,
-  Search,
-} from "lucide-react";
-import { getCityState } from "@/lib/locationUtils";
-import heroImg400 from "@/assets/hero-porch-garden-400.webp";
-import heroImg500 from "@/assets/hero-porch-garden-500.webp";
-import heroImg600 from "@/assets/hero-porch-garden-600.webp";
-import heroImg700 from "@/assets/hero-porch-garden-700.webp";
-import heroImg800 from "@/assets/hero-porch-garden-800.webp";
-import heroImg1000 from "@/assets/hero-porch-garden-1000.webp";
-import heroImg1500 from "@/assets/hero-porch-garden-1500.webp";
-import heroImg2000 from "@/assets/hero-porch-garden-2000.webp";
+import { Sparkles, ArrowRight, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import CategoryBento from "@/components/landing/CategoryBento";
+import PhoneCluster from "@/components/landing/PhoneCluster";
 
-// Real responsive set — the browser picks the smallest variant that fits
-// display × DPR. The 2000w variant (~163 KB, re-encoded) is included so
-// retina (2x/3x) phones, tablets, and laptops can resolve crisp pixels
-// instead of upscaling the 800w/1000w file (which read as blurry).
-const heroSrcSet = `${heroImg400} 400w, ${heroImg500} 500w, ${heroImg600} 600w, ${heroImg700} 700w, ${heroImg800} 800w, ${heroImg1000} 1000w, ${heroImg1500} 1500w, ${heroImg2000} 2000w`;
-// `sizes` must describe the CSS slot width — the browser then multiplies
-// by devicePixelRatio to choose a srcset entry. Previous values capped at
-// 800px which forced 2x/3x displays to upscale (the reported blurriness).
-// Slot is roughly full viewport on phones/tablets and ~50vw on desktop.
-const heroSizes = "(max-width: 640px) calc(100vw - 48px), (max-width: 1023px) calc(100vw - 80px), 50vw";
-
-// NOTE: We intentionally do NOT inject a JS-side <link rel="preload"> here.
-// That code only runs after React's bundle parses, which is the very thing
-// we'd want to race against — by the time the preload tag exists in the DOM,
-// the browser has already discovered the <img> tag itself. The <img>'s
-// fetchpriority="high" + loading="eager" + decoding="async" attributes
-// achieve the same goal without the dead-code overhead.
-
-const categories = [
-  { icon: Leaf, label: "Yard Work" },
-  { icon: Sparkles, label: "Cleaning" },
-  { icon: Truck, label: "Moving" },
-  { icon: ShoppingBag, label: "Errands" },
-  { icon: Wrench, label: "Handyman" },
-  { icon: Paintbrush, label: "Painting" },
-  { icon: Package, label: "Delivery" },
-  { icon: PawPrint, label: "Pet Care" },
-  { icon: Hammer, label: "Assembly" },
-  { icon: Heart, label: "Senior Help" },
-  { icon: MoreHorizontal, label: "More" },
-];
-
-const CATEGORY_ICONS: Record<string, typeof Leaf> = {
-  yard_work: Leaf,
-  cleaning: Sparkles,
-  moving: Truck,
-  errands: ShoppingBag,
-  handyman: Wrench,
-  painting: Paintbrush,
-  delivery: Package,
-  pet_care: PawPrint,
-  assembly: Hammer,
-  senior_help: Heart,
-  other: MoreHorizontal,
-};
-
-type LiveJob = {
-  id: string;
-  title: string;
-  location: string;
-  budget: number;
-  category: string;
-};
-
+/**
+ * Hero — Louisiana Helpr 2026 brand system.
+ *
+ * Single-viewport composition: eyebrow + handwritten signature + Bodoni
+ * Moda H1 + EB Garamond italic subhead + two Beth Ellen action buttons
+ * are vertically centered to fit one full screen (min-h-screen + flex).
+ * No stat strip — the hero stays focused on the brand statement.
+ */
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
-  const [liveJobs, setLiveJobs] = useState<LiveJob[]>([]);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
 
+  // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
+  // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
+  // Skipped for users who prefer reduced motion.
   useEffect(() => {
-    // EVERYTHING here is deferred until after LCP. Even the auth check —
-    // it only changes the CTA label ("Post a Job" vs "Get Started"), which
-    // most visitors don't click in the first second. Pulling supabase off
-    // the eager render path lets the hero <img> paint without waiting for
-    // the 50KB supabase chunk to download + parse (Lighthouse flagged this
-    // as "element render delay" of ~2.0s).
-    const runDeferred = async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) setLoggedIn(true);
-      });
-      if (!window.matchMedia("(min-width: 640px)").matches) return;
-      supabase
-        .rpc("get_public_open_jobs", { p_limit: 3 })
-        .then(({ data }) => {
-          if (data) setLiveJobs(data as unknown as LiveJob[]);
-        });
-    };
+    if (typeof window === "undefined") return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduceMotion) return;
 
+    let raf = 0;
+    const update = () => {
+      const el = headlineRef.current;
+      if (!el) return;
+      const scroll = Math.min(window.scrollY, 600);
+      const tighten = (scroll / 600) * 0.035; // 0 -> 0.035 em over 600 px
+      el.style.letterSpacing = `${-0.025 - tighten}em`;
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Defer auth check until after first interaction (or 25 s) so the supabase
+  // chunk doesn't block LCP. CTA handlers re-fetch session inline, so this
+  // only changes optimistic logged-in routing for the first click.
+  useEffect(() => {
     let kicked = false;
-    let fallback: number | undefined;
     const kick = () => {
       if (kicked) return;
       kicked = true;
       window.removeEventListener("pointerdown", kick);
       window.removeEventListener("keydown", kick);
       window.removeEventListener("touchstart", kick);
-      void runDeferred();
+      void (async () => {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user) setLoggedIn(true);
+      })();
     };
     window.addEventListener("pointerdown", kick, { once: true, passive: true });
     window.addEventListener("keydown", kick, { once: true, passive: true });
     window.addEventListener("touchstart", kick, { once: true, passive: true });
-    fallback = window.setTimeout(kick, 25000);
+    const fallback = window.setTimeout(kick, 25000);
 
     return () => {
       window.removeEventListener("pointerdown", kick);
@@ -135,158 +86,233 @@ const HeroSection = () => {
       return;
     }
     const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     navigate(session?.user ? "/post-job" : "/signup");
   };
 
-  const goToBrowseJobs = async () => {
+  const goToJoinCommunity = async () => {
     if (loggedIn) {
       navigate("/dashboard");
       return;
     }
-    const el = document.getElementById("open-jobs");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    else navigate("/#open-jobs");
+    const { supabase } = await import("@/integrations/supabase/client");
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    navigate(session?.user ? "/dashboard" : "/signup");
   };
 
   return (
-    <section
-      className="relative w-full max-w-full pt-20 sm:pt-24 lg:pt-28 pb-0 flex flex-col min-h-screen min-h-[100dvh] overflow-hidden"
-    >
-      {/* MAIN: single column on phone & iPad, split-screen on desktop */}
-      <div className="flex-1 w-full min-w-0 grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-2 items-stretch pb-4 sm:pb-6 lg:pb-14">
-        {/* LEFT: copy + CTAs — vertically centered against image, bottom aligned to image bottom */}
-        <div className="min-w-0 max-w-full animate-fade-in px-6 sm:px-10 lg:pl-24 xl:pl-32 lg:pr-8 text-center lg:text-left lg:pt-0 flex flex-col lg:justify-center">
-          <div className="w-full max-w-2xl mx-auto lg:mx-0 flex flex-col gap-3 sm:gap-4 lg:gap-8">
-            {/* TOP cluster — copy + categories */}
-            <div className="flex flex-col gap-3 sm:gap-3 lg:gap-8">
-              {/* Eyebrow — Louisiana stamp */}
-              <div className="inline-flex max-w-full self-center lg:self-start items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 backdrop-blur border border-primary/20 text-primary text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="truncate">Made in Louisiana, for Louisiana</span>
-              </div>
-
-              {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl md:text-[3.25rem] lg:text-[4.5rem] xl:text-[5rem] font-display font-bold text-foreground leading-[1.02] tracking-tight text-balance break-words">
-                Your local{" "}
-                <span className="relative inline-block align-baseline">
-                  <span className="relative z-10 text-primary">task partner.</span>
-                  <span
-                    aria-hidden
-                    className="absolute left-0 right-0 bottom-1 h-3 sm:h-4 lg:h-6 bg-primary/20 -z-0 rounded"
-                  />
-                </span>
-              </h1>
-
-              {/* Subhead */}
-              <p className="text-base sm:text-lg text-foreground/75 font-medium leading-snug max-w-xl mx-auto lg:mx-0 lg:text-xl font-sans">
-                Hire a Helpr or find local work. Your trusted Louisiana partner for everyday tasks.
-              </p>
-
-              {/* Category pills */}
-              <div className="relative w-full">
-                <div
-                  className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide snap-x snap-mandatory"
-                  style={{ touchAction: "pan-x" }}
-                >
-                  <div className="flex min-w-max gap-3 pb-2 pr-8">
-                    {categories.map((c) => (
-                      <button
-                        key={c.label}
-                        type="button"
-                        onClick={goToPostJob}
-                        className="group inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 min-h-[44px] rounded-full bg-card/80 backdrop-blur border border-border/60 text-sm lg:text-base font-medium text-foreground shadow-sm hover:border-primary/50 hover:bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap shrink-0 snap-start"
-                      >
-                        <c.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary group-hover:scale-110 transition-transform" />
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
-                />
-              </div>
-            </div>
-
-            {/* BOTTOM: CTAs grouped tightly under the content stack — centered on mobile/iPad */}
-            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch justify-center gap-3 lg:gap-4 w-full max-w-md sm:max-w-2xl lg:max-w-xl mx-auto lg:mx-0">
-              <Button
-                size="xl"
-                className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/95 hover:shadow-[0_16px_40px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={goToPostJob}
-              >
-                <Sparkles className="mr-2 w-5 h-5" />
-                Post a job
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-              </Button>
-              <Button
-                variant="outline"
-                size="xl"
-                className="group w-full h-12 sm:h-13 lg:h-16 px-6 lg:px-8 rounded-xl text-base lg:text-lg font-semibold tracking-tight bg-card border-2 border-primary/40 text-primary shadow-[0_8px_24px_-10px_hsl(var(--primary)/0.35)] hover:bg-primary/5 hover:border-primary hover:shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={goToBrowseJobs}
-              >
-                <Search className="mr-2 w-5 h-5" />
-                Browse jobs
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT: full-bleed image — full width on phone & tablet, locked to right edge on desktop.
-            Min-heights at every breakpoint reserve the actual rendered slot so the
-            page doesn't jolt when the image swaps in (avoids CLS). */}
-        <div className="relative min-w-0 max-w-full mt-4 sm:mt-6 lg:mt-0 self-stretch flex-1 lg:flex-none flex items-stretch lg:items-center justify-center lg:justify-end px-6 sm:px-10 lg:px-0 min-h-[20rem] sm:min-h-[26rem] md:min-h-[30rem] lg:min-h-[36rem]">
-          <div className="relative w-full aspect-square sm:aspect-[4/3] lg:aspect-auto lg:w-full lg:h-full lg:min-h-[36rem]">
-            <img
-              src={heroImg1000}
-              srcSet={heroSrcSet}
-              sizes={heroSizes}
-              alt="Diverse Louisiana neighbors helping each other with everyday tasks under Spanish moss oak trees"
-              className="absolute inset-0 w-full h-full object-cover object-center lg:object-[8%_center] rounded-2xl lg:rounded-none lg:rounded-l-[2rem] shadow-2xl ring-1 ring-border/30 [image-rendering:-webkit-optimize-contrast]"
-              loading="eager"
-              {...({ fetchpriority: "high" } as React.ImgHTMLAttributes<HTMLImageElement>)}
-              decoding="async"
-              width={2000}
-              height={2000}
-            />
-            {/* Subtle left-edge fade so image meets text section softly */}
-            <div
-              aria-hidden
-              className="hidden lg:block absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background/40 to-transparent lg:rounded-l-[2rem] pointer-events-none"
-            />
-
-            {/* Floating live-job card */}
-            {liveJobs[0] && (
-              <div className="hidden sm:flex absolute bottom-6 left-6 lg:left-10 items-center gap-2.5 p-3 pr-4 rounded-xl bg-card/95 backdrop-blur border border-border shadow-xl animate-fade-in [animation-delay:600ms] opacity-0 max-w-[15rem]">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                  {(() => {
-                    const Icon = CATEGORY_ICONS[liveJobs[0].category] ?? MoreHorizontal;
-                    return <Icon className="w-4 h-4 text-primary" />;
-                  })()}
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-xs font-semibold text-foreground truncate leading-tight">
-                    {liveJobs[0].title}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate mt-0.5">
-                    <MapPin className="w-2.5 h-2.5 shrink-0" />
-                    {getCityState(liveJobs[0].location)}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-primary tabular-nums">
-                    ${Math.round(Number(liveJobs[0].budget))}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+    <section className="relative min-h-[90vh] px-5 sm:px-8 lg:px-12 pt-32 sm:pt-40 lg:pt-48 pb-16">
+      {/* Status light — proof-of-life pill anchored to the top-right of the
+          entire hero section. Pulsing glow halo (status-pill-glow) reads
+          as a "live" heartbeat for the whole platform. */}
+      <span
+        className="status-pill-glow absolute top-20 sm:top-24 lg:top-28 right-5 sm:right-8 lg:right-12 inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-mono font-medium z-10"
+        style={{
+          backgroundColor: "rgba(255, 255, 255, 0.5)",
+          color: "hsl(var(--ink-deep))",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+          backdropFilter: "blur(12px) saturate(170%)",
+          WebkitBackdropFilter: "blur(12px) saturate(170%)",
+          fontSize: "0.65rem",
+          letterSpacing: "0.01em",
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          style={{
+            backgroundColor: "hsl(120, 60%, 50%)",
+            boxShadow: "0 0 6px hsl(120, 60%, 55%, 0.6)",
+          }}
+        />
+        46 active now
+      </span>
+      {/* Mesh gradient — five drifting radial washes (cream + sage + sienna)
+          that animate slowly, giving the "liquid" page mood without
+          distracting from content. Pointer-events disabled so it never
+          blocks clicks. */}
+      <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="mesh-gradient" />
       </div>
 
+      <div
+        className="container mx-auto max-w-6xl relative w-full"
+        style={{ zIndex: 1 }}
+      >
+        {/* Asymmetric 60/40 hero — branding on the left, phone cluster on
+            the right. items-center vertically centers the phones against
+            the taller left column so they sit in the middle of the row. */}
+        <div className="grid md:grid-cols-12 gap-10 md:gap-12 lg:gap-16 items-center">
+
+          {/* LEFT 60% — branding only. Buttons moved below the marquee. */}
+          <div className="md:col-span-7">
+            <span className="text-display-eyebrow">Made in Louisiana</span>
+
+            {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
+                Letter-spacing animates on scroll. */}
+            <h1
+              ref={headlineRef}
+              className="font-display font-black leading-[1.0] text-balance mt-4 sm:mt-5 text-[2.75rem] sm:text-5xl lg:text-6xl xl:text-7xl"
+              style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+            >
+              Louisiana&rsquo;s Local Task{" "}
+              <em
+                style={{
+                  fontStyle: "italic",
+                  color: "hsl(var(--burnt-sienna))",
+                }}
+              >
+                Partner.
+              </em>
+            </h1>
+
+            {/* Subhead — open-air leading, both-sides marketplace explanation */}
+            <p
+              className="font-serif italic mt-6 sm:mt-7 max-w-xl text-lg sm:text-xl lg:text-2xl leading-relaxed text-balance"
+              style={{
+                color: "hsl(var(--stormy-sky))",
+                fontWeight: 600,
+                textShadow: "0 1px 1px rgba(46, 47, 34, 0.06)",
+              }}
+            >
+              Hire a Helpr or find local work. Whether you need a hand or
+              you&rsquo;re ready to lend one, we&rsquo;re your trusted Louisiana
+              partner for everyday tasks.
+            </p>
+
+            {/* CTAs — stacked vertically directly under the subhead. */}
+            <div className="mt-8 sm:mt-10 flex flex-col gap-3 max-w-sm">
+              <Button
+                size="xl"
+                onClick={goToPostJob}
+                className="btn-liquid-fill group h-14 sm:h-15 lg:h-16 px-7 rounded-2xl tracking-tight w-full"
+                style={{
+                  fontFamily: "Montserrat, system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  lineHeight: 1,
+                  letterSpacing: "-0.005em",
+                  color: "hsl(var(--parchment))",
+                  background: "hsl(var(--bark))",
+                  backgroundImage: "none",
+                  border: "1px solid hsl(var(--bark))",
+                  boxShadow:
+                    "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
+                }}
+              >
+                <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
+                Post a Request
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+              </Button>
+              <Button
+                size="xl"
+                variant="outline"
+                onClick={goToJoinCommunity}
+                className="group h-14 sm:h-15 lg:h-16 px-7 rounded-2xl tracking-tight w-full transition-all duration-200 hover:-translate-y-0.5"
+                style={{
+                  fontFamily: "Montserrat, system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  lineHeight: 1,
+                  letterSpacing: "-0.005em",
+                  color: "hsl(var(--bark))",
+                  background: "rgba(255, 255, 255, 0.45)",
+                  backgroundImage: "none",
+                  backdropFilter: "blur(20px) saturate(180%)",
+                  WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                  border: "1.5px solid hsl(var(--bark) / 0.4)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
+                }}
+              >
+                <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
+                Browse Local Jobs
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+              </Button>
+            </div>
+          </div>
+
+          {/* RIGHT 40% — fanned cluster of 3 phone mockups + App Store
+              badges below. The badges close the "this is an app, where do
+              I download it?" loop that the phone mockups open. */}
+          <div className="md:col-span-5 md:mt-16 lg:mt-20">
+            <PhoneCluster />
+            <div className="mt-8 sm:mt-10 flex items-center justify-center md:justify-end gap-3">
+              <a
+                href="https://apps.apple.com/us/app/helpr/id6754470134"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-xl transition-transform duration-200 hover:-translate-y-0.5"
+                style={{ color: "hsl(var(--ink-deep))" }}
+                aria-label="Download Helpr on the App Store"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
+                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                </svg>
+                <div className="text-left leading-none">
+                  <span
+                    className="font-mono uppercase block"
+                    style={{
+                      fontSize: "0.55rem",
+                      color: "hsl(var(--stormy-sky))",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    Download on the
+                  </span>
+                  <span
+                    className="font-display font-bold tracking-tight block"
+                    style={{ fontSize: "0.95rem", marginTop: "1px" }}
+                  >
+                    App Store
+                  </span>
+                </div>
+              </a>
+              <span
+                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-xl"
+                style={{
+                  color: "hsl(var(--ink-deep))",
+                  opacity: 0.6,
+                }}
+                aria-label="Coming soon to Google Play"
+                title="Coming soon to Google Play"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
+                  <path d="M3.6 1.86a1 1 0 00-.6.91v18.46a1 1 0 00.6.91l11.34-10.14L3.6 1.86zm12.84 9.34l2.94 2.62 3.42-1.97c.94-.54.94-1.9 0-2.44l-3.42-1.97-2.94 2.62-.18.07.18.07zm-1.5-.85L4.49 1.21 15.14 11l-.2.34zm0 1.7l.2.34L4.49 22.79l10.45-9.14z"/>
+                </svg>
+                <div className="text-left leading-none">
+                  <span
+                    className="font-mono uppercase block"
+                    style={{
+                      fontSize: "0.55rem",
+                      color: "hsl(var(--stormy-sky))",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    Coming soon
+                  </span>
+                  <span
+                    className="font-display font-bold tracking-tight block"
+                    style={{ fontSize: "0.95rem", marginTop: "1px" }}
+                  >
+                    Google Play
+                  </span>
+                </div>
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Category marquee — full-width row beneath the asymmetric grid,
+            underlining the entire hero block. (City strip moved to a
+            separator between Hero and How-It-Works in Index.tsx.) */}
+        <div className="mt-16 sm:mt-20 lg:mt-24">
+          <CategoryBento onSelect={goToPostJob} />
+        </div>
+      </div>
     </section>
   );
 };

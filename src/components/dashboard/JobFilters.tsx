@@ -9,24 +9,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  X, MapPin, Clock, ChevronDown,
-  Sparkles, Leaf, Truck, ShoppingBag, Wrench, Paintbrush,
-  Package, PawPrint, Hammer, MoreHorizontal, ArrowUpRight,
-  ArrowUpDown, LayoutGrid, CalendarClock, CalendarRange,
+  X, MapPin, Clock, ChevronDown, MoreHorizontal, ArrowUpRight,
+  ArrowUpDown, LayoutGrid, CalendarClock, CalendarRange, Rocket,
   type LucideIcon,
 } from "lucide-react";
-
-const categoryLabels: Record<string, string> = {
-  cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
-  handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", other: "Other",
-};
-
-const categoryIcons: Record<string, LucideIcon> = {
-  cleaning: Sparkles, yard_work: Leaf, moving: Truck, errands: ShoppingBag,
-  handyman: Wrench, painting: Paintbrush, delivery: Package, pet_care: PawPrint,
-  assembly: Hammer, other: MoreHorizontal,
-};
+import {
+  categoryLabels, categoryIcons, categoryColors,
+} from "@/components/activity/activityConstants";
 
 export { categoryLabels };
 
@@ -48,12 +37,14 @@ interface JobFiltersProps {
   matchAvailability: boolean;
   setMatchAvailability: (v: boolean) => void;
   hasAvailability: boolean;
+  boostedOnly: boolean;
+  setBoostedOnly: (v: boolean) => void;
   userLocStatus?: "idle" | "loading" | "ready" | "error";
   userLocMessage?: string;
 }
 
 const chipBase =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border";
+  "inline-flex items-center gap-1 px-2 rounded-full text-[9px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-[22px]";
 const chipActive =
   "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]";
 const chipIdle =
@@ -64,9 +55,10 @@ const chipIdle =
 const surfaceGradient =
   "bg-gradient-to-br from-[hsl(var(--primary)/0.08)] via-background to-background dark:from-[hsl(var(--primary)/0.12)] dark:via-card dark:to-card";
 
-// Dropdown-trigger button used in the mobile filter bar.
+// Dropdown-trigger button used in the horizontal filter bar — full-width
+// inside its grid cell so the four filters split the row evenly.
 const triggerBase =
-  "inline-flex items-center gap-2 h-9 px-4 rounded-full text-[13px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
+  "w-full inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-full text-[10.5px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap";
 
 const sortOptions = [
   { value: "newest", label: "Newest" },
@@ -87,12 +79,12 @@ const expiresOptions = [
 const SortContent = ({
   sortBy, setSortBy,
 }: { sortBy: string; setSortBy: (v: string) => void }) => (
-  <div className="flex flex-wrap gap-1.5">
+  <div className="grid grid-cols-4 gap-1">
     {sortOptions.map((opt) => (
       <button
         key={opt.value}
         onClick={() => setSortBy(opt.value)}
-        className={`${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
+        className={`${chipBase} w-full justify-center px-1 text-[8.5px] ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -103,21 +95,26 @@ const SortContent = ({
 const CategoryContent = ({
   selectedCategory, setSelectedCategory,
 }: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void }) => (
-  <div className="flex flex-wrap gap-1.5">
-    {Object.entries(categoryLabels).map(([key, label]) => {
-      const Icon = categoryIcons[key] ?? MoreHorizontal;
-      const isActive = selectedCategory === key;
-      return (
-        <button
-          key={key}
-          onClick={() => setSelectedCategory(isActive ? null : key)}
-          className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
-        >
-          <Icon className={`w-3.5 h-3.5 ${isActive ? "" : "text-primary"}`} strokeWidth={2.25} />
-          {label}
-        </button>
-      );
-    })}
+  // Single-line horizontal scroll — fits all 10 categories without
+  // wrapping onto a second/third row, no matter the viewport width.
+  <div className="-mx-2 px-2 overflow-x-auto scrollbar-hide">
+    <div className="flex items-center gap-1.5 pb-0.5 w-max">
+      {Object.entries(categoryLabels).map(([key, label]) => {
+        const Icon = categoryIcons[key] ?? MoreHorizontal;
+        const isActive = selectedCategory === key;
+        const titleColor = (categoryColors[key] || categoryColors.other).title;
+        return (
+          <button
+            key={key}
+            onClick={() => setSelectedCategory(isActive ? null : key)}
+            className={`${chipBase} shrink-0 ${isActive ? chipActive : chipIdle}`}
+          >
+            <Icon className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`} strokeWidth={2.25} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
   </div>
 );
 
@@ -135,7 +132,7 @@ const NearbyContent = ({
   return (
     <div>
       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Nearby radius</p>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
         {radiusOptions.map((mi) => {
           const active = current === mi;
           return (
@@ -143,9 +140,8 @@ const NearbyContent = ({
               key={mi}
               type="button"
               onClick={() => setLocationFilter(active ? "" : `nearby:${mi}`)}
-              className={`${chipBase} ${active ? chipActive : chipIdle}`}
+              className={`${chipBase} w-full justify-center ${active ? chipActive : chipIdle}`}
             >
-              <MapPin className={`w-3.5 h-3.5 ${active ? "" : "text-primary"}`} strokeWidth={2.25} />
               {mi} mi
             </button>
           );
@@ -167,12 +163,12 @@ const NearbyContent = ({
 const ExpiresContent = ({
   expiresWithin, setExpiresWithin,
 }: { expiresWithin: string; setExpiresWithin: (v: string) => void }) => (
-  <div className="flex flex-wrap gap-1.5">
+  <div className="grid grid-cols-4 gap-1.5">
     {expiresOptions.map((opt) => (
       <button
         key={opt.value}
         onClick={() => setExpiresWithin(expiresWithin === opt.value ? "" : opt.value)}
-        className={`${chipBase} ${expiresWithin === opt.value ? chipActive : chipIdle}`}
+        className={`${chipBase} w-full justify-center ${expiresWithin === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -187,29 +183,19 @@ const AvailabilityContent = ({
 }) => {
   const navigate = useNavigate();
   return (
-    <div
-      className={`squircle rounded-2xl glass-card p-3.5 flex items-center justify-between gap-3 ${
-        !hasAvailability ? "ring-1 ring-primary/20" : ""
-      }`}
-    >
-      <div className="flex items-start gap-2.5 min-w-0">
-        <div className="w-8 h-8 rounded-xl bg-primary/12 flex items-center justify-center shrink-0">
-          <Clock className="w-4 h-4 text-primary" />
-        </div>
+    <div className="flex items-center justify-between gap-3 w-full">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <Clock className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} />
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-foreground">Match my availability</p>
-          {hasAvailability ? (
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              Only show jobs on days &amp; times I'm free
-            </p>
-          ) : (
+          <p className="text-[11px] font-semibold text-foreground leading-snug">Only my hours</p>
+          {!hasAvailability && (
             <button
               type="button"
               onClick={() => navigate("/availability")}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
+              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
             >
-              Set your hours in Schedule
-              <ArrowUpRight className="w-3 h-3" />
+              Set hours
+              <ArrowUpRight className="w-2.5 h-2.5" />
             </button>
           )}
         </div>
@@ -219,6 +205,7 @@ const AvailabilityContent = ({
         onCheckedChange={setMatchAvailability}
         disabled={!hasAvailability}
         aria-label="Match my availability"
+        className="shrink-0"
       />
     </div>
   );
@@ -234,7 +221,7 @@ interface SectionProps {
   children: React.ReactNode;
 }
 
-const Section = ({ icon: Icon, label, badge, defaultOpen = true, children }: SectionProps) => {
+const Section = ({ icon: Icon, label, badge, defaultOpen = false, children }: SectionProps) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -278,9 +265,11 @@ const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) 
             : "bg-white/80 dark:bg-card/70 backdrop-blur text-foreground border-border/60 hover:border-primary/50"
         }`}
       >
-        <Icon className={`w-3.5 h-3.5 ${active ? "" : "text-primary"}`} strokeWidth={2.25} />
-        {label}
-        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+        <span className="inline-flex items-center gap-1.5 min-w-0">
+          <Icon className={`w-3 h-3 shrink-0 ${active ? "" : "text-primary"}`} strokeWidth={2.25} />
+          <span className="truncate">{label}</span>
+        </span>
+        <ChevronDown className="w-3 h-3 opacity-70 shrink-0" />
       </button>
     </PopoverTrigger>
     <PopoverContent
@@ -312,10 +301,11 @@ const JobFilters = ({
   sortBy, setSortBy, filtersOpen: _filtersOpen, setFiltersOpen: _setFiltersOpen,
   expiresWithin, setExpiresWithin,
   matchAvailability, setMatchAvailability, hasAvailability,
+  boostedOnly, setBoostedOnly,
   userLocStatus, userLocMessage,
 }: JobFiltersProps) => {
   const activeFilterCount = [
-    selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "",
+    selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "",
   ].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
@@ -326,6 +316,7 @@ const JobFilters = ({
     setLocationFilter("");
     setExpiresWithin("");
     setMatchAvailability(false);
+    setBoostedOnly(false);
   };
 
   const sortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? "Sort";
@@ -336,19 +327,38 @@ const JobFilters = ({
   const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
   const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
 
+  const whenLabel = expiresWithin
+    ? (expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "When")
+    : matchAvailability
+      ? "My hours"
+      : "When";
+
+  // Horizontal pill bar — Sort by · Category · Where · When. Click any
+  // pill and a popover drops down with that filter's content. Keeps the
+  // panel compact (single row + transient popover) instead of stacking
+  // multiple expandable sections vertically.
   return (
-    <div className={`overflow-hidden ${surfaceGradient}`}>
-      {/* ============ MOBILE: horizontal dropdown bar ============ */}
-      <div className="md:hidden py-3">
-        <div
-          className="flex gap-2 overflow-x-auto no-scrollbar pb-1"
-          style={{
-            paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0px))",
-            paddingRight: "max(0.75rem, env(safe-area-inset-right, 0px))",
-            scrollPaddingLeft: "0.75rem",
-            WebkitOverflowScrolling: "touch",
-          }}
+    <div className="px-3 py-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span
+          className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+          style={{ color: "hsl(var(--burnt-sienna))" }}
         >
+          Filters {activeFilterCount > 0 && `· ${activeFilterCount} active`}
+        </span>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-[0.7rem] font-sans font-medium hover:underline transition-opacity"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            <X className="w-3 h-3 inline-block mr-0.5 -mt-px" /> Clear all
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-4 gap-1.5">
           <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
             <SortContent sortBy={sortBy} setSortBy={setSortBy} />
@@ -371,96 +381,43 @@ const JobFilters = ({
             />
           </MobileDropdown>
 
-          <MobileDropdown icon={CalendarClock} label={expiresLabel} active={!!expiresWithin}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
-            <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
+          <MobileDropdown icon={CalendarRange} label={whenLabel} active={!!expiresWithin || matchAvailability}>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
+                <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
+                <AvailabilityContent
+                  matchAvailability={matchAvailability}
+                  setMatchAvailability={setMatchAvailability}
+                  hasAvailability={hasAvailability}
+                />
+              </div>
+            </div>
           </MobileDropdown>
-
-          <MobileDropdown icon={Clock} label="Availability" active={matchAvailability}>
-            <AvailabilityContent
-              matchAvailability={matchAvailability}
-              setMatchAvailability={setMatchAvailability}
-              hasAvailability={hasAvailability}
-            />
-          </MobileDropdown>
-        </div>
-
-        {hasFilters && (
-          <div className="mt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-muted-foreground text-xs h-8 rounded-full squircle hover:bg-destructive/10 hover:text-destructive btn-press"
-            >
-              <X className="w-3.5 h-3.5 mr-1" /> Clear all ({activeFilterCount})
-            </Button>
-          </div>
-        )}
       </div>
 
-      {/* ============ DESKTOP: collapsible accordion sections ============ */}
-      <div className="hidden md:block px-4 py-4 space-y-1">
-        <Section icon={ArrowUpDown} label="Sort" badge={sortBy !== "newest" ? sortLabel : null}>
-          <SortContent sortBy={sortBy} setSortBy={setSortBy} />
-        </Section>
-
-        <Section
-          icon={LayoutGrid}
-          label="Category"
-          badge={selectedCategory ? categoryLabels[selectedCategory] : null}
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setBoostedOnly(!boostedOnly)}
+          aria-pressed={boostedOnly}
+          className={`${chipBase} shrink-0 ${boostedOnly ? chipActive : chipIdle}`}
+          style={
+            boostedOnly
+              ? {
+                  background: "linear-gradient(90deg, hsl(var(--gold-warm) / 0.85), hsl(var(--primary)))",
+                  borderColor: "hsl(var(--gold-warm) / 0.6)",
+                  color: "white",
+                }
+              : undefined
+          }
         >
-          <CategoryContent
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-          />
-        </Section>
-
-        <Section
-          icon={MapPin}
-          label="Nearby"
-          badge={nearbyMi ? `${nearbyMi} mi` : null}
-        >
-          <NearbyContent
-            locationFilter={locationFilter}
-            setLocationFilter={setLocationFilter}
-            status={userLocStatus}
-            message={userLocMessage}
-          />
-        </Section>
-
-        <Section
-          icon={CalendarRange}
-          label="Expires within"
-          badge={expiresWithin ? expiresOptions.find((o) => o.value === expiresWithin)?.label ?? null : null}
-        >
-          <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
-        </Section>
-
-        <Section
-          icon={Clock}
-          label="Availability"
-          badge={matchAvailability ? "On" : null}
-        >
-          <AvailabilityContent
-            matchAvailability={matchAvailability}
-            setMatchAvailability={setMatchAvailability}
-            hasAvailability={hasAvailability}
-          />
-        </Section>
-
-        {hasFilters && (
-          <div className="pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-muted-foreground text-xs h-9 rounded-full squircle hover:bg-destructive/10 hover:text-destructive btn-press"
-            >
-              <X className="w-3.5 h-3.5 mr-1" /> Clear all filters
-            </Button>
-          </div>
-        )}
+          <Rocket className="w-2.5 h-2.5" strokeWidth={2.25} />
+          Boosted only
+        </button>
       </div>
     </div>
   );

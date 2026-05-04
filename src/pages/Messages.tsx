@@ -298,12 +298,12 @@ const Messages = () => {
     const priorCount = (existing as any[] | null)?.length || 0;
 
     if (priorCount >= 1) {
-      await (supabase.from("user_bans" as any) as any).insert({
+      await supabase.from("user_bans").insert({
         user_id: userId, ban_type: "permanent",
         reason: "Repeated off-platform activity: " + violationDescription, banned_by: userId,
       });
-      await supabase.from("profiles").update({ ban_status: "permanently_banned" } as any).eq("user_id", userId);
-      await (supabase.from("user_violations" as any) as any).insert({
+      await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
+      await supabase.from("user_violations").insert({
         user_id: userId, violation_type: "off_platform",
         description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "permanent_ban",
       });
@@ -319,11 +319,11 @@ const Messages = () => {
       }
       toast.error("Your account has been banned for violating platform rules.");
     } else {
-      await (supabase.from("user_violations" as any) as any).insert({
+      await supabase.from("user_violations").insert({
         user_id: userId, violation_type: "off_platform",
         description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "warning",
       });
-      await supabase.from("profiles").update({ ban_status: "warned" } as any).eq("user_id", userId);
+      await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", userId);
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
@@ -440,34 +440,169 @@ const Messages = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-premium-surface ${activeConvo ? '' : 'pb-safe-nav'}`}>
+    <div className={`${activeConvo ? 'min-h-screen' : 'h-[100dvh] max-h-[100dvh]'} flex flex-col bg-premium-page overflow-hidden`}>
       <DashboardHeader />
 
-      <main className={`container mx-auto px-5 ${activeConvo ? 'pt-0' : 'py-6'}`}>
-        <div className="max-w-3xl mx-auto">
+      <main className={`container mx-auto px-5 lg:px-8 xl:px-12 ${activeConvo ? 'pt-0' : 'pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden'}`}>
+        <div className={`w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto ${activeConvo ? '' : 'flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden'}`}>
           {!activeConvo ? (
-            <div className="space-y-4">
-              <h1 className="text-page-title text-foreground text-2xl">Messages</h1>
+            <>
+            {/* Top box — page title block on its own glass panel.
+                Mirrors the dashboard greeting card. */}
+            <div
+              className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden"
+              style={{
+                backgroundImage:
+                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                  "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                  "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
+                  "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                  "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
+                  "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+              }}
+            >
+              <div className="flex flex-col leading-none">
+                <h1
+                  className="font-display font-bold leading-tight"
+                  style={{
+                    fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Messages
+                </h1>
+                <p
+                  className="mt-1 truncate font-sans font-semibold uppercase"
+                  style={{
+                    fontSize: "0.62rem",
+                    letterSpacing: "0.16em",
+                    color: "hsl(var(--olivewood) / 0.55)",
+                  }}
+                >
+                  {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
+                </p>
+              </div>
+            </div>
+
+            {/* Bottom box — thread list, extends to viewport bottom. */}
+            <div
+              className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
+              style={{
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottom: "none",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                  "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                  "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
+                  "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+              }}
+            >
+              {/* Inner header — eyebrow + title row mirroring the
+                  Posts/Jobs bottom-box header pattern. */}
+              <div
+                className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
+                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+              >
+                <div className="flex flex-col leading-none">
+                  <span
+                    className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+                  >
+                    Conversations
+                  </span>
+                  <h2
+                    className="font-display italic font-bold leading-tight mt-1"
+                    style={{
+                      fontSize: "1.25rem",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.018em",
+                    }}
+                  >
+                    All threads
+                  </h2>
+                  <span
+                    className="font-serif italic mt-0.5 text-[0.72rem]"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
+                  </span>
+                </div>
+              </div>
+              {!loading && conversations.length === 0 ? (
+                // Empty state — content centered directly on the panel's
+                // glass surface, no inner white card. Mirrors the home
+                // page's empty-state pattern.
+                <div className="px-3 pt-4 flex-1 min-h-0 flex">
+                  {/* Empty-state card — own white box that stretches to
+                      the bottom of the screen. Bottom corners flat so it
+                      merges with the dock area. */}
+                  <div
+                    className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                    style={{
+                      backgroundColor: "hsl(0, 0%, 100%)",
+                      borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      boxShadow:
+                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
+                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
+                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+                    }}
+                  >
+                    <div
+                      className="w-20 h-20 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                        backdropFilter: "blur(16px) saturate(150%)",
+                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
+                        border: "1px solid hsl(var(--olivewood) / 0.10)",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+                      }}
+                    >
+                      <MessageSquare className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-display-eyebrow">Quiet for now</span>
+                      <p
+                        className="font-display italic font-bold leading-tight"
+                        style={{
+                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
+                          color: "hsl(var(--ink-deep))",
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        No messages yet.
+                      </p>
+                      <p
+                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        Apply to a task or accept a helpr's offer — your conversations will land here.
+                      </p>
+                    </div>
+                    <Button onClick={() => navigate("/dashboard")} className="rounded-xl btn-press">
+                      Browse tasks
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+              <div
+                data-allow-scroll="true"
+                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2"
+                style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+              >
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4].map((i) => (
                     <ConversationSkeleton key={i} />
                   ))}
-                </div>
-              ) : conversations.length === 0 ? (
-                <div className="text-center py-16 px-6 space-y-4">
-                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
-                    <MessageSquare className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-base font-display font-semibold text-foreground">No messages yet</p>
-                    <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                      Apply to a task or accept a helpr's offer — your conversations will land here.
-                    </p>
-                  </div>
-                  <Button onClick={() => navigate("/dashboard")} className="rounded-xl btn-press">
-                    Browse tasks
-                  </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -482,7 +617,7 @@ const Messages = () => {
                         itemClassName="pb-2"
                         renderItem={(c) => (
                           <div
-                            className="w-full text-left p-4 rounded-xl border border-border bg-card hover:shadow-md transition-shadow flex items-center gap-2"
+                            className="w-full text-left p-4 rounded-xl liquid-glass hover:shadow-md transition-shadow flex items-center gap-2"
                           >
                             <button
                               onClick={() => openConvo(c)}
@@ -536,7 +671,10 @@ const Messages = () => {
                   )}
                 </div>
               )}
+              </div>
+              )}
             </div>
+            </>
           ) : (
             <div
               className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"

@@ -114,18 +114,29 @@ const Jobs = () => {
         <div className="container mx-auto max-w-5xl">
           {/* Header — title + live count vertically centered with a "Live" pill on the right. */}
           <div className="flex items-center justify-between gap-4 mb-6 md:mb-8 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl squircle bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                <Briefcase className="w-5 h-5 text-primary" strokeWidth={2.25} />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-xl md:text-3xl font-display font-bold text-foreground leading-tight truncate">
-                  Browse Tasks
-                </h1>
-                <p className="text-xs md:text-xs text-muted-foreground leading-tight mt-0.5">
-                  <span className="font-semibold text-primary tabular-nums">{filtered.length}</span> available right now
-                </p>
-              </div>
+            <div className="flex flex-col leading-none min-w-0">
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Open across Louisiana
+              </span>
+              <h1
+                className="font-display italic font-bold leading-tight truncate mt-1"
+                style={{
+                  fontSize: "clamp(1.5rem, 3vw + 0.5rem, 2.25rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                Browse tasks
+              </h1>
+              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <span className="font-semibold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{filtered.length}</span>{" "}
+                {filtered.length === 1 ? "task" : "tasks"}{" "}
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
+                Live now
+              </span>
             </div>
             <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-primary/10 text-primary text-[11px] font-bold tracking-wider uppercase border border-primary/15 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -203,7 +214,7 @@ const Jobs = () => {
               {filtered.map((job, i) => (
                 <div
                   key={job.id}
-                  className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className="rounded-2xl liquid-glass p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
                   style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
                 >
                   <div className="flex items-start justify-between gap-2">

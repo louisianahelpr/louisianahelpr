@@ -1,5 +1,5 @@
-import { ArrowLeft } from "lucide-react";
 import { HelperAvailability } from "@/components/HelperAvailability";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 interface AvailabilityTabProps {
   userId: string;
@@ -9,20 +9,14 @@ interface AvailabilityTabProps {
 export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-page-title text-foreground text-2xl">Availability</h1>
-          <p className="text-muted-foreground text-xs">Set your weekly working hours so posters can match jobs to your schedule</p>
-        </div>
-      </div>
+      <ProfileTabHeader
+        eyebrow="Hours"
+        title="Availability"
+        meta="Tell posters when you can work"
+        onBack={onBack}
+      />
 
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="rounded-xl liquid-glass p-4">
         <HelperAvailability userId={userId} />
       </div>
     </div>

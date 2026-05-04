@@ -80,13 +80,13 @@ const AdminAuditLog = () => {
       {isInitialLoading ? (
         <p className="text-xs text-muted-foreground">Loading audit log…</p>
       ) : entries.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="rounded-xl liquid-glass p-8 text-center">
           <p className="text-xs text-muted-foreground">No audit entries yet</p>
         </div>
       ) : (
         <div className="space-y-1.5">
           {entries.map(entry => (
-            <div key={entry.id} className="rounded-lg border border-border bg-card p-3 flex items-start gap-3">
+            <div key={entry.id} className="rounded-lg liquid-glass p-3 flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm text-foreground">{entry.admin_name}</span>

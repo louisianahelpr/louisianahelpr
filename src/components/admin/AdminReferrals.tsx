@@ -137,7 +137,7 @@ const AdminReferrals = () => {
           { label: "Total Earned", value: `$${totalEarned.toFixed(2)}`, icon: DollarSign },
           { label: "Cashed Out", value: `$${totalCashedOut.toFixed(2)}`, icon: Banknote },
         ].map(stat => (
-          <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
+          <div key={stat.label} className="rounded-xl liquid-glass p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground">{stat.label}</span>
               <stat.icon className="w-4 h-4 text-primary opacity-60" />
@@ -180,7 +180,7 @@ const AdminReferrals = () => {
       {/* Overview */}
       {tab === "overview" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+          <div className="rounded-xl liquid-glass p-5 space-y-2">
             <h3 className="text-sm font-semibold text-foreground">Program Summary</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -213,7 +213,7 @@ const AdminReferrals = () => {
           </div>
 
           {/* Recent activity */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+          <div className="rounded-xl liquid-glass p-5 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Recent Credits</h3>
             {credits.slice(0, 5).map(c => (
               <div key={c.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
@@ -242,7 +242,7 @@ const AdminReferrals = () => {
       {tab === "codes" && (
         <div className="space-y-2">
           {filteredCodes.map(c => (
-            <div key={c.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+            <div key={c.id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">{c.userName}</p>
                 <p className="text-xs text-muted-foreground">Created {new Date(c.created_at).toLocaleDateString()}</p>
@@ -268,7 +268,7 @@ const AdminReferrals = () => {
       {tab === "referrals" && (
         <div className="space-y-2">
           {filteredReferrals.map(r => (
-            <div key={r.id} className="rounded-xl border border-border bg-card p-4">
+            <div key={r.id} className="rounded-xl liquid-glass p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">
@@ -298,7 +298,7 @@ const AdminReferrals = () => {
       {tab === "credits" && (
         <div className="space-y-2">
           {filteredCredits.map(c => (
-            <div key={c.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+            <div key={c.id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">{c.userName}</p>
                 <p className="text-xs text-muted-foreground">

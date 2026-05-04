@@ -10,6 +10,33 @@ import { hydrate as hydrateStorage } from "./lib/safeStorage";
 // catch any throw during the very first render.
 installGlobalErrorHandlers();
 
+// Dev-mode service-worker exorcism — production registers a Workbox SW
+// that pre-caches JS bundles. If a dev session is opened on the same
+// origin (localhost) AFTER a production visit (or just an old dev visit
+// from when the SW shipped in dev too), the cached chunks answer
+// requests before Vite's transform pipeline runs, so code edits "don't
+// appear." This block runs once per page load in dev, unregisters every
+// service worker, deletes every CacheStorage, then forces a single
+// reload if it actually killed anything. No-op in production.
+if (import.meta.env.DEV && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+  void (async () => {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      const cacheKeys = "caches" in window ? await caches.keys() : [];
+      if (regs.length === 0 && cacheKeys.length === 0) return;
+      await Promise.all(regs.map((r) => r.unregister()));
+      await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+      // One-shot guard so we don't loop reloads if anything fails.
+      if (!sessionStorage.getItem("__sw_cleared__")) {
+        sessionStorage.setItem("__sw_cleared__", "1");
+        location.reload();
+      }
+    } catch {
+      /* ignore — never block the app on cache cleanup */
+    }
+  })();
+}
+
 // Restore durable Preferences → localStorage BEFORE first render so any
 // component that reads sync (e.g. dismissed jobs, drafts, cooldowns) sees
 // values that survived a WebKit eviction or app restart.

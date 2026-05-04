@@ -1688,7 +1688,6 @@ export type Database = {
           parish: string | null
           phone: string | null
           portfolio_urls: string[] | null
-          role: string
           skills: string | null
           stripe_account_id: string | null
           subscription_expires_at: string | null
@@ -1756,7 +1755,6 @@ export type Database = {
           parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
-          role?: string
           skills?: string | null
           stripe_account_id?: string | null
           subscription_expires_at?: string | null
@@ -1824,7 +1822,6 @@ export type Database = {
           parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
-          role?: string
           skills?: string | null
           stripe_account_id?: string | null
           subscription_expires_at?: string | null
@@ -3135,7 +3132,6 @@ export type Database = {
           hourly_rate: number
           location: string
           portfolio_urls: string[]
-          role: string
           skills: string
           subscription_tier: string
           user_id: string

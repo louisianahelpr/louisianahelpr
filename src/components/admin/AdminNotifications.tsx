@@ -113,9 +113,12 @@ const AdminNotifications = () => {
     const prev = { ...prefs };
     setPrefs({ ...prefs, [key]: value });
 
+    // Cast: Supabase generated types reject computed-key updates because
+    // the index signature widens to `[x: string]: never`. The `key` is
+    // constrained to `keyof NotifPrefs` so runtime is safe.
     const { error } = await supabase
       .from("notification_preferences")
-      .update({ [key]: value })
+      .update({ [key]: value } as never)
       .eq("id", prefs.id);
 
     if (error) {

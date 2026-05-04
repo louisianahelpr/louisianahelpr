@@ -98,20 +98,41 @@ jobs:
             END IF;
           END $$;
 
-          -- Some early migrations INSERT INTO storage.buckets before
-          -- storage extension is wired. Make sure it exists.
+          -- Storage shims. The supabase/postgres image ships storage.buckets,
+          -- but its column shape varies by image tag (newer tags renamed
+          -- `public` → `bucket_type`/`type` and added file_size_limit etc).
+          -- Ensure the columns the migrations write exist, idempotently.
           CREATE SCHEMA IF NOT EXISTS storage;
           CREATE TABLE IF NOT EXISTS storage.buckets (
             id text PRIMARY KEY,
             name text NOT NULL UNIQUE,
             owner uuid,
             created_at timestamptz DEFAULT now(),
-            updated_at timestamptz DEFAULT now(),
-            public boolean DEFAULT false,
-            avif_autodetection boolean DEFAULT false,
-            file_size_limit bigint,
-            allowed_mime_types text[]
+            updated_at timestamptz DEFAULT now()
           );
+          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS public boolean DEFAULT false;
+          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS avif_autodetection boolean DEFAULT false;
+          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS file_size_limit bigint;
+          ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS allowed_mime_types text[];
+
+          -- Realtime shims for the few migrations that touch realtime.messages
+          -- or realtime.topic(). Real Supabase wires these via its own
+          -- realtime extension; here we make them no-ops so migrations can run.
+          CREATE SCHEMA IF NOT EXISTS realtime;
+          CREATE TABLE IF NOT EXISTS realtime.messages (
+            id bigserial PRIMARY KEY,
+            topic text,
+            extension text,
+            payload jsonb,
+            event text,
+            private boolean,
+            updated_at timestamptz DEFAULT now(),
+            inserted_at timestamptz DEFAULT now()
+          );
+          CREATE OR REPLACE FUNCTION realtime.topic() RETURNS text
+            LANGUAGE sql STABLE AS $rt$ SELECT current_setting('realtime.topic', true) $rt$;
+          CREATE OR REPLACE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT false)
+            RETURNS void LANGUAGE sql AS $rt$ SELECT NULL::void $rt$;
 
           -- Reserved roles — the supabase/postgres image ships these, but
           -- be defensive for older image tags.

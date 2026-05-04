@@ -135,9 +135,21 @@ jobs:
             RAISE NOTICE 'storage shim skipped: %', SQLERRM;
           END $$;
 
-          -- 4. Realtime shims (best-effort; image often owns these as supabase_admin)
+          -- 4. Realtime shims. The supabase/postgres image creates the
+          -- realtime schema owned by supabase_admin; postgres can't write
+          -- in it without ownership. Reassign + grant first, then create.
           DO $$ BEGIN
             CREATE SCHEMA IF NOT EXISTS realtime;
+          EXCEPTION WHEN OTHERS THEN NULL; END $$;
+          DO $$ BEGIN
+            EXECUTE 'ALTER SCHEMA realtime OWNER TO postgres';
+            EXECUTE 'GRANT ALL ON SCHEMA realtime TO postgres';
+            EXECUTE 'GRANT ALL ON ALL TABLES IN SCHEMA realtime TO postgres';
+            EXECUTE 'GRANT ALL ON ALL FUNCTIONS IN SCHEMA realtime TO postgres';
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'realtime ownership reassign skipped: %', SQLERRM;
+          END $$;
+          DO $$ BEGIN
             CREATE TABLE IF NOT EXISTS realtime.messages (
               id bigserial PRIMARY KEY,
               topic text,
@@ -158,6 +170,17 @@ jobs:
               RETURNS void LANGUAGE sql AS $rt$ SELECT NULL::void $rt$;
           EXCEPTION WHEN OTHERS THEN
             RAISE NOTICE 'realtime function shim skipped: %', SQLERRM;
+          END $$;
+
+          -- 5. auth.users column shims (older image schemas).
+          DO $$ BEGIN
+            ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email_confirmed_at timestamptz;
+            ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS phone text;
+            ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS phone_confirmed_at timestamptz;
+            ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS raw_user_meta_data jsonb DEFAULT '{}'::jsonb;
+            ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS raw_app_meta_data jsonb DEFAULT '{}'::jsonb;
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'auth.users column shim skipped: %', SQLERRM;
           END $$;
           SQL
 

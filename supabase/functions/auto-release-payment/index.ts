@@ -121,40 +121,48 @@ serve(async (req) => {
     // The block above sets jobs to payout_pending with payout_scheduled_at
     // = now + 24h. Once that window passes we invoke release-payout to
     // actually move money from the platform balance to the helper's
-    // Connect account. This used to be missing — jobs sat in
-    // payout_pending forever and the helper never got paid.
-    const supabaseFnBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
-    const { data: dueJobs } = await supabaseAdmin
-      .from("jobs")
-      .select("id, title, helper_id, payout_scheduled_at")
-      .eq("status", "completed")
-      .eq("payment_status", "payout_pending")
-      .lte("payout_scheduled_at", new Date().toISOString());
-
+    // Connect account.
+    //
+    // Gated behind RELEASE_PAYOUT_AUTO=1 env var so the very first transfer
+    // never happens automatically — flip the var to "1" in Supabase
+    // Functions config only after a manual test transfer in Stripe test
+    // mode confirms the full path works (validation → transfer →
+    // payout_transfers row → notification). When disabled, this function
+    // continues to do Phase 1 (escrow → payout_pending) so jobs still
+    // queue up for payout, they just don't auto-fire.
+    const autoPayoutEnabled = Deno.env.get("RELEASE_PAYOUT_AUTO") === "1";
     let paid = 0;
     const payoutResults: Array<{ job_id: string; status: string; detail?: string }> = [];
 
-    for (const job of dueJobs ?? []) {
-      try {
-        const resp = await fetch(`${supabaseFnBase}/release-payout`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // release-payout accepts CRON_SECRET or service-role for
-            // automated callers — use whichever this cron is using.
-            "Authorization": authHeader,
-          },
-          body: JSON.stringify({ job_id: job.id, initiated_by: "auto" }),
-        });
-        const json = await resp.json().catch(() => ({}));
-        if (resp.ok) {
-          paid++;
-          payoutResults.push({ job_id: job.id, status: "paid", detail: json.stripe_transfer_id });
-        } else {
-          payoutResults.push({ job_id: job.id, status: "failed", detail: json.error ?? `HTTP ${resp.status}` });
+    if (autoPayoutEnabled) {
+      const supabaseFnBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
+      const { data: dueJobs } = await supabaseAdmin
+        .from("jobs")
+        .select("id, title, helper_id, payout_scheduled_at")
+        .eq("status", "completed")
+        .eq("payment_status", "payout_pending")
+        .lte("payout_scheduled_at", new Date().toISOString());
+
+      for (const job of dueJobs ?? []) {
+        try {
+          const resp = await fetch(`${supabaseFnBase}/release-payout`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": authHeader,
+            },
+            body: JSON.stringify({ job_id: job.id, initiated_by: "auto" }),
+          });
+          const json = await resp.json().catch(() => ({}));
+          if (resp.ok) {
+            paid++;
+            payoutResults.push({ job_id: job.id, status: "paid", detail: json.stripe_transfer_id });
+          } else {
+            payoutResults.push({ job_id: job.id, status: "failed", detail: json.error ?? `HTTP ${resp.status}` });
+          }
+        } catch (e) {
+          payoutResults.push({ job_id: job.id, status: "errored", detail: (e as Error).message });
         }
-      } catch (e) {
-        payoutResults.push({ job_id: job.id, status: "errored", detail: (e as Error).message });
       }
     }
 
@@ -163,6 +171,7 @@ serve(async (req) => {
         success: true,
         released, results,
         paid, payoutResults,
+        autoPayoutEnabled,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );

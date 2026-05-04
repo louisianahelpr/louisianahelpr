@@ -343,8 +343,14 @@ $$;
 -- value now comes from `user_roles` via a correlated subquery. If the user
 -- has multiple roles, we return the most privileged one (admin > helper >
 -- customer). Users with no row in `user_roles` get NULL.
+--
+-- Note: live function on prod was found to have a slightly different OUT
+-- parameter set than what the latest migration file declared, so PG refused
+-- the in-place CREATE OR REPLACE ("cannot change return type"). The DROP
+-- below normalizes the signature before recreating.
 -- ──────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.get_safe_profiles(user_ids uuid[])
+DROP FUNCTION IF EXISTS public.get_safe_profiles(uuid[]);
+CREATE FUNCTION public.get_safe_profiles(user_ids uuid[])
  RETURNS TABLE(user_id uuid, full_name text, avatar_url text, bio text, location text, skills text, hourly_rate numeric, role text, subscription_tier text, portfolio_urls text[], created_at timestamp with time zone)
  LANGUAGE sql
  STABLE SECURITY DEFINER

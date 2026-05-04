@@ -84,6 +84,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const { checkHelperStripeConnect } = useStripeConnectCheck();
   const [idvDialogOpen, setIdvDialogOpen] = useState(false);
+  const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
+  const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
 
   // --- Action handlers ---
@@ -164,12 +166,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // Identity verification gate — required before first accept
       const { data: prof } = await supabase
         .from("profiles")
-        .select("idv_status")
+        .select("idv_status, idv_failure_reason")
         .eq("user_id", user.id)
         .single();
-      const idvStatus = (prof as any)?.idv_status;
+      const idvStatus = (prof as { idv_status?: string })?.idv_status;
       if (idvStatus !== "verified") {
         setPendingAcceptApp(app);
+        setIdvStatus(idvStatus);
+        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
         setIdvDialogOpen(true);
         return;
       }
@@ -921,6 +925,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         open={idvDialogOpen}
         onOpenChange={(o) => { setIdvDialogOpen(o); if (!o) setPendingAcceptApp(null); }}
         reason={pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
+        status={idvStatus as never}
+        failureReason={idvFailureReason}
       />
     </div>
   );

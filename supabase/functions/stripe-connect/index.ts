@@ -346,7 +346,48 @@ serve(async (req) => {
 
     throw new Error("Invalid action");
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    // Log the full error so Supabase Edge Function logs surface a real
+    // diagnosis (the log api only shows status codes, not response bodies,
+    // so without console.error every 500 is opaque). Hundreds of v6 500s
+    // were stacking up undiagnosed before this was added.
+    const err = error as Error & { type?: string; code?: string; statusCode?: number };
+    console.error("[stripe-connect] 500 — full error:", {
+      message: err.message,
+      stripe_type: err.type,
+      stripe_code: err.code,
+      stripe_status: err.statusCode,
+      stack: err.stack?.split("\n").slice(0, 5).join("\n"),
+    });
+
+    // Stale stripe_account_id is a common 500 cause: profile points to a
+    // Stripe account that was deleted (manual cleanup, test-mode purge,
+    // etc.) so stripe.accounts.retrieve / update / del all 404. Clear the
+    // stale link and surface a friendly retry message — next call will
+    // create a fresh account.
+    const isStaleAccountErr =
+      err.statusCode === 404 ||
+      err.message?.includes("No such account") ||
+      err.code === "account_invalid" ||
+      err.code === "resource_missing";
+
+    if (isStaleAccountErr) {
+      try {
+        const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
+        const { data: u } = await supabaseClient.auth.getUser(token);
+        if (u?.user?.id) {
+          await supabaseAdmin.from("profiles").update({ stripe_account_id: null }).eq("user_id", u.user.id);
+          console.error("[stripe-connect] Cleared stale stripe_account_id for user", u.user.id);
+        }
+      } catch (clearErr) {
+        console.error("[stripe-connect] Failed to clear stale stripe_account_id:", clearErr);
+      }
+      return new Response(JSON.stringify({
+        error: "Your previous payout account is no longer valid. Tap Connect again to set up a fresh one.",
+        recoverable: true,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+    }
+
+    return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

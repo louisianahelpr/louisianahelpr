@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,7 @@ const JobDetailDialog = ({
   const [payoutExpanded, setPayoutExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [applicationCount, setApplicationCount] = useState<number | null>(null);
+  const [, setApplicationCount] = useState<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   // Reset transient state when the dialog switches to a new job.

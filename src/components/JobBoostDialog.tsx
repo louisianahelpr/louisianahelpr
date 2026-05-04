@@ -12,7 +12,7 @@ interface JobBoostDialogProps {
   onBoosted: () => void;
 }
 
-export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDialogProps) {
+export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
   const [boosting, setBoosting] = useState(false);
 
   const handleBoost = async () => {

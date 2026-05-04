@@ -144,7 +144,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
       if (error) throw error;
       const { data } = supabase.storage.from("user-documents").getPublicUrl(path);
       return data.publicUrl;
-    } catch (err: any) {
+    } catch {
       toast.error("Couldn't upload screenshot — sending without it.");
       return null;
     } finally {

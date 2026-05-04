@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Send, X as XIcon } from "lucide-react";
+import { Search, Send } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -22,7 +22,7 @@ import {
   type Job, type Application, type Tab, type EnrichedApplication,
 } from "@/components/activity/activityConstants";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SlidersHorizontal, ChevronDown } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 

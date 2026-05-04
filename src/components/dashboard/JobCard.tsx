@@ -1,15 +1,11 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
-  MapPin, Calendar, DollarSign, Flag, Star, Zap, Rocket, Clock, Timer, Send, Users, Repeat, Bookmark,
+  MapPin, Calendar, DollarSign, Star, Zap, Rocket, Clock, Timer, Users, Repeat,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { getCityState } from "@/lib/locationUtils";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -32,30 +28,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = true, onApply, onReport, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved = false, onToggleSave }: JobCardProps) => {
-  const [savingBookmark, setSavingBookmark] = useState(false);
-
-  const handleToggleSave = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!currentUserId) { toast.error("Please log in to save jobs"); return; }
-    if (savingBookmark) return;
-    setSavingBookmark(true);
-    try {
-      if (isSaved) {
-        await supabase.from("saved_jobs").delete().eq("user_id", currentUserId).eq("job_id", job.id);
-        toast.success("Removed from saved jobs");
-      } else {
-        await supabase.from("saved_jobs").insert({ user_id: currentUserId, job_id: job.id });
-        toast.success("Job saved! Find it in your saved jobs.");
-      }
-      onToggleSave?.(job.id, !isSaved);
-    } catch {
-      toast.error("Failed to update saved jobs");
-    } finally {
-      setSavingBookmark(false);
-    }
-  };
-
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave }: JobCardProps) => {
   // Per-helpr take-home: gross share minus the platform's commission, plus
   // the customer-paid urgent bonus. Matches JobDetailDialog math 1:1.
   // (The 10% sales tax on the platform commission is paid by the platform,
@@ -67,17 +40,8 @@ const JobCard = ({ job, effectiveFee, currentUserId, showApply: _showApply = tru
   const netEarnings = perHelperBudget - commission + (job.urgent_fee ?? 0);
   const earnings = netEarnings.toFixed(2);
   const catStyle = categoryColors[job.category] || categoryColors.other;
-  const isOwnJob = currentUserId === job.customer_id;
-  const photos = job.photos || [];
 
   const cityState = getCityState(job.location);
-
-  // Format start time
-  const formattedTime = job.start_time
-    ? job.start_time === "flexible"
-      ? "Flexible"
-      : new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-    : null;
 
   // Expiry info
   const expiryText = job.expires_at

@@ -20,17 +20,6 @@ import { safeStorage } from "@/lib/safeStorage";
 import AuthShell from "@/components/auth/AuthShell";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 
-const barkButtonStyle = {
-  background: "hsl(var(--bark))",
-  backgroundImage: "none",
-  border: "1px solid hsl(var(--bark))",
-  color: "hsl(var(--parchment))",
-  fontFamily: "Montserrat, system-ui, sans-serif",
-  fontWeight: 600,
-  letterSpacing: "0.01em",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
-} as const;
-
 const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
 
@@ -68,7 +57,7 @@ const Signup = () => {
   const [location, setLocation] = useState("");
   const [skills, setSkills] = useState("");
   const [availability, setAvailability] = useState<string[]>([]);
-  const [transportation, setTransportation] = useState("");
+  const [transportation] = useState("");
   const [hearAboutUs, setHearAboutUs] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [toolsEquipment, setToolsEquipment] = useState<string[]>([]);

@@ -25,12 +25,6 @@ type AccountStatus = {
   requirements: string[];
 };
 
-type PayoutData = { methods: PayoutMethod[]; status: AccountStatus | null };
-const FALLBACK: PayoutData = {
-  methods: [],
-  status: { connected: false, details_submitted: false, payouts_enabled: false, transfers_status: "", requirements: [] },
-};
-
 export function PayoutSetupForm() {
   const qc = useQueryClient();
   const [onboarding, setOnboarding] = useState(false);

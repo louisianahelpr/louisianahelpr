@@ -74,7 +74,7 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
   // immediately instead of hitting a stale-cache redirect loop.
   useEffect(() => {
     if (user?.id) void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.id, location.pathname]);
 
   useEffect(() => {

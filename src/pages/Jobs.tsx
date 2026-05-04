@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { MapPin, Calendar, DollarSign, ArrowRight, Search, Briefcase, Lock, Timer } from "lucide-react";
+import { MapPin, Calendar, DollarSign, ArrowRight, Search, Lock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";

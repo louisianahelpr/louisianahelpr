@@ -20,12 +20,6 @@ const rightItems = [
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
-// Routes guests are allowed to land on. Anything else triggers the
-// signup sheet instead of navigating. /browse is the read-only "home
-// dashboard" iOS guests open into; /jobs is the older simple list (kept
-// for web links / deep links during the transition).
-const GUEST_OPEN_ROUTES = new Set(["/browse", "/jobs", "/login", "/signup"]);
-
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -345,7 +339,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             }}
           >
             <div className="flex items-stretch h-14 px-2">
-              {[...leftItems, ...rightItems].map((item, i, arr) => (
+              {[...leftItems, ...rightItems].map((item, i) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {/* Hairline divider before each item except the first */}
                   {i > 0 && (

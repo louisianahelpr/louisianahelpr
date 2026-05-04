@@ -510,7 +510,20 @@ serve(async (req) => {
         const destAccount = transfer.destination as string;
         logStep("Transfer created", { id: transfer.id, amount: transfer.amount, destination: destAccount });
 
-        // Find the helper with this Stripe Connect account
+        // 1. Update the payout_transfers ledger row (release-payout wrote it
+        //    with status='pending'; this is the Stripe-side confirmation).
+        //    Most marketplace transfers settle as 'paid' immediately on
+        //    creation, so flip directly to 'paid' here. transfer.failed /
+        //    transfer.reversed below override if the path doesn't hold.
+        const { data: ledgerRow } = await supabase
+          .from("payout_transfers")
+          .update({ status: "paid", paid_at: new Date().toISOString() })
+          .eq("stripe_transfer_id", transfer.id)
+          .select("job_id, helper_id")
+          .maybeSingle();
+
+        // 2. Find the helper (prefer ledger row → metadata → destination acct).
+        const transferJobId = (transfer.metadata as any)?.job_id ?? ledgerRow?.job_id;
         const { data: paidHelper } = await supabase
           .from("profiles")
           .select("user_id, full_name")
@@ -527,8 +540,6 @@ serve(async (req) => {
             link: "/earnings",
           });
 
-          // Also update the job's payment_status to 'released' if we can find it
-          const transferJobId = (transfer.metadata as any)?.job_id;
           if (transferJobId) {
             await supabase.from("jobs").update({ payment_status: "released" }).eq("id", transferJobId);
             logStep("Job payment status set to released", { jobId: transferJobId });
@@ -536,6 +547,67 @@ serve(async (req) => {
 
           logStep("Helper notified of transfer", { userId: paidHelper.user_id, amount: amountDollars });
         }
+        break;
+      }
+
+      case "transfer.failed": {
+        // Rare — Stripe usually validates capability + balance up front, so
+        // this fires only on edge cases (e.g. destination account
+        // de-activated between create and settlement). Flip the ledger row
+        // to 'failed' so the operator sees it and can retry / refund manually.
+        const transfer = event.data.object as Stripe.Transfer;
+        logStep("Transfer FAILED", { id: transfer.id, amount: transfer.amount });
+
+        const failureReason = (transfer as { failure_message?: string }).failure_message
+          ?? (transfer as { failure_code?: string }).failure_code
+          ?? "unknown";
+
+        await supabase
+          .from("payout_transfers")
+          .update({
+            status: "failed",
+            failed_at: new Date().toISOString(),
+            failure_reason: failureReason,
+          })
+          .eq("stripe_transfer_id", transfer.id);
+
+        // Operator alert — failed payouts always need human eyes.
+        postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "warning",
+          title: "Helper payout failed",
+          message: `Stripe transfer ${transfer.id} did not succeed.`,
+          fields: {
+            "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+            "Destination": String(transfer.destination ?? "—"),
+            "Reason": failureReason,
+          },
+        });
+        break;
+      }
+
+      case "transfer.reversed": {
+        // A previously-settled transfer was reversed (manual reversal,
+        // dispute, fraud, etc.). Mirror that in the ledger so finance
+        // reconciliation matches Stripe's view.
+        const transfer = event.data.object as Stripe.Transfer;
+        logStep("Transfer REVERSED", { id: transfer.id, amount: transfer.amount });
+
+        await supabase
+          .from("payout_transfers")
+          .update({ status: "reversed", reversed_at: new Date().toISOString() })
+          .eq("stripe_transfer_id", transfer.id);
+
+        postSlackOpsAlert({
+          kind: "payout_reversed",
+          severity: "warning",
+          title: "Helper payout reversed",
+          message: `Stripe transfer ${transfer.id} was reversed. Investigate and reconcile.`,
+          fields: {
+            "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+            "Destination": String(transfer.destination ?? "—"),
+          },
+        });
         break;
       }
 

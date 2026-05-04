@@ -202,8 +202,18 @@ serve(async (req) => {
       { idempotencyKey: `release-payout-${job.id}` },
     );
   } catch (e) {
-    const msg = (e as Error).message;
-    return jsonResponse({ error: `stripe.transfers.create failed: ${msg}` }, 502);
+    // Defensive logging: full Stripe error context lands in Supabase logs
+    // so we can diagnose without reproducing.
+    const err = e as Error & { type?: string; code?: string; statusCode?: number };
+    console.error("[release-payout] stripe.transfers.create failed:", {
+      job_id: body.job_id,
+      message: err.message,
+      stripe_type: err.type,
+      stripe_code: err.code,
+      stripe_status: err.statusCode,
+      stack: err.stack?.split("\n").slice(0, 5).join("\n"),
+    });
+    return jsonResponse({ error: `stripe.transfers.create failed: ${err.message}` }, 502);
   }
 
   // Persist the ledger row + flip the job's payment_status. If the

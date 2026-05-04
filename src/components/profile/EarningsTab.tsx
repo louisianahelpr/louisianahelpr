@@ -105,6 +105,30 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     gcTime: 5 * 60_000,
   });
 
+  // payout_transfers ledger — the authoritative record of every
+  // stripe.transfers.create() call to this helper. RLS already restricts
+  // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
+  const { data: payoutLedger = [] } = useQuery({
+    queryKey: ["payout-transfers", helperId],
+    queryFn: async () => {
+      if (!helperId) return [];
+      const { data, error } = await supabase
+        .from("payout_transfers")
+        .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, jobs(title)")
+        .eq("helper_id", helperId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        report(error, { severity: "warning", tags: { source: "EarningsTab.fetchLedger" } });
+        return [];
+      }
+      return data ?? [];
+    },
+    enabled: !!helperId,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+
   const refreshing = isFetching && !stripeLoading;
   const handleRefresh = () => {
     qc.invalidateQueries({ queryKey: ["stripe-payouts"] });
@@ -437,6 +461,64 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </div>
         )}
       </section>
+
+      {/* ─── ACTUAL PAYOUTS (from payout_transfers ledger) ─── */}
+      {payoutLedger.length > 0 && (
+        <div>
+          <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            Payouts
+          </p>
+          <h2 className="font-display italic font-bold leading-tight mb-3" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+            Recent transfers
+          </h2>
+          <div className="space-y-2.5">
+            {payoutLedger.map((t) => {
+              const jobTitle = (t.jobs as { title?: string } | null)?.title ?? "Job";
+              const date = new Date(t.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              const amount = (t.amount_cents / 100).toFixed(2);
+              const fee = (t.platform_fee_cents / 100).toFixed(2);
+              const tone =
+                t.status === "paid" ? "bg-primary/10 text-primary"
+                : t.status === "failed" ? "bg-destructive/10 text-destructive"
+                : t.status === "reversed" ? "bg-muted text-muted-foreground"
+                : "bg-accent/20 text-accent-foreground"; // pending
+              return (
+                <div key={t.id} className="rounded-xl liquid-glass p-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                          {jobTitle}
+                        </h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${tone}`}>{t.status}</span>
+                      </div>
+                      <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        {date}
+                        {t.stripe_transfer_id && (
+                          <span className="ml-2 text-[10px] font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
+                        )}
+                        {t.failure_reason && t.status === "failed" && (
+                          <span className="block mt-1 text-destructive text-[11px]">{t.failure_reason}</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
+                        ${amount}
+                      </p>
+                      {Number(fee) > 0 && (
+                        <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}>
+                          fee ${fee}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ─── EARNING HISTORY ─── */}
       {loading ? (

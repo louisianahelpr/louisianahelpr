@@ -123,7 +123,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -223,7 +223,7 @@ jobs:
           grep -nE "def configure_signing!|DEVELOPER_TEAM_ID env var is required for signing|configure_signing!" fastlane/Fastfile
 
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"

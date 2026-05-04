@@ -1,18 +1,21 @@
 name: DB Smoke
 
 # Catches the class of bug that took job posting down for ~2 days:
-# trigger functions referencing columns that no longer exist.
+# trigger functions referencing columns that no longer exist, plus the
+# notifications.type CHECK regression that silently 500'd state changes.
 #
-# Boots a fresh Postgres in the runner, applies every migration in repo
-# order, then exercises the previously-broken `INSERT INTO public.jobs`
-# trigger fan-out path. If `column p.role does not exist` (or anything
-# similar) ever resurfaces, this workflow fails the PR before merge.
+# Boots a Supabase-flavored Postgres in the runner (image bundles pg_cron,
+# pg_net, supabase_vault, pgmq, and the auth/storage schemas), applies
+# every migration in repo order, then exercises the previously-broken
+# `INSERT INTO public.jobs` trigger fan-out path. If `column p.role does
+# not exist` (or anything similar) ever resurfaces, this workflow fails
+# the PR before merge.
 #
 # Cost-conscious:
 # - Only runs when supabase/migrations/** changes
 # - Uses ubuntu-latest (cheapest)
 # - Concurrency-cancels superseded runs
-# - ~3 min run time
+# - ~3-5 min run time
 
 on:
   pull_request:
@@ -34,7 +37,13 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        # Supabase's own Postgres distribution: includes pg_cron, pg_net,
+        # supabase_vault, pgmq, plpgsql_check, and the standard
+        # auth/storage/realtime/extensions schemas with the expected roles
+        # (authenticated, anon, service_role). This eliminates the 100+
+        # extension/role/publication-related errors we'd hit on stock
+        # postgres:16.
+        image: supabase/postgres:15.8.1.060
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: helpr_test
@@ -44,7 +53,7 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
 
     env:
       PGPASSWORD: postgres
@@ -59,32 +68,62 @@ jobs:
       - name: Install psql client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
 
-      - name: Bootstrap Supabase auth schema stubs
-        # Real Supabase ships an `auth` schema with `auth.users`, an `auth.uid()`
-        # function, etc. Migrations reference these. Without stubs, every
-        # `REFERENCES auth.users(id)` and `auth.uid()` call in the migrations
-        # would error before we even get to the trigger-function tests.
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h localhost -U postgres > /dev/null 2>&1; then
+              echo "✅ Postgres is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ Postgres failed to become ready"
+          exit 1
+
+      - name: Belt-and-suspenders schema/role bootstrap
+        # The supabase/postgres image already provides auth/storage schemas
+        # and the standard roles, but a few rare migrations still expect
+        # specific objects to pre-exist (e.g. publications). We make these
+        # idempotent so the migrations can layer on top cleanly.
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
-          CREATE EXTENSION IF NOT EXISTS pgcrypto;
-          CREATE SCHEMA IF NOT EXISTS auth;
-          CREATE TABLE IF NOT EXISTS auth.users (
-            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-            email text UNIQUE,
-            raw_user_meta_data jsonb DEFAULT '{}'::jsonb,
-            created_at timestamptz DEFAULT now()
+          -- supabase_realtime publication (some migrations ALTER it).
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
+              CREATE PUBLICATION supabase_realtime;
+            END IF;
+          END $$;
+
+          -- Some early migrations INSERT INTO storage.buckets before
+          -- storage extension is wired. Make sure it exists.
+          CREATE SCHEMA IF NOT EXISTS storage;
+          CREATE TABLE IF NOT EXISTS storage.buckets (
+            id text PRIMARY KEY,
+            name text NOT NULL UNIQUE,
+            owner uuid,
+            created_at timestamptz DEFAULT now(),
+            updated_at timestamptz DEFAULT now(),
+            public boolean DEFAULT false,
+            avif_autodetection boolean DEFAULT false,
+            file_size_limit bigint,
+            allowed_mime_types text[]
           );
-          CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
-            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
-          $$;
-          CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
-            SELECT COALESCE(current_setting('request.jwt.claim.role', true), 'anon')
-          $$;
-          CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS $$
-            SELECT current_setting('request.jwt.claim.email', true)
-          $$;
-          CREATE SCHEMA IF NOT EXISTS extensions;
-          CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+          -- Reserved roles — the supabase/postgres image ships these, but
+          -- be defensive for older image tags.
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN
+              CREATE ROLE service_role NOLOGIN BYPASSRLS;
+            END IF;
+          END $$;
           SQL
 
       - name: Apply all migrations in order
@@ -92,16 +131,18 @@ jobs:
           set -e
           echo "Applying migrations from supabase/migrations/ in lexicographic order..."
           FAIL=0
+          FIRST_FAIL=""
           for f in $(ls supabase/migrations/*.sql | sort); do
             echo "::group::$(basename $f)"
             if ! psql -v ON_ERROR_STOP=1 -f "$f"; then
               echo "::error file=$f::Migration failed"
               FAIL=1
+              [ -z "$FIRST_FAIL" ] && FIRST_FAIL="$f"
             fi
             echo "::endgroup::"
           done
           if [ "$FAIL" -eq 1 ]; then
-            echo "::error::One or more migrations failed to apply"
+            echo "::error::Migration(s) failed. First failure: $FIRST_FAIL"
             exit 1
           fi
           echo "✅ All migrations applied"
@@ -134,6 +175,43 @@ jobs:
           SELECT '✅ post-job triggers ran cleanly — no column-does-not-exist errors';
           SQL
 
+      - name: Smoke — notifications.type CHECK accepts every emitted type
+        # The 2026-05-04 hidden P0: a trigger inserted notifications.type='work_status'
+        # but the CHECK constraint only knew 7 types. Every accepted→in_progress
+        # transition silently 500'd. This test inserts every type the codebase
+        # actually emits and fails if any are rejected.
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE
+            t text;
+            types text[] := ARRAY[
+              'info', 'success', 'warning', 'job_update', 'application',
+              'review', 'payment',
+              'job_match', 'job_updates', 'work_status', 'transit_updates',
+              'system_alert', 'new_offers', 'expired', 'financial_alerts',
+              'verified'
+            ];
+            tester_id uuid := gen_random_uuid();
+          BEGIN
+            INSERT INTO auth.users (id, email)
+              VALUES (tester_id, 'notif-smoke@helpr.test');
+
+            FOREACH t IN ARRAY types LOOP
+              BEGIN
+                INSERT INTO public.notifications (user_id, type, title, message)
+                VALUES (tester_id, t, 'smoke', 'smoke test row');
+              EXCEPTION WHEN check_violation THEN
+                RAISE EXCEPTION 'notifications.type=% rejected by CHECK constraint — keep notifications_type_check in sync with code', t;
+              END;
+            END LOOP;
+
+            DELETE FROM public.notifications WHERE user_id = tester_id;
+            DELETE FROM auth.users WHERE id = tester_id;
+            RAISE NOTICE '✅ All % notification types accepted', array_length(types, 1);
+          END $$;
+          SQL
+
       - name: Sanity-check the previously-broken role functions
         # Belt-and-suspenders: directly invoke each function that contained a
         # `p.role` reference. They should all return without error after the
@@ -148,3 +226,21 @@ jobs:
           SELECT * FROM public.get_safe_profiles(ARRAY[]::uuid[]);
           SELECT '✅ all previously-broken role functions return without error';
           SQL
+
+      - name: Static guard — no p.role = 'helper'-style hardcoded role strings
+        # Belt-and-suspenders #2: even if the DB tests pass, fail the PR if
+        # anyone reintroduces a string-literal role comparison anywhere in
+        # the codebase. The fix is always: has_role(uid, 'role'::app_role).
+        run: |
+          set -e
+          PAT="(profiles?|p)\\.role\\s*=\\s*'(helper|customer|admin|client|provider)'"
+          MATCHES=$(grep -rEn -i \
+            --include='*.sql' --include='*.ts' --include='*.tsx' \
+            "$PAT" \
+            supabase/ src/ 2>/dev/null || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Hardcoded role-string comparison found — use has_role(uid, 'role'::app_role) instead"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "✅ No hardcoded role-string comparisons found"

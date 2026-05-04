@@ -117,8 +117,53 @@ serve(async (req) => {
       results.push({ job_id: job.id, status: "released", paymentIntentId });
     }
 
+    // ── Phase 2: Process payout_pending jobs whose 24h hold has elapsed ──
+    // The block above sets jobs to payout_pending with payout_scheduled_at
+    // = now + 24h. Once that window passes we invoke release-payout to
+    // actually move money from the platform balance to the helper's
+    // Connect account. This used to be missing — jobs sat in
+    // payout_pending forever and the helper never got paid.
+    const supabaseFnBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
+    const { data: dueJobs } = await supabaseAdmin
+      .from("jobs")
+      .select("id, title, helper_id, payout_scheduled_at")
+      .eq("status", "completed")
+      .eq("payment_status", "payout_pending")
+      .lte("payout_scheduled_at", new Date().toISOString());
+
+    let paid = 0;
+    const payoutResults: Array<{ job_id: string; status: string; detail?: string }> = [];
+
+    for (const job of dueJobs ?? []) {
+      try {
+        const resp = await fetch(`${supabaseFnBase}/release-payout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // release-payout accepts CRON_SECRET or service-role for
+            // automated callers — use whichever this cron is using.
+            "Authorization": authHeader,
+          },
+          body: JSON.stringify({ job_id: job.id, initiated_by: "auto" }),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          paid++;
+          payoutResults.push({ job_id: job.id, status: "paid", detail: json.stripe_transfer_id });
+        } else {
+          payoutResults.push({ job_id: job.id, status: "failed", detail: json.error ?? `HTTP ${resp.status}` });
+        }
+      } catch (e) {
+        payoutResults.push({ job_id: job.id, status: "errored", detail: (e as Error).message });
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, released, results }),
+      JSON.stringify({
+        success: true,
+        released, results,
+        paid, payoutResults,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {

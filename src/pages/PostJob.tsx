@@ -50,6 +50,8 @@ const PostJob = () => {
   const [saving, setSaving] = useState(false);
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const [idvDialogOpen, setIdvDialogOpen] = useState(false);
+  const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
+  const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
   const [step, setStep] = useState<Step>("form");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -307,11 +309,13 @@ const PostJob = () => {
     {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("idv_status")
+        .select("idv_status, idv_failure_reason")
         .eq("user_id", user.id)
         .single();
-      const idvStatus = (prof as any)?.idv_status;
-      if (idvStatus !== "verified") {
+      const profStatus = (prof as { idv_status?: string })?.idv_status;
+      if (profStatus !== "verified") {
+        setIdvStatus(profStatus);
+        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
         setIdvDialogOpen(true);
         setSaving(false);
         submittingRef.current = false;
@@ -1127,6 +1131,8 @@ const PostJob = () => {
         open={idvDialogOpen}
         onOpenChange={setIdvDialogOpen}
         reason="Helpr requires a quick ID + selfie check before you can post a job. This keeps the platform safe for the helprs you'll be hiring."
+        status={idvStatus as never}
+        failureReason={idvFailureReason}
       />
     </div>
   );

@@ -66,6 +66,11 @@ serve(async (req) => {
           dob = { day: d.getUTCDate(), month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
         }
 
+        // Idempotency keyed on the Helpr user id: if the function crashes
+        // between this call and the profiles.update below, a retry returns
+        // the SAME Stripe account instead of creating an orphan. Without
+        // this, every crashed retry left a dangling Express account on
+        // Stripe that no Helpr user pointed to.
         const account = await stripe.accounts.create({
           type: "express",
           country: "US",
@@ -89,7 +94,7 @@ serve(async (req) => {
             payouts: { schedule: { interval: "manual" } },
           },
           metadata: { user_id: user.id },
-        });
+        }, { idempotencyKey: `stripe-connect-create-${user.id}` });
         accountId = account.id;
 
         await supabaseAdmin

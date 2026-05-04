@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Throttle abuse: 10 payment-creation attempts per IP per minute. The real
+  // Stripe-side throttle is generous, but every call hits stripe.customers.list
+  // and (often) stripe.customers.create, which costs us money + adds latency
+  // for legit users if a script floods it.
+  const rl = await checkRateLimit(req, {
+    windowMs: 60_000,
+    maxRequests: 10,
+    keyPrefix: "create-payment",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",

@@ -4,6 +4,7 @@ import path from "path";
 import { createRequire } from "module";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import { visualizer } from "rollup-plugin-visualizer";
 
 const require = createRequire(import.meta.url);
 const reactEntry = require.resolve("react");
@@ -12,6 +13,9 @@ const reactDomClientEntry = require.resolve("react-dom/client");
 const reactJsxRuntimeEntry = require.resolve("react/jsx-runtime");
 const reactJsxDevRuntimeEntry = require.resolve("react/jsx-dev-runtime");
 const isCapacitorBuild = process.env.VITE_CAPACITOR_BUILD === "1";
+// Opt-in bundle analyzer: `ANALYZE=1 npm run build` writes dist/stats.html.
+// Off by default so normal builds don't pay the analysis overhead.
+const isAnalyze = process.env.ANALYZE === "1";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -25,6 +29,13 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    isAnalyze && visualizer({
+      filename: "dist/stats.html",
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+      template: "treemap",
+    }) as Plugin,
     // Avoid the main app stylesheet blocking first paint. Vite emits the entry
     // CSS as a synchronous <link rel="stylesheet">, which Lighthouse flagged as
     // a ~150ms render-blocking request on the critical path. We rewrite that

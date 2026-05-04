@@ -6,6 +6,18 @@ import { installGlobalErrorHandlers } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
 
+// Build identifier — exposed on window so a deploy with only doc/cosmetic
+// changes still produces a new bundle hash, evicting stale CacheFirst
+// entries on returning clients (mobile PWA installs). Also useful for
+// support diagnostics: ask a user to read window.HELPR_BUILD to confirm
+// they're on the latest.
+declare global {
+  interface Window {
+    HELPR_BUILD?: string;
+  }
+}
+window.HELPR_BUILD = "2026-05-04-editorial-brand-polish";
+
 // Global error handlers are tiny + synchronous — keep them eager so we
 // catch any throw during the very first render.
 installGlobalErrorHandlers();

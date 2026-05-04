@@ -46,7 +46,10 @@ jobs:
         image: supabase/postgres:15.8.1.060
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: helpr_test
+        # Use the image's default `postgres` database — the supabase/postgres
+        # image bootstraps its custom roles + schemas only on `postgres`,
+        # so creating a new DB via POSTGRES_DB ends up with the postgres
+        # role lacking CREATE on it.
         ports:
           - 5432:5432
         options: >-
@@ -59,7 +62,7 @@ jobs:
       PGPASSWORD: postgres
       PGHOST: localhost
       PGUSER: postgres
-      PGDATABASE: helpr_test
+      PGDATABASE: postgres
 
     steps:
       - name: Checkout

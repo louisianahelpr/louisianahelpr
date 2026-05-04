@@ -59,13 +59,12 @@ const Jobs = () => {
   const fetchJobs = async (offset = 0, append = false) => {
     if (!append) setLoading(true);
     else setLoadingMore(true);
-    const today = new Date().toISOString().split("T")[0];
+    // get_ranked_open_jobs ranks by boost (1000) + parish match (500) +
+    // urgent (100) + recency (0-50). Replaces the old chronological-only
+    // sort against the open_jobs_safe view. Anon callers still work — they
+    // just don't get the parish-match boost.
     const { data } = await supabase
-      .from("open_jobs_safe" as any)
-      .select("id, title, category, location, budget, date_needed, is_urgent, created_at, expires_at")
-      .gte("date_needed", today)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1) as { data: PublicJob[] | null };
+      .rpc("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }) as { data: PublicJob[] | null };
     const newJobs = data || [];
     setHasMore(newJobs.length === PAGE_SIZE);
     if (append) {

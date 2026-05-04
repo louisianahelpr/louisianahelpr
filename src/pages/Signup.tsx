@@ -29,6 +29,7 @@ import {
   fileToBase64,
   ageFromDob,
 } from "./signup/signupHelpers";
+import { SignupStep1 } from "./signup/SignupStep1";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -637,92 +638,28 @@ const Signup = () => {
 
         {/* Step 1: Account credentials + agreements */}
         {step === 1 && (
-          <div className="space-y-6">
-            <section className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
-                <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-                {confirmEmail && (
-                  <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
-                    {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
-                <div className="relative">
-                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {confirmPassword && (
-                  <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
-                    {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
-                  </p>
-                )}
-              </div>
-            </section>
-
-            <div className="flex items-start gap-2.5 px-1">
-              <Checkbox
-                id="policies"
-                checked={acceptedPolicies}
-                onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
-                className="h-3.5 w-3.5 mt-[3px] [&_svg]:h-3 [&_svg]:w-3"
-              />
-              <label
-                htmlFor="policies"
-                className="text-xs leading-relaxed cursor-pointer font-sans"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-              >
-                I agree to the{" "}
-                <Link to="/rules" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
-                <Link to="/terms" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms of Service</Link>, and{" "}
-                <Link to="/privacy" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
-                I understand the cancellation, no-show, and dispute policies.
-              </label>
-            </div>
-
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={async () => {
-                if (!(await validateStep2())) return;
-                setStep(2);
-              }}
-              disabled={!acceptedPolicies}
-            >
-              Continue <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border/60" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <GoogleSignInButton label="Sign up with Google" />
-              <AppleSignInButton label="Sign up with Apple" />
-            </div>
-          </div>
+          <SignupStep1
+            email={email}
+            setEmail={setEmail}
+            confirmEmail={confirmEmail}
+            setConfirmEmail={setConfirmEmail}
+            password={password}
+            setPassword={setPassword}
+            confirmPassword={confirmPassword}
+            setConfirmPassword={setConfirmPassword}
+            showPassword={showPassword}
+            setShowPassword={setShowPassword}
+            showConfirmPassword={showConfirmPassword}
+            setShowConfirmPassword={setShowConfirmPassword}
+            acceptedPolicies={acceptedPolicies}
+            setAcceptedPolicies={setAcceptedPolicies}
+            inputCls={inputCls}
+            labelCls={labelCls}
+            onContinue={async () => {
+              if (!(await validateStep2())) return;
+              setStep(2);
+            }}
+          />
         )}
 
 

@@ -60,11 +60,17 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Non-escalated: auto-release payment to helper
+      // Non-escalated: auto-release payment to helper.
+      // Also flip payment_status to 'payout_pending' so the auto-release-payment
+      // cron's Phase 2 (release-payout invocation, gated on RELEASE_PAYOUT_AUTO=1)
+      // actually moves the money. Without this, the job sat in escrow forever
+      // and the helper got a "payment released" notification that wasn't true.
       const { error: updateErr } = await supabase
         .from("jobs")
         .update({
           status: "completed",
+          payment_status: "payout_pending",
+          payout_scheduled_at: new Date().toISOString(),
           dispute_status: "auto_resolved",
           dispute_resolved_at: new Date().toISOString(),
           dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to helper.`,

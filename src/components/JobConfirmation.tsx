@@ -45,9 +45,13 @@ export function JobConfirmation({
   const handleConfirm = async () => {
     setConfirming(true);
     const field = isOwner ? "poster_confirmed_at" : "helper_confirmed_at";
+    // Cast: Supabase generated types reject computed-key updates because the
+    // index signature widens to `[x: string]: never`. Runtime accepts any
+    // valid column name; the `field` variable is constrained above to one of
+    // two known column names.
     const { error } = await supabase
       .from("jobs")
-      .update({ [field]: new Date().toISOString() })
+      .update({ [field]: new Date().toISOString() } as never)
       .eq("id", jobId);
     if (error) {
       toast.error("Failed to confirm");

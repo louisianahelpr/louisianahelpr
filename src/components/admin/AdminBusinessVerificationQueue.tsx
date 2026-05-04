@@ -70,7 +70,7 @@ const AdminBusinessVerificationQueue = () => {
     const { error } = await supabase.rpc("review_business_verification", {
       _business_id: businessId,
       _decision: decision,
-      _rejection_reason: reason ?? null,
+      _rejection_reason: reason ?? undefined,
     });
     setBusy(null);
     if (error) {

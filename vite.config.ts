@@ -238,6 +238,9 @@ export default defineConfig(({ mode }) => ({
   },
   // Strip console + debugger from production bundles. Keeps bundle slim
   // and avoids leaking debug info in App Store builds.
+  // Vite 8's ESBuildOptions narrows `drop` via an internal esbuild Drop
+  // literal that isn't re-exported. Runtime is correct; cast to any to
+  // sidestep the strict type-check on the union-shape mismatch.
   esbuild: {
     drop: mode === "production" ? ["console", "debugger"] : [],
   },

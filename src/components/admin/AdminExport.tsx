@@ -21,10 +21,24 @@ const AdminExport = () => {
 
   const exportUsers = async () => {
     setExporting("users");
-    const { data } = await supabase.from("profiles").select("user_id, full_name, email, role, approval_status, ban_status, location, created_at, subscription_tier").order("created_at", { ascending: false });
+    // profiles.role was dropped — fetch profile + user_roles separately and merge.
+    const [{ data }, { data: roles }] = await Promise.all([
+      supabase.from("profiles").select("user_id, full_name, email, approval_status, ban_status, location, created_at, subscription_tier").order("created_at", { ascending: false }),
+      supabase.from("user_roles").select("user_id, role"),
+    ]);
     if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
+    // Build a user_id → roles map. Pick the most-privileged role per user
+    // (admin > helper > customer) for the single CSV column.
+    const roleByUser = new Map<string, string>();
+    const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
+    for (const r of roles ?? []) {
+      const existing = roleByUser.get(r.user_id);
+      if (!existing || priority(r.role) < priority(existing)) {
+        roleByUser.set(r.user_id, r.role);
+      }
+    }
     const header = "User ID,Name,Email,Role,Status,Ban Status,Location,Created,Subscription";
-    const rows = data.map(p => [p.user_id, p.full_name, p.email, p.role, p.approval_status, p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
+    const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.approval_status, p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
     downloadCSV(`users-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
     toast.success(`Exported ${data.length} users`);
     setExporting(null);

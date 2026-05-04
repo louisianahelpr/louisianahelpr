@@ -751,7 +751,7 @@ const AdminUsers = () => {
     if (tab === "pending" && !isPendingReview(p)) return false;
     else if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
     else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""))) return false;
-    else if (tab === "denied" && (p.approval_status !== "denied" || p.role === "customer")) return false;
+    else if (tab === "denied" && (p.approval_status !== "denied" || (p as { role?: string }).role === "customer")) return false;
     else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
 
     // Search by name (also matches email for convenience)
@@ -901,7 +901,10 @@ const AdminUsers = () => {
       isUnseen(p),
   ).length;
   const deniedCount = profiles.filter(
-    (p) => p.approval_status === "denied" && p.role !== "customer" && isUnseen(p),
+    // p.role was dropped in the unified-accounts migration. Cast to any
+    // preserves prior behavior (undefined !== "customer" → true) until
+    // this view is migrated to look up roles via user_roles.
+    (p) => p.approval_status === "denied" && (p as { role?: string }).role !== "customer" && isUnseen(p),
   ).length;
   const allCount = profiles.filter(isUnseen).length;
 
@@ -1066,7 +1069,8 @@ const AdminUsers = () => {
                     const neverLoggedIn = isApproved && !lastLogin;
                     const hasIdv = (p as any).idv_status === "verified";
                     const hasStripe = !!(p as any).stripe_account_id;
-                    const isHelper = p.role !== "customer";
+                    // Same legacy-role pattern as deniedCount above.
+                    const isHelper = (p as { role?: string }).role !== "customer";
                     const parish = (p as any).parish;
 
                     const chip = (key: string, content: React.ReactNode, tone = "bg-secondary/40 text-muted-foreground") => (

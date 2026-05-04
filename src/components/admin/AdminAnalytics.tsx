@@ -36,6 +36,9 @@ const AdminAnalytics = () => {
   const [tips, setTips] = useState<Tip[]>([]);
   const [drillUsers, setDrillUsers] = useState<Profile[]>([]);
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
+  // user_id → role lookup (profiles.role was dropped — fetched separately
+  // from user_roles and joined client-side for the helper/customer counts).
+  const [roleByUser, setRoleByUser] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const load = async () => {
@@ -51,13 +54,24 @@ const AdminAnalytics = () => {
         page++;
       }
 
-      const [profilesRes, tipsRes] = await Promise.all([
+      const [profilesRes, tipsRes, rolesRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("tips").select("*"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
       setProfiles(profilesRes.data || []);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
+      // Build user_id → most-privileged role map (admin > helper > customer).
+      const roleMap = new Map<string, string>();
+      const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
+      for (const r of rolesRes.data ?? []) {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || priority(r.role) < priority(existing)) {
+          roleMap.set(r.user_id, r.role);
+        }
+      }
+      setRoleByUser(roleMap);
       setLoading(false);
     };
     load();
@@ -72,8 +86,8 @@ const AdminAnalytics = () => {
   }
 
   // ─── Computed metrics ───
-  const helpers = profiles.filter(p => p.role === "helper");
-  const customers = profiles.filter(p => p.role === "customer");
+  const helpers = profiles.filter(p => roleByUser.get(p.user_id) === "helper");
+  const customers = profiles.filter(p => roleByUser.get(p.user_id) === "customer");
   const completedJobs = allJobs.filter(j => j.status === "completed");
   // Jobs where money is actually held or paid out (NOT refunded/cancelled)
   const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
@@ -241,7 +255,7 @@ const AdminAnalytics = () => {
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
           </div>
         ) : drillDown === "users" ? (
-          <UsersDrillDown users={drillUsers} />
+          <UsersDrillDown users={drillUsers} roleByUser={roleByUser} />
         ) : drillDown === "subscriptions" ? (
           <SubscriptionsDrillDown users={drillUsers} />
         ) : drillDown === "categories" ? (
@@ -591,7 +605,7 @@ const MRRRow = ({ tier, count, amount }: { tier: string; count: number; amount: 
 );
 
 // ─── Drill-down: Users ───
-const UsersDrillDown = ({ users }: { users: Profile[] }) => {
+const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: Map<string, string> }) => {
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "denied">("all");
   const filtered = users.filter(u => statusFilter === "all" || u.approval_status === statusFilter);
 
@@ -632,7 +646,7 @@ const UsersDrillDown = ({ users }: { users: Profile[] }) => {
                 <Badge className={`text-xs capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()} · {u.role}</p>
+            <p className="text-[10px] text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()} · {roleByUser.get(u.user_id) ?? "—"}</p>
           </div>
         ))}
       </div>

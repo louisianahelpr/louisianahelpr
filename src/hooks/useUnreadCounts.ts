@@ -30,7 +30,7 @@ export const useUnreadCounts = (userId: string | null | undefined): Counts => {
         supabase
           .from("applications")
           .select("*", { count: "exact", head: true })
-          .eq("applicant_id", userId)
+          .eq("helper_id", userId)
           .eq("status", "pending"),
       ]);
       setCounts({

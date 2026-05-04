@@ -19,9 +19,16 @@ import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 import AuthShell from "@/components/auth/AuthShell";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
-
-const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
-const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";
+import {
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_DOC_TYPES,
+  SIGNUP_COOLDOWN_MS,
+  SIGNUP_COOLDOWN_KEY,
+  validateFile,
+  formatPhone,
+  fileToBase64,
+  ageFromDob,
+} from "./signup/signupHelpers";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -81,22 +88,6 @@ const Signup = () => {
   const [isInsured, setIsInsured] = useState(false);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
   const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
-
-  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-  const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-  const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(`${label}: Invalid file type. Allowed: ${allowedTypes.map(t => t.split("/")[1]).join(", ")}`);
-      return false;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${label}: File too large. Maximum 5MB.`);
-      return false;
-    }
-    return true;
-  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,13 +150,6 @@ const Signup = () => {
     );
   };
 
-  const formatPhone = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 10);
-    if (digits.length === 0) return "";
-    if (digits.length < 4) return `(${digits}`;
-    if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  };
 
   // Step 1 = About you + ID
   const validateStep1 = async () => {
@@ -175,12 +159,7 @@ const Signup = () => {
     if (!lastName.trim()) { toast.error("Last name is required"); return false; }
     if (!phone.trim()) { toast.error("Phone number is required"); return false; }
     if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
-    const dob = new Date(dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const monthDiff = today.getMonth() - dob.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
-    if (age < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
+    if (ageFromDob(dateOfBirth) < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
     if (!location.trim()) { toast.error("City is required"); return false; }
     if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
     if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
@@ -213,15 +192,6 @@ const Signup = () => {
     return true;
   };
 
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
   const prepareFileData = async () => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;

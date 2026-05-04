@@ -2,7 +2,6 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import HelprMark from "@/components/HelprMark";
 import { formatName } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, DollarSign, LogOut, MapPin,
-  CreditCard, Shield, FileText, Mail, Lock, Upload, X,
+  DollarSign, LogOut, MapPin,
+  CreditCard, Shield, Mail, Lock, Upload,
   Star, Edit, CalendarDays, Clock, Gavel,
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Loader2, Heart, Crown, Camera,
@@ -113,8 +112,8 @@ const ProfilePage = () => {
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
   const [postedCount, setPostedCount] = useState(0);
-  const [totalJobEarnings, setTotalJobEarnings] = useState(0);
-  const [totalTipEarnings, setTotalTipEarnings] = useState(0);
+  const [, setTotalJobEarnings] = useState(0);
+  const [, setTotalTipEarnings] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
 
@@ -123,7 +122,7 @@ const ProfilePage = () => {
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Profile fields
-  const [fullName, setFullName] = useState("");
+  const [, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -199,26 +198,6 @@ const ProfilePage = () => {
   }, [cachedUser, cachedProfile, authLoading]);
 
   // No separate auth listener needed — useCurrentUser handles it via React Query
-
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
-    if (data) {
-      setProfile(data);
-      setFullName(data.full_name || "");
-      const _p = (data.full_name || "").trim().split(/\s+/);
-      setFirstName(_p[0] || "");
-      setLastName(_p.slice(1).join(" ") || "");
-      setPhone(data.phone || "");
-      setLocation(data.location || "");
-      setZipCode((data as any).zip_code || "");
-      setParish((data as any).parish || null);
-      setBio(data.bio || "");
-      setSkills(data.skills || "");
-      setHourlyRate(data.hourly_rate?.toString() || "");
-      setDateOfBirth(data.date_of_birth || "");
-    }
-    setLoading(false);
-  };
 
   // Auto-lookup parish from zip (Louisiana sales tax)
   useEffect(() => {
@@ -765,16 +744,6 @@ const ProfilePage = () => {
               ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
               : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
             const bioOk = bio.trim().length >= 20;
-            const ageOk = (() => {
-              if (!dateOfBirth) return false;
-              const d = new Date(dateOfBirth);
-              if (isNaN(d.getTime())) return false;
-              const t = new Date();
-              let age = t.getFullYear() - d.getFullYear();
-              const m = t.getMonth() - d.getMonth();
-              if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
-              return age >= 18;
-            })();
               return (
               <div className="space-y-5 pb-24">
                 <ProfileTabHeader

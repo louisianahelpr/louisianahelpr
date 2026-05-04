@@ -1,16 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import {
   X, MapPin, Clock, ChevronDown, MoreHorizontal, ArrowUpRight,
-  ArrowUpDown, LayoutGrid, CalendarClock, CalendarRange, Rocket,
+  ArrowUpDown, LayoutGrid, CalendarRange, Rocket,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -211,41 +204,6 @@ const AvailabilityContent = ({
   );
 };
 
-// ---------------- Desktop accordion section ----------------
-
-interface SectionProps {
-  icon: LucideIcon;
-  label: string;
-  badge?: string | null;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}
-
-const Section = ({ icon: Icon, label, badge, defaultOpen = false, children }: SectionProps) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-2 py-2 text-left squircle hover:bg-primary/5 transition-colors">
-        <span className="inline-flex items-center gap-2">
-          <Icon className={`w-4 h-4 ${badge ? "text-primary" : "text-muted-foreground"}`} strokeWidth={2.25} />
-          <span className={`text-xs font-bold uppercase tracking-wider ${badge ? "text-primary" : "text-foreground"}`}>
-            {label}
-          </span>
-          {badge && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">
-              {badge}
-            </span>
-          )}
-        </span>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-        <div className="pt-2 pb-1 px-2">{children}</div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-};
-
 // ---------------- Mobile dropdown trigger ----------------
 
 interface DropdownProps {
@@ -321,9 +279,6 @@ const JobFilters = ({
 
   const sortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? "Sort";
   const categoryLabel = selectedCategory ? categoryLabels[selectedCategory] : "Category";
-  const expiresLabel = expiresWithin
-    ? expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "Expires"
-    : "Expires";
   const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
   const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
 

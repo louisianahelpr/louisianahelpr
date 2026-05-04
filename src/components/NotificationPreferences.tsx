@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
-  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Inbox, Lock,
+  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock,
 } from "lucide-react";
 
 interface Prefs {

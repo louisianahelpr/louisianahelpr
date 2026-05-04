@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, Send, CheckCircle2,
+  MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, Send,
   Mail, Clock, FileText, Shield, Search, Upload, X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,7 +37,6 @@ const faqItems = [
 
 const SupportPage = () => {
   usePageTitle("Support — Helpr");
-  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [subject, setSubject] = useState("");

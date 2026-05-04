@@ -22,8 +22,6 @@ export function computeBadges(stats: {
   // Tier badges — always first. Pro + Elite are paid prestige tiers, so
   // they wear the antique gold (matches the wrought-iron logo finials).
   // Basic stays neutral so the gold reads as something earned.
-  const goldBadge =
-    "border" /* color injected via inline style below */;
   if (stats.helprTier === "elite") {
     badges.push({
       key: "elite_sub",

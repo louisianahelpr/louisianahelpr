@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, MailCheck, RefreshCw, ShieldCheck, ArrowRight, Clock, Check, Loader2, FileCheck2, BadgeCheck } from "lucide-react";
+import { LogOut, MailCheck, RefreshCw, ArrowRight, Clock, Check, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";

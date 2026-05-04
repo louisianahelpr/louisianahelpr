@@ -51,7 +51,7 @@ const hardReloadBypassCache = async () => {
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map((r) => r.unregister().catch(() => null)));
     }
-  } catch (_) {
+  } catch {
     /* swallow — proceed to caches + reload */
   }
   try {
@@ -59,7 +59,7 @@ const hardReloadBypassCache = async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k).catch(() => null)));
     }
-  } catch (_) {
+  } catch {
     /* swallow — proceed to reload */
   }
   // Add a cache-buster query param so the browser fetches fresh HTML

@@ -6,7 +6,6 @@ import { useState, useEffect, forwardRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
-import ConnectedHIcon from "@/components/ConnectedHIcon";
 import helprLogoSm from "@/assets/helpr-logo-96.webp";
 import helprLogoMd from "@/assets/helpr-logo-256.webp";
 const helprLogoSrc = helprLogoSm;

@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Supabase CLI scratch dir
+supabase/.temp/
+
 # Environment variables (never commit secrets)
 .env
 .env.local

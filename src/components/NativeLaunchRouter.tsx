@@ -25,7 +25,7 @@ const NativeLaunchRouter = () => {
       }
     });
     // Intentionally only runs on initial mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   return null;

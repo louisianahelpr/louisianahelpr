@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
-  Wallet, Building2, HeartPulse, Siren, ListChecks, Briefcase, Handshake,
+  Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
   ShieldAlert,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -710,7 +710,6 @@ const PrivacyContent = () => (
 /* ─────────────────────────  PAGE  ───────────────────────── */
 const Legal = () => {
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
 

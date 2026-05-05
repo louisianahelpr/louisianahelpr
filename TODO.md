@@ -74,7 +74,7 @@ correct remediation per cowork's Option-2 recommendation.
 ### Jobs & matching
 - [x] Define job-state machine end-to-end (DB-level enforcement shipped 2026-05-04). UI side: still need to audit `src/pages/PostJob` + `JobCard` to surface state transitions explicitly to users
 - [ ] Helper discovery: location-aware ranking on the job feed (NOLA / Baton Rouge / Shreveport service areas)
-- [ ] Saved searches + push/email notifications when a matching job is posted (DB triggers exist; need cron to actually send)
+- [x] Saved searches + push/email notifications when a matching job is posted (DB triggers exist + cron scheduled by cowork 2026-05-05 + triggers migrated to vault.decrypted_secrets in commit 5ac17952 — fan-out fully live)
 
 ### Trust & safety
 - [ ] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. Still TODO: deprecate `legacy_manual_review` flag, add `helper_verifications` history table for audit
@@ -97,7 +97,7 @@ correct remediation per cowork's Option-2 recommendation.
 - [ ] Recurring job templates for business posters
 
 ### Admin & analytics
-- [ ] `AdminAnalytics` cohort + funnel views (signup → first post → first hire → repeat)
+- [x] `AdminAnalytics` cohort + funnel views — customer activation + helper supply funnels shipped commit afc83213. Cohort retention view still pending.
 - [ ] Health dashboard: open jobs by parish, helper supply ratio, time-to-first-application
 
 ### iOS
@@ -105,5 +105,5 @@ correct remediation per cowork's Option-2 recommendation.
 - [ ] App Store metadata refresh once Stripe + verification ship
 
 ### Tech debt
-- [ ] Trim `AdminAnalytics` bundle (currently ~417 kB pre-gzip — biggest chunk in the build)
+- [x] Trim `AdminAnalytics` bundle — recharts code-split shipped commit 7caea06b. Initial chunk 409KB → 30KB (13× reduction); chart chunk loads in parallel.
 - [ ] Resolve `npm cache` permissions on the dev box (`~/.npm/_cacache` ownership) so `npx` doesn't need a temp cache

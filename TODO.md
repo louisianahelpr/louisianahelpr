@@ -98,7 +98,7 @@ correct remediation per cowork's Option-2 recommendation.
 
 ### Admin & analytics
 - [x] `AdminAnalytics` cohort + funnel views — customer activation + helper supply funnels shipped commit afc83213. Cohort retention view still pending.
-- [ ] Health dashboard: open jobs by parish, helper supply ratio, time-to-first-application
+- [x] Health dashboard: open jobs by parish, helper supply ratio, time-to-first-application — Marketplace Pulse panel shipped commit e9dc12d7 in AdminHealth
 
 ### iOS
 - [ ] `npm run sync:ios` after each marketplace schema change; verify `ThemeColors.swift` parity

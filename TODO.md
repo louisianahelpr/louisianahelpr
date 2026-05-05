@@ -37,6 +37,25 @@
 - 🟠 **Deploy stripe-webhook** — `supabase functions deploy stripe-webhook` to activate the new transfer.failed/reversed handlers + payout_transfers ledger lifecycle updates.
 - 🟠 **Verify Stripe API version** — `2025-08-27.basil` is used in 10 functions but per stripe.com/docs/api/versioning, that's not a real version. Current is `2026-04-22.dahlia`. Confirm with Stripe support whether the string is silently substituted.
 
+### Supabase JWT key rotation — partial (2026-05-05)
+
+The legacy `service_role` JWT was exposed to pg_stat_statements + Studio's
+saved-query history during cowork's failed `ALTER DATABASE` for vault GUCs.
+Migration to the new sb_publishable_* / sb_secret_* key system is the
+correct remediation per cowork's Option-2 recommendation.
+
+**Done:**
+- ✅ Frontend already on `VITE_SUPABASE_PUBLISHABLE_KEY` (Vercel env layer was set up by Lovable bootstrap)
+- ✅ All 48 edge functions updated with fallback chain `(SUPABASE_SECRET_KEY ?? SUPABASE_SERVICE_ROLE_KEY)` and `(SUPABASE_PUBLISHABLE_KEY ?? SUPABASE_ANON_KEY)` — see commit d63d939a
+- ✅ All 48 redeployed via `supabase functions deploy --use-api --jobs 8`
+- ✅ Stale `create-idv-session` entry removed from supabase/config.toml — commit 554c0e89
+
+**Pending YOUR action before clicking "Disable JWT-based API keys":**
+- 🟠 Set Supabase function secrets: `SUPABASE_SECRET_KEY=sb_secret_*` and `SUPABASE_PUBLISHABLE_KEY=sb_publishable_*` (Studio → Functions → Secrets, or `npx supabase secrets set`). Functions will pick them up automatically thanks to the fallback chain.
+- 🟠 Verify what publishable key is bundled in iOS App Store build 17 (capacitor.config.ts ships v1.0.4 build 17 with bundled `dist/`). If it's still legacy `eyJ_*`, either rebuild + force-update before disabling, or accept that pre-update iOS users will break.
+- 🟠 Cowork still owes the Vault write (using the new sb_secret_* value, NOT the legacy JWT) + scheduling 12 cron jobs that read from Vault.
+- 🟠 After all of the above + smoke test → click Disable Legacy on the API Keys page.
+
 ## Deployment Log
 
 ### 2026-05-02 — Production deploy + Supabase MCP wiring

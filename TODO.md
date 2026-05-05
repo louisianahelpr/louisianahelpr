@@ -77,7 +77,7 @@ correct remediation per cowork's Option-2 recommendation.
 - [x] Saved searches + push/email notifications when a matching job is posted (DB triggers exist + cron scheduled by cowork 2026-05-05 + triggers migrated to vault.decrypted_secrets in commit 5ac17952 — fan-out fully live)
 
 ### Trust & safety
-- [ ] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. Still TODO: deprecate `legacy_manual_review` flag, add `helper_verifications` history table for audit
+- [~] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. `helper_verifications` history table + AFTER UPDATE trigger on profiles shipped commit e2536835 (audit log starts capturing now). Still TODO: surface history in AdminUsers panel; deprecate `legacy_manual_review` flag (referenced in 4 migrations + 2 edge functions + 2 admin components — separate change)
 - [x] Two-way reviews — DB enforcement trigger shipped 2026-05-04. UI side: surface reviews on profile + nag for review after completion
 - [ ] Dispute / report-issue path wired into `Admin` queue with SLA
 

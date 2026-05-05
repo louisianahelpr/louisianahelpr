@@ -88,6 +88,52 @@ const AdminAnalytics = () => {
   // ─── Computed metrics ───
   const helpers = profiles.filter(p => roleByUser.get(p.user_id) === "helper");
   const customers = profiles.filter(p => roleByUser.get(p.user_id) === "customer");
+
+  // ─── Activation funnels ───
+  // Two SaaS-standard funnels: customer-side (revenue funnel) and
+  // helper-side (supply funnel). Conversion % is computed against the
+  // PRIOR stage so each row reads as "of the people who hit the prior
+  // milestone, what % advanced?"
+  const customerJobsByUser = new Map<string, number>();
+  for (const j of allJobs) {
+    if (j.customer_id) {
+      customerJobsByUser.set(j.customer_id, (customerJobsByUser.get(j.customer_id) ?? 0) + 1);
+    }
+  }
+  const customersWithFirstPost = new Set(allJobs.map(j => j.customer_id).filter((x): x is string => !!x));
+  const customersWithFirstAccepted = new Set(
+    allJobs
+      .filter(j => ["accepted", "in_progress", "completed", "revision_requested", "disputed"].includes(j.status))
+      .map(j => j.customer_id)
+      .filter((x): x is string => !!x),
+  );
+  const customersWithRepeat = new Set(
+    [...customerJobsByUser.entries()].filter(([, count]) => count >= 2).map(([uid]) => uid),
+  );
+  const customerFunnel = [
+    { label: "Signed up", count: customers.length, of: customers.length },
+    { label: "Posted first job", count: customersWithFirstPost.size, of: customers.length },
+    { label: "Got first accept", count: customersWithFirstAccepted.size, of: customersWithFirstPost.size || 1 },
+    { label: "Repeat poster (2+)", count: customersWithRepeat.size, of: customersWithFirstAccepted.size || 1 },
+  ];
+
+  const helperJobsByUser = new Map<string, number>();
+  for (const j of allJobs) {
+    if (j.helper_id && j.status === "completed") {
+      helperJobsByUser.set(j.helper_id, (helperJobsByUser.get(j.helper_id) ?? 0) + 1);
+    }
+  }
+  const helpersApproved = helpers.filter(p => p.approval_status === "approved");
+  const helpersConnectOnboarded = helpersApproved.filter(p => !!(p as { stripe_account_id?: string }).stripe_account_id);
+  const helpersWithFirstJob = new Set(
+    allJobs.filter(j => j.helper_id && j.status === "completed").map(j => j.helper_id).filter((x): x is string => !!x),
+  );
+  const helperFunnel = [
+    { label: "Signed up", count: helpers.length, of: helpers.length },
+    { label: "Approved", count: helpersApproved.length, of: helpers.length },
+    { label: "Connect onboarded", count: helpersConnectOnboarded.length, of: helpersApproved.length || 1 },
+    { label: "Completed first job", count: helpersWithFirstJob.size, of: helpersConnectOnboarded.length || 1 },
+  ];
   const completedJobs = allJobs.filter(j => j.status === "completed");
   // Jobs where money is actually held or paid out (NOT refunded/cancelled)
   const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
@@ -542,6 +588,12 @@ const AdminAnalytics = () => {
         </div>
       </div>
 
+      {/* ── Row 6.5: Activation Funnels ── */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <FunnelCard title="Customer activation" subtitle="Signup → revenue" stages={customerFunnel} />
+        <FunnelCard title="Helper supply" subtitle="Signup → first paid job" stages={helperFunnel} />
+      </div>
+
       {/* ── Row 7: Monthly Jobs Bar Chart ── */}
       <div className="rounded-xl liquid-glass p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -603,6 +655,53 @@ const MRRRow = ({ tier, count, amount }: { tier: string; count: number; amount: 
     <span className="font-semibold text-foreground">${amount.toFixed(2)}</span>
   </div>
 );
+
+// Funnel card — rows render as horizontal bars sized by absolute count;
+// each row also shows conversion % from the prior stage.
+const FunnelCard = ({
+  title, subtitle, stages,
+}: {
+  title: string;
+  subtitle: string;
+  stages: { label: string; count: number; of: number }[];
+}) => {
+  // Bar widths normalize against the first (largest) stage so the funnel
+  // visually narrows. Empty cohort renders as a flat empty bar instead of NaN.
+  const max = Math.max(stages[0]?.count ?? 0, 1);
+  return (
+    <div className="rounded-xl liquid-glass p-5">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <p className="text-xs text-muted-foreground mb-4">{subtitle}</p>
+      <div className="space-y-2.5">
+        {stages.map((s, i) => {
+          const widthPct = Math.max(2, Math.round((s.count / max) * 100));
+          const convPct = i === 0 ? null : s.of > 0 ? Math.round((s.count / s.of) * 100) : 0;
+          return (
+            <div key={s.label}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{s.label}</span>
+                <span className="font-mono tabular-nums text-foreground">
+                  {s.count}
+                  {convPct !== null && (
+                    <span className={`ml-2 ${convPct >= 50 ? "text-primary" : convPct >= 20 ? "text-amber-500" : "text-destructive"}`}>
+                      {convPct}%
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="mt-1 h-2 rounded-full bg-muted/40 overflow-hidden">
+                <div
+                  className="h-full bg-primary/70 rounded-full transition-all"
+                  style={{ width: `${widthPct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 // ─── Drill-down: Users ───
 const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: Map<string, string> }) => {

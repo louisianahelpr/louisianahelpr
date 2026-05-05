@@ -2,16 +2,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug } from "lucide-react";
+import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { toast } from "@/hooks/use-toast";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+
+type ParishStat = { parish: string; openJobs: number; activeHelpers: number; ratio: number | null };
 
 type HealthData = {
   emailStats: { total: number; sent: number; failed: number; suppressed: number };
   fraudCount: number;
   recentJobs: { open: number; completed: number; disputed: number; cancelled: number };
   healthStatus: "ok" | "degraded" | "unknown";
+  parishStats: ParishStat[];
+  medianTimeToFirstAppMin: number | null;
+  jobsAwaitingApps: number;
 };
 
 const AdminHealth = () => {
@@ -25,6 +30,9 @@ const AdminHealth = () => {
       fraudCount: 0,
       recentJobs: { open: 0, completed: 0, disputed: 0, cancelled: 0 },
       healthStatus: "unknown",
+      parishStats: [],
+      medianTimeToFirstAppMin: null,
+      jobsAwaitingApps: 0,
     },
     fetcher: async () => {
       // Email stats (last 24h)
@@ -64,11 +72,98 @@ const AdminHealth = () => {
         healthStatus = "degraded";
       }
 
-      return { emailStats, fraudCount, recentJobs, healthStatus };
+      // ── Marketplace pulse: open-jobs-by-parish, supply ratio, time-to-first-app
+      // Volumes are still small (~tens of open jobs, low hundreds of helpers),
+      // so client-side aggregation is fine. Convert to an RPC if either query
+      // routinely returns more than a few hundred rows.
+      const [openJobsRes, helperParishRes] = await Promise.all([
+        supabase.from("jobs").select("id, parish, created_at").eq("status", "open"),
+        (supabase.from as any)("helper_preferred_parishes")
+          .select("parish, helper_id, profiles!inner(approval_status, ban_status)")
+          .eq("profiles.approval_status", "approved")
+          .neq("profiles.ban_status", "banned"),
+      ]);
+
+      const openJobs = (openJobsRes.data || []) as { id: string; parish: string | null; created_at: string }[];
+      const helperRows = (helperParishRes.data || []) as { parish: string; helper_id: string }[];
+
+      const openByParish = new Map<string, number>();
+      for (const j of openJobs) {
+        if (!j.parish) continue;
+        openByParish.set(j.parish, (openByParish.get(j.parish) ?? 0) + 1);
+      }
+      const helpersByParish = new Map<string, Set<string>>();
+      for (const h of helperRows) {
+        if (!h.parish) continue;
+        if (!helpersByParish.has(h.parish)) helpersByParish.set(h.parish, new Set());
+        helpersByParish.get(h.parish)!.add(h.helper_id);
+      }
+      const allParishes = new Set<string>([...openByParish.keys(), ...helpersByParish.keys()]);
+      const parishStats: ParishStat[] = [...allParishes]
+        .map((parish) => {
+          const openJobsCount = openByParish.get(parish) ?? 0;
+          const activeHelpers = helpersByParish.get(parish)?.size ?? 0;
+          // Ratio = helpers per open job. Higher = healthier supply.
+          // null when there are no open jobs (no demand to evaluate against).
+          const ratio = openJobsCount > 0 ? activeHelpers / openJobsCount : null;
+          return { parish, openJobs: openJobsCount, activeHelpers, ratio };
+        })
+        // Show parishes with demand first, then by helper count
+        .sort((a, b) => (b.openJobs - a.openJobs) || (b.activeHelpers - a.activeHelpers))
+        .slice(0, 10);
+
+      // Median time-to-first-application for jobs posted in the last 7 days.
+      // Job ids fetched above (only open ones); also pull recently-claimed
+      // jobs so we don't bias toward unanswered listings.
+      const recentJobsForApps = await supabase
+        .from("jobs")
+        .select("id, created_at")
+        .gte("created_at", weekAgo);
+      const jobIds = (recentJobsForApps.data || []).map((j) => j.id);
+      let medianTimeToFirstAppMin: number | null = null;
+      let jobsAwaitingApps = 0;
+      if (jobIds.length > 0) {
+        const { data: appRows } = await supabase
+          .from("applications")
+          .select("job_id, created_at")
+          .in("job_id", jobIds)
+          .order("created_at", { ascending: true });
+        const firstAppByJob = new Map<string, string>();
+        for (const a of (appRows || []) as { job_id: string; created_at: string }[]) {
+          if (!firstAppByJob.has(a.job_id)) firstAppByJob.set(a.job_id, a.created_at);
+        }
+        const jobCreatedById = new Map<string, string>();
+        for (const j of (recentJobsForApps.data || []) as { id: string; created_at: string }[]) {
+          jobCreatedById.set(j.id, j.created_at);
+        }
+        const deltasMin: number[] = [];
+        for (const [jobId, firstAppAt] of firstAppByJob) {
+          const created = jobCreatedById.get(jobId);
+          if (!created) continue;
+          deltasMin.push((new Date(firstAppAt).getTime() - new Date(created).getTime()) / 60000);
+        }
+        jobsAwaitingApps = jobIds.length - firstAppByJob.size;
+        if (deltasMin.length > 0) {
+          deltasMin.sort((a, b) => a - b);
+          const mid = Math.floor(deltasMin.length / 2);
+          medianTimeToFirstAppMin = deltasMin.length % 2
+            ? deltasMin[mid]
+            : (deltasMin[mid - 1] + deltasMin[mid]) / 2;
+        }
+      }
+
+      return { emailStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps };
     },
   });
 
-  const { emailStats, fraudCount, recentJobs, healthStatus } = data;
+  const { emailStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
+
+  const formatDelay = (mins: number | null): string => {
+    if (mins === null) return "—";
+    if (mins < 60) return `${Math.round(mins)} min`;
+    if (mins < 60 * 24) return `${(mins / 60).toFixed(1)} h`;
+    return `${(mins / 60 / 24).toFixed(1)} d`;
+  };
 
   const statusBadge = {
     ok: <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Healthy</Badge>,
@@ -182,6 +277,58 @@ const AdminHealth = () => {
             <p className="text-xs text-muted-foreground">Cancelled</p>
           </div>
         </div>
+      </div>
+
+      {/* Marketplace pulse: parish-level supply/demand + responsiveness */}
+      <div className="rounded-xl liquid-glass p-5 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+            <MapPin className="w-4 h-4" /> Marketplace Pulse
+          </h3>
+          <div className="flex gap-3 text-xs">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Zap className="w-3 h-3" /> Median first-app:
+              <span className="text-foreground font-semibold">{formatDelay(medianTimeToFirstAppMin)}</span>
+            </span>
+            {jobsAwaitingApps > 0 && (
+              <Badge variant="outline" className="text-[10px]">
+                {jobsAwaitingApps} job{jobsAwaitingApps === 1 ? "" : "s"} no apps yet
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {parishStats.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No open jobs and no helpers with parish prefs yet.</p>
+        ) : (
+          <div className="space-y-1.5">
+            <div className="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+              <div className="col-span-4">Parish</div>
+              <div className="col-span-3 text-right">Open jobs</div>
+              <div className="col-span-3 text-right">Helprs</div>
+              <div className="col-span-2 text-right">Helpr/job</div>
+            </div>
+            {parishStats.map((p) => {
+              // Highlight imbalance: open jobs with no helper coverage,
+              // or > 0 jobs with < 1 helper per job.
+              const noCoverage = p.openJobs > 0 && p.activeHelpers === 0;
+              const undersupplied = p.openJobs > 0 && p.ratio !== null && p.ratio < 1;
+              const ratioCls = noCoverage ? "text-destructive font-semibold"
+                : undersupplied ? "text-amber-600 font-semibold"
+                : "text-foreground";
+              return (
+                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-lg liquid-glass p-2 text-sm">
+                  <div className="col-span-4 truncate text-foreground">{p.parish}</div>
+                  <div className="col-span-3 text-right tabular-nums">{p.openJobs}</div>
+                  <div className="col-span-3 text-right tabular-nums">{p.activeHelpers}</div>
+                  <div className={`col-span-2 text-right tabular-nums ${ratioCls}`}>
+                    {p.ratio === null ? "—" : p.ratio.toFixed(1)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

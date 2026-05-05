@@ -2,17 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GoogleSignInButtonProps {
   label?: string;
   redirectTo?: string;
 }
 
-/**
- * Google sign-in via Lovable Cloud managed OAuth.
- * Uses the project's managed credentials by default — no extra setup required.
- */
+// Google sign-in via Supabase OAuth. Web flow only; native Google
+// Sign-In on iOS will need the @codetrix-studio/capacitor-google-auth
+// plugin during the next iOS rebuild (Google blocks generic webview
+// OAuth, so the in-app webview can't run this flow on iOS today).
 export const GoogleSignInButton = ({
   label = "Continue with Google",
   redirectTo,
@@ -22,21 +22,21 @@ export const GoogleSignInButton = ({
   const handleClick = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: redirectTo ?? window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectTo ?? `${window.location.origin}/dashboard`,
+        },
       });
 
-      if (result.error) {
-        toast.error(result.error.message ?? "Google sign-in failed. Please try again.");
+      if (error) {
+        toast.error(error.message ?? "Google sign-in failed. Please try again.");
         setLoading(false);
         return;
       }
-
-      // If redirected, browser is leaving — keep the loading state.
-      if (!result.redirected) {
-        // Token flow completed; auth listener elsewhere will handle the redirect.
-        setLoading(false);
-      }
+      // Supabase auto-redirects to Google. Keep the spinner up since the browser
+      // is leaving the page; if it doesn't redirect for some reason the user
+      // can click again.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed.");
       setLoading(false);

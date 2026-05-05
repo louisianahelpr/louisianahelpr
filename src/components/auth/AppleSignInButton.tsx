@@ -2,17 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppleSignInButtonProps {
   label?: string;
   redirectTo?: string;
 }
 
-/**
- * Apple sign-in via Lovable Cloud managed OAuth.
- * Uses the project's managed credentials by default — no extra setup required.
- */
+// Apple sign-in via Supabase OAuth. Web flow only; on iOS the Capacitor
+// app should use Apple's native ASAuthorization framework via a
+// Capacitor plugin (e.g. @capacitor-community/apple-sign-in) — paired
+// with the iOS rebuild for the JWT migration.
 export const AppleSignInButton = ({
   label = "Continue with Apple",
   redirectTo,
@@ -22,19 +22,19 @@ export const AppleSignInButton = ({
   const handleClick = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("apple", {
-        redirect_uri: redirectTo ?? window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: {
+          redirectTo: redirectTo ?? `${window.location.origin}/dashboard`,
+        },
       });
 
-      if (result.error) {
-        toast.error(result.error.message ?? "Apple sign-in failed. Please try again.");
+      if (error) {
+        toast.error(error.message ?? "Apple sign-in failed. Please try again.");
         setLoading(false);
         return;
       }
-
-      if (!result.redirected) {
-        setLoading(false);
-      }
+      // Browser redirects to Apple's auth page. Keep spinner up.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Apple sign-in failed.");
       setLoading(false);

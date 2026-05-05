@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,29 @@ import {
   Users, Briefcase, DollarSign, TrendingUp, MapPin, Star, CreditCard, Activity, PieChart,
   BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 import type { Database } from "@/integrations/supabase/types";
+
+// Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
+// instead of inflating the AdminAnalytics initial bundle. Funnel cards +
+// metric tiles paint immediately while charts hydrate in the background.
+const SubscriberPieChart = lazy(() =>
+  import("./AdminAnalyticsCharts").then((m) => ({ default: m.SubscriberPieChart }))
+);
+const RevenueLineChart = lazy(() =>
+  import("./AdminAnalyticsCharts").then((m) => ({ default: m.RevenueLineChart }))
+);
+const MonthlyJobsBarChart = lazy(() =>
+  import("./AdminAnalyticsCharts").then((m) => ({ default: m.MonthlyJobsBarChart }))
+);
+const CategoriesBarChart = lazy(() =>
+  import("./AdminAnalyticsCharts").then((m) => ({ default: m.CategoriesBarChart }))
+);
+
+const ChartFallback = () => (
+  <div className="flex h-full w-full items-center justify-center">
+    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+  </div>
+);
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -421,17 +442,9 @@ const AdminAnalytics = () => {
           </h3>
           {subPieData.length > 0 ? (
             <div className="h-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RePieChart>
-                  <Pie data={subPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                    {subPieData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [`${value} helpers`, name as string]} />
-                  <Legend />
-                </RePieChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartFallback />}>
+                <SubscriberPieChart data={subPieData} />
+              </Suspense>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground text-center py-8">No subscribers yet</p>
@@ -445,21 +458,9 @@ const AdminAnalytics = () => {
           <BarChart3 className="w-4 h-4 text-primary" /> Revenue &amp; Growth — Last 6 Months
         </h3>
         <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
-              />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="fees" name="Profit ($)" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--secondary))" strokeWidth={2} dot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartFallback />}>
+            <RevenueLineChart data={monthlyData} />
+          </Suspense>
         </div>
       </div>
 
@@ -600,17 +601,9 @@ const AdminAnalytics = () => {
           <Briefcase className="w-4 h-4 text-primary" /> Jobs per Month
         </h3>
         <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
-              />
-              <Bar dataKey="jobs" name="Completed Jobs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartFallback />}>
+            <MonthlyJobsBarChart data={monthlyData} />
+          </Suspense>
         </div>
       </div>
     </div>
@@ -802,17 +795,9 @@ const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
 const CategoriesDrillDown = ({ data }: { data: { name: string; count: number; revenue: number }[] }) => (
   <div className="space-y-3">
     <div className="h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical">
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" width={90} />
-          <Tooltip
-            contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
-          />
-          <Bar dataKey="count" name="Jobs" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+      <Suspense fallback={<ChartFallback />}>
+        <CategoriesBarChart data={data} />
+      </Suspense>
     </div>
     <div className="space-y-2">
       {data.map((cat, i) => (

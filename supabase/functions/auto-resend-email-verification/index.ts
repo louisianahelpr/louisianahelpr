@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
   // Verify cron secret OR service role
   const cronSecret = Deno.env.get('CRON_SECRET')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const serviceRoleKey = (Deno.env.get('SUPABASE_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
   const authHeader = req.headers.get('Authorization')
   if (
     !authHeader ||

@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
               "X-Connection-Api-Key": RESEND_API_KEY,
             },
             body: JSON.stringify({
-              from: "Helpr <hello@notify.louisianahelpr.com>",
+              from: "Helpr <hello@send.louisianahelpr.com>",
               to: [r.email],
               subject: body.subject,
               html: body.html.replaceAll("{{name}}", r.full_name || "neighbor"),

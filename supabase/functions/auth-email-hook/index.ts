@@ -60,10 +60,13 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Branding constants — keep in sync with the email templates.
+// Sender lives at `send.louisianahelpr.com` because that's what Resend
+// verified (DKIM/SPF/MX records added 2026-05-05). The website lives at
+// `louisianahelpr.com` (apex) — kept separate as ROOT_DOMAIN for link URLs.
 const SITE_NAME = 'Helpr'
-const SENDER_DOMAIN = 'notify.louisianahelpr.com'
+const SENDER_DOMAIN = 'send.louisianahelpr.com'
 const ROOT_DOMAIN = 'louisianahelpr.com'
-const FROM_DOMAIN = 'notify.louisianahelpr.com'
+const FROM_DOMAIN = 'send.louisianahelpr.com'
 
 // Sample data for the /preview endpoint (renders templates without
 // signing/enqueuing — useful for visual review). The .test TLD is RFC 6761

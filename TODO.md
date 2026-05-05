@@ -35,7 +35,7 @@
 - 🟠 **CSP eyeball check** — incognito → www.louisianahelpr.com → DevTools console while clicking through login/post-job/payment/profile.
 - 🟠 **Stripe test-mode payout test + flip the gate** — manually invoke release-payout with a test job's id, verify Stripe transfer + ledger row + status flip + notification, then set `RELEASE_PAYOUT_AUTO=1` in Supabase Functions config. Cron picks it up next tick.
 - 🟠 **Deploy stripe-webhook** — `supabase functions deploy stripe-webhook` to activate the new transfer.failed/reversed handlers + payout_transfers ledger lifecycle updates.
-- 🟠 **Verify Stripe API version** — `2025-08-27.basil` is used in 10 functions but per stripe.com/docs/api/versioning, that's not a real version. Current is `2026-04-22.dahlia`. Confirm with Stripe support whether the string is silently substituted.
+- ✅ **Verify Stripe API version** — DONE 2026-05-05. Programmatic test against `api.stripe.com/v1/balance` confirms `2025-08-27.basil` is honored (Stripe echoes back unchanged); bogus version strings get HTTP 400 (no silent substitution). The docs page only lists milestone versions; `.basil` branch dates remain valid. No code changes needed.
 
 ### Supabase JWT key rotation — partial (2026-05-05)
 

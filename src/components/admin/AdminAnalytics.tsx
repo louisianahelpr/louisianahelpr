@@ -155,6 +155,47 @@ const AdminAnalytics = () => {
     { label: "Connect onboarded", count: helpersConnectOnboarded.length, of: helpersApproved.length || 1 },
     { label: "Completed first job", count: helpersWithFirstJob.size, of: helpersConnectOnboarded.length || 1 },
   ];
+
+  // ─── Monthly signup cohorts × current activity ───
+  // For each of the last 6 months of signups, what % had any job activity
+  // in the last 30 days? Answers "are users from cohort X still around?"
+  // — a directional retention signal that doesn't require a multi-column
+  // retention matrix (which would need much larger data volumes to be
+  // meaningful given current scale).
+  const now = new Date();
+  const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  const monthLabel = (d: Date) => d.toLocaleString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });
+  const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
+  const thirtyDaysAgoMs = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+
+  // Active = appeared as customer_id or helper_id on any job updated in the last 30 days.
+  const activeUserIds = new Set<string>();
+  for (const j of allJobs) {
+    const updatedAt = (j.updated_at ?? j.created_at) as string | null;
+    if (!updatedAt) continue;
+    if (new Date(updatedAt).getTime() < thirtyDaysAgoMs) continue;
+    if (j.customer_id) activeUserIds.add(j.customer_id);
+    if (j.helper_id) activeUserIds.add(j.helper_id);
+  }
+
+  const cohortMap = new Map<string, { date: Date; total: number; active: number }>();
+  // Pre-seed the last 6 months so empty cohorts still appear (otherwise
+  // a quiet month visually disappears, masking the dip).
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(Date.UTC(sixMonthsAgo.getUTCFullYear(), sixMonthsAgo.getUTCMonth() + i, 1));
+    cohortMap.set(monthKey(d), { date: d, total: 0, active: 0 });
+  }
+  for (const p of profiles) {
+    if (!p.created_at) continue;
+    const created = new Date(p.created_at);
+    if (created < sixMonthsAgo) continue;
+    const key = monthKey(created);
+    const bucket = cohortMap.get(key);
+    if (!bucket) continue; // older than 6 months
+    bucket.total += 1;
+    if (activeUserIds.has(p.user_id)) bucket.active += 1;
+  }
+  const cohortRetention = [...cohortMap.values()].sort((a, b) => a.date.getTime() - b.date.getTime());
   const completedJobs = allJobs.filter(j => j.status === "completed");
   // Jobs where money is actually held or paid out (NOT refunded/cancelled)
   const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
@@ -595,6 +636,9 @@ const AdminAnalytics = () => {
         <FunnelCard title="Helper supply" subtitle="Signup → first paid job" stages={helperFunnel} />
       </div>
 
+      {/* ── Row 6.75: Cohort Retention ── */}
+      <CohortRetentionCard cohorts={cohortRetention} monthLabel={monthLabel} />
+
       {/* ── Row 7: Monthly Jobs Bar Chart ── */}
       <div className="rounded-xl liquid-glass p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -646,6 +690,59 @@ const MRRRow = ({ tier, count, amount }: { tier: string; count: number; amount: 
   <div className="flex items-center justify-between text-sm">
     <span className="text-muted-foreground">{tier} × {count}</span>
     <span className="font-semibold text-foreground">${amount.toFixed(2)}</span>
+  </div>
+);
+
+// Cohort retention card — last 6 monthly signup cohorts, each row shows
+// total signups + how many are still active (= had any job activity in the
+// last 30 days). Directional retention signal at low data volumes; convert
+// to a multi-month retention matrix once cohorts routinely exceed ~50 users.
+const CohortRetentionCard = ({
+  cohorts,
+  monthLabel,
+}: {
+  cohorts: { date: Date; total: number; active: number }[];
+  monthLabel: (d: Date) => string;
+}) => (
+  <div className="rounded-xl liquid-glass p-5">
+    <h3 className="text-sm font-semibold text-foreground">Cohort retention</h3>
+    <p className="text-xs text-muted-foreground mb-4">
+      Of users who signed up in each month, how many had any job activity in the last 30 days.
+    </p>
+    <div className="space-y-2">
+      <div className="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-1">
+        <div className="col-span-3">Cohort</div>
+        <div className="col-span-2 text-right">Signups</div>
+        <div className="col-span-2 text-right">Still active</div>
+        <div className="col-span-5">Retention</div>
+      </div>
+      {cohorts.map((c) => {
+        const pct = c.total > 0 ? Math.round((c.active / c.total) * 100) : 0;
+        const isEmpty = c.total === 0;
+        const tone = isEmpty
+          ? "bg-muted/40"
+          : pct >= 50 ? "bg-primary/70"
+          : pct >= 20 ? "bg-amber-500/70"
+          : "bg-destructive/70";
+        return (
+          <div key={c.date.toISOString()} className="grid grid-cols-12 gap-2 items-center text-xs">
+            <div className="col-span-3 text-foreground">{monthLabel(c.date)}</div>
+            <div className="col-span-2 text-right tabular-nums text-foreground">{c.total}</div>
+            <div className="col-span-2 text-right tabular-nums text-muted-foreground">
+              {isEmpty ? "—" : `${c.active} (${pct}%)`}
+            </div>
+            <div className="col-span-5">
+              <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${tone}`}
+                  style={{ width: `${isEmpty ? 0 : pct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   </div>
 );
 

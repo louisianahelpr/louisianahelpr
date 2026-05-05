@@ -85,7 +85,7 @@ correct remediation per cowork's Option-2 recommendation.
 - [x] Stripe Connect onboarding for helpers (Express accounts) — shipped + idempotency added 2026-05-04
 - [x] Hold-and-release escrow — release-payout function shipped, gated behind `RELEASE_PAYOUT_AUTO=1` until manual test confirms
 - [ ] Refund + partial-refund flows from `AdminJobs` — webhook handles `charge.refunded` but no admin UI to trigger
-- [ ] Surface payout_transfers ledger to helpers (earnings tab + admin reconciliation view)
+- [x] Surface payout_transfers ledger to helpers (earnings tab — commit afc83213) and admin reconciliation view (commit 3bccf4d8 — last 50 transfers in AdminPayoutBatches with status, failure reason, helper name, job title)
 
 ### Messaging & realtime
 - [ ] Supabase Realtime channel per job thread; presence + typing indicators

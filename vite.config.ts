@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type ESBuildOptions } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -76,52 +76,12 @@ export default defineConfig(({ mode }) => ({
         );
       },
     } satisfies Plugin,
-    // Preload the hero LCP image. The <img> in HeroSection only starts loading
-    // AFTER the JS entry chunk parses + the React tree mounts (~2.3s on slow
-    // 4G — Lighthouse "resource load delay"). Production filenames are
-    // content-hashed so we resolve them from the build's emitted assets at
-    // generateBundle time, then inject responsive <link rel="preload"> tags
-    // (with imagesrcset/imagesizes matching the <img>'s srcset) into <head>.
-    // Pure perf — no UX/visual change.
-    {
-      name: "html-preload-hero-lcp",
-      apply: "build",
-      enforce: "post",
-      transformIndexHtml: {
-        order: "post",
-        handler(html: string, ctx) {
-          const bundle = ctx.bundle;
-          if (!bundle) return html;
-          const heroes: Record<string, string> = {};
-          for (const fileName of Object.keys(bundle)) {
-            const m = fileName.match(/^assets\/hero-porch-garden-(\d+)-[^.]+\.webp$/);
-            if (m) heroes[m[1]] = "/" + fileName;
-          }
-          // Need the full responsive set used by HeroSection's <img>. If any
-          // variant is missing, skip preload entirely — a partial srcset that
-          // doesn't match the <img> would cause the browser to discard the
-          // preload and re-fetch, making LCP worse.
-          const required = ["400", "500", "600", "800", "1000", "1500"];
-          if (required.some((w) => !heroes[w])) return html;
-          // CRITICAL: srcset + sizes MUST exactly match HeroSection.tsx's
-          // <img> attributes. Any mismatch causes the browser's preload
-          // scanner to fetch a different variant than the one <img> ends up
-          // requesting, wasting the preload AND adding a second download to
-          // the LCP path.
-          const srcset =
-            `${heroes["400"]} 400w, ${heroes["500"]} 500w, ` +
-            `${heroes["600"]} 600w, ${heroes["800"]} 800w, ` +
-            `${heroes["1000"]} 1000w, ${heroes["1500"]} 1500w`;
-          const sizes =
-            "(max-width: 640px) 360px, (max-width: 1023px) 600px, " +
-            "(max-width: 1280px) 700px, 1000px";
-          const tag =
-            `<link rel="preload" as="image" type="image/webp" ` +
-            `imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`;
-          return html.replace("</head>", `    ${tag}\n  </head>`);
-        },
-      },
-    } satisfies Plugin,
+    // Hero LCP preload plugin removed 2026-05-04: HeroSection no longer
+    // renders an <img> for hero-porch-garden-*.webp — those assets were
+    // retired with the editorial brand polish. The plugin scanned the
+    // bundle for filenames that no longer exist and silently no-op'd.
+    // If hero imagery returns, restore from git history at this commit's
+    // parent and update the regex to match the new asset name.
     // Service worker only ships in production. In dev it caused stale chunks
     // to be served across HMR reloads — code edits "didn't appear" because a
     // pre-cached bundle answered the request before Vite's transform pipeline
@@ -262,7 +222,7 @@ export default defineConfig(({ mode }) => ({
   // sidestep the strict type-check on the union-shape mismatch.
   esbuild: {
     drop: mode === "production" ? ["console", "debugger"] : [],
-  },
+  } as ESBuildOptions,
   build: {
     // es2022 is Baseline-supported across all evergreen browsers (Chrome 94+,
     // Safari 16.4+, Firefox 93+) and lets Vite skip down-leveling syntax like

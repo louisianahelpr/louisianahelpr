@@ -63,8 +63,10 @@ const Jobs = () => {
     // urgent (100) + recency (0-50). Replaces the old chronological-only
     // sort against the open_jobs_safe view. Anon callers still work — they
     // just don't get the parish-match boost.
-    const { data } = await supabase
-      .rpc("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }) as { data: PublicJob[] | null };
+    // Cast via `as any`: get_ranked_open_jobs is a new RPC not yet present
+    // in the regenerated client types (full types regen exceeds tooling
+    // output limits). Runtime contract verified server-side.
+    const { data } = await (supabase.rpc as any)("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }) as { data: PublicJob[] | null };
     const newJobs = data || [];
     setHasMore(newJobs.length === PAGE_SIZE);
     if (append) {

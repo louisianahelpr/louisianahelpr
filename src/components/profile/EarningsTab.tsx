@@ -28,6 +28,20 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
+interface PayoutLedgerRow {
+  id: string;
+  job_id: string;
+  amount_cents: number;
+  platform_fee_cents: number;
+  status: "pending" | "paid" | "failed" | "reversed";
+  created_at: string;
+  paid_at: string | null;
+  failed_at: string | null;
+  failure_reason: string | null;
+  stripe_transfer_id: string | null;
+  jobs: { title?: string } | null;
+}
+
 const statusColors: Record<string, string> = {
   open: "bg-primary/10 text-primary",
   accepted: "bg-accent/20 text-accent-foreground",
@@ -108,12 +122,14 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // payout_transfers ledger — the authoritative record of every
   // stripe.transfers.create() call to this helper. RLS already restricts
   // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
-  const { data: payoutLedger = [] } = useQuery({
+  // Cast via `as any`: payout_transfers was added in a recent migration and
+  // isn't in the regenerated client types yet (full types regen exceeds
+  // tooling output limits — handled the same way as admin_audit_log).
+  const { data: payoutLedger = [] } = useQuery<PayoutLedgerRow[]>({
     queryKey: ["payout-transfers", helperId],
     queryFn: async () => {
       if (!helperId) return [];
-      const { data, error } = await supabase
-        .from("payout_transfers")
+      const { data, error } = await (supabase.from as any)("payout_transfers")
         .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, jobs(title)")
         .eq("helper_id", helperId)
         .order("created_at", { ascending: false })
@@ -122,7 +138,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         report(error, { severity: "warning", tags: { source: "EarningsTab.fetchLedger" } });
         return [];
       }
-      return data ?? [];
+      return (data ?? []) as PayoutLedgerRow[];
     },
     enabled: !!helperId,
     staleTime: 60_000,

@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   // Verify cron secret
   const cronSecret = Deno.env.get("CRON_SECRET");
-  const svcRoleKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+  const svcRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && (!svcRoleKey || authHeader !== `Bearer ${svcRoleKey}`))) {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
+    const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const now = new Date().toISOString();

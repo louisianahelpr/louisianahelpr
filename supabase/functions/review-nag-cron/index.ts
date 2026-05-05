@@ -33,7 +33,7 @@ serve(async (req) => {
   }
 
   const cronSecret = Deno.env.get("CRON_SECRET");
-  const serviceRoleKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   const authHeader = req.headers.get("Authorization");
   if (
     !authHeader ||
@@ -44,7 +44,7 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "";
+  const serviceKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "";
   const supabase = createClient(supabaseUrl, serviceKey);
 
   // send-notification-email handles user pref filtering (email_reviews).

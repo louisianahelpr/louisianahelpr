@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
+  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
 
   try {
     // Authenticate user
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     let callerId: string | null = null;
 
     if (authHeader) {
-      const supabaseAuth = createClient(supabaseUrl, (Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
+      const supabaseAuth = createClient(supabaseUrl, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
       const token = authHeader.replace("Bearer ", "");
       const { data: userData } = await supabaseAuth.auth.getUser(token);
       callerId = userData?.user?.id || null;

@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
+      (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
     );
 
     // Validate JWT using anon key (not service role) for proper auth
@@ -29,7 +29,7 @@ serve(async (req) => {
 
     const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      (Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!
+      (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!
     );
     const token = authHeader.replace("Bearer ", "");
     const {

@@ -16,7 +16,7 @@ serve(async (req) => {
   const webhookSecret = Deno.env.get("STRIPE_IDV_WEBHOOK_SECRET");
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
+    (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
   );
 
   let event: Stripe.Event;
@@ -125,7 +125,7 @@ serve(async (req) => {
           await supabase.functions.invoke("send-account-status-email", {
             body: { userId, status: "verified" },
             headers: {
-              Authorization: `Bearer ${(Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!}`,
+              Authorization: `Bearer ${(Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!}`,
             },
           });
         } catch (emailErr) {

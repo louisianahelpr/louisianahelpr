@@ -132,14 +132,14 @@ function adminDigestEmail(stats: {
 Deno.serve(async (_req) => {
   // Verify cron secret
   const cronSecret = Deno.env.get("CRON_SECRET");
-  const serviceRoleKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   const authHeader = _req.headers.get('Authorization');
   if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`))) {
     return new Response('Unauthorized', { status: 401 });
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseKey = (Deno.env.get('SUPABASE_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
+  const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
   const supabase = createClient(supabaseUrl, supabaseKey)
 
   const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }

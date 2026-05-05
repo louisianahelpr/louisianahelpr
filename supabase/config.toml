@@ -29,3 +29,21 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.stripe-idv-webhook]
     verify_jwt = false
+  # Cron-invoked functions: verify_jwt must be false so the gateway accepts
+  # `Bearer sb_secret_*` from pg_cron (the new secret keys aren't JWTs and the
+  # gateway's verify_jwt=true rejects non-JWT bearers). Each function checks
+  # its own Authorization header against CRON_SECRET / SECRET_KEY internally.
+  [functions.auto-expire-jobs]
+    verify_jwt = false
+  [functions.auto-resolve-disputes]
+    verify_jwt = false
+  [functions.void-cancelled-payments]
+    verify_jwt = false
+  [functions.review-nag-cron]
+    verify_jwt = false
+  [functions.cleanup-notifications]
+    verify_jwt = false
+  [functions.engagement-automations]
+    verify_jwt = false
+  [functions.expire-subscriptions]
+    verify_jwt = false

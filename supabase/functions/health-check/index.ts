@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   // Allow either: (a) CRON_SECRET / service role bearer (server-to-server), or
   // (b) an authenticated admin user (browser dashboard).
   const cronSecret = Deno.env.get("CRON_SECRET");
-  const serviceRoleKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   const authHeader = req.headers.get('Authorization');
 
   const isServerCall =
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     try {
       const userClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        (Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
+        (Deno.env.get('PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
         { global: { headers: { Authorization: authHeader } } },
       );
       const token = authHeader.replace('Bearer ', '');
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       }
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        (Deno.env.get('SUPABASE_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
+        (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
       );
       const { data: isAdmin } = await adminClient.rpc('has_role', {
         _user_id: claims.claims.sub,
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      (Deno.env.get('SUPABASE_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
+      (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
     )
     const { count, error } = await supabase
       .from('platform_settings')

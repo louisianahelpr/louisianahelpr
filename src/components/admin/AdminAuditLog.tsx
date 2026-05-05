@@ -66,6 +66,7 @@ const AdminAuditLog = () => {
     resolve_dispute: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
     job_status_override: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
     job_admin_refund: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
+    job_admin_refund_partial: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   };
 
   // Pull the most useful fields from details for inline display so admins
@@ -79,13 +80,15 @@ const AdminAuditLog = () => {
       const title = get("job_title");
       if (from && to) return `${from} → ${to}${title ? ` · "${title}"` : ""}`;
     }
-    if (action === "job_admin_refund") {
+    if (action === "job_admin_refund" || action === "job_admin_refund_partial") {
       const title = get("job_title");
       const budget = get("budget");
+      const partial = get("partial_amount_dollars");
       const reason = get("reason");
       const parts: string[] = [];
       if (title) parts.push(`"${title}"`);
-      if (budget) parts.push(`$${budget}`);
+      if (partial) parts.push(`$${partial} of $${budget ?? "?"}`);
+      else if (budget) parts.push(`$${budget}`);
       if (reason) parts.push(`reason: ${reason}`);
       return parts.join(" · ") || null;
     }

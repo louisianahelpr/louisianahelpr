@@ -613,7 +613,12 @@ serve(async (req) => {
     // for refunds outside of an active dispute (e.g., goodwill refund,
     // chargeback prevention, customer support resolution).
     if (action === "admin_refund_general") {
-      const { jobId, reason } = body;
+      // Accepts an optional `amountCents` for partial refunds. When omitted,
+      // refunds the full captured amount and cancels the job (existing
+      // behavior). When provided + less than the total, issues a partial
+      // refund and leaves the job state untouched — useful for goodwill
+      // adjustments, partial-completion settlements, etc.
+      const { jobId, reason, amountCents } = body;
       if (!jobId) throw new Error("Missing jobId");
 
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
@@ -622,6 +627,13 @@ serve(async (req) => {
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
+
+      const totalCents = Math.round(Number(job.budget || 0) * 100);
+      const requestedCents = typeof amountCents === "number" ? Math.round(amountCents) : null;
+      const isPartial = requestedCents !== null && requestedCents > 0 && requestedCents < totalCents;
+      if (requestedCents !== null && (requestedCents <= 0 || requestedCents > totalCents)) {
+        throw new Error(`Invalid partial amount: ${requestedCents} cents (job total ${totalCents} cents)`);
+      }
 
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
@@ -634,7 +646,12 @@ serve(async (req) => {
           if (pi.status === "succeeded") {
             await stripe.refunds.create({
               payment_intent: paymentIntentId,
-              metadata: { reason: reason || "admin_general_refund", admin_user_id: user.id },
+              ...(isPartial ? { amount: requestedCents } : {}),
+              metadata: {
+                reason: reason || (isPartial ? "admin_partial_refund" : "admin_general_refund"),
+                admin_user_id: user.id,
+                partial: String(isPartial),
+              },
             });
           }
         } catch (e) {
@@ -643,18 +660,22 @@ serve(async (req) => {
         }
       }
 
-      await supabaseAdmin.from("jobs").update({
-        status: "cancelled",
-        payment_status: "refunded",
-        cancellation_reason: reason ? `[ADMIN REFUND] ${reason}` : "[ADMIN REFUND] Issued by support",
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: user.id,
-      }).eq("id", jobId);
+      // Only cancel the job + flip payment_status on a FULL refund. Partial
+      // refunds leave the job state intact — the customer still owes the
+      // remaining work or the helper still earned the unrefunded portion.
+      if (!isPartial) {
+        await supabaseAdmin.from("jobs").update({
+          status: "cancelled",
+          payment_status: "refunded",
+          cancellation_reason: reason ? `[ADMIN REFUND] ${reason}` : "[ADMIN REFUND] Issued by support",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: user.id,
+        }).eq("id", jobId);
+      }
 
-      // Audit trail (admin_audit_log table — see migration 20260325045032)
       await supabaseAdmin.from("admin_audit_log").insert({
         admin_id: user.id,
-        action: "job_admin_refund",
+        action: isPartial ? "job_admin_refund_partial" : "job_admin_refund",
         target_type: "job",
         target_id: jobId,
         details: {
@@ -663,20 +684,31 @@ serve(async (req) => {
           customer_id: job.customer_id,
           helper_id: job.helper_id,
           budget: job.budget,
+          partial_amount_cents: isPartial ? requestedCents : null,
+          partial_amount_dollars: isPartial ? (requestedCents! / 100).toFixed(2) : null,
           payment_intent_id: paymentIntentId,
         },
       });
 
-      // Customer notification — neutral copy (no "dispute resolved" language)
+      const dollarAmount = isPartial
+        ? `$${(requestedCents! / 100).toFixed(2)}`
+        : `$${Number(job.budget).toFixed(2)}`;
+      const customerMessage = isPartial
+        ? `A partial refund of ${dollarAmount} has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`
+        : `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`;
+
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
-        title: "Refund issued",
-        message: `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`,
-        type: "payment", link: "/my-posts?filter=cancelled",
+        title: isPartial ? "Partial refund issued" : "Refund issued",
+        message: customerMessage,
+        type: "payment",
+        link: isPartial ? `/my-posts` : "/my-posts?filter=cancelled",
       });
 
-      // Helper notification (if job had a helper assigned)
-      if (job.helper_id) {
+      // Helper notification — only on full refund (job is cancelled). Partial
+      // refunds don't change the helper's stake; if a partial-refund scenario
+      // ever needs helper notification, send a separate manual message.
+      if (!isPartial && job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job cancelled",
@@ -685,7 +717,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ success: true, refunded: true }), {
+      return new Response(JSON.stringify({ success: true, refunded: true, partial: isPartial }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }

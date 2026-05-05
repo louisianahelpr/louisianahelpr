@@ -97,6 +97,7 @@ const AdminJobs = () => {
   const [deleting, setDeleting] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundReason, setRefundReason] = useState("");
+  const [refundAmount, setRefundAmount] = useState(""); // empty = full refund; otherwise partial $
   const [refunding, setRefunding] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("flagged");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
@@ -211,6 +212,19 @@ const AdminJobs = () => {
 
   const handleRefund = async () => {
     if (!detailJob) return;
+    // Parse the partial-amount input. Empty/0/NaN → full refund (no
+    // amountCents sent). Validation against job total happens server-side.
+    const parsedDollars = Number(refundAmount.trim());
+    const totalCents = Math.round(Number(detailJob.budget || 0) * 100);
+    const partialCents = refundAmount.trim() && parsedDollars > 0
+      ? Math.round(parsedDollars * 100)
+      : null;
+    if (partialCents !== null && partialCents > totalCents) {
+      toast.error(`Partial amount $${parsedDollars.toFixed(2)} exceeds job total $${Number(detailJob.budget).toFixed(2)}`);
+      return;
+    }
+    const isPartial = partialCents !== null && partialCents < totalCents;
+
     setRefunding(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -218,17 +232,24 @@ const AdminJobs = () => {
           action: "admin_refund_general",
           jobId: detailJob.id,
           reason: refundReason.trim() || undefined,
+          ...(isPartial ? { amountCents: partialCents } : {}),
         },
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error?: string }).error);
-      // Optimistic local update
-      setJobs((prev) => prev.map((j) => j.id === detailJob.id
-        ? { ...j, status: "cancelled" as Job["status"], payment_status: "refunded" as Job["payment_status"] }
-        : j));
-      toast.success("Refund issued and parties notified");
+      if (!isPartial) {
+        // Full refund cancels the job — reflect locally. Partial refund
+        // leaves job state intact server-side, so don't mutate either.
+        setJobs((prev) => prev.map((j) => j.id === detailJob.id
+          ? { ...j, status: "cancelled" as Job["status"], payment_status: "refunded" as Job["payment_status"] }
+          : j));
+      }
+      toast.success(isPartial
+        ? `Partial refund of $${parsedDollars.toFixed(2)} issued`
+        : "Refund issued and parties notified");
       setRefundOpen(false);
       setRefundReason("");
+      setRefundAmount("");
       setDetailJob(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to issue refund";
@@ -558,9 +579,10 @@ const AdminJobs = () => {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              This will issue a Stripe refund for the captured payment, mark
-              the job as cancelled + refunded, and notify both parties.
-              Logged to admin_audit_log.
+              Issues a Stripe refund for the captured payment. Leave the
+              amount field blank for a full refund (cancels the job +
+              notifies both parties); enter a smaller dollar amount to issue
+              a partial refund (job state stays intact). Logged to admin_audit_log.
             </p>
             {detailJob && (
               <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
@@ -572,6 +594,31 @@ const AdminJobs = () => {
                 </p>
               </div>
             )}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">
+                Refund amount <span className="text-muted-foreground font-normal">(blank = full refund)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  max={detailJob?.budget || undefined}
+                  placeholder={detailJob ? `${Number(detailJob.budget).toFixed(2)}` : "0.00"}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              {refundAmount.trim() && Number(refundAmount) > 0 && detailJob && Number(refundAmount) < Number(detailJob.budget) && (
+                <p className="text-[11px] text-muted-foreground">
+                  Partial refund of ${Number(refundAmount).toFixed(2)} of ${Number(detailJob.budget).toFixed(2)} —
+                  job stays open, helper not notified.
+                </p>
+              )}
+            </div>
             <Textarea
               placeholder="Reason (optional, included in customer notification and audit log)"
               value={refundReason}
@@ -590,7 +637,7 @@ const AdminJobs = () => {
             )}
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setRefundOpen(false); setRefundReason(""); }}>
+            <Button variant="outline" onClick={() => { setRefundOpen(false); setRefundReason(""); setRefundAmount(""); }}>
               Cancel
             </Button>
             <Button

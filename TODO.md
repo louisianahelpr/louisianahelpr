@@ -1,6 +1,84 @@
 # TODO
 
-## Where We Left Off — 2026-05-04 (long hardening session)
+## Where We Left Off — 2026-05-05 (autonomous shipping session)
+
+47 commits today. Production quiet (Sentry: 0 unresolved issues; 9/9
+Playwright tests pass; RLS spot-check confirms wrapped policies still
+enforce correctly).
+
+### Shipped today
+- ✅ **Branded auth emails working end-to-end** — Supabase Auth Send
+  Email Hook → standardwebhooks signature verify → React Email render
+  → pgmq → process-email-queue → Resend. Recovery email confirmed
+  delivered from `Helpr <noreply@louisianahelpr.com>`. Covers signup
+  confirmation, password reset, magic link, email change,
+  reauthentication, invite.
+- ✅ **JWT key migration COMPLETE** — cowork wrote new `sb_secret_*` to
+  vault.secrets, repointed all 12 cron jobs (`cron.alter_job()` from
+  `vault.legacy_service_role_key` → `vault.service_role_key`), and
+  Disable Legacy was clicked. All 12 cron functions returning HTTP 200.
+- ✅ **Apple Sign In verified working** — first production sign-in
+  succeeded; first-time users land on `/complete-profile`, returning
+  on `/dashboard`. Calendar JWT-rotation reminder: 2026-11-02.
+- ✅ **user-documents bucket privacy split** — created public `avatars`
+  bucket (image-only, 5MB cap), flipped `user-documents` to private,
+  switched all callsites from `getPublicUrl` to `createSignedUrl(path,
+  ttl)`. License/insurance/portfolio uploads now path-only with
+  per-click signed URLs. Migration:
+  20260505220000_split_avatars_bucket_private_user_documents.
+- ✅ **P0 trigger fixes** — handle_new_user, prevent_self_escalation,
+  sync_email_verified, sync_email_verified_on_insert all migrated off
+  the dropped `profiles.role` column to `has_role()`/user_roles.
+  Signup unbroken end-to-end.
+- ✅ **Perf advisor: 281 → 89 lints (68% drop; 86% on WARNs only)**
+  - 158 `auth_rls_initplan` → 0 (mechanical wrap migration:
+    20260505235000)
+  - 75 policies scoped from `{public}` → `{authenticated}` (excl. 2
+    intentional anon-insert) — closes ~30 multiple_permissive entries
+  - 14 service-role policies scoped to `{service_role}` — closes 7
+    more multiple_permissive entries
+  - 1 realtime.messages policy wrapped (the last initPlan warning)
+- ✅ **Security advisor: 167 → 65** — 0 ERRORs. 64 remaining WARNs are
+  intentional public RPCs / RLS helpers / admin funcs with internal
+  `has_role` checks. Last actionable: HIBP password protection toggle
+  (1 dashboard click; needs Pro tier).
+- ✅ **Email send log orphan rows fixed** — process-email-queue now
+  UPDATEs the pending row by message_id instead of inserting a fresh
+  terminal row. One canonical entry per message.
+- ✅ **Pgmq cleanup** — purged stale msg_id=3 with the bad
+  `noreply@send.louisianahelpr.com` sender (enqueued before the
+  apex-revert deploy and retried every 5 min for ~12 min).
+- ✅ **Performance: 6 duplicate indexes dropped, 12 missing FK
+  indexes added** (migrations 20260505234000, 20260505234500).
+
+### Pending YOUR action (only you can do these)
+- 🟠 **`gh auth refresh -s workflow`** then push
+  `.github/workflows/db-smoke.yml` (file is in working tree). This
+  workflow catches the trigger-bug class before merge.
+- 🟠 **Sentry alert rule** — UI only at
+  https://helpr-4m.sentry.io/projects/javascript/alerts/new/issue/.
+  Conditions: error message matches `column .* does not exist` OR
+  `violates check constraint .*notifications_type_check` OR
+  `Invalid job status transition` OR `transfer sent but ledger write
+  failed`.
+- 🟠 **Stripe test-mode payout test + flip the gate** — manually
+  invoke release-payout with a test job's id, verify Stripe transfer +
+  ledger row + status flip + notification, then set
+  `RELEASE_PAYOUT_AUTO=1` in Supabase Functions config. Cron picks it
+  up next tick.
+- 🟠 **Deploy stripe-webhook** — `supabase functions deploy
+  stripe-webhook` to activate the new transfer.failed/reversed
+  handlers + payout_transfers ledger lifecycle updates.
+- 🟠 **iOS App Store build 17 publishable key audit** — needs Mac+Xcode.
+- 🟠 **HIBP password protection** — Auth → Policies → "Check for
+  leaked passwords" toggle. Closes the 1 remaining security advisor
+  warning. Needs Supabase Pro ($25/mo).
+- 🟠 **Stripe DNS records** (low-pri) — Stripe sent "unused domain
+  failing DNS verification" 2026-05-05. Apex-only `*@louisianahelpr.com`
+  Stripe email branding requires 2-3 CNAMEs + TXT they show in the
+  dashboard. Or remove the domain from Stripe to silence.
+
+## Where We Left Off — 2026-05-04 (prior hardening session)
 
 **P0 from 2026-05-03 is FIXED + many additional gaps closed.** See migrations
 20260504142454, 20260504153100, 20260504152414, 20260504154605, 20260504154800,
@@ -37,24 +115,13 @@
 - 🟠 **Deploy stripe-webhook** — `supabase functions deploy stripe-webhook` to activate the new transfer.failed/reversed handlers + payout_transfers ledger lifecycle updates.
 - ✅ **Verify Stripe API version** — DONE 2026-05-05. Programmatic test against `api.stripe.com/v1/balance` confirms `2025-08-27.basil` is honored (Stripe echoes back unchanged); bogus version strings get HTTP 400 (no silent substitution). The docs page only lists milestone versions; `.basil` branch dates remain valid. No code changes needed.
 
-### Supabase JWT key rotation — partial (2026-05-05)
+### Supabase JWT key rotation — DONE (2026-05-05)
 
-The legacy `service_role` JWT was exposed to pg_stat_statements + Studio's
-saved-query history during cowork's failed `ALTER DATABASE` for vault GUCs.
-Migration to the new sb_publishable_* / sb_secret_* key system is the
-correct remediation per cowork's Option-2 recommendation.
-
-**Done:**
-- ✅ Frontend already on `VITE_SUPABASE_PUBLISHABLE_KEY` (Vercel env layer was set up by Lovable bootstrap)
-- ✅ All 48 edge functions updated with fallback chain `(SUPABASE_SECRET_KEY ?? SUPABASE_SERVICE_ROLE_KEY)` and `(SUPABASE_PUBLISHABLE_KEY ?? SUPABASE_ANON_KEY)` — see commit d63d939a
-- ✅ All 48 redeployed via `supabase functions deploy --use-api --jobs 8`
-- ✅ Stale `create-idv-session` entry removed from supabase/config.toml — commit 554c0e89
-
-**Pending YOUR action before clicking "Disable JWT-based API keys":**
-- 🟠 Set Supabase function secrets: `SUPABASE_SECRET_KEY=sb_secret_*` and `SUPABASE_PUBLISHABLE_KEY=sb_publishable_*` (Studio → Functions → Secrets, or `npx supabase secrets set`). Functions will pick them up automatically thanks to the fallback chain.
-- 🟠 Verify what publishable key is bundled in iOS App Store build 17 (capacitor.config.ts ships v1.0.4 build 17 with bundled `dist/`). If it's still legacy `eyJ_*`, either rebuild + force-update before disabling, or accept that pre-update iOS users will break.
-- 🟠 Cowork still owes the Vault write (using the new sb_secret_* value, NOT the legacy JWT) + scheduling 12 cron jobs that read from Vault.
-- 🟠 After all of the above + smoke test → click Disable Legacy on the API Keys page.
+Cowork wrote the new `sb_secret_*` to vault.secrets, repointed all 12
+cron jobs via `cron.alter_job()`, and Disable Legacy was clicked.
+Section kept for the rationale — the original exposure was the legacy
+service_role JWT leaking via pg_stat_statements + Studio saved-query
+history during a failed `ALTER DATABASE` for vault GUCs.
 
 ## Deployment Log
 
@@ -108,7 +175,17 @@ correct remediation per cowork's Option-2 recommendation.
 - [x] Trim `AdminAnalytics` bundle — recharts code-split shipped commit 7caea06b. Initial chunk 409KB → 30KB (13× reduction); chart chunk loads in parallel.
 - [ ] Resolve `npm cache` permissions on the dev box (`~/.npm/_cacache` ownership) so `npx` doesn't need a temp cache
 
-### Security follow-ups (found 2026-05-05, not yet addressed)
-- [ ] **`user-documents` storage bucket has `public=true`** — anyone with the URL can fetch any file (license uploads, IDV docs). Path structure is `<user_id>/<filename>` so anyone who knows a user's UUID (visible in `/user/:userId` URLs) could try `<USER_UUID>/license.pdf` and succeed. Real privacy issue. Fix is a substantial refactor: switch bucket to `public=false`, change every `getPublicUrl(path)` callsite (10+ in src/ + 3 in supabase/functions/complete-signup) to `createSignedUrl(path, ttl)` + re-issue URLs at display time. ~2-3 hrs scoped + tested.
-- [ ] **Bucket "Public read" RLS policies still in place on job-photos + user-documents** — redundant with `public=true` flag (the public flag bypasses RLS for object reads), but if buckets are flipped to `public=false` per item above, these policies will need to be replaced with proper owner/admin/participant SELECT policies. Couples with the bucket-flag fix.
-- [ ] **HaveIBeenPwned password protection** — Supabase Auth → Password Policy → "Prevent use of leaked passwords." Skipped because requires Supabase Pro ($25/mo). Worth toggling on if/when upgraded for other Pro reasons (no project pause, daily backups).
+### Security follow-ups
+- [x] **`user-documents` storage bucket privacy** — DONE 2026-05-05.
+  Split into public `avatars` bucket (image-only, 5MB cap) for
+  profile pictures + private `user-documents` for licenses/insurance/
+  portfolios. All 13+ callsites switched from `getPublicUrl(path)` to
+  `createSignedUrl(path, 5 * 60)` (5-min TTL for clicks, 30-day for
+  shareable support screenshots). Admin credential-queue uses the
+  same per-click signed URL pattern.
+- [x] **Bucket "Public read" RLS policies** — DONE 2026-05-05.
+  Dropped redundant policies on avatars (now public-flag-managed) and
+  user-documents (now owner-or-admin only).
+- [ ] **HaveIBeenPwned password protection** — Auth → Policies →
+  "Prevent use of leaked passwords." Needs Supabase Pro ($25/mo).
+  Worth toggling on if/when upgraded.

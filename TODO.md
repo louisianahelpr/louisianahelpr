@@ -107,3 +107,8 @@ correct remediation per cowork's Option-2 recommendation.
 ### Tech debt
 - [x] Trim `AdminAnalytics` bundle — recharts code-split shipped commit 7caea06b. Initial chunk 409KB → 30KB (13× reduction); chart chunk loads in parallel.
 - [ ] Resolve `npm cache` permissions on the dev box (`~/.npm/_cacache` ownership) so `npx` doesn't need a temp cache
+
+### Security follow-ups (found 2026-05-05, not yet addressed)
+- [ ] **`user-documents` storage bucket has `public=true`** — anyone with the URL can fetch any file (license uploads, IDV docs). Path structure is `<user_id>/<filename>` so anyone who knows a user's UUID (visible in `/user/:userId` URLs) could try `<USER_UUID>/license.pdf` and succeed. Real privacy issue. Fix is a substantial refactor: switch bucket to `public=false`, change every `getPublicUrl(path)` callsite (10+ in src/ + 3 in supabase/functions/complete-signup) to `createSignedUrl(path, ttl)` + re-issue URLs at display time. ~2-3 hrs scoped + tested.
+- [ ] **Bucket "Public read" RLS policies still in place on job-photos + user-documents** — redundant with `public=true` flag (the public flag bypasses RLS for object reads), but if buckets are flipped to `public=false` per item above, these policies will need to be replaced with proper owner/admin/participant SELECT policies. Couples with the bucket-flag fix.
+- [ ] **HaveIBeenPwned password protection** — Supabase Auth → Password Policy → "Prevent use of leaked passwords." Skipped because requires Supabase Pro ($25/mo). Worth toggling on if/when upgraded for other Pro reasons (no project pause, daily backups).

@@ -145,3 +145,62 @@ I'll review the table, confirm which "safe to revoke" items I want gone, and you
 - Revoke the App Store Connect API key (Fastlane breaks)
 
 ===PROMPT 2 END===
+
+---
+
+## PROMPT 3 — Migrate the 1 existing avatar (run anytime; independent of 1+2)
+
+This is a quick ~3-min storage UI task. The `user-documents` bucket was split
+into `avatars` (public) + `user-documents` (now private) earlier today
+(commit d896dfa7). One existing avatar file needs to move from the old
+bucket to the new one before the user's profile picture works again.
+
+===PROMPT 3 START===
+
+# Migrate one orphaned avatar file from user-documents → avatars bucket
+
+Earlier today the `user-documents` Supabase Storage bucket was split into a
+new `avatars` bucket (public) and `user-documents` stayed but became
+private. There's exactly 1 file in `user-documents` that's actually an
+avatar and needs to move to the new bucket so the user's profile picture
+keeps working.
+
+**Steps:**
+
+1. Open Supabase Studio → project `Louisiana Helpr` → Storage (left sidebar)
+2. Click into bucket **user-documents**
+3. Find file at path `76b07824-9b41-4741-a4c4-4f8de362f682/avatar.png` —
+   it's the only file in the bucket
+4. Click the file → click **Download** (saves locally)
+5. Click into bucket **avatars** (new bucket, in same Storage list)
+6. Click **Upload file** → choose the downloaded `avatar.png`
+7. When it asks for a path/destination, set it to
+   `76b07824-9b41-4741-a4c4-4f8de362f682/avatar.png` (same as where it was
+   in the old bucket)
+8. Open Studio → SQL Editor → paste and run:
+
+   ```sql
+   UPDATE public.profiles
+   SET avatar_url = 'https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/public/avatars/76b07824-9b41-4741-a4c4-4f8de362f682/avatar.png?t=' || extract(epoch from now())::text
+   WHERE user_id = '76b07824-9b41-4741-a4c4-4f8de362f682'
+   RETURNING user_id, full_name, avatar_url;
+   ```
+
+   Should return 1 row showing the updated avatar_url pointing at the new
+   `/avatars/` path.
+
+9. Back in Storage → user-documents → delete the original
+   `76b07824-9b41-4741-a4c4-4f8de362f682/avatar.png` file (no longer
+   reachable since the bucket is now private + we just repointed the
+   profile's avatar_url to the new location)
+
+**Verify:**
+
+- Visit `https://www.louisianahelpr.com/user/76b07824-9b41-4741-a4c4-4f8de362f682`
+- Avatar should display correctly
+- If broken (404 image), the file path in step 7 didn't match exactly —
+  check both Storage UI paths and try again
+
+When done, just reply "avatar migrated" — no further action needed.
+
+===PROMPT 3 END===

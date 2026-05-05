@@ -113,3 +113,21 @@ If the test fails with a Supabase auth error, the most common causes:
 - The `.p8` file is single-download — Apple does NOT let you re-download
 - Multiple Sign In with Apple keys per team are allowed (max ~2 active)
 - JWTs expire at 180 days max — Apple's hard cap
+
+## Done — 2026-05-05
+
+All Apple-side + Supabase-side configuration completed and verified end-to-end.
+
+**Updated values** (supersede earlier rows in this doc):
+
+- **Key ID:** `67WQZ3F8Q5` (the old `Y754ZY5DQ2` was revoked because the `.p8` was lost)
+- **`.p8` filename:** `AuthKey_67WQZ3F8Q5.p8` (in `~/Downloads/` — single-download, back this up to 1Password / iCloud Keychain)
+- **Services ID:** `com.Helpr.signin` (registered fresh via the Identifiers UI)
+- **Supabase Site URL:** `https://www.louisianahelpr.com` (was a Vercel preview URL — fixed)
+
+**What changed since this doc was originally written:**
+
+- Apple's Services ID configuration UI no longer surfaces a `Download` button for `apple-developer-domain-association.txt`. The `public/.well-known/...` deploy step is **obsolete for new accounts** — domains validate at sign-in time via the redirect URI match. We saved the Services ID with all 3 URLs (the two domains + the Supabase callback) without a verification round-trip.
+- After OAuth callback, the SPA correctly routes first-time users to `/complete-profile` instead of `/dashboard`. Verified in the live test.
+
+**Calendar reminder:** JWT expires ~Nov 1 2026 (180 days from generation). Regenerate via `https://www.louisianahelpr.com/tools/apple-jwt.html` before then.

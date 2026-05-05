@@ -64,6 +64,44 @@ const AdminAuditLog = () => {
     resolve_fraud_flag: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     update_settings: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
     resolve_dispute: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    job_status_override: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    job_admin_refund: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
+  };
+
+  // Pull the most useful fields from details for inline display so admins
+  // see the "what happened" at a glance instead of just the action label.
+  const summarizeDetails = (action: string, details: Record<string, unknown> | null): string | null => {
+    if (!details) return null;
+    const get = (k: string) => details[k];
+    if (action === "job_status_override") {
+      const from = get("from_status");
+      const to = get("to_status");
+      const title = get("job_title");
+      if (from && to) return `${from} → ${to}${title ? ` · "${title}"` : ""}`;
+    }
+    if (action === "job_admin_refund") {
+      const title = get("job_title");
+      const budget = get("budget");
+      const reason = get("reason");
+      const parts: string[] = [];
+      if (title) parts.push(`"${title}"`);
+      if (budget) parts.push(`$${budget}`);
+      if (reason) parts.push(`reason: ${reason}`);
+      return parts.join(" · ") || null;
+    }
+    if (action === "resolve_dispute" || action === "resolve_fraud_flag") {
+      const outcome = get("outcome") || get("resolution");
+      if (outcome) return String(outcome);
+    }
+    if (action === "ban_user" || action === "deny_user") {
+      const reason = get("reason");
+      if (reason) return `reason: ${reason}`;
+    }
+    // Fallback: surface the first short string field for unknown actions.
+    for (const [k, v] of Object.entries(details)) {
+      if (typeof v === "string" && v.length < 80 && k !== "id") return `${k}: ${v}`;
+    }
+    return null;
   };
 
   return (
@@ -85,24 +123,30 @@ const AdminAuditLog = () => {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {entries.map(entry => (
-            <div key={entry.id} className="rounded-lg liquid-glass p-3 flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm text-foreground">{entry.admin_name}</span>
-                  <Badge className={actionColor[entry.action] || "bg-muted text-muted-foreground"}>
-                    {entry.action.replace(/_/g, " ")}
-                  </Badge>
-                  {entry.target_type && (
-                    <span className="text-xs text-muted-foreground">→ {entry.target_type}</span>
+          {entries.map(entry => {
+            const summary = summarizeDetails(entry.action, entry.details);
+            return (
+              <div key={entry.id} className="rounded-lg liquid-glass p-3 flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm text-foreground">{entry.admin_name}</span>
+                    <Badge className={actionColor[entry.action] || "bg-muted text-muted-foreground"}>
+                      {entry.action.replace(/_/g, " ")}
+                    </Badge>
+                    {entry.target_type && (
+                      <span className="text-xs text-muted-foreground">→ {entry.target_type}</span>
+                    )}
+                  </div>
+                  {summary && (
+                    <p className="text-xs text-foreground/80 mt-1 break-words">{summary}</p>
                   )}
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                  </p>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
-                </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

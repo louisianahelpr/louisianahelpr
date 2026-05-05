@@ -149,6 +149,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<PageTransition><DashboardGuest /></PageTransition>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
+      {/* /community is listed in sitemap.xml but the content lives as a
+          tab inside /legal — without this redirect, search engines and
+          external links 404. Mirrors the /rules → /legal?tab=community
+          pattern above. */}
+      <Route path="/community" element={<Navigate to="/legal?tab=community" replace />} />
       
       <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
       <Route path="/availability" element={<ProtectedRoute><Availability /></ProtectedRoute>} />

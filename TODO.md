@@ -72,19 +72,19 @@ correct remediation per cowork's Option-2 recommendation.
 ## Next Steps — Helpr Marketplace
 
 ### Jobs & matching
-- [x] Define job-state machine end-to-end (DB-level enforcement shipped 2026-05-04). UI side: still need to audit `src/pages/PostJob` + `JobCard` to surface state transitions explicitly to users
+- [x] Define job-state machine end-to-end (DB-level enforcement shipped 2026-05-04). UI side shipped 2026-05-05: PaymentSuccess shows a 4-step visual lifecycle (commit 92773bba); PostedJobsTab/AppliedJobsTab already surface live state with bilateral confirmation indicators; JobCard intentionally stays state-less (only renders OPEN jobs).
 - [ ] Helper discovery: location-aware ranking on the job feed (NOLA / Baton Rouge / Shreveport service areas)
 - [x] Saved searches + push/email notifications when a matching job is posted (DB triggers exist + cron scheduled by cowork 2026-05-05 + triggers migrated to vault.decrypted_secrets in commit 5ac17952 — fan-out fully live)
 
 ### Trust & safety
-- [~] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. `helper_verifications` history table + AFTER UPDATE trigger on profiles shipped commit e2536835 (audit log starts capturing now). Still TODO: surface history in AdminUsers panel; deprecate `legacy_manual_review` flag (referenced in 4 migrations + 2 edge functions + 2 admin components — separate change)
-- [x] Two-way reviews — DB enforcement trigger shipped 2026-05-04. UI side: surface reviews on profile + nag for review after completion
+- [~] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. `helper_verifications` history table + AFTER UPDATE trigger on profiles shipped commit e2536835; Verification History panel inside AdminUsers profile dialog shipped commit ad6214e5. Still TODO: deprecate `legacy_manual_review` flag (referenced in 4 migrations + 2 edge functions + 2 admin components — separate change)
+- [x] Two-way reviews — DB enforcement trigger shipped 2026-05-04. UI side: reviews already surfaced on own Profile (ReviewsTab) and other-user UserProfile (inline panel with sub-ratings); review-nag-cron handles 24h+72h reminders.
 - [ ] Dispute / report-issue path wired into `Admin` queue with SLA
 
 ### Payments
 - [x] Stripe Connect onboarding for helpers (Express accounts) — shipped + idempotency added 2026-05-04
 - [x] Hold-and-release escrow — release-payout function shipped, gated behind `RELEASE_PAYOUT_AUTO=1` until manual test confirms
-- [ ] Refund + partial-refund flows from `AdminJobs` — webhook handles `charge.refunded` but no admin UI to trigger
+- [x] Refund + partial-refund flows from `AdminJobs` — full refund button (commit 0aa00b26) + partial refund support (commit 19e184a3); webhook still handles `charge.refunded` for any refunds initiated outside the admin UI.
 - [x] Surface payout_transfers ledger to helpers (earnings tab — commit afc83213) and admin reconciliation view (commit 3bccf4d8 — last 50 transfers in AdminPayoutBatches with status, failure reason, helper name, job title)
 
 ### Messaging & realtime
@@ -97,7 +97,7 @@ correct remediation per cowork's Option-2 recommendation.
 - [ ] Recurring job templates for business posters
 
 ### Admin & analytics
-- [x] `AdminAnalytics` cohort + funnel views — customer activation + helper supply funnels shipped commit afc83213. Cohort retention view still pending.
+- [x] `AdminAnalytics` cohort + funnel views — activation funnels shipped commit afc83213, cohort retention card shipped commit ffeb15c1.
 - [x] Health dashboard: open jobs by parish, helper supply ratio, time-to-first-application — Marketplace Pulse panel shipped commit e9dc12d7 in AdminHealth
 
 ### iOS

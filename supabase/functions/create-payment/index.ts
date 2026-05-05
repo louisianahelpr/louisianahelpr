@@ -608,6 +608,88 @@ serve(async (req) => {
       });
     }
 
+    // ─── ADMIN: General refund (non-dispute) — admin discretion ───
+    // Mirrors admin_refund_dispute but with neutral notification copy
+    // for refunds outside of an active dispute (e.g., goodwill refund,
+    // chargeback prevention, customer support resolution).
+    if (action === "admin_refund_general") {
+      const { jobId, reason } = body;
+      if (!jobId) throw new Error("Missing jobId");
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Not authorized — admin only");
+
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("jobs").select("*").eq("id", jobId).single();
+      if (jobError || !job) throw new Error("Job not found");
+
+      let paymentIntentId = job.stripe_payment_intent_id;
+      if (!paymentIntentId && job.stripe_session_id) {
+        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+        paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+      }
+      if (paymentIntentId) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (pi.status === "succeeded") {
+            await stripe.refunds.create({
+              payment_intent: paymentIntentId,
+              metadata: { reason: reason || "admin_general_refund", admin_user_id: user.id },
+            });
+          }
+        } catch (e) {
+          console.error("[create-payment] admin_refund_general — refund error:", e);
+          throw e;
+        }
+      }
+
+      await supabaseAdmin.from("jobs").update({
+        status: "cancelled",
+        payment_status: "refunded",
+        cancellation_reason: reason ? `[ADMIN REFUND] ${reason}` : "[ADMIN REFUND] Issued by support",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: user.id,
+      }).eq("id", jobId);
+
+      // Audit trail (admin_audit_log table — see migration 20260325045032)
+      await supabaseAdmin.from("admin_audit_log").insert({
+        admin_id: user.id,
+        action: "job_admin_refund",
+        target_type: "job",
+        target_id: jobId,
+        details: {
+          reason: reason || null,
+          job_title: job.title,
+          customer_id: job.customer_id,
+          helper_id: job.helper_id,
+          budget: job.budget,
+          payment_intent_id: paymentIntentId,
+        },
+      });
+
+      // Customer notification — neutral copy (no "dispute resolved" language)
+      await supabaseAdmin.from("notifications").insert({
+        user_id: job.customer_id,
+        title: "Refund issued",
+        message: `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`,
+        type: "payment", link: "/my-posts?filter=cancelled",
+      });
+
+      // Helper notification (if job had a helper assigned)
+      if (job.helper_id) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: job.helper_id,
+          title: "Job cancelled",
+          message: `"${job.title}" was cancelled by support and refunded to the customer.${reason ? ` Reason: ${reason}` : ""}`,
+          type: "info", link: "/my-jobs?filter=not_selected",
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, refunded: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
+    }
+
     throw new Error("Invalid action");
   } catch (error) {
     // Defensive logging: Supabase log API only surfaces status codes, not

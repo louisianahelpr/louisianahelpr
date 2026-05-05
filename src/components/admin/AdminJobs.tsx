@@ -95,6 +95,9 @@ const AdminJobs = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("flagged");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
@@ -203,6 +206,35 @@ const AdminJobs = () => {
       toast.error("Failed to remove job: " + err.message);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!detailJob) return;
+    setRefunding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: {
+          action: "admin_refund_general",
+          jobId: detailJob.id,
+          reason: refundReason.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error?: string }).error);
+      // Optimistic local update
+      setJobs((prev) => prev.map((j) => j.id === detailJob.id
+        ? { ...j, status: "cancelled" as Job["status"], payment_status: "refunded" as Job["payment_status"] }
+        : j));
+      toast.success("Refund issued and parties notified");
+      setRefundOpen(false);
+      setRefundReason("");
+      setDetailJob(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to issue refund";
+      toast.error(msg);
+    } finally {
+      setRefunding(false);
     }
   };
 
@@ -445,8 +477,8 @@ const AdminJobs = () => {
               </div>
 
               {/* Admin actions */}
-              {!(detailJob as any).removal_reason && (
-                <div className="pt-3 border-t border-border">
+              {!(detailJob as { removal_reason?: string }).removal_reason && (
+                <div className="pt-3 border-t border-border flex flex-wrap gap-2">
                   <Button
                     variant="destructive"
                     size="sm"
@@ -455,6 +487,19 @@ const AdminJobs = () => {
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Remove Job
                   </Button>
+                  {/* Refund only relevant when money has actually changed
+                      hands. payment_status='escrow' = captured but held.
+                      payment_status='released' = transferred to helper. */}
+                  {(detailJob.payment_status === "escrow" || detailJob.payment_status === "released") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRefundOpen(true)}
+                      className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/5"
+                    >
+                      <DollarSign className="w-3.5 h-3.5" /> Refund Customer
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -498,6 +543,62 @@ const AdminJobs = () => {
               disabled={!deleteReason.trim() || deleting}
             >
               {deleting ? "Removing…" : "Remove & Notify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund confirmation dialog */}
+      <Dialog open={refundOpen} onOpenChange={(o) => { if (!o) { setRefundOpen(false); setRefundReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display text-destructive flex items-center gap-2">
+              <DollarSign className="w-5 h-5" /> Refund Customer
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              This will issue a Stripe refund for the captured payment, mark
+              the job as cancelled + refunded, and notify both parties.
+              Logged to admin_audit_log.
+            </p>
+            {detailJob && (
+              <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
+                <p className="text-xs text-muted-foreground">Refunding</p>
+                <p className="text-sm font-medium text-foreground">{detailJob.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  ${detailJob.budget} · payment_status: {detailJob.payment_status}
+                  {detailJob.helper_id && " · helper assigned"}
+                </p>
+              </div>
+            )}
+            <Textarea
+              placeholder="Reason (optional, included in customer notification and audit log)"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              rows={3}
+            />
+            {detailJob?.payment_status === "released" && (
+              <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                <p className="text-xs text-destructive font-medium mb-1">⚠️ Money already paid out</p>
+                <p className="text-xs text-foreground">
+                  This payment has already been transferred to the helper.
+                  Refunding the customer means the platform absorbs the loss
+                  unless you separately reverse the transfer in Stripe.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setRefundOpen(false); setRefundReason(""); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRefund}
+              disabled={refunding}
+            >
+              {refunding ? "Refunding…" : "Issue Refund"}
             </Button>
           </DialogFooter>
         </DialogContent>

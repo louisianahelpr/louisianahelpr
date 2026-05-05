@@ -1,5 +1,11 @@
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+
+// Email delivery is via Resend exclusively. Lovable Cloud's email-js was
+// previously used for auth_emails (templated by Lovable IDE) but the
+// project no longer relies on Lovable infra — Helpr's auth-email-hook
+// renders templates locally with @react-email/components and enqueues
+// the rendered HTML/text into the auth_emails queue, where this function
+// picks it up and sends via Resend like any transactional email.
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -51,7 +57,6 @@ async function sendWithResend(apiKey: string, payload: any): Promise<void> {
 }
 
 Deno.serve(async (req) => {
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
   const resendApiKey = Deno.env.get('RESEND_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
@@ -64,10 +69,10 @@ Deno.serve(async (req) => {
     )
   }
 
-  if (!lovableApiKey && !resendApiKey) {
-    console.error('Neither LOVABLE_API_KEY nor RESEND_API_KEY configured')
+  if (!resendApiKey) {
+    console.error('RESEND_API_KEY not configured — cannot send emails')
     return new Response(
-      JSON.stringify({ error: 'No email provider configured' }),
+      JSON.stringify({ error: 'Email provider not configured (set RESEND_API_KEY in Supabase function secrets)' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -195,30 +200,13 @@ Deno.serve(async (req) => {
       }
 
       try {
-        if (queue === 'auth_emails' && lovableApiKey) {
-          // Auth emails use sendLovableEmail (run_id from webhook)
-          await sendLovableEmail(
-            {
-              run_id: payload.run_id,
-              to: payload.to,
-              from: payload.from,
-              sender_domain: payload.sender_domain,
-              subject: payload.subject,
-              html: payload.html,
-              text: payload.text,
-              purpose: payload.purpose,
-              label: payload.label,
-              idempotency_key: payload.idempotency_key,
-              unsubscribe_token: payload.unsubscribe_token,
-            },
-            { apiKey: lovableApiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-          )
-        } else if (queue === 'transactional_emails' && resendApiKey) {
-          // Transactional emails use Resend directly
-          await sendWithResend(resendApiKey, payload)
-        } else {
-          throw new Error(`No API key for queue: ${queue}`)
-        }
+        // Both auth_emails and transactional_emails route through Resend.
+        // The auth-email-hook function pre-renders templates to HTML/text
+        // before enqueuing, so payload already has subject/html/text. Lovable-
+        // specific tracking fields (run_id, idempotency_key, unsubscribe_token)
+        // are ignored — Resend's reply tracking + our email_send_log table
+        // cover the same operational visibility.
+        await sendWithResend(resendApiKey, payload)
 
         // Log success
         await supabase.from('email_send_log').insert({

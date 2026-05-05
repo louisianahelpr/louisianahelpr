@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle, ListChecks } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -19,6 +19,27 @@ interface PayoutBatch {
   total_payout: number;
   oldest_completed_at: string;
 }
+
+interface PayoutLedgerRow {
+  id: string;
+  helper_id: string;
+  amount_cents: number;
+  platform_fee_cents: number;
+  status: "pending" | "paid" | "failed" | "reversed";
+  created_at: string;
+  failure_reason: string | null;
+  stripe_transfer_id: string | null;
+  initiated_by: string | null;
+  jobs: { title?: string } | null;
+  profiles: { full_name?: string | null } | null;
+}
+
+const LEDGER_TONE: Record<string, string> = {
+  paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  failed: "bg-destructive/10 text-destructive",
+  reversed: "bg-muted text-muted-foreground",
+};
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -39,6 +60,40 @@ const AdminPayoutBatches = () => {
         helper_name: formatName(r.helper_name, "Unknown"),
       }));
     },
+  });
+
+  // Recent transfer ledger — last 50 stripe.transfers.create() rows across
+  // all helpers. helper_id FKs to auth.users (not profiles), so the helper
+  // name is resolved via a second query and merged client-side.
+  // Cast via `as any`: payout_transfers is in a recent migration not yet in
+  // generated client types (full regen exceeds tooling output limits).
+  const { data: ledger = [] } = useQuery<PayoutLedgerRow[]>({
+    queryKey: ["admin-payout-ledger"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("payout_transfers")
+        .select(
+          "id, helper_id, amount_cents, platform_fee_cents, status, created_at, failure_reason, stripe_transfer_id, initiated_by, jobs(title)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        toast.error(`Ledger: ${error.message}`);
+        return [];
+      }
+      const rows = (data ?? []) as Omit<PayoutLedgerRow, "profiles">[];
+      const helperIds = [...new Set(rows.map((r) => r.helper_id))];
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", helperIds);
+      const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p.full_name]));
+      return rows.map((r) => ({
+        ...r,
+        profiles: { full_name: nameMap.get(r.helper_id) ?? null },
+      }));
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 
   const triggerPayout = async (batch: PayoutBatch) => {
@@ -152,6 +207,64 @@ const AdminPayoutBatches = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ─── Recent transfers ledger ─── */}
+      {ledger.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Recent transfers</h3>
+            <Badge variant="secondary" className="text-[10px]">last {ledger.length}</Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Authoritative ledger from <code className="text-[10px]">payout_transfers</code>.
+            Written by <code className="text-[10px]">release-payout</code> on every
+            <code className="text-[10px]"> stripe.transfers.create()</code> call.
+          </p>
+          <div className="space-y-1.5">
+            {ledger.map((t) => {
+              const helperName = formatName(t.profiles?.full_name, "Unknown helpr");
+              const jobTitle = t.jobs?.title ?? "—";
+              const amount = (t.amount_cents / 100).toFixed(2);
+              const fee = (t.platform_fee_cents / 100).toFixed(2);
+              const tone = LEDGER_TONE[t.status] ?? "bg-muted text-muted-foreground";
+              return (
+                <div key={t.id} className="rounded-lg liquid-glass p-3 flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-foreground truncate">{helperName}</span>
+                      <Badge className={`${tone} text-[10px] capitalize`}>{t.status}</Badge>
+                      {t.initiated_by && t.initiated_by !== "system" && (
+                        <Badge variant="outline" className="text-[10px] capitalize">{t.initiated_by}</Badge>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {jobTitle}
+                      {t.stripe_transfer_id && (
+                        <span className="ml-2 font-mono opacity-60" title="Stripe transfer ID">
+                          {t.stripe_transfer_id.slice(-8)}
+                        </span>
+                      )}
+                    </p>
+                    {t.failure_reason && t.status === "failed" && (
+                      <p className="text-[11px] text-destructive mt-0.5 break-words">{t.failure_reason}</p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-foreground tabular-nums">${amount}</p>
+                    {Number(fee) > 0 && (
+                      <p className="text-[10px] text-muted-foreground">fee ${fee}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

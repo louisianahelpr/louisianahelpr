@@ -1,7 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
-import { parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
-import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
+import { Webhook } from 'npm:standardwebhooks'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 import { InviteEmail } from '../_shared/email-templates/invite.tsx'
@@ -10,93 +9,91 @@ import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 
+// Supabase Auth "Send Email Hook" handler.
+//
+// This function replaces Supabase's default unbranded auth emails with
+// our React Email templates branded for Helpr. Configuration:
+//
+//   1. Studio → Authentication → Hooks → enable "Send Email Hook"
+//   2. URL: https://<project>.supabase.co/functions/v1/auth-email-hook
+//   3. Generate a webhook secret (Studio shows the value once — copy it)
+//   4. Set as Supabase function secret: SEND_EMAIL_HOOK_SECRET=v1,whsec_<base64>
+//
+// Webhook signatures use the standard-webhooks.com spec (svix-style).
+// Supabase sends three headers (webhook-id, webhook-timestamp,
+// webhook-signature); the standardwebhooks npm package validates them.
+//
+// The function parses Supabase's payload, renders the appropriate
+// React Email template, and enqueues to pgmq.q_auth_emails. The
+// process-email-queue cron picks up the message every 5 min and sends
+// via Resend.
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-lovable-signature, x-lovable-timestamp, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature',
 }
 
+// Map Supabase email_action_type values to template + subject.
+// Supabase's full enum: signup, invite, magiclink, recovery, email_change,
+// email_change_current, email_change_new, reauthentication.
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
+  invite: "You've been invited to Helpr",
+  magiclink: 'Your Helpr login link',
+  recovery: 'Reset your Helpr password',
   email_change: 'Confirm your new email',
+  email_change_current: 'Email change requested',
+  email_change_new: 'Confirm your new email',
   reauthentication: 'Your verification code',
 }
 
-// Template mapping
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   signup: SignupEmail,
   invite: InviteEmail,
   magiclink: MagicLinkEmail,
   recovery: RecoveryEmail,
   email_change: EmailChangeEmail,
+  email_change_current: EmailChangeEmail,
+  email_change_new: EmailChangeEmail,
   reauthentication: ReauthenticationEmail,
 }
 
-// Configuration
-const SITE_NAME = "Helpr"
-const SENDER_DOMAIN = "notify.louisianahelpr.com"
-const ROOT_DOMAIN = "louisianahelpr.com"
-const FROM_DOMAIN = "notify.louisianahelpr.com" // Domain shown in From address (must match verified sender domain)
+// Branding constants — keep in sync with the email templates.
+const SITE_NAME = 'Helpr'
+const SENDER_DOMAIN = 'notify.louisianahelpr.com'
+const ROOT_DOMAIN = 'louisianahelpr.com'
+const FROM_DOMAIN = 'notify.louisianahelpr.com'
 
-// Sample data for preview mode ONLY (not used in actual email sending).
-// URLs are baked in at scaffold time from the project's real data.
-// The sample email uses a fixed placeholder (RFC 6761 .test TLD) so the Go backend
-// can always find-and-replace it with the actual recipient when sending test emails,
-// even if the project's domain has changed since the template was scaffolded.
-const SAMPLE_PROJECT_URL = "https://www.louisianahelpr.com"
-const SAMPLE_EMAIL = "user@example.test"
+// Sample data for the /preview endpoint (renders templates without
+// signing/enqueuing — useful for visual review). The .test TLD is RFC 6761
+// reserved so it can't accidentally hit a real domain.
+const SAMPLE_PROJECT_URL = `https://www.${ROOT_DOMAIN}`
+const SAMPLE_EMAIL = 'user@example.test'
 const SAMPLE_DATA: Record<string, object> = {
-  signup: {
-    siteName: SITE_NAME,
-    siteUrl: SAMPLE_PROJECT_URL,
-    recipient: SAMPLE_EMAIL,
-    confirmationUrl: SAMPLE_PROJECT_URL,
-  },
-  magiclink: {
-    siteName: SITE_NAME,
-    confirmationUrl: SAMPLE_PROJECT_URL,
-  },
-  recovery: {
-    siteName: SITE_NAME,
-    confirmationUrl: SAMPLE_PROJECT_URL,
-  },
-  invite: {
-    siteName: SITE_NAME,
-    siteUrl: SAMPLE_PROJECT_URL,
-    confirmationUrl: SAMPLE_PROJECT_URL,
-  },
-  email_change: {
-    siteName: SITE_NAME,
-    email: SAMPLE_EMAIL,
-    newEmail: SAMPLE_EMAIL,
-    confirmationUrl: SAMPLE_PROJECT_URL,
-  },
-  reauthentication: {
-    token: '123456',
-  },
+  signup: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, recipient: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL },
+  magiclink: { siteName: SITE_NAME, confirmationUrl: SAMPLE_PROJECT_URL },
+  recovery: { siteName: SITE_NAME, confirmationUrl: SAMPLE_PROJECT_URL },
+  invite: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, confirmationUrl: SAMPLE_PROJECT_URL },
+  email_change: { siteName: SITE_NAME, email: SAMPLE_EMAIL, newEmail: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL },
+  reauthentication: { token: '123456' },
 }
 
-// Preview endpoint handler - returns rendered HTML without sending email
+// /preview endpoint — renders a template with sample data so admins can
+// visually review what the email looks like. Auth-gated by SEND_EMAIL_HOOK_SECRET
+// (anyone with the hook secret is already authorized to read the templates).
 async function handlePreview(req: Request): Promise<Response> {
   const previewCorsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, content-type',
   }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: previewCorsHeaders })
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: previewCorsHeaders })
-  }
-
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET')
   const authHeader = req.headers.get('Authorization')
-
-  if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+  if (!hookSecret || authHeader !== `Bearer ${hookSecret}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+      status: 401, headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
@@ -104,137 +101,107 @@ async function handlePreview(req: Request): Promise<Response> {
   try {
     const body = await req.json()
     type = body.type
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
-      status: 400,
-      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+      status: 400, headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
   const EmailTemplate = EMAIL_TEMPLATES[type]
-
   if (!EmailTemplate) {
     return new Response(JSON.stringify({ error: `Unknown email type: ${type}` }), {
-      status: 400,
-      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+      status: 400, headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
-  const sampleData = SAMPLE_DATA[type] || {}
-  const html = await renderAsync(React.createElement(EmailTemplate, sampleData))
-
-  return new Response(html, {
-    status: 200,
-    headers: { ...previewCorsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
-  })
+  const html = await renderAsync(React.createElement(EmailTemplate, SAMPLE_DATA[type] || {}))
+  return new Response(html, { status: 200, headers: { ...previewCorsHeaders, 'Content-Type': 'text/html; charset=utf-8' } })
 }
 
-// Webhook handler - verifies signature and sends email
+// Main webhook handler — verifies Supabase's standard-webhooks signature,
+// renders the template, enqueues to pgmq.q_auth_emails for process-email-queue
+// to send via Resend.
 async function handleWebhook(req: Request): Promise<Response> {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
-
-  if (!apiKey) {
-    console.error('LOVABLE_API_KEY not configured')
+  const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET')
+  if (!hookSecret) {
+    console.error('SEND_EMAIL_HOOK_SECRET not configured — set it in Supabase function secrets')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 
-  // Verify signature + timestamp, then parse payload.
+  // Strip Supabase's "v1,whsec_" prefix if present — standardwebhooks expects
+  // just the base64-encoded secret. Supabase stores the secret with the
+  // prefix in Studio, but it accepts both forms when entered as the function secret.
+  const secretValue = hookSecret.startsWith('v1,whsec_')
+    ? hookSecret.slice('v1,whsec_'.length)
+    : hookSecret.startsWith('v1,')
+      ? hookSecret.slice('v1,'.length)
+      : hookSecret
+
+  // Read raw body for signature verification (don't parse JSON yet).
+  const rawBody = await req.text()
+  const headers = {
+    'webhook-id': req.headers.get('webhook-id') || '',
+    'webhook-timestamp': req.headers.get('webhook-timestamp') || '',
+    'webhook-signature': req.headers.get('webhook-signature') || '',
+  }
+
   let payload: any
-  let run_id = ''
   try {
-    const verified = await verifyWebhookRequest({
-      req,
-      secret: apiKey,
-      parser: parseEmailWebhookPayload,
-    })
-    payload = verified.payload
-    run_id = payload.run_id
+    const wh = new Webhook(secretValue)
+    payload = wh.verify(rawBody, headers)
   } catch (error) {
-    if (error instanceof WebhookError) {
-      switch (error.code) {
-        case 'invalid_signature':
-        case 'missing_timestamp':
-        case 'invalid_timestamp':
-        case 'stale_timestamp':
-          console.error('Invalid webhook signature', { error: error.message })
-          return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-            status: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        case 'invalid_payload':
-        case 'invalid_json':
-          console.error('Invalid webhook payload', { error: error.message })
-          return new Response(
-            JSON.stringify({ error: 'Invalid webhook payload' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-      }
-    }
-
-    console.error('Webhook verification failed', { error })
-    return new Response(
-      JSON.stringify({ error: 'Invalid webhook payload' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error('Webhook signature verification failed', { error: error instanceof Error ? error.message : String(error) })
+    return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
-  if (!run_id) {
-    console.error('Webhook payload missing run_id')
-    return new Response(
-      JSON.stringify({ error: 'Invalid webhook payload' }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+  // Supabase "Send Email Hook" payload shape:
+  //   { user: { id, email, ... }, email_data: { token, token_hash, redirect_to, email_action_type, ... } }
+  const user = payload?.user
+  const emailData = payload?.email_data
+  if (!user?.email || !emailData?.email_action_type) {
+    console.error('Webhook payload missing user.email or email_data.email_action_type', { payload })
+    return new Response(JSON.stringify({ error: 'Invalid webhook payload shape' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
-  if (payload.version !== '1') {
-    console.error('Unsupported payload version', { version: payload.version, run_id })
-    return new Response(
-      JSON.stringify({ error: `Unsupported payload version: ${payload.version}` }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
-  }
-
-  // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
-  // payload.type is the hook event type ("auth")
-  const emailType = payload.data.action_type
-  console.log('Received auth event', { emailType, email: payload.data.email, run_id })
-
+  const emailType = emailData.email_action_type as string
   const EmailTemplate = EMAIL_TEMPLATES[emailType]
   if (!EmailTemplate) {
-    console.error('Unknown email type', { emailType, run_id })
-    return new Response(
-      JSON.stringify({ error: `Unknown email type: ${emailType}` }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error('Unknown email_action_type', { emailType })
+    return new Response(JSON.stringify({ error: `Unknown email type: ${emailType}` }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
-  // Build template props from payload.data (HookData structure)
+  // Build the verification URL Supabase expects users to follow. Per docs,
+  // the format is: <site_url>/auth/v1/verify?token=<token_hash>&type=<type>&redirect_to=<redirect_to>
+  // We build it on our domain so links are branded.
+  const verifyUrl = new URL(`https://www.${ROOT_DOMAIN}/auth/v1/verify`)
+  if (emailData.token_hash) verifyUrl.searchParams.set('token', emailData.token_hash)
+  if (emailType) verifyUrl.searchParams.set('type', emailType)
+  if (emailData.redirect_to) verifyUrl.searchParams.set('redirect_to', emailData.redirect_to)
+
   const templateProps = {
     siteName: SITE_NAME,
-    siteUrl: `https://${ROOT_DOMAIN}`,
-    recipient: payload.data.email,
-    confirmationUrl: payload.data.url,
-    token: payload.data.token,
-    email: payload.data.email,
-    newEmail: payload.data.new_email,
+    siteUrl: `https://www.${ROOT_DOMAIN}`,
+    recipient: user.email,
+    confirmationUrl: verifyUrl.toString(),
+    token: emailData.token,
+    email: user.email,
+    newEmail: user.new_email || emailData.new_email,
   }
 
-  // Render React Email to HTML and plain text
+  // Render React Email template to HTML + plain text
   const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
-  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), {
-    plainText: true,
-  })
+  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true })
 
-  // Enqueue email for async processing by the dispatcher (process-email-queue).
+  // Enqueue for async send via process-email-queue → Resend
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
@@ -246,16 +213,15 @@ async function handleWebhook(req: Request): Promise<Response> {
   await supabase.from('email_send_log').insert({
     message_id: messageId,
     template_name: emailType,
-    recipient_email: payload.data.email,
+    recipient_email: user.email,
     status: 'pending',
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
     queue_name: 'auth_emails',
     payload: {
-      run_id,
       message_id: messageId,
-      to: payload.data.email,
+      to: user.email,
       from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
       sender_domain: SENDER_DOMAIN,
       subject: EMAIL_SUBJECTS[emailType] || 'Notification',
@@ -268,21 +234,20 @@ async function handleWebhook(req: Request): Promise<Response> {
   })
 
   if (enqueueError) {
-    console.error('Failed to enqueue auth email', { error: enqueueError, run_id, emailType })
+    console.error('Failed to enqueue auth email', { error: enqueueError, emailType })
     await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: emailType,
-      recipient_email: payload.data.email,
+      recipient_email: user.email,
       status: 'failed',
       error_message: 'Failed to enqueue email',
     })
     return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
-  console.log('Auth email enqueued', { emailType, email: payload.data.email, run_id })
+  console.log('Auth email enqueued', { emailType, email: user.email })
 
   return new Response(
     JSON.stringify({ success: true, queued: true }),
@@ -293,25 +258,19 @@ async function handleWebhook(req: Request): Promise<Response> {
 Deno.serve(async (req) => {
   const url = new URL(req.url)
 
-  // Handle CORS preflight for main endpoint
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
-  // Route to preview handler for /preview path
-  if (url.pathname.endsWith('/preview')) {
-    return handlePreview(req)
-  }
+  // /preview path renders templates with sample data (admin debugging)
+  if (url.pathname.endsWith('/preview')) return handlePreview(req)
 
   // Main webhook handler
   try {
     return await handleWebhook(req)
   } catch (error) {
     console.error('Webhook handler error:', error)
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 })

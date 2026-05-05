@@ -19,6 +19,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import AdminUserNotes from "./AdminUserNotes";
+import UserVerificationHistory from "./UserVerificationHistory";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -1958,6 +1959,13 @@ const AdminUsers = () => {
 
                   {/* Internal Admin Notes */}
                   <AdminUserNotes userId={viewProfile.user_id} />
+
+                  {/* Verification audit trail (helper_verifications table) —
+                      shows every change to approval_status, idv_status,
+                      legacy_manual_review, etc., with actor + timestamp.
+                      Surface BEFORE Admin Tools so reviewers can see the
+                      decision history before taking another action. */}
+                  <UserVerificationHistory userId={viewProfile.user_id} />
 
                   {/* Trust & Verification + Support actions */}
                   <div className="space-y-2">

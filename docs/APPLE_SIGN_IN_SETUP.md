@@ -1,19 +1,23 @@
 # Apple Sign In setup — finishing checklist
 
-Started 2026-05-05. Web sign-in code is already wired (`AppleSignInButton`
-calls `supabase.auth.signInWithOAuth({ provider: 'apple' })`). Need to
-complete the Apple-side configuration + paste credentials into Supabase.
+Started 2026-05-05. **Verified working end-to-end 2026-05-05.**
+First-time sign-in lands on `/complete-profile` (SPA new-user onboarding
+handler caught the freshly-minted Apple user); returning users land on
+`/dashboard`. Full chain healthy: Apple → Supabase callback at
+`fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/callback` →
+`www.louisianahelpr.com` → SPA session.
 
 ## Current state
 
 | Item | Status |
 |---|---|
-| App ID `com.Helpr` has Sign In with Apple capability | ✅ Lexi enabled |
-| Sign In with Apple key created | ✅ Key ID `Y754ZY5DQ2`, `.p8` downloaded to work Mac |
-| Services ID `com.Helpr.signin` created | ⚠️ Save blocked by domain validation |
-| Domain verification file deployed | ❌ Not yet |
-| JWT generated | ❌ Not yet (needs `.p8` + Services ID saved) |
-| Supabase Apple provider enabled | ❌ Not yet |
+| App ID `com.Helpr` has Sign In with Apple capability | ✅ |
+| Sign In with Apple key created (`Y754ZY5DQ2.p8`) | ✅ |
+| Services ID `com.Helpr.signin` saved | ✅ |
+| Domain verification file deployed + Apple-verified | ✅ |
+| OAuth client_secret JWT generated | ✅ |
+| Supabase Apple provider enabled + credentials pasted | ✅ |
+| End-to-end web sign-in test | ✅ — landed on `/complete-profile` for first-time user |
 
 ## Known IDs
 
@@ -22,7 +26,7 @@ complete the Apple-side configuration + paste credentials into Supabase.
 - **Services ID:** `com.Helpr.signin` (this is what Supabase calls "Client ID")
 - **Supabase callback URL:** `https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/callback`
 
-## Steps remaining (do in order)
+## Setup steps (kept for the next JWT-rotation window in ~5 months)
 
 ### 1. Domain verification — unblocks Services ID save
 
@@ -85,7 +89,9 @@ Save.
 - Visit `https://www.louisianahelpr.com/login` (incognito)
 - Click "Continue with Apple"
 - Complete Apple's flow with a test Apple ID
-- Should land on `/dashboard` (or `/complete-profile` if first-time user)
+- **First-time users land on `/complete-profile`** (SPA onboarding
+  handler — confirmed during the 2026-05-05 verification run)
+- **Returning users land on `/dashboard`**
 
 If the test fails with a Supabase auth error, the most common causes:
 - JWT `iss` doesn't match the Apple Team ID — regenerate
@@ -93,9 +99,10 @@ If the test fails with a Supabase auth error, the most common causes:
 - Services ID domain isn't verified yet — re-verify in Apple
 - JWT expired (only happens after 180 days) — regenerate
 
-## After Apple sign-in works
+## After Apple sign-in works ← we're here
 
-- Set a calendar reminder for ~5 months out to regenerate the JWT
+- Set a calendar reminder for **~2026-11-02** (180 days from
+  2026-05-05) to regenerate the JWT
 - Pair the iOS native Apple Sign In wiring with the next iOS rebuild
   (uses Apple's `ASAuthorization` framework via a Capacitor plugin —
   separate from the web flow we just enabled)

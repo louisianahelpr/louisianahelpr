@@ -12,40 +12,44 @@ handler caught the freshly-minted Apple user); returning users land on
 | Item | Status |
 |---|---|
 | App ID `com.Helpr` has Sign In with Apple capability | ✅ |
-| Sign In with Apple key created (`Y754ZY5DQ2.p8`) | ✅ |
+| Sign In with Apple key created (`AuthKey_67WQZ3F8Q5.p8`) | ✅ |
 | Services ID `com.Helpr.signin` saved | ✅ |
-| Domain verification file deployed + Apple-verified | ✅ |
+| Domains registered on Services ID + Supabase callback | ✅ |
 | OAuth client_secret JWT generated | ✅ |
 | Supabase Apple provider enabled + credentials pasted | ✅ |
 | End-to-end web sign-in test | ✅ — landed on `/complete-profile` for first-time user |
 
-## Known IDs
+## Known IDs (current — supersedes any earlier-doc references)
 
 - **Team ID:** `P85MCK558V` (from "Helpr, Limited Liability Company")
-- **Key ID:** `Y754ZY5DQ2` (matches filename `AuthKey_Y754ZY5DQ2.p8`)
-- **Services ID:** `com.Helpr.signin` (this is what Supabase calls "Client ID")
+- **Key ID:** `67WQZ3F8Q5` (matches filename `AuthKey_67WQZ3F8Q5.p8`)
+  - The original `Y754ZY5DQ2` was revoked because its `.p8` was lost.
+    Apple does not let you re-download the `.p8`; revoke + re-issue is
+    the only path. Back the new one up to 1Password + iCloud Keychain.
+- **Services ID:** `com.Helpr.signin` (Supabase calls this "Client ID")
 - **Supabase callback URL:** `https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/callback`
+- **Supabase Site URL:** `https://www.louisianahelpr.com` (was a Vercel
+  preview URL — fixed during the verification run)
 
-## Setup steps (kept for the next JWT-rotation window in ~5 months)
+## Setup steps (runbook for the next JWT-rotation window in ~5 months)
 
-### 1. Domain verification — unblocks Services ID save
+### 1. Services ID configuration
 
 1. developer.apple.com → **Identifiers** → click into `com.Helpr.signin`
 2. Find the **Sign In with Apple** row → click **Configure**
 3. In the panel:
    - Primary App ID: `com.Helpr`
    - Domains: `louisianahelpr.com` and `www.louisianahelpr.com` (one per line)
-4. Look for a **Download** button/link near the Domains section. Apple gives you a file named `apple-developer-domain-association.txt` with a public token inside.
-5. Save that file's contents to:
-   ```
-   public/.well-known/apple-developer-domain-association.txt
-   ```
-6. Commit + push. Vercel deploys in ~30 sec.
-7. Verify reachable:
-   - `https://louisianahelpr.com/.well-known/apple-developer-domain-association.txt`
-   - `https://www.louisianahelpr.com/.well-known/apple-developer-domain-association.txt`
-8. Back in Apple, click **Verify** next to each domain → both should turn green
-9. Save the Services ID configuration
+   - Return URLs: the Supabase callback
+     `https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/callback`
+4. Save the Services ID configuration.
+
+> **Note (changed since this doc was first written):** Apple's UI no
+> longer surfaces a `Download apple-developer-domain-association.txt`
+> button. The `public/.well-known/...` deploy step is **obsolete for
+> new accounts** — Apple validates domains at sign-in time via the
+> redirect URI match. We saved with all 3 URLs without a verification
+> round-trip.
 
 ### 2. Generate the OAuth client_secret JWT
 
@@ -63,9 +67,9 @@ Local fallback if the URL is blocked:
 
 Inputs:
 - Team ID: `P85MCK558V`
-- Key ID: `Y754ZY5DQ2`
+- Key ID: `67WQZ3F8Q5`
 - Services ID: `com.Helpr.signin`
-- Private Key: paste the full contents of `~/Downloads/AuthKey_Y754ZY5DQ2.p8` (work Mac) including BEGIN/END lines
+- Private Key: paste the full contents of `~/Downloads/AuthKey_67WQZ3F8Q5.p8` including BEGIN/END lines
 - Expires in: `180` days
 
 Click **Generate JWT** → copy the output.
@@ -116,18 +120,9 @@ If the test fails with a Supabase auth error, the most common causes:
 
 ## Done — 2026-05-05
 
-All Apple-side + Supabase-side configuration completed and verified end-to-end.
-
-**Updated values** (supersede earlier rows in this doc):
-
-- **Key ID:** `67WQZ3F8Q5` (the old `Y754ZY5DQ2` was revoked because the `.p8` was lost)
-- **`.p8` filename:** `AuthKey_67WQZ3F8Q5.p8` (in `~/Downloads/` — single-download, back this up to 1Password / iCloud Keychain)
-- **Services ID:** `com.Helpr.signin` (registered fresh via the Identifiers UI)
-- **Supabase Site URL:** `https://www.louisianahelpr.com` (was a Vercel preview URL — fixed)
-
-**What changed since this doc was originally written:**
-
-- Apple's Services ID configuration UI no longer surfaces a `Download` button for `apple-developer-domain-association.txt`. The `public/.well-known/...` deploy step is **obsolete for new accounts** — domains validate at sign-in time via the redirect URI match. We saved the Services ID with all 3 URLs (the two domains + the Supabase callback) without a verification round-trip.
-- After OAuth callback, the SPA correctly routes first-time users to `/complete-profile` instead of `/dashboard`. Verified in the live test.
-
-**Calendar reminder:** JWT expires ~Nov 1 2026 (180 days from generation). Regenerate via `https://www.louisianahelpr.com/tools/apple-jwt.html` before then.
+All Apple-side + Supabase-side configuration completed and verified
+end-to-end. The current values are now reflected in the **Known IDs**
+section at the top of this doc; the **Setup steps** below are a
+runbook for the next JWT rotation. Calendar reminder: JWT expires
+~Nov 1 2026 (180 days from generation) — regenerate via
+`https://www.louisianahelpr.com/tools/apple-jwt.html` before then.

@@ -1,8 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const SITE_NAME = "Helpr"
-const SENDER_DOMAIN = "send.louisianahelpr.com"
-const FROM_DOMAIN = "send.louisianahelpr.com"
+const SENDER_DOMAIN = "louisianahelpr.com"
+const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
 const SITE_URL = `https://${ROOT_DOMAIN}`
 

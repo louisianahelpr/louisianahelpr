@@ -208,13 +208,25 @@ Deno.serve(async (req) => {
         // cover the same operational visibility.
         await sendWithResend(resendApiKey, payload)
 
-        // Log success
-        await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
-          status: 'sent',
-        })
+        // Log success. auth-email-hook inserts a `pending` row at enqueue
+        // time with the same message_id, so prefer to UPDATE that row
+        // (single canonical entry per message). Fall through to INSERT only
+        // if no pending row exists (transactional_emails path that doesn't
+        // pre-log).
+        const { data: updatedSent } = await supabase
+          .from('email_send_log')
+          .update({ status: 'sent', error_message: null })
+          .eq('message_id', payload.message_id)
+          .in('status', ['pending', 'failed'])
+          .select('id')
+        if (!updatedSent || updatedSent.length === 0) {
+          await supabase.from('email_send_log').insert({
+            message_id: payload.message_id,
+            template_name: payload.label || queue,
+            recipient_email: payload.to,
+            status: 'sent',
+          })
+        }
 
         // Delete from queue
         const { error: delError } = await supabase.rpc('delete_email', {
@@ -234,13 +246,23 @@ Deno.serve(async (req) => {
           error: errorMsg,
         })
 
-        await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
-          status: 'failed',
-          error_message: errorMsg.slice(0, 1000),
-        })
+        // Same UPDATE-first pattern as success path: collapse the pre-logged
+        // pending row into the terminal failed state instead of orphaning it.
+        const { data: updatedFailed } = await supabase
+          .from('email_send_log')
+          .update({ status: 'failed', error_message: errorMsg.slice(0, 1000) })
+          .eq('message_id', payload.message_id)
+          .eq('status', 'pending')
+          .select('id')
+        if (!updatedFailed || updatedFailed.length === 0) {
+          await supabase.from('email_send_log').insert({
+            message_id: payload.message_id,
+            template_name: payload.label || queue,
+            recipient_email: payload.to,
+            status: 'failed',
+            error_message: errorMsg.slice(0, 1000),
+          })
+        }
 
         if (isRateLimited(error)) {
           const retryAfterSecs = getRetryAfterSeconds(error)

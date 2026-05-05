@@ -142,8 +142,15 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         .from("user-documents")
         .upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
-      const { data } = supabase.storage.from("user-documents").getPublicUrl(path);
-      return data.publicUrl;
+      // user-documents bucket is private as of 2026-05-05; embed a signed
+      // URL with 30-day TTL into the support ticket so the admin can view
+      // it without needing UI changes. Most tickets resolve in <30 days;
+      // older ones can be re-fetched by path if needed.
+      const { data, error: signErr } = await supabase.storage
+        .from("user-documents")
+        .createSignedUrl(path, 30 * 24 * 60 * 60);
+      if (signErr || !data) throw signErr || new Error("No signed URL");
+      return data.signedUrl;
     } catch {
       toast.error("Couldn't upload screenshot — sending without it.");
       return null;

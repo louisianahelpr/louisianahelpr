@@ -94,16 +94,17 @@ export function CredentialsTab({ userId }: { userId: string }) {
         .from("user-documents")
         .upload(path, file, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("user-documents").getPublicUrl(path);
-      const url = pub.publicUrl;
 
+      // Store the storage path (not a signed URL). user-documents is a
+      // private bucket as of 2026-05-05 — we generate signed URLs on
+      // demand at view time via openDoc() below.
       const update: Record<string, any> = {};
       if (kind === "license") {
-        update.license_url = url;
+        update.license_url = path;
         update.is_licensed = true;
         update.license_status = "pending";
       } else {
-        update.insurance_url = url;
+        update.insurance_url = path;
         update.is_insured = true;
         update.insurance_status = "pending";
       }
@@ -117,6 +118,20 @@ export function CredentialsTab({ userId }: { userId: string }) {
     } finally {
       setUploading(null);
     }
+  };
+
+  // Generate a 5-minute signed URL on demand so the user can view their
+  // uploaded credential. Bucket is private; clients can't construct the
+  // URL themselves. RLS lets owners read their own paths.
+  const openDoc = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("user-documents")
+      .createSignedUrl(path, 300);
+    if (error || !data) {
+      toast.error("Couldn't generate a view link");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
   };
 
   const removeDoc = async (kind: "license" | "insurance") => {
@@ -224,14 +239,13 @@ export function CredentialsTab({ userId }: { userId: string }) {
             {data.license_url ? (
               <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
                 <FileText className="w-5 h-5 text-primary shrink-0" />
-                <a
-                  href={data.license_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 text-sm text-primary underline truncate"
+                <button
+                  type="button"
+                  onClick={() => openDoc(data.license_url!)}
+                  className="flex-1 text-left text-sm text-primary underline truncate"
                 >
                   View uploaded license
-                </a>
+                </button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -299,14 +313,13 @@ export function CredentialsTab({ userId }: { userId: string }) {
             {data.insurance_url ? (
               <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
                 <FileText className="w-5 h-5 text-primary shrink-0" />
-                <a
-                  href={data.insurance_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 text-sm text-primary underline truncate"
+                <button
+                  type="button"
+                  onClick={() => openDoc(data.insurance_url!)}
+                  className="flex-1 text-left text-sm text-primary underline truncate"
                 >
                   View uploaded insurance certificate
-                </a>
+                </button>
                 <Button
                   variant="ghost"
                   size="icon"

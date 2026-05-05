@@ -177,12 +177,14 @@ serve(async (req) => {
     let insuranceUrl: string | null = null;
     const portfolioUrls: string[] = [];
 
-    // 1. Upload avatar
+    // 1. Upload avatar to the dedicated public `avatars` bucket
+    // (was incorrectly using job-photos before — bucket got created
+    // 2026-05-05 alongside making user-documents private).
     if (avatarBase64 && avatarExt) {
       const avatarPath = `${userId}/avatar.${avatarExt}`;
       const avatarBytes = Uint8Array.from(atob(avatarBase64), (c) => c.charCodeAt(0));
       const { error: avatarErr } = await supabase.storage
-        .from("job-photos")
+        .from("avatars")
         .upload(avatarPath, avatarBytes, {
           contentType: avatarContentType || "image/jpeg",
           upsert: true,
@@ -191,7 +193,7 @@ serve(async (req) => {
       if (avatarErr) {
         console.error("Avatar upload error:", avatarErr);
       } else {
-        const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(avatarPath);
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(avatarPath);
         avatarUrl = urlData.publicUrl;
       }
     }
@@ -215,6 +217,9 @@ serve(async (req) => {
     }
 
     // 2b. Upload license document (if provided)
+    // user-documents bucket is private — store the PATH (not full URL) so
+    // we can generate signed URLs at display time. Admin/owner read access
+    // is enforced by the bucket's owner-or-admin RLS policy.
     if (licenseBase64 && licenseExt) {
       const licensePath = `${userId}/credentials/license-${Date.now()}.${licenseExt}`;
       const licenseBytes = Uint8Array.from(atob(licenseBase64), (c) => c.charCodeAt(0));
@@ -227,8 +232,7 @@ serve(async (req) => {
       if (licErr) {
         console.error("License upload error:", licErr);
       } else {
-        const { data: lUrl } = supabase.storage.from("user-documents").getPublicUrl(licensePath);
-        licenseUrl = lUrl.publicUrl;
+        licenseUrl = licensePath;  // path, not URL — see column COMMENT
       }
     }
 
@@ -245,12 +249,16 @@ serve(async (req) => {
       if (insErr) {
         console.error("Insurance upload error:", insErr);
       } else {
-        const { data: iUrl } = supabase.storage.from("user-documents").getPublicUrl(insurancePath);
-        insuranceUrl = iUrl.publicUrl;
+        insuranceUrl = insurancePath;  // path, not URL
       }
     }
 
     // 3. Upload portfolio files
+    // Portfolio files are public-display content (helper portfolios shown
+    // on profiles), but they live in user-documents under each user's
+    // folder. Since user-documents is now private, we generate signed URLs
+    // with a long TTL (1 year) at upload time. Helpers viewing their own
+    // portfolio + admins still get fresh signed URLs at display time too.
     if (portfolioFiles && Array.isArray(portfolioFiles)) {
       for (const file of portfolioFiles) {
         const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.ext}`;
@@ -262,8 +270,9 @@ serve(async (req) => {
           });
 
         if (!pErr) {
-          const { data: pUrl } = supabase.storage.from("user-documents").getPublicUrl(path);
-          portfolioUrls.push(pUrl.publicUrl);
+          // Store the path. portfolio_urls[] consumers must regenerate
+          // signed URLs at display time (same pattern as license/insurance).
+          portfolioUrls.push(path);
         }
       }
     }

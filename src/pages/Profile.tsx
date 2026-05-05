@@ -389,8 +389,11 @@ const ProfilePage = () => {
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar.${ext}`;
 
+    // Avatars go in the public `avatars` bucket (user-documents is now
+    // private as of 2026-05-05; mixing public avatars with private docs
+    // forced a wrong choice on bucket-level public flag).
     const { error: uploadError } = await supabase.storage
-      .from("user-documents")
+      .from("avatars")
       .upload(path, file, { upsert: true });
 
     if (uploadError) {
@@ -399,7 +402,7 @@ const ProfilePage = () => {
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("user-documents").getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const avatarUrl = urlData.publicUrl + "?t=" + Date.now();
 
     const { error: updateError } = await supabase

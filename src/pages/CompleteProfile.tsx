@@ -223,11 +223,11 @@ const CompleteProfile = () => {
         const path = `${user.id}/avatar.${ext}`;
         uploads.push(
           supabase.storage
-            .from("user-documents")
+            .from("avatars")
             .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type })
             .then(({ error }) => {
               if (error) throw error;
-              const { data } = supabase.storage.from("user-documents").getPublicUrl(path);
+              const { data } = supabase.storage.from("avatars").getPublicUrl(path);
               avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
             })
         );

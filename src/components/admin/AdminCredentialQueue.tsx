@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -126,16 +126,9 @@ const AdminCredentialQueue = () => {
                   <div className="rounded-xl border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">License</p>
-                      <a
-                        href={r.license_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
-                      >
-                        Open <ExternalLink className="w-3 h-3" />
-                      </a>
+                      <SignedOpenLink path={r.license_url} />
                     </div>
-                    <DocPreview url={r.license_url} />
+                    <DocPreview path={r.license_url} />
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -166,16 +159,9 @@ const AdminCredentialQueue = () => {
                   <div className="rounded-xl border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Insurance</p>
-                      <a
-                        href={r.insurance_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
-                      >
-                        Open <ExternalLink className="w-3 h-3" />
-                      </a>
+                      <SignedOpenLink path={r.insurance_url} />
                     </div>
-                    <DocPreview url={r.insurance_url} />
+                    <DocPreview path={r.insurance_url} />
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -239,8 +225,67 @@ const AdminCredentialQueue = () => {
   );
 };
 
-function DocPreview({ url }: { url: string }) {
-  const isPdf = /\.pdf(\?|$)/i.test(url);
+// Resolve a 5-minute signed URL on demand and open in a new tab.
+// user-documents bucket is private as of 2026-05-05 — admins authorize
+// via has_role('admin') in the bucket SELECT policy.
+function SignedOpenLink({ path }: { path: string }) {
+  const [busy, setBusy] = useState(false);
+  const open = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.storage
+      .from("user-documents")
+      .createSignedUrl(path, 300);
+    setBusy(false);
+    if (error || !data) {
+      toast.error("Couldn't generate a view link");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline disabled:opacity-50"
+    >
+      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open <ExternalLink className="w-3 h-3" /></>}
+    </button>
+  );
+}
+
+// Inline preview — fetches a 5-minute signed URL when the row mounts so
+// the admin sees the document immediately. Path is the storage path
+// within user-documents (private bucket).
+function DocPreview({ path }: { path: string }) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setError(false);
+    setSignedUrl(null);
+    supabase.storage
+      .from("user-documents")
+      .createSignedUrl(path, 300)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) setError(true);
+        else setSignedUrl(data.signedUrl);
+      });
+    return () => { cancelled = true; };
+  }, [path]);
+
+  const isPdf = /\.pdf(\?|$)/i.test(path);
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+        <FileText className="w-4 h-4" /> Couldn't load preview — open via the link above.
+      </div>
+    );
+  }
+
   if (isPdf) {
     return (
       <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-xs text-muted-foreground">
@@ -248,10 +293,19 @@ function DocPreview({ url }: { url: string }) {
       </div>
     );
   }
+
+  if (!signedUrl) {
+    return (
+      <div className="flex items-center justify-center rounded-lg bg-background/60 p-6 text-xs text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+    <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="block">
       <img
-        src={url}
+        src={signedUrl}
         alt="Credential document"
         className="w-full max-h-48 object-contain rounded-lg bg-background/60"
       />

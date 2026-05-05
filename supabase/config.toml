@@ -47,3 +47,5 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.expire-subscriptions]
     verify_jwt = false
+  [functions.cleanup-abandoned-accounts]
+    verify_jwt = false

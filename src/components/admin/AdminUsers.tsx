@@ -854,7 +854,7 @@ const AdminUsers = () => {
                   return (
                     <div className="relative flex-shrink-0">
                       {p.avatar_url ? (
-                        <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
+                        <img loading="lazy" decoding="async" src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-xs font-medium">
                           {formatName(p.full_name, "?")[0]?.toUpperCase()}
@@ -1103,7 +1103,7 @@ const AdminUsers = () => {
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                    <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
                   </a>
                 ) : (
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-2xl font-medium flex-shrink-0">
@@ -1511,7 +1511,7 @@ const AdminUsers = () => {
                         {idDocSignedUrl ? (
                           /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
                             <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
-                              <img src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
+                              <img loading="lazy" decoding="async" src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
                             </a>
                           ) : (
                             <div className="p-4 flex items-center gap-3">
@@ -1540,7 +1540,7 @@ const AdminUsers = () => {
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
                     {viewProfile.avatar_url ? (
                       <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
-                        <img src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
+                        <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
                       </a>
                     ) : (
                       <p className="text-xs text-muted-foreground italic">Not provided</p>
@@ -1559,7 +1559,7 @@ const AdminUsers = () => {
                           const fileName = url.split("/").pop() || "Document";
                           return isImage ? (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden border border-border hover:border-primary transition-colors block group">
-                              <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                             </a>
                           ) : (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">

@@ -51,7 +51,7 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
         aria-label={`Open ${filename}`}
       >
         {thumbUrl ? (
-          <img
+          <img loading="lazy" decoding="async"
             src={thumbUrl}
             alt={`Attachment ${index + 1}`}
             className="w-20 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors"

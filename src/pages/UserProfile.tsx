@@ -232,7 +232,7 @@ const UserProfile = () => {
           {/* Profile Card */}
           <div className="rounded-2xl liquid-glass p-6 text-center space-y-3">
             {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-border" />
+              <img loading="lazy" decoding="async" src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-border" />
             ) : (
               <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
                 {initials}

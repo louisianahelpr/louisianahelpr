@@ -414,7 +414,7 @@ const AdminJobs = () => {
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {(detailJob.photos || []).map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                      <img src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>

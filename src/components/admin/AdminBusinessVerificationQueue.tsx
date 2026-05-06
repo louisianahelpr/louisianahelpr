@@ -219,7 +219,7 @@ function DocPreview({ url }: { url: string }) {
   }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-      <img
+      <img loading="lazy" decoding="async"
         src={url}
         alt="Business verification document"
         className="w-full max-h-48 object-contain rounded-lg bg-background/60"

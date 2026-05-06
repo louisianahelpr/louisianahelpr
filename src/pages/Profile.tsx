@@ -549,7 +549,7 @@ const ProfilePage = () => {
                   {/* Avatar — 70px squircle, left */}
                   <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
                     {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                      <img loading="lazy" decoding="async" src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : initials}
                   </div>
                   {/* Identity + integrated stats, all stacked tight on the right */}
@@ -767,7 +767,7 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-4">
                       <div className="relative group shrink-0">
                         {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary/20" />
+                          <img loading="lazy" decoding="async" src={profile.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary/20" />
                         ) : (
                           <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-display italic font-bold border-2 border-primary/20">
                             {initials}

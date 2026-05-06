@@ -67,7 +67,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             }
           }}
         >
-          <img
+          <img loading="lazy" decoding="async"
             src={helprLogoSrc}
             srcSet={`${helprLogoSm} 96w, ${helprLogoMd} 256w`}
             sizes="28px"
@@ -162,7 +162,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                   borderBottom: "1px solid hsl(var(--burnt-sienna) / 0.4)",
                 }}
               >
-                <img
+                <img loading="lazy" decoding="async"
                   src={helprLogoMd}
                   alt="Helpr"
                   className="h-7 w-auto select-none"

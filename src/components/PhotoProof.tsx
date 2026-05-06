@@ -77,7 +77,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                 <p className="text-xs text-muted-foreground font-medium">Already uploaded</p>
                 <div className="flex gap-2 flex-wrap">
                   {existingUrls.map((url, i) => (
-                    <img key={i} src={url} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                    <img loading="lazy" decoding="async" key={i} src={url} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
                   ))}
                 </div>
               </div>
@@ -85,7 +85,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
             <div className="flex flex-wrap gap-3">
               {previews.map((src, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => removeFile(i)}
                     className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <X className="w-3 h-3" />
@@ -177,7 +177,7 @@ export const PhotoProofGroup = ({
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {beforeUrls.length > 3 && (
@@ -201,7 +201,7 @@ export const PhotoProofGroup = ({
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt={`After ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {afterUrls.length > 3 && (
@@ -240,7 +240,7 @@ export const PhotoProofGroup = ({
                 <div className="grid grid-cols-3 gap-2">
                   {beforeUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>
@@ -252,7 +252,7 @@ export const PhotoProofGroup = ({
                 <div className="grid grid-cols-3 gap-2">
                   {afterUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>

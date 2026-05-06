@@ -349,7 +349,7 @@ export const AppliedJobsTab = ({
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {(job.photos || []).map((url, i) => (
                       <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <img src={url} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                        <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                       </a>
                     ))}
                   </div>
@@ -760,7 +760,7 @@ export const AppliedJobsTab = ({
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {(job.photos || []).map((url, i) => (
                       <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                        <img src={url} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                        <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                       </a>
                     ))}
                   </div>

@@ -116,7 +116,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <label className="cursor-pointer group relative inline-block">
             <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
               )}
@@ -205,7 +205,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <div className="flex items-center justify-between gap-3 rounded-xl liquid-glass p-3">
               <div className="flex items-center gap-3 min-w-0">
                 {idPreview ? (
-                  <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
+                  <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
                 ) : (
                   <div className="w-14 h-14 rounded-lg border border-border flex items-center justify-center bg-muted/40 shrink-0">
                     <FileText className="w-6 h-6 text-muted-foreground" />

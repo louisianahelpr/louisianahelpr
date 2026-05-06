@@ -202,7 +202,7 @@ const AdminDisputes = () => {
               <div className="flex gap-2 flex-wrap">
                 {job.dispute_evidence_urls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
-                    <img src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
                   </a>
                 ))}
               </div>

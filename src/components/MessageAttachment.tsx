@@ -60,7 +60,7 @@ export function MessageAttachment({ path, mime, size, mine }: MessageAttachmentP
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
         ) : thumbUrl ? (
-          <img
+          <img loading="lazy" decoding="async"
             src={thumbUrl}
             alt={filename}
             className="max-w-xs max-h-64 object-cover"

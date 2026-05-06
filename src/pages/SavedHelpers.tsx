@@ -210,7 +210,7 @@ const SavedHelpers = () => {
                         aria-label="View profile"
                       >
                         {h.avatar_url ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={h.avatar_url}
                             alt=""
                             className="w-12 h-12 rounded-full object-cover border border-border"

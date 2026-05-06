@@ -332,7 +332,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               />
               {screenshotPreview ? (
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={screenshotPreview}
                     alt="Screenshot preview"
                     className="max-h-24 w-auto object-cover"

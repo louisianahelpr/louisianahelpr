@@ -207,7 +207,7 @@ const JobDetailDialog = ({
                   "0 8px 24px -6px hsl(var(--bark) / 0.18)",
               }}
             >
-              <img src={photos[0]} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+              <img loading="lazy" decoding="async" src={photos[0]} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
               {photos.length > 1 && (
                 <span
                   className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold"
@@ -807,7 +807,7 @@ const JobDetailDialog = ({
           )}
 
           {/* Image */}
-          <img
+          <img loading="lazy" decoding="async"
             src={photos[lightboxIndex]}
             alt={`Photo ${lightboxIndex + 1}`}
             className="max-h-[88vh] max-w-[92vw] object-contain rounded-lg select-none"
@@ -853,7 +853,7 @@ const JobDetailDialog = ({
                   aria-label={`Photo ${i + 1}`}
                   className={`shrink-0 w-10 h-10 rounded-md overflow-hidden transition-all ${i === lightboxIndex ? "ring-2 ring-white scale-105" : "opacity-60 hover:opacity-100"}`}
                 >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

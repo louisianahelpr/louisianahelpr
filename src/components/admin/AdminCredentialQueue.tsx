@@ -106,7 +106,7 @@ const AdminCredentialQueue = () => {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
                   {r.avatar_url ? (
-                    <img src={r.avatar_url} alt={r.full_name || ""} className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={r.avatar_url} alt={r.full_name || ""} className="w-full h-full object-cover" />
                   ) : (
                     (r.full_name || r.email || "?").slice(0, 2).toUpperCase()
                   )}
@@ -304,7 +304,7 @@ function DocPreview({ path }: { path: string }) {
 
   return (
     <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="block">
-      <img
+      <img loading="lazy" decoding="async"
         src={signedUrl}
         alt="Credential document"
         className="w-full max-h-48 object-contain rounded-lg bg-background/60"

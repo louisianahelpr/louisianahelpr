@@ -463,7 +463,7 @@ const Messages = () => {
       const caption = parts.slice(1).join("\n").trim();
       return (
         <div className="space-y-1">
-          <img
+          <img loading="lazy" decoding="async"
             src={url}
             alt="Shared photo"
             className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"

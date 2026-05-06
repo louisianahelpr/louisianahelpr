@@ -415,7 +415,7 @@ const CompleteProfile = () => {
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50">
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-muted-foreground" />
                   )}
@@ -511,7 +511,7 @@ const CompleteProfile = () => {
                 className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"
               >
                 {idPreview ? (
-                  <img src={idPreview} alt="ID preview" className="w-14 h-14 rounded-md object-cover" />
+                  <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-md object-cover" />
                 ) : (
                   <div className="w-14 h-14 rounded-md bg-muted flex items-center justify-center">
                     <FileText className="w-5 h-5 text-muted-foreground" />

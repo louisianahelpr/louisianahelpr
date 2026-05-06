@@ -408,7 +408,7 @@ export function SignupStep3(props: SignupStep3Props) {
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3 min-w-0">
                   {licensePreview ? (
-                    <img src={licensePreview} alt="License preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                    <img loading="lazy" decoding="async" src={licensePreview} alt="License preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
                   ) : (
                     <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
                       <FileText className="w-5 h-5 text-muted-foreground" />
@@ -466,7 +466,7 @@ export function SignupStep3(props: SignupStep3Props) {
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3 min-w-0">
                   {insurancePreview ? (
-                    <img src={insurancePreview} alt="Insurance preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                    <img loading="lazy" decoding="async" src={insurancePreview} alt="Insurance preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
                   ) : (
                     <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
                       <FileText className="w-5 h-5 text-muted-foreground" />
@@ -522,7 +522,7 @@ export function SignupStep3(props: SignupStep3Props) {
             <div key={i} className="relative group">
               {preview.type.startsWith("image/") ? (
                 <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
-                  <img src={preview.url} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={preview.url} alt="" className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-20 h-20 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1">

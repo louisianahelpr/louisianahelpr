@@ -71,13 +71,13 @@ Listed in rough priority order.
   by category, with a drag-to-bid radius slider. 1-tap apply on pin.
   *Multi-day epic. Needs design pass + location permissions wiring.*
 - [ ] **Continue god-component extraction**
-  AdminUsers is at 2,310 lines (was 2,464). Pattern is set with
-  `AutoRestrictedRail` + `DenyUserDialog`. Remaining extractions:
-  `BanDialog`, `EditEmailDialog`, `DeleteUserDialog`,
-  `ManualVerifyDialog`, `ReuploadDialog`, `ResetPasswordDialog`,
-  `WarningDialog`. Each is a ~50-150 line block that should live in
-  its own file. Then do the same for `Profile.tsx` (1,299), `PostJob.tsx`
-  (1,163), `Dashboard.tsx` (1,015).
+  AdminUsers is at 2,164 lines (was 2,464 at start of audit, -300 / -12.2%).
+  Pattern is set with `AutoRestrictedRail` + `DenyUserDialog` +
+  `BanDialog`. Remaining extractions: `EditEmailDialog`,
+  `DeleteUserDialog`, `ManualVerifyDialog`, `ReuploadDialog`,
+  `ResetPasswordDialog`, `WarningDialog`. Each is a ~50-150 line
+  block that should live in its own file. Then do the same for
+  `Profile.tsx` (1,299), `PostJob.tsx` (1,163), `Dashboard.tsx` (1,015).
 - [ ] **Stripe webhook 699-line refactor**
   Highest-risk file in the repo. Split the giant `switch` into
   per-event handlers (one file per event type), keep the central
@@ -88,10 +88,11 @@ Listed in rough priority order.
   its own careful migration (read sites identified, but profile-shape
   expectations differ by call site). Saves DB cost + simplifies cache
   invalidation.
-- [ ] **Test coverage past 43**
-  Currently 6 test files / 43 cases / 2 real bugs found. Next targets:
-  `errorLogger` already covered; add `analytics`, `messageAttachments`,
-  `imageCompression`, `parishLookup`, `applicationAttachments`. Build
+- [ ] **Test coverage past 53**
+  Currently 7 test files / 53 cases / 2 real bugs found
+  (formatPhone country-code, formatName whitespace). Next targets:
+  `analytics`, `messageAttachments`, `imageCompression`,
+  `parishLookup`, `applicationAttachments`, `cppRouting`. Build
   testable pure helpers out of god-component logic during refactors
   — co-locate `.test.ts` next to each.
 - [ ] **End-to-end Playwright with a test-customer fixture**
@@ -104,10 +105,12 @@ Listed in rough priority order.
   removal is a 5-step migration (new enum without value → migrate
   columns → drop old). Zero `'helper'` rows in production right now,
   so safe to do — just heavy.
-- [ ] **Honest hero "active now" count**
-  Today replaced the fake hardcoded "46 active now" with "Live in
-  Louisiana." When you have meaningful active-job traffic, swap to a
-  real count from a public RPC + animate count-up transitions.
+- [ ] **Animated count-up on the hero "active now" pill**
+  Real count is wired (RPC `get_marketplace_activity_count` + lazy
+  fetch in HeroSection); pill shows "N jobs open" or falls back to
+  "Live in Louisiana." Future polish: animate numerical transitions
+  with a small useCounter hook so the count tween-changes when the
+  RPC refetches.
 - [ ] **Salvaged automations from job-lifecycle-automations** that
   weren't shipped today: `auto_restrict_repeat_violators` is live
   (today). Remaining ideas worth building: more nuanced fraud

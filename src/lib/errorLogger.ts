@@ -70,6 +70,18 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   const message = isError ? err.message : String(err);
   const stack = isError ? err.stack : null;
 
+  // Skip Vite HMR websocket noise. The dev server's @vite/client throws
+  // 'send was called before connect' as an unhandled rejection on every
+  // HMR reconnect, and we don't want those in the production error_logs
+  // table (they're useless dev-environment chatter).
+  if (
+    (message.includes("send was called before connect") ||
+      message.includes("WebSocket is already in CLOSING")) &&
+    (stack?.includes("@vite/client") ?? false)
+  ) {
+    return;
+  }
+
   // Best-effort user identification. Supabase JS v2 stores the session
   // in localStorage under `sb-<projectRef>-auth-token` (not `sb-auth-token`,
   // which was the v1 key). Scan all localStorage keys for the v2 pattern

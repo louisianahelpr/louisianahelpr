@@ -17,23 +17,17 @@ interface Broadcast {
   starts_at: string;
   expires_at: string;
   created_at: string;
+  pending_push_fan_out_at: string | null;
+  push_fanned_out_at: string | null;
 }
-
-// Window between broadcast row insert and the irreversible push fan-out.
-// Gives admins a chance to catch typos before every device buzzes.
-const UNDO_COUNTDOWN_SECONDS = 30;
 
 const AdminBroadcasts = () => {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-
-  // Pending broadcast in the undo window. While non-null, the banner is
-  // visible (broadcast_messages row exists) but no push has fired yet.
-  // Cancel deletes the row; timer expiry triggers the RPC fan-out.
-  const [pendingBroadcast, setPendingBroadcast] = useState<
-    { id: string; secondsLeft: number } | null
-  >(null);
+  // Re-rendered every second so the countdown stays live without us
+  // owning the canonical timer. Source of truth is pending_push_fan_out_at.
+  const [, setNowTick] = useState(0);
 
   // Form
   const [title, setTitle] = useState("");
@@ -54,51 +48,45 @@ const AdminBroadcasts = () => {
 
   useEffect(() => { load(); }, []);
 
-  // Drive the undo countdown when there's a pending broadcast.
-  // Decrements once per second; at zero, fires the irreversible push fan-out.
-  useEffect(() => {
-    if (!pendingBroadcast) return;
-    if (pendingBroadcast.secondsLeft <= 0) {
-      const broadcastId = pendingBroadcast.id;
-      setPendingBroadcast(null);
-      void firePushFanOut(broadcastId);
-      return;
-    }
-    const t = setTimeout(() => {
-      setPendingBroadcast((prev) =>
-        prev ? { ...prev, secondsLeft: prev.secondsLeft - 1 } : null
-      );
-    }, 1000);
-    return () => clearTimeout(t);
-  }, [pendingBroadcast]);
+  // Single in-window broadcast: the most recent row whose push hasn't
+  // fanned out yet. Server-side state — survives tab close, refresh,
+  // and network drop. The pg_cron sweeper fires the push at the target
+  // time regardless of whether this tab is open.
+  const pending = broadcasts.find(
+    (b) => b.pending_push_fan_out_at !== null && b.push_fanned_out_at === null,
+  );
 
-  const firePushFanOut = async (broadcastId: string) => {
-    try {
-      const { data: count, error: rpcError } = await supabase.rpc(
-        "fan_out_broadcast_to_notifications",
-        { _broadcast_id: broadcastId },
-      );
-      if (rpcError) throw rpcError;
-      const pushedCount = typeof count === "number" ? count : null;
-      toast.success(
-        pushedCount !== null
-          ? `Pushed to ${pushedCount} device${pushedCount === 1 ? "" : "s"}.`
-          : "Push fan-out finished (count unknown).",
-      );
-    } catch (rpcErr) {
-      const msg = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
-      // Rate-limit error from the RPC has a clear message; surface it directly.
-      toast.error(msg.includes("rate limit") ? msg : "Push fan-out failed (banner is still visible)");
-    }
-    load();
-  };
+  // 1Hz tick to keep the countdown label fresh while a pending row exists.
+  useEffect(() => {
+    if (!pending) return;
+    const t = setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [pending]);
+
+  // Refresh the list every 15s so push_fanned_out_at flips to "Sent"
+  // shortly after the cron sweep runs.
+  useEffect(() => {
+    const t = setInterval(load, 15000);
+    return () => clearInterval(t);
+  }, []);
+
+  const secondsLeft = pending
+    ? Math.max(0, Math.ceil((new Date(pending.pending_push_fan_out_at!).getTime() - Date.now()) / 1000))
+    : 0;
 
   const cancelPending = async () => {
-    if (!pendingBroadcast) return;
-    const id = pendingBroadcast.id;
-    setPendingBroadcast(null);
-    await supabase.from("broadcast_messages").delete().eq("id", id);
-    toast.success("Broadcast cancelled — no push went out.");
+    if (!pending) return;
+    // Clear the pending stamp so the sweeper skips it; expire the banner
+    // so it disappears from users' surfaces immediately.
+    const { error } = await supabase
+      .from("broadcast_messages")
+      .update({ pending_push_fan_out_at: null, expires_at: new Date().toISOString() })
+      .eq("id", pending.id);
+    if (error) {
+      toast.error(`Couldn't cancel: ${error.message}`);
+      return;
+    }
+    toast.success("Broadcast cancelled — no push will go out.");
     load();
   };
 
@@ -107,7 +95,7 @@ const AdminBroadcasts = () => {
       toast.error("Title and message are required");
       return;
     }
-    if (pendingBroadcast) {
+    if (pending) {
       toast.error("A broadcast is in the undo window. Wait or cancel it first.");
       return;
     }
@@ -120,7 +108,7 @@ const AdminBroadcasts = () => {
 
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60 * 60 * 1000).toISOString();
 
-    const { data: insertResult, error } = await supabase
+    const { error } = await supabase
       .from("broadcast_messages")
       .insert({
         title: title.trim(),
@@ -128,20 +116,17 @@ const AdminBroadcasts = () => {
         type,
         created_by: user.id,
         expires_at: expiresAt,
-      })
-      .select("id")
-      .single();
+      });
 
     setCreating(false);
     if (error) {
+      // Rate-limit error from the BEFORE INSERT trigger has a clear
+      // human message; surface it directly.
       toast.error(error.message);
       return;
     }
 
-    // Banner is now visible to every user. Push fan-out is held for
-    // UNDO_COUNTDOWN_SECONDS so admins can cancel typos.
-    setPendingBroadcast({ id: insertResult.id, secondsLeft: UNDO_COUNTDOWN_SECONDS });
-    toast.info(`Broadcast posted. Push fires in ${UNDO_COUNTDOWN_SECONDS}s — cancel from the banner if there's a typo.`);
+    toast.info("Broadcast posted. Push fires in ~30s — cancel from the banner if there's a typo.");
     setTitle("");
     setMessage("");
     setType("info");
@@ -170,16 +155,17 @@ const AdminBroadcasts = () => {
 
   return (
     <div className="space-y-4">
-      {/* Undo countdown banner — visible only while a broadcast is in
-          its grace window before the push fans out to every device. */}
-      {pendingBroadcast && (
+      {/* Undo countdown banner — server-driven. Visible whenever
+          pending_push_fan_out_at is set and push_fanned_out_at is not.
+          Survives tab close: pg_cron runs the fan-out regardless. */}
+      {pending && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-              Push fires in {pendingBroadcast.secondsLeft}s
+              Push fires in ~{secondsLeft}s
             </p>
             <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
-              Banner is already visible to users. Cancel within {pendingBroadcast.secondsLeft}s
+              Banner is already visible to users. Cancel within the window
               to retract the broadcast and skip the push.
             </p>
           </div>
@@ -216,10 +202,10 @@ const AdminBroadcasts = () => {
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="info">ℹ️ Info</SelectItem>
-                  <SelectItem value="warning">⚠️ Warning</SelectItem>
-                  <SelectItem value="urgent">🚨 Urgent</SelectItem>
-                  <SelectItem value="promo">📣 Promo</SelectItem>
+                  <SelectItem value="info">Info</SelectItem>
+                  <SelectItem value="warning">Warning</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="promo">Promo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -262,6 +248,11 @@ const AdminBroadcasts = () => {
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${typeBadge[b.type] || typeBadge.info}`}>
                     {b.type}
                   </span>
+                  {b.pending_push_fan_out_at && !b.push_fanned_out_at ? (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/60 text-amber-700">Pending push</Badge>
+                  ) : b.push_fanned_out_at ? (
+                    <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Sent</Badge>
+                  ) : null}
                   {isActive(b) ? (
                     <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Active</Badge>
                   ) : new Date(b.expires_at) <= new Date() ? (

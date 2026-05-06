@@ -33,9 +33,9 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.0.1",
     "@capacitor/share": "^8.0.1",
-    "@capgo/capacitor-social-login": "^8.3.20",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@capgo/capacitor-social-login": "^8.3.20",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.2",
@@ -82,6 +82,7 @@
     "vite-plugin-pwa": "1.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.6.0",

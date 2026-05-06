@@ -92,6 +92,9 @@ const HeroSection = () => {
     navigate(session?.user ? "/post-job" : "/signup");
   };
 
+  // Anonymous visitors get the public job feed (/browse) so they can taste
+  // the marketplace before signing up. Logged-in users go to their
+  // dashboard, where the same feed lives but with personalized rails.
   const goToJoinCommunity = async () => {
     if (loggedIn) {
       navigate("/dashboard");
@@ -101,7 +104,7 @@ const HeroSection = () => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    navigate(session?.user ? "/dashboard" : "/signup");
+    navigate(session?.user ? "/dashboard" : "/browse");
   };
 
   return (

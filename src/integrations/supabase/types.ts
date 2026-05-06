@@ -211,6 +211,8 @@ export type Database = {
           expires_at: string
           id: string
           message: string
+          pending_push_fan_out_at: string | null
+          push_fanned_out_at: string | null
           starts_at: string
           title: string
           type: string
@@ -221,6 +223,8 @@ export type Database = {
           expires_at: string
           id?: string
           message: string
+          pending_push_fan_out_at?: string | null
+          push_fanned_out_at?: string | null
           starts_at?: string
           title: string
           type?: string
@@ -231,6 +235,8 @@ export type Database = {
           expires_at?: string
           id?: string
           message?: string
+          pending_push_fan_out_at?: string | null
+          push_fanned_out_at?: string | null
           starts_at?: string
           title?: string
           type?: string
@@ -3328,6 +3334,8 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_service_role_key: { Args: never; Returns: string }
+      get_supabase_url: { Args: never; Returns: string }
       get_top_helpers_by_parish: {
         Args: { p_limit?: number; p_parish?: string }
         Returns: {
@@ -3422,6 +3430,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      sweep_pending_broadcast_fan_outs: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "customer" | "helper"

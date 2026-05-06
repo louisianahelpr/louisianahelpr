@@ -759,15 +759,27 @@ const PostJob = () => {
                     <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
                   </div>
 
-                  {/* Recurring Job */}
-                  <div className="rounded-xl border border-border p-4 space-y-3">
+                  {/* Recurring Job — mutually exclusive with Group job. Recurring
+                      bills weekly/monthly to one helper; group splits a single
+                      job across many. The two semantics don't compose. */}
+                  <div className={`rounded-xl border p-4 space-y-3 ${isGroupJob ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Repeat className="w-4 h-4 text-primary" />
-                        <Label htmlFor="recurring" className="cursor-pointer">Recurring task</Label>
+                        <Label htmlFor="recurring" className={isGroupJob ? "cursor-not-allowed" : "cursor-pointer"}>Recurring task</Label>
                       </div>
-                      <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                      <Switch
+                        id="recurring"
+                        checked={isRecurring}
+                        disabled={isGroupJob}
+                        onCheckedChange={setIsRecurring}
+                      />
                     </div>
+                    {isGroupJob && (
+                      <p className="text-xs text-muted-foreground">
+                        Turn off Group job to make this recurring instead.
+                      </p>
+                    )}
                     {isRecurring && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                         <div className="space-y-2.5">
@@ -790,15 +802,25 @@ const PostJob = () => {
                     )}
                   </div>
 
-                  {/* Group Job */}
-                  <div className="rounded-xl border border-border p-4 space-y-3">
+                  {/* Group Job — mutually exclusive with Recurring (see above). */}
+                  <div className={`rounded-xl border p-4 space-y-3 ${isRecurring ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-primary" />
-                        <Label htmlFor="group" className="cursor-pointer">Group job (multiple helprs)</Label>
+                        <Label htmlFor="group" className={isRecurring ? "cursor-not-allowed" : "cursor-pointer"}>Group job (multiple helprs)</Label>
                       </div>
-                      <Switch id="group" checked={isGroupJob} onCheckedChange={setIsGroupJob} />
+                      <Switch
+                        id="group"
+                        checked={isGroupJob}
+                        disabled={isRecurring}
+                        onCheckedChange={setIsGroupJob}
+                      />
                     </div>
+                    {isRecurring && (
+                      <p className="text-xs text-muted-foreground">
+                        Turn off Recurring task to split this across multiple helprs instead.
+                      </p>
+                    )}
                     {isGroupJob && (
                       <div className="space-y-2 pt-1">
                         <Label>How many helprs needed?</Label>

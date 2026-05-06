@@ -14,6 +14,7 @@ type HealthData = {
   emailStats: { total: number; sent: number; failed: number; suppressed: number };
   pushStats: { total: number; ios: number; android: number; latestAt: string | null };
   fraudCount: number;
+  adminPushTokenCount: number;
   recentJobs: { open: number; completed: number; disputed: number; cancelled: number };
   healthStatus: "ok" | "degraded" | "unknown";
   parishStats: ParishStat[];
@@ -108,6 +109,25 @@ const AdminHealth = () => {
         android: pushAndroidRes.count || 0,
         latestAt: (pushLatestRes.data?.[0]?.updated_at as string | undefined) ?? null,
       };
+
+      // Death-blow check: admin notifications fan to push, but if no
+      // admin has installed Build #17+ and signed in, every safety
+      // alert (auto-restrict, fraud flags, dispute escalations,
+      // stuck-payment) fans into the void. Surface this prominently
+      // so it can't be missed during launch.
+      const { data: adminUserIds } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const adminIds = (adminUserIds ?? []).map((r) => r.user_id);
+      let adminPushTokenCount = 0;
+      if (adminIds.length > 0) {
+        const { count } = await supabase
+          .from("push_tokens")
+          .select("id", { count: "exact", head: true })
+          .in("user_id", adminIds);
+        adminPushTokenCount = count || 0;
+      }
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const [openRes, compRes, dispRes, cancelRes] = await Promise.all([
@@ -211,11 +231,11 @@ const AdminHealth = () => {
         }
       }
 
-      return { emailStats, pushStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps };
+      return { emailStats, pushStats, fraudCount, adminPushTokenCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps };
     },
   });
 
-  const { emailStats, pushStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
+  const { emailStats, pushStats, fraudCount, adminPushTokenCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
 
   const formatDelay = (mins: number | null): string => {
     if (mins === null) return "—";
@@ -232,6 +252,32 @@ const AdminHealth = () => {
 
   return (
     <div className="space-y-6">
+      {/* Death-blow banner — every admin alert this codebase fans
+          (auto-restrict, fraud, disputes, stuck-payments) routes via
+          push_tokens. With zero admin tokens registered, it all goes
+          to in-app only and gets missed in real time. Surfacing as a
+          loud red banner so it can't be ignored during launch. */}
+      {adminPushTokenCount === 0 && (
+        <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-4">
+          <div className="flex items-start gap-3">
+            <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-bold text-foreground">
+                ⚠️ No admin has registered a push token
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Every admin notification (fraud flags, auto-restrict reverses,
+                dispute escalations, stuck-payment alerts) fans through{" "}
+                <code className="text-[10px] bg-muted px-1 rounded">push_tokens</code>.
+                With zero admin tokens, those alerts only show up if you happen
+                to refresh this dashboard. Install the latest iOS build, sign in,
+                and confirm a token lands here.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
           <Activity className="w-5 h-5 text-primary" /> System Health

@@ -258,28 +258,64 @@ const Messages = () => {
     setLoadingMore(false);
   };
 
-  // Realtime subscription
+  // Realtime subscription. Two channels — one for messages I receive
+  // (any thread, drives the conversation-list refresh), one for messages
+  // I send (so the active thread sees my echo immediately). Server-side
+  // filter so we don't receive every INSERT in public.messages — at
+  // scale that broadcast firehose would dwarf actual relevant traffic.
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
-      .channel("messages-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-        const msg = payload.new as Message;
-        if (msg.sender_id === userId || msg.receiver_id === userId) {
+      .channel(`messages-realtime-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${userId}`,
+        },
+        (payload) => {
+          const msg = payload.new as Message;
           if (activeConvo && msg.job_id === activeConvo.jobId) {
             setMessages((prev) => [...prev, msg]);
-            if (msg.receiver_id === userId) {
-              supabase.from("messages").update({ read: true }).eq("id", msg.id);
-            }
+            supabase.from("messages").update({ read: true }).eq("id", msg.id);
             setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
           }
           loadConversations(userId);
-        }
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
-        const updated = payload.new as Message;
-        setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
-      })
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `sender_id=eq.${userId}`,
+        },
+        (payload) => {
+          const msg = payload.new as Message;
+          // Only echo into the active thread — sender's own conversation
+          // list refresh happens in the optimistic sendMessage flow.
+          if (activeConvo && msg.job_id === activeConvo.jobId) {
+            setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `sender_id=eq.${userId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+        },
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

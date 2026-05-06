@@ -133,7 +133,9 @@ const NotificationPreferences = () => {
       {rows.map((item) => (
         <div
           key={item.key}
-          className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 last:border-b-0 shrink-0"
+          className={`flex items-center justify-between px-4 py-2.5 border-b border-border/40 last:border-b-0 shrink-0 transition-opacity ${
+            prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-60"
+          }`}
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="text-primary shrink-0">{item.icon}</span>
@@ -141,10 +143,10 @@ const NotificationPreferences = () => {
           </div>
           <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
             <Switch
-              checked={prefs[item.key]}
+              checked={prefs[item.key] && prefs.push_enabled}
               onCheckedChange={() => toggle(item.key)}
-              disabled={!loaded}
-              aria-label={`${item.label} in-app`}
+              disabled={!loaded || !prefs.push_enabled}
+              aria-label={`${item.label} push`}
             />
             <Switch
               checked={prefs[item.emailKey]}
@@ -159,13 +161,13 @@ const NotificationPreferences = () => {
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-t border-border shrink-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Bell className="w-4 h-4 text-primary shrink-0" />
-          <Label className="text-sm font-medium text-foreground truncate">Browser Push</Label>
+          <Label className="text-sm font-medium text-foreground truncate">Push Notifications</Label>
         </div>
         <Switch
           checked={prefs.push_enabled}
           onCheckedChange={() => toggle("push_enabled")}
           disabled={!loaded}
-          aria-label="Push notifications"
+          aria-label="Push notifications master toggle"
           className={`mr-[3.75rem] transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       </div>

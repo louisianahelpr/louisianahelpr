@@ -14,9 +14,8 @@ to bottom unless looking up history.
 These need your accounts, your DNS, your judgement on copy or product.
 None can be done from code alone.
 
-- [ ] **Sentry alert rules** — paste the 5 alert specs from
-  `docs/SENTRY_ALERT_RULES.md` into helpr-4m.sentry.io. Code is wired;
-  the rules are dashboard configuration.
+- ~~**Sentry alert rules**~~ — moved to Cowork's lane (B) 2026-05-06
+  since Cowork now has access to helpr-4m.sentry.io.
 - [ ] **Stripe DNS records** for branded receipt emails (low-pri until
   you're ready for branded receipts — Stripe sends generic ones until
   then).
@@ -52,6 +51,9 @@ Native-iOS or deploy-pipeline work that lives on their machine.
   Web flow works. Native plugin (`@capgo/capacitor-social-login`) needs
   the Service ID + Key ID stored as native config (see
   `reference_oauth_client_ids.md` in memory for IDs).
+- [ ] **Sentry alert rules** — paste the 5 alert specs from
+  `docs/SENTRY_ALERT_RULES.md` into helpr-4m.sentry.io. Cowork has
+  Sentry access (confirmed 2026-05-06).
 - [ ] **iOS Alternate App Icon** for 36px notification thumbnails
   (low-pri) — current wrought-iron H smudges at 36px. Drop a flatter
   "H + fleur-de-lis silhouette" PNG and wire iOS 18 Alternate App Icons

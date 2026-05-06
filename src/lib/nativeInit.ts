@@ -2,6 +2,7 @@
 // Sets the iOS/Android status bar to match the app theme and hides the
 // branded splash screen after the first paint so it doesn't linger.
 //
+import { initSocialLogin } from "./socialLogin";
 // Safe on web: every call is wrapped in a try/catch and no-ops if the
 // plugin isn't available (i.e. you're in a browser).
 
@@ -17,6 +18,7 @@ export async function initNative() {
 
   await clearNativeWebCaches();
 
+  await initSocialLogin();
   try {
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setOverlaysWebView({ overlay: true });

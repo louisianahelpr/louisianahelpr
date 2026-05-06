@@ -29,6 +29,8 @@ import { DeleteUserDialog } from "./DeleteUserDialog";
 import { EditEmailDialog } from "./EditEmailDialog";
 import { ManualVerifyDialog } from "./ManualVerifyDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
+import { ReuploadIdDialog } from "./ReuploadIdDialog";
+import { FormalWarningDialog } from "./FormalWarningDialog";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -74,19 +76,14 @@ const AdminUsers = () => {
   // Delete dialog — moved into DeleteUserDialog component.
   const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
 
-  // Re-upload ID dialog
+  // Per-action dialog targets — each dialog owns its own form state +
+  // edge-fn invocation + saving flag internally now (ReuploadIdDialog,
+  // FormalWarningDialog, ManualVerifyDialog, ResetPasswordDialog). The
+  // parent only tracks "which profile is the dialog targeting."
   const [reuploadProfile, setReuploadProfile] = useState<Profile | null>(null);
-  const [reuploadNote, setReuploadNote] = useState("");
-  // Formal warning dialog
   const [warningProfile, setWarningProfile] = useState<Profile | null>(null);
-  const [warningNote, setWarningNote] = useState("");
-  const [warningCategory, setWarningCategory] = useState<string>("conduct");
-  const [warningBypass, setWarningBypass] = useState(false);
-  // Manual verify confirm
   const [manualVerifyProfile, setManualVerifyProfile] = useState<Profile | null>(null);
-  // Reset password confirm
   const [resetPwProfile, setResetPwProfile] = useState<Profile | null>(null);
-  const [actionBusy, setActionBusy] = useState(false);
 
   // Per-user admin notes summary: { [user_id]: { count, recent: [{note, created_at, category}] } }
   const [notesSummary, setNotesSummary] = useState<Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }>>({});
@@ -556,42 +553,11 @@ const AdminUsers = () => {
   // handleUpdateEmail logic moved into EditEmailDialog. Parent only opens
   // via setEditEmailProfile + refetches via the dialog's onSuccess prop.
 
-  const callAdminAction = async (
-    action: "manual_verify" | "request_id_reupload" | "reset_password" | "formal_warning",
-    profile: Profile,
-    note?: string,
-    extras?: { reasonCategory?: string; bypassStrike?: boolean },
-  ) => {
-    setActionBusy(true);
-    try {
-      const { error } = await supabase.functions.invoke("admin-user-actions", {
-        body: {
-          action,
-          userId: profile.user_id,
-          note: note || "",
-          reasonCategory: extras?.reasonCategory || "",
-          bypassStrike: extras?.bypassStrike === true,
-        },
-      });
-      if (error) throw error;
-      const labels: Record<string, string> = {
-        manual_verify: "User manually verified.",
-        request_id_reupload: "ID re-upload request sent.",
-        reset_password: "Password reset email sent.",
-        formal_warning: "Formal warning issued.",
-      };
-      toast.success(labels[action]);
-      loadProfiles();
-      setReuploadProfile(null); setReuploadNote("");
-      setWarningProfile(null); setWarningNote(""); setWarningCategory("conduct"); setWarningBypass(false);
-      setManualVerifyProfile(null);
-      setResetPwProfile(null);
-    } catch (err: any) {
-      toast.error(err?.message || "Action failed");
-    } finally {
-      setActionBusy(false);
-    }
-  };
+  // callAdminAction was the shared coordinator across the 4 admin-action
+  // dialogs (manual_verify, request_id_reupload, reset_password,
+  // formal_warning). Each of those dialogs now lives in its own file
+  // and calls admin-user-actions itself, so this helper is no longer
+  // needed in the parent.
 
   const viewHistoryFor = (profile: Profile) => {
     // Notify the Admin page to switch to notification logs filtered for this user
@@ -1854,7 +1820,7 @@ const AdminUsers = () => {
                       <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
                         <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
                       </Button>
-                      <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => { setWarningProfile(viewProfile); setWarningNote(""); }}>
+                      <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setWarningProfile(viewProfile)}>
                         <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
                       </Button>
                       <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
@@ -1923,31 +1889,12 @@ const AdminUsers = () => {
         onSuccess={() => { loadProfiles(); setViewProfile(null); }}
       />
 
-      {/* Request ID Re-upload */}
-      <Dialog open={!!reuploadProfile} onOpenChange={() => !actionBusy && setReuploadProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Camera className="w-5 h-5 text-accent" /> Request ID Re-upload
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Send {formatName(reuploadProfile?.full_name)} a friendly email asking for a clearer ID photo. Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
-            </p>
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
-              <Textarea value={reuploadNote} onChange={(e) => setReuploadNote(e.target.value)} placeholder="e.g. Photo was too blurry — please retake in good lighting." rows={3} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setReuploadProfile(null)} disabled={actionBusy}>Cancel</Button>
-            <Button onClick={() => reuploadProfile && callAdminAction("request_id_reupload", reuploadProfile, reuploadNote)} disabled={actionBusy}>
-              {actionBusy ? "Sending…" : "Send Re-upload Request"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ID Re-upload — extracted into ReuploadIdDialog. */}
+      <ReuploadIdDialog
+        profile={reuploadProfile}
+        onClose={() => setReuploadProfile(null)}
+        onSuccess={() => { loadProfiles(); setViewProfile(null); }}
+      />
 
       {/* Reset Password — extracted into ResetPasswordDialog. */}
       <ResetPasswordDialog
@@ -1956,66 +1903,12 @@ const AdminUsers = () => {
         onSuccess={() => { loadProfiles(); setViewProfile(null); }}
       />
 
-      {/* Formal Warning */}
-      <Dialog open={!!warningProfile} onOpenChange={() => !actionBusy && setWarningProfile(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
-          <DialogHeader className="pr-8 space-y-1">
-            <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
-              <MessageSquareWarning className="w-5 h-5 text-accent shrink-0" />
-              <span className="truncate">Issue Manual Strike</span>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension. This logs a strike, emails {formatName(warningProfile?.full_name)}, and adds it to their violation history.
-            </p>
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
-              <Select value={warningCategory} onValueChange={setWarningCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="conduct">Conduct (rude / disrespectful)</SelectItem>
-                  <SelectItem value="no_show">No-show / late cancellation</SelectItem>
-                  <SelectItem value="payment_policy">Payment policy (off-platform)</SelectItem>
-                  <SelectItem value="inappropriate_content">Inappropriate content</SelectItem>
-                  <SelectItem value="quality">Poor work quality</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
-              <Textarea
-                value={warningNote}
-                onChange={(e) => setWarningNote(e.target.value)}
-                placeholder="e.g. Customer complaint: helper left gate open. Verified via phone call."
-                rows={3}
-              />
-            </div>
-            <label className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
-              <Checkbox
-                checked={warningBypass}
-                onCheckedChange={(v) => setWarningBypass(v === true)}
-                className="mt-0.5 shrink-0"
-              />
-              <div className="space-y-1 min-w-0">
-                <p className="text-xs font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.</p>
-              </div>
-            </label>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
-            <Button variant="ghost" onClick={() => setWarningProfile(null)} disabled={actionBusy} className="w-full sm:w-auto">Cancel</Button>
-            <Button
-              onClick={() => warningProfile && callAdminAction("formal_warning", warningProfile, warningNote, { reasonCategory: warningCategory, bypassStrike: warningBypass })}
-              disabled={actionBusy || !warningNote.trim()}
-              className="w-full sm:w-auto"
-            >
-              {actionBusy ? "Issuing…" : warningBypass ? "Issue (no escalation)" : "Issue Strike"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Formal Warning — extracted into FormalWarningDialog. */}
+      <FormalWarningDialog
+        profile={warningProfile}
+        onClose={() => setWarningProfile(null)}
+        onSuccess={() => { loadProfiles(); setViewProfile(null); }}
+      />
     </div>
   );
 };

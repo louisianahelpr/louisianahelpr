@@ -18,20 +18,18 @@ export async function initNative() {
 
   await clearNativeWebCaches();
 
-  await initSocialLogin();
+  // Initialize @capgo/capacitor-social-login so the Apple/Google sign-in
+  // buttons can call SocialLogin.login() via the native plugin path.
+  // Idempotent (the helper guards against re-init). Best-effort —
+  // sign-in buttons fall back to the web flow if init fails.
+  try {
+    await initSocialLogin();
+  } catch { /* ignore */ }
+
   try {
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setOverlaysWebView({ overlay: true });
   } catch { }
-
-  // Initialize @capgo/capacitor-social-login so the Apple/Google sign-in
-  // buttons can call SocialLogin.login() via native plugin paths.
-  // No-op on web. Idempotent. Best-effort — don't fail app boot if the
-  // social login plugin can't initialize for any reason.
-  try {
-    const { initSocialLogin } = await import("./socialLogin");
-    await initSocialLogin();
-  } catch { /* ignore — sign-in buttons fall back to web flow on failure */ }
 
   // Hide splash after React mounts.
   await hideSplash();

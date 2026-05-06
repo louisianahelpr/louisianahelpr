@@ -162,6 +162,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/team" element={<ProtectedRoute><BusinessTeam /></ProtectedRoute>} />
       
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
+      {/* Legacy paths surfaced by 404s in error_logs (external links, old
+          bookmarks, search-engine indexes) — redirect to their modern
+          equivalents instead of dumping users on the NotFound page. */}
+      <Route path="/dashboard/post-login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/settings/profile" element={<Navigate to="/profile" replace />} />
+      <Route path="/settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

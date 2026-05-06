@@ -51,21 +51,32 @@ Deno.serve(async (req) => {
       throw new Error("Not authorized to trigger match for this job");
     }
 
-    // Auto-Match Jobs: Only notify Elite subscribers
+    // Match-eligible users: anyone approved + not banned. After today's
+    // unified-user model shift, role-based filtering ('helper' / 'customer')
+    // is dead — every signup gets role='customer' now, so the previous
+    // .eq('role', 'helper') filter would have returned ZERO users for any
+    // job posted after the migration. Same for the Elite-only filter at
+    // current scale (likely 0 Elite subscribers).
+    //
+    // New filter: approved, non-banned, not the poster. Tier-priority
+    // (Elite gets matched first / more aggressively) can come back as a
+    // sort dimension once the user base actually splits across tiers.
     const { data: helpers, error: helpersError } = await supabase
       .from("profiles")
-      .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at")
-      .eq("role", "helper")
+      .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at, ban_status")
       .eq("approval_status", "approved")
-      .eq("subscription_tier", "elite")
       .neq("user_id", job.customer_id);
 
     if (helpersError) throw helpersError;
-    // Filter out expired Elite subscriptions
+
     const now = new Date().toISOString();
-    const activeHelpers = (helpers || []).filter(h => {
-      if (!h.subscription_expires_at) return true; // no expiry = lifetime or not set
-      return h.subscription_expires_at > now;
+    const activeHelpers = (helpers || []).filter((h) => {
+      // Skip banned users (any non-active status).
+      if (h.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(h.ban_status)) return false;
+      // Drop expired-tier filter — at current scale we notify everyone
+      // who scores above zero, regardless of tier. Re-add as a sort
+      // boost once tiers are populated.
+      return true;
     });
     if (activeHelpers.length === 0) {
       return new Response(JSON.stringify({ notified: 0 }), {
@@ -98,24 +109,36 @@ Deno.serve(async (req) => {
         return { ...h, score };
       })
       .filter((h) => h.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10); // Top 10 matches
+      .sort((a, b) => {
+        // Tie-break score by tier: Elite > Pro > Basic > none.
+        if (b.score !== a.score) return b.score - a.score;
+        const tierRank: Record<string, number> = { elite: 3, pro: 2, basic: 1 };
+        return (tierRank[b.subscription_tier ?? ""] ?? 0) - (tierRank[a.subscription_tier ?? ""] ?? 0);
+      })
+      .slice(0, 20); // Top 20 matches
 
-    let notified = 0;
+    if (scored.length === 0) {
+      return new Response(JSON.stringify({ notified: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    for (const helper of scored) {
-      await supabase.from("notifications").insert({
-        user_id: helper.user_id,
+    // Bulk INSERT instead of awaiting per row. The trigger fan_out_push_on_notification
+    // fires per-row and pushes to mobile, so this is also kinder to the cron.
+    const { error: notifyErr } = await supabase.from("notifications").insert(
+      scored.map((h) => ({
+        user_id: h.user_id,
         title: "🔥 New job match!",
         message: `"${job.title}" ($${job.budget}) in ${job.location} — Quick Apply now!`,
         type: "job_match",
         link: `/dashboard?quickApply=${job.id}`,
-      });
-      notified++;
-    }
+        read: false,
+      })),
+    );
+    if (notifyErr) throw notifyErr;
 
     return new Response(
-      JSON.stringify({ notified, matchedHelpers: scored.map((h) => h.user_id) }),
+      JSON.stringify({ notified: scored.length, matchedHelpers: scored.map((h) => h.user_id) }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

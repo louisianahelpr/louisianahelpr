@@ -54,7 +54,25 @@ interface PushToken {
 // APNs (iOS)
 // ─────────────────────────────────────────────────────────────────────
 
+// Concurrency cap when sending to many devices on the same platform.
+// APNs HTTP/2 supports per-connection multiplexing — 8 in flight balances
+// throughput against rate-limit burst protection.
+const SEND_CONCURRENCY = 8
+
+// Apple accepts a given JWT for ~60 minutes before requiring a refresh.
+// Cache the signed token in module scope and re-sign 5 minutes before
+// expiry so any in-flight call finishes with the live token.
+const APNS_JWT_TTL_MS = 55 * 60 * 1000
+let apnsJwtCache: { jwt: string; expiresAt: number; keyHash: string } | null = null
+
 async function buildApnsJwt(keyId: string, teamId: string, p8Pem: string): Promise<string> {
+  // Cache key includes a fingerprint of the inputs so a config change
+  // (key rotation, team ID swap) invalidates the cache automatically.
+  const keyHash = `${keyId}:${teamId}:${p8Pem.length}`
+  if (apnsJwtCache && apnsJwtCache.keyHash === keyHash && apnsJwtCache.expiresAt > Date.now()) {
+    return apnsJwtCache.jwt
+  }
+
   const now = Math.floor(Date.now() / 1000)
   const header = { alg: 'ES256', kid: keyId, typ: 'JWT' }
   const claims = { iss: teamId, iat: now }
@@ -71,7 +89,10 @@ async function buildApnsJwt(keyId: string, teamId: string, p8Pem: string): Promi
     encoder.encode(signingInput),
   )
   const sigB64 = base64UrlEncode(new Uint8Array(signature))
-  return `${signingInput}.${sigB64}`
+  const jwt = `${signingInput}.${sigB64}`
+
+  apnsJwtCache = { jwt, expiresAt: Date.now() + APNS_JWT_TTL_MS, keyHash }
+  return jwt
 }
 
 async function importP8PrivateKey(p8Pem: string): Promise<CryptoKey> {
@@ -148,6 +169,12 @@ interface FcmServiceAccount {
   token_uri?: string
 }
 
+// FCM v1 OAuth2 access tokens last 1 hour; cache for 55 minutes so any
+// in-flight call finishes with the live token. Keyed by service account
+// email so a key swap invalidates the cache automatically.
+const FCM_TOKEN_TTL_MS = 55 * 60 * 1000
+let fcmTokenCache: { accessToken: string; expiresAt: number; saEmail: string } | null = null
+
 async function importFcmPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
   // Service account keys are RS256-signed RSA-2048 in PKCS8 PEM format.
   const b64 = privateKeyPem
@@ -165,6 +192,10 @@ async function importFcmPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
 }
 
 async function buildFcmAccessToken(sa: FcmServiceAccount): Promise<string> {
+  if (fcmTokenCache && fcmTokenCache.saEmail === sa.client_email && fcmTokenCache.expiresAt > Date.now()) {
+    return fcmTokenCache.accessToken
+  }
+
   const now = Math.floor(Date.now() / 1000)
   const header = { alg: 'RS256', typ: 'JWT' }
   const claims = {
@@ -199,6 +230,12 @@ async function buildFcmAccessToken(sa: FcmServiceAccount): Promise<string> {
   if (!res.ok) throw new Error(`FCM token exchange failed: ${res.status} ${await res.text()}`)
   const json = (await res.json()) as { access_token?: string }
   if (!json.access_token) throw new Error('FCM token exchange returned no access_token')
+
+  fcmTokenCache = {
+    accessToken: json.access_token,
+    expiresAt: Date.now() + FCM_TOKEN_TTL_MS,
+    saEmail: sa.client_email,
+  }
   return json.access_token
 }
 
@@ -255,6 +292,26 @@ async function sendFcmOne(
   const isInvalidToken =
     res.status === 404 || reason === 'NOT_FOUND' || reason === 'UNREGISTERED'
   return { ok: false, status: res.status, reason, isInvalidToken }
+}
+
+// Run an async mapper over an array with a fixed concurrency cap. Used
+// to fan out APNs/FCM sends without flooding the rate limiter or running
+// fully sequential (which is what the original code did).
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let cursor = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++
+      results[i] = await fn(items[i])
+    }
+  })
+  await Promise.all(workers)
+  return results
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -353,18 +410,16 @@ Deno.serve(async (req) => {
             : 'api.push.apple.com'
         const bundleId = Deno.env.get('APNS_BUNDLE_ID')!
 
-        let iosSent = 0
-        let iosFailed = 0
-        for (const t of iosTokens) {
+        const iosResults = await mapWithConcurrency(iosTokens, SEND_CONCURRENCY, async (t) => {
           const r = await sendApnsOne(apnsHost, jwt, bundleId, t.token, payload)
-          if (r.ok) {
-            iosSent++
-          } else {
-            iosFailed++
+          if (!r.ok) {
             console.warn('APNs send failed', { token_id: t.id, status: r.status, reason: r.reason })
             if (r.isInvalidToken) deadTokenIds.push(t.id)
           }
-        }
+          return r.ok
+        })
+        const iosSent = iosResults.filter(Boolean).length
+        const iosFailed = iosResults.length - iosSent
         sent += iosSent
         failed += iosFailed
         result.ios = { sent: iosSent, failed: iosFailed, tokens: iosTokens.length }
@@ -386,18 +441,16 @@ Deno.serve(async (req) => {
         const accessToken = await buildFcmAccessToken(sa)
         const projectId = Deno.env.get('FCM_PROJECT_ID')!
 
-        let aSent = 0
-        let aFailed = 0
-        for (const t of androidTokens) {
+        const aResults = await mapWithConcurrency(androidTokens, SEND_CONCURRENCY, async (t) => {
           const r = await sendFcmOne(projectId, accessToken, t.token, payload)
-          if (r.ok) {
-            aSent++
-          } else {
-            aFailed++
+          if (!r.ok) {
             console.warn('FCM send failed', { token_id: t.id, status: r.status, reason: r.reason })
             if (r.isInvalidToken) deadTokenIds.push(t.id)
           }
-        }
+          return r.ok
+        })
+        const aSent = aResults.filter(Boolean).length
+        const aFailed = aResults.length - aSent
         sent += aSent
         failed += aFailed
         result.android = { sent: aSent, failed: aFailed, tokens: androidTokens.length }

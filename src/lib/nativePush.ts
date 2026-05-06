@@ -31,15 +31,24 @@ let listenersAttached = false;
 let pendingToken: { token: string; platform: "ios" | "android" } | null = null;
 let authListenerAttached = false;
 
+// App version is exposed on `window.HELPR_BUILD` from main.tsx (set at
+// bundle time). This avoids the previous hardcoded "1.0.4" which would
+// silently lie after every iOS rebuild. Falls back to "unknown" if the
+// global is missing (e.g. in SSR or pre-hydration test contexts).
+function currentAppVersion(): string {
+  if (typeof window === "undefined") return "unknown";
+  return (window as { HELPR_BUILD?: string }).HELPR_BUILD ?? "unknown";
+}
+
 async function persistPushToken(userId: string, token: string, platform: "ios" | "android") {
   try {
-    const { error } = await supabase.from("push_tokens" as any).upsert(
+    const { error } = await supabase.from("push_tokens" as never).upsert(
       {
         user_id: userId,
         token,
         platform,
         device_id: platform + "-" + token.slice(0, 8),
-        app_version: "1.0.4",
+        app_version: currentAppVersion(),
       },
       { onConflict: "user_id,token" },
     );
@@ -96,7 +105,13 @@ export function useNativePushSetup() {
 
         // Token registration succeeded.
         await PushNotifications.addListener("registration", async (token) => {
-          const platform = ((window as any).Capacitor?.getPlatform?.() ?? "ios") as "ios" | "android";
+          // Defensive narrow: getPlatform can technically return 'web',
+          // but registration fires only on native — anything other than
+          // 'android' falls back to 'ios' (the dominant platform) so we
+          // never write platform='web' into push_tokens (which has no
+          // sender backend wired).
+          const raw = (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
+          const platform: "ios" | "android" = raw === "android" ? "android" : "ios";
           await savePushToken(token.value, platform);
         });
 
@@ -210,6 +225,6 @@ export function useRequestPushPermission() {
 /** Remove all device tokens for the current user. Call on sign-out. */
 export async function unregisterPushOnSignOut(userId: string) {
   try {
-    await supabase.from("push_tokens" as any).delete().eq("user_id", userId);
+    await supabase.from("push_tokens" as never).delete().eq("user_id", userId);
   } catch { /* ignore */ }
 }

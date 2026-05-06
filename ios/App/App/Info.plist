@@ -70,10 +70,19 @@
 
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>remote-notification</string>
+			<string>remote-notification</string>
+		</array>
+	
+		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+		<key>CFBundleURLSchemes</key>
+	<array>
+		<string>com.googleusercontent.apps.830470550612-4q4rslusnsu72c62vo18udtjb638q8is</string>
 	</array>
-
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
+	</dict>
+	</array>
 </dict>
 </plist>

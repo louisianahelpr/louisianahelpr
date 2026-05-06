@@ -87,11 +87,13 @@ Listed in rough priority order.
   now mostly the user-list + filter pills + per-card menu —
   no further dialog extractions needed at this point. Next:
   `Profile.tsx` (1,299), `PostJob.tsx` (1,163), `Dashboard.tsx` (1,015).
-- [ ] **Stripe webhook 699-line refactor**
-  Highest-risk file in the repo. Split the giant `switch` into
-  per-event handlers (one file per event type), keep the central
-  signature-verify + event-dispatch shell thin. Deploy after each
-  extraction with verification.
+- [ ] **Stripe webhook 699-line refactor (deferred — opportunistic)**
+  11 cases inside one switch on `event.type`. Each is a discrete
+  handler. Best done incrementally: when a new Stripe event type
+  needs handling, extract THAT case into its own file as the
+  pattern, future ones follow. Big-bang refactoring all 11 at
+  once is high-risk (a botched deploy disrupts real-money flow)
+  for low concrete payoff (the file works fine).
 - [ ] **Migrate Profile/Dashboard/Messages to `useProfile()` hook**
   Foundation laid in `src/hooks/useProfile.ts`. Each consumer needs
   its own careful migration (read sites identified, but profile-shape

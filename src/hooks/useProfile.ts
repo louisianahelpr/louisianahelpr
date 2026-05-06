@@ -36,7 +36,13 @@ export interface SharedProfile {
 const PROFILE_FIELDS =
   "user_id, full_name, email, avatar_url, ban_status, approval_status, idv_status, created_at, bio, location, onboarding_fee_paid";
 
-async function fetchProfile(userId: string): Promise<SharedProfile | null> {
+/**
+ * Direct profile fetch. Exported for non-React call sites (e.g. event
+ * handlers, side effects) that need profile data outside a render
+ * pass. React components should prefer the `useProfile` hook below
+ * since it caches via React Query.
+ */
+export async function fetchProfile(userId: string): Promise<SharedProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_FIELDS)

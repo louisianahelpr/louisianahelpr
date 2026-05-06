@@ -24,6 +24,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SlidersHorizontal } from "lucide-react";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { fetchProfile } from "@/hooks/useProfile";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
@@ -435,7 +436,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const openReviewForPosted = async (job: Job) => {
     if (!job.helper_id) return;
-    const { data: helperProfile } = await supabase.from("profiles").select("full_name").eq("user_id", job.helper_id).single();
+    // Use shared fetchProfile so the read goes through the same code
+    // path React Query callers use. Direct supabase.from inline reads
+    // fragment caching across the app — see src/hooks/useProfile.ts.
+    const helperProfile = await fetchProfile(job.helper_id);
     setReviewTarget({ id: job.helper_id, name: formatName(helperProfile?.full_name, "Helpr") });
     setReviewJob(job);
   };

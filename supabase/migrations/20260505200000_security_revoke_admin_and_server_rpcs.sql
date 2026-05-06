@@ -51,8 +51,16 @@ DECLARE
   ];
 BEGIN
   FOREACH fn_name IN ARRAY server_only_fns LOOP
-    EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I FROM PUBLIC', fn_name);
-    EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I FROM anon', fn_name);
-    EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I FROM authenticated', fn_name);
+    -- Some entries (e.g. extend_boosts_with_no_applications) are
+    -- Supabase-managed, not in any repo migration, so they're absent
+    -- in fresh CI/dev DBs. Skip silently when missing rather than
+    -- aborting the whole migration.
+    BEGIN
+      EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I FROM PUBLIC', fn_name);
+      EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I FROM anon', fn_name);
+      EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I FROM authenticated', fn_name);
+    EXCEPTION WHEN undefined_function THEN
+      RAISE NOTICE 'skipping REVOKE on missing function public.%: not present in this DB', fn_name;
+    END;
   END LOOP;
 END $$;

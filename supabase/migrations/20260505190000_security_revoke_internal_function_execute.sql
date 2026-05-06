@@ -59,8 +59,16 @@ DECLARE
   ];
 BEGIN
   FOREACH fn_name IN ARRAY trigger_fns LOOP
-    EXECUTE format('REVOKE ALL ON FUNCTION public.%I() FROM PUBLIC', fn_name);
-    EXECUTE format('REVOKE ALL ON FUNCTION public.%I() FROM anon', fn_name);
-    EXECUTE format('REVOKE ALL ON FUNCTION public.%I() FROM authenticated', fn_name);
+    -- Some functions in this list are Supabase-managed (e.g. rls_auto_enable
+    -- comes from the Supabase admin tooling, not a repo migration) and may
+    -- not exist in a fresh CI/dev DB even though they exist in production.
+    -- Skip silently when missing rather than aborting the whole migration.
+    BEGIN
+      EXECUTE format('REVOKE ALL ON FUNCTION public.%I() FROM PUBLIC', fn_name);
+      EXECUTE format('REVOKE ALL ON FUNCTION public.%I() FROM anon', fn_name);
+      EXECUTE format('REVOKE ALL ON FUNCTION public.%I() FROM authenticated', fn_name);
+    EXCEPTION WHEN undefined_function THEN
+      RAISE NOTICE 'skipping REVOKE on missing function public.%(): not present in this DB', fn_name;
+    END;
   END LOOP;
 END $$;

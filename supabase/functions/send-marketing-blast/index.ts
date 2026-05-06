@@ -68,46 +68,64 @@ Deno.serve(async (req) => {
     if (body.test_email) {
       recipients = [{ email: body.test_email, full_name: "Test" }];
     } else {
+      // profiles.role was dropped in the unified-accounts migration —
+      // selecting it would throw. Segments now derive from BEHAVIOR:
+      //   helpers  = anyone with ≥1 application
+      //   posters  = anyone with ≥1 posted job
+      //   by_parish = profile's parish field
+      // Same user can be in both helpers and posters segments — that's
+      // intentional under the unified user model.
       let q = supabase
         .from("profiles")
-        .select("email, full_name, role, parish")
+        .select("user_id, email, full_name, parish")
         .not("email", "is", null)
         .eq("email_verified", true)
         .eq("approval_status", "approved");
 
-      if (body.segment === "helpers") q = q.eq("role", "helper");
-      if (body.segment === "posters") q = q.eq("role", "customer");
+      if (body.segment === "helpers") {
+        const { data: applicants } = await supabase
+          .from("applications")
+          .select("helper_id");
+        const helperIds = [...new Set((applicants ?? []).map((a) => a.helper_id))];
+        if (helperIds.length === 0) {
+          return new Response(JSON.stringify({ sent: 0, message: "No users have applied to a job yet" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        q = q.in("user_id", helperIds);
+      }
+      if (body.segment === "posters") {
+        const { data: postedJobs } = await supabase
+          .from("jobs")
+          .select("customer_id")
+          .not("customer_id", "is", null);
+        const posterIds = [...new Set((postedJobs ?? []).map((j) => j.customer_id))];
+        if (posterIds.length === 0) {
+          return new Response(JSON.stringify({ sent: 0, message: "No users have posted a job yet" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        q = q.in("user_id", posterIds as string[]);
+      }
       if (body.segment === "by_parish" && body.parish) q = q.eq("parish", body.parish);
 
       const { data, error } = await q.limit(5000);
       if (error) throw error;
 
-      // Honor email opt-out: drop anyone with email_promotions=false
-      const userIds = (data || []).map(r => r.email).filter(Boolean);
+      // Honor email opt-out: drop anyone with email_promotions=false.
       const { data: prefs } = await supabase
         .from("notification_preferences")
         .select("user_id, email_promotions");
       const optedOut = new Set(
-        (prefs || []).filter(p => p.email_promotions === false).map(p => p.user_id)
+        (prefs || []).filter((p) => p.email_promotions === false).map((p) => p.user_id),
       );
 
-      // Cross-check by user_id — refetch with user_id this time
-      const { data: full } = await supabase
-        .from("profiles")
-        .select("user_id, email, full_name, role, parish")
-        .not("email", "is", null)
-        .eq("email_verified", true)
-        .eq("approval_status", "approved");
-
-      recipients = (full || [])
-        .filter(p => {
-          if (optedOut.has(p.user_id)) return false;
-          if (body.segment === "helpers" && p.role !== "helper") return false;
-          if (body.segment === "posters" && p.role !== "customer") return false;
-          if (body.segment === "by_parish" && body.parish && p.parish !== body.parish) return false;
-          return !!p.email;
-        })
-        .map(p => ({ email: p.email!, full_name: p.full_name }));
+      // The query above already includes the segment filter (in() on
+      // helper-applicants or poster-customers, or .eq parish). No need
+      // to refetch + cross-check; just drop opted-out users.
+      recipients = (data || [])
+        .filter((p) => p.user_id && !optedOut.has(p.user_id) && !!p.email)
+        .map((p) => ({ email: p.email!, full_name: p.full_name }));
     }
 
     if (recipients.length === 0) {

@@ -23,11 +23,28 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // Get all Pro+ helpers with active subscriptions
+    // Behavior-based "helper" filter: anyone who has worked at least one
+    // job (i.e., shows up as helper_id on a job). profiles.role was
+    // dropped in the unified-accounts migration; the previous .eq('role',
+    // 'helper') filter would error at the SELECT level on profiles.
+    const { data: helperIdRows } = await supabase
+      .from("jobs")
+      .select("helper_id")
+      .not("helper_id", "is", null);
+    const helperIds = [...new Set((helperIdRows ?? []).map((r) => r.helper_id))].filter(
+      (id): id is string => typeof id === "string",
+    );
+
+    if (helperIds.length === 0) {
+      return new Response(JSON.stringify({ sent: 0, message: "No users have worked a job yet" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: helpers, error: helpersError } = await supabase
       .from("profiles")
       .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
-      .eq("role", "helper")
+      .in("user_id", helperIds)
       .eq("approval_status", "approved")
       .in("subscription_tier", ["pro", "elite"]);
 

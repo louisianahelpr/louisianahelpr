@@ -996,11 +996,12 @@ const AdminUsers = () => {
       !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") &&
       isUnseen(p),
   ).length;
+  // Unified user model: no helper-vs-customer distinction in the count.
+  // (Previous version filtered out denied "customers" via a non-existent
+  // p.role property, which evaluated to undefined !== "customer" → true,
+  // i.e. it was a no-op anyway.)
   const deniedCount = profiles.filter(
-    // p.role was dropped in the unified-accounts migration. Cast to any
-    // preserves prior behavior (undefined !== "customer" → true) until
-    // this view is migrated to look up roles via user_roles.
-    (p) => p.approval_status === "denied" && (p as { role?: string }).role !== "customer" && isUnseen(p),
+    (p) => p.approval_status === "denied" && isUnseen(p),
   ).length;
   const allCount = profiles.filter(isUnseen).length;
 

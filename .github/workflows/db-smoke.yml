@@ -196,6 +196,10 @@ jobs:
             "20260412002759"  # depends on jobs_helper_safe (cascades)
             "20260412011520"  # uses realtime.topic()
             "20260412070714"  # uses realtime.messages
+            "20260505220000"  # creates storage.objects policies (storage.objects perms vary by image)
+            "20260505224500"  # drops storage.objects policies
+            "20260506001000"  # ALTER POLICY on realtime.messages
+            "20260506030000"  # message-attachments storage.objects policies
           )
           is_flaky() {
             local f="$(basename "$1")"

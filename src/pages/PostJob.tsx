@@ -26,6 +26,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 
 // Fires brand-tinted confetti for the user's first 3 successful posts.
 // After post #3 the novelty fades back to a quiet checkmark — counter
@@ -451,6 +452,26 @@ const PostJob = () => {
 
     // Trigger instant job matching in background
     supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } }).catch(() => {});
+
+    // Geocode the address in the background and patch the job row with
+    // lat/lng so it shows up on /browse?view=map. Best-effort — failure
+    // doesn't block checkout. The map's RPC rounds these to ~110m
+    // before serving so the doorstep is never exposed publicly.
+    void (async () => {
+      const composed = composeJobAddress({
+        streetAddress,
+        city,
+        state: addrState,
+        zipCode,
+      });
+      const coords = await geocodeAddress(composed);
+      if (coords) {
+        await supabase
+          .from("jobs")
+          .update({ latitude: coords.latitude, longitude: coords.longitude })
+          .eq("id", jobData.id);
+      }
+    })();
 
     try {
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {

@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Briefcase, Sparkles } from "lucide-react";
+import { Search, Briefcase, Sparkles, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
+
+// Lazy-load the map so the ~45KB leaflet bundle only ships when guests
+// actually toggle to map view. List view stays cheap by default.
+const BrowseMap = lazy(() =>
+  import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
+);
 import { categoryLabels } from "@/components/dashboard/JobFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
@@ -37,6 +43,7 @@ const DashboardGuest = () => {
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "map">("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
   const { data: jobs = [], isLoading } = useQuery({
@@ -198,6 +205,39 @@ const DashboardGuest = () => {
           </div>
         </div>
 
+        {/* List ⇄ Map toggle. Map view drops the search/category chips since
+            it has its own visual filter (the parish-zoom + pin-cluster). */}
+        <div className="mb-3 flex gap-1 p-1 bg-muted/40 rounded-xl border border-border">
+          <button
+            onClick={() => setView("list")}
+            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-medium transition-colors ${
+              view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="w-3.5 h-3.5" /> List
+          </button>
+          <button
+            onClick={() => setView("map")}
+            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-medium transition-colors ${
+              view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <MapIcon className="w-3.5 h-3.5" /> Map
+          </button>
+        </div>
+
+        {view === "map" && (
+          <Suspense
+            fallback={
+              <Skeleton className="h-[480px] w-full rounded-2xl" />
+            }
+          >
+            <BrowseMap onJobAction={requireSignup} ctaLabel="Sign up to apply" />
+          </Suspense>
+        )}
+
+        {view === "list" && (
+        <>
         {/* Category chips — horizontal scroll on mobile, matches Dashboard look */}
         <div className="-mx-4 px-4 mb-5 overflow-x-auto scrollbar-hide overscroll-x-contain">
           <div className="flex gap-2 w-max">
@@ -253,6 +293,8 @@ const DashboardGuest = () => {
               />
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
     </div>

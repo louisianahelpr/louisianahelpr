@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,12 @@ interface BrowseMapProps {
   onJobAction?: (jobId: string) => void;
   /** CTA text — varies by surface (guest = "Sign up to apply", auth = "Apply"). */
   ctaLabel?: string;
+  /**
+   * Current user id. When set, the popup hides jobs the user posted
+   * themselves (you can't apply to your own post — same rule as the
+   * Dashboard apply path). When undefined (guest), every pin is shown.
+   */
+  currentUserId?: string;
 }
 
 // Louisiana center fallback (state geographic mean, near Marksville).
@@ -94,7 +101,7 @@ function FitToPins({ jobs }: { jobs: MapJob[] }) {
   return null;
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View" }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -112,6 +119,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View" }: BrowseMapProps) {
         const rows = (data as MapJob[] | null) ?? [];
         // Defensive: drop any rows that snuck through with null coords
         // despite the SQL filter (e.g. type coercion oddness).
+        // The RPC doesn't expose customer_id (PII concern), so we can't
+        // filter "my own posts" client-side — that's fine since
+        // handleApplyRequest in Dashboard already bails out with a
+        // "you can't apply to your own post" toast on attempt.
         setJobs(
           rows.filter(
             (j) => j.latitude !== null && j.longitude !== null && !Number.isNaN(Number(j.latitude)),
@@ -122,7 +133,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View" }: BrowseMapProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentUserId]);
 
   const labels = useMemo(
     () => ({
@@ -174,6 +185,12 @@ export function BrowseMap({ onJobAction, ctaLabel = "View" }: BrowseMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitToPins jobs={jobs} />
+        <MarkerClusterGroup
+          chunkedLoading
+          spiderfyOnMaxZoom
+          showCoverageOnHover={false}
+          maxClusterRadius={50}
+        >
         {jobs.map((job) => (
           <Marker
             key={job.id}
@@ -208,6 +225,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View" }: BrowseMapProps) {
             </Popup>
           </Marker>
         ))}
+        </MarkerClusterGroup>
       </MapContainer>
     </div>
   );

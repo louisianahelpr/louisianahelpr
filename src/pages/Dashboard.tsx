@@ -1,4 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+
+// Lazy-load BrowseMap so the ~45KB leaflet bundle only ships when an
+// authenticated user toggles to map view. List view stays cheap.
+const BrowseMap = lazy(() =>
+  import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
+);
 import HelprMark from "@/components/HelprMark";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, Plus, ArrowRight } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, Plus, ArrowRight, List, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
@@ -113,6 +119,12 @@ const Dashboard = () => {
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  // List vs Map view. The map shows the same open jobs as the list,
+  // pinned to neighborhood-rounded coords (privacy via the
+  // get_open_jobs_for_map RPC). Toggle persists for the session only —
+  // resetting to "list" on next mount matches user expectation that
+  // the default landing surface is the curated feed.
+  const [view, setView] = useState<"list" | "map">("list");
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
@@ -618,8 +630,46 @@ const Dashboard = () => {
               </div>
             )}
 
+            {/* List ⇄ Map toggle. Same pattern as guest /browse but
+                wired to apply directly via handleApplyRequest, no
+                signup redirect. Lives outside the elevated content box
+                so the toggle reads as a peer of the box. */}
+            <div className="px-3 pt-3 pb-1">
+              <div className="flex gap-1 p-1 bg-muted/40 rounded-xl border border-border w-full max-w-xs mx-auto">
+                <button
+                  onClick={() => setView("list")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors ${
+                    view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" /> List
+                </button>
+                <button
+                  onClick={() => setView("map")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors ${
+                    view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <MapIcon className="w-3.5 h-3.5" /> Map
+                </button>
+              </div>
+            </div>
+
+            {view === "map" && (
+              <div className="px-3 pt-2 pb-3">
+                <Suspense fallback={<div className="h-[480px] rounded-2xl bg-muted/30 animate-pulse" />}>
+                  <BrowseMap
+                    onJobAction={handleApplyRequest}
+                    ctaLabel="Apply"
+                    currentUserId={user?.id}
+                  />
+                </Suspense>
+              </div>
+            )}
+
             <div
               className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+              style={view === "map" ? { display: "none" } : undefined}
             >
               {/* Always-visible elevated content box. Empty state and the
                   job list both render INSIDE this box so the dashboard

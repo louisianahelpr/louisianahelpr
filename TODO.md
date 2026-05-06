@@ -119,17 +119,13 @@ Listed in rough priority order.
   cast — non-trivial risk for zero practical benefit since 0 rows and
   0 functions reference `'helper'::app_role` anymore. The value is
   effectively dead at runtime; the schema-level vestige is harmless.
-- [ ] **Animated count-up on the hero "active now" pill**
-  Real count is wired (RPC `get_marketplace_activity_count` + lazy
-  fetch in HeroSection); pill shows "N jobs open" or falls back to
-  "Live in Louisiana." Future polish: animate numerical transitions
-  with a small useCounter hook so the count tween-changes when the
-  RPC refetches.
-- [ ] **Salvaged automations from job-lifecycle-automations** that
-  weren't shipped today: `auto_restrict_repeat_violators` is live
-  (today). Remaining ideas worth building: more nuanced fraud
-  detection (e.g. velocity/IP heuristics), advanced suspicious pattern
-  signals (rapid cancellations, image-reuse across postings).
+- [x] **Animated count-up on the hero "active now" pill** — shipped
+  2026-05-06 (`useCountUp` hook, RAF-based ease-out-cubic tween,
+  respects prefers-reduced-motion).
+- [ ] **More nuanced fraud detection** — beyond the burst-job and
+  multi-reporter signals already shipped: velocity/IP heuristics,
+  rapid-cancellation patterns, image-reuse detection across postings.
+  Each pattern would extend `detect_suspicious_user_patterns` cron.
 
 ---
 

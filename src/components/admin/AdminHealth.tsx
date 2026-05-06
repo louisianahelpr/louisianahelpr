@@ -12,6 +12,7 @@ type ParishStat = { parish: string; openJobs: number; activeHelpers: number; rat
 
 type HealthData = {
   emailStats: { total: number; sent: number; failed: number; suppressed: number };
+  pushStats: { total: number; ios: number; android: number; latestAt: string | null };
   fraudCount: number;
   recentJobs: { open: number; completed: number; disputed: number; cancelled: number };
   healthStatus: "ok" | "degraded" | "unknown";
@@ -70,6 +71,7 @@ const AdminHealth = () => {
     key: queryKey,
     fallback: {
       emailStats: { total: 0, sent: 0, failed: 0, suppressed: 0 },
+      pushStats: { total: 0, ios: 0, android: 0, latestAt: null },
       fraudCount: 0,
       recentJobs: { open: 0, completed: 0, disputed: 0, cancelled: 0 },
       healthStatus: "unknown",
@@ -92,6 +94,20 @@ const AdminHealth = () => {
 
       const { count: fc } = await (supabase.from as any)("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
       const fraudCount = fc || 0;
+
+      // Push token stats — useful at-a-glance for "is push working" debugging.
+      const [pushTotalRes, pushIosRes, pushAndroidRes, pushLatestRes] = await Promise.all([
+        (supabase.from as any)("push_tokens").select("id", { count: "exact", head: true }),
+        (supabase.from as any)("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "ios"),
+        (supabase.from as any)("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "android"),
+        (supabase.from as any)("push_tokens").select("updated_at").order("updated_at", { ascending: false }).limit(1),
+      ]);
+      const pushStats = {
+        total: pushTotalRes.count || 0,
+        ios: pushIosRes.count || 0,
+        android: pushAndroidRes.count || 0,
+        latestAt: (pushLatestRes.data?.[0]?.updated_at as string | undefined) ?? null,
+      };
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const [openRes, compRes, dispRes, cancelRes] = await Promise.all([
@@ -195,11 +211,11 @@ const AdminHealth = () => {
         }
       }
 
-      return { emailStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps };
+      return { emailStats, pushStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps };
     },
   });
 
-  const { emailStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
+  const { emailStats, pushStats, fraudCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
 
   const formatDelay = (mins: number | null): string => {
     if (mins === null) return "—";
@@ -374,30 +390,62 @@ const AdminHealth = () => {
         )}
       </div>
 
-      {/* Push notification self-test */}
-      <div className="rounded-xl liquid-glass p-5 space-y-3">
+      {/* Push notifications */}
+      <div className="rounded-xl liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Bell className="w-4 h-4 text-primary" /> Push notification self-test
+            <Bell className="w-4 h-4 text-primary" /> Push notifications
           </h3>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Sends a real push to every device registered against your admin user. Use to verify
-          APNs / FCM credentials + entitlements + device-token registration without waiting
-          for a real notification trigger to fire.
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={sendTestPush}
-          disabled={sendingTestPush}
-        >
-          {sendingTestPush ? (
-            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending…</>
-          ) : (
-            <><Send className="w-3.5 h-3.5 mr-1.5" /> Send test push to me</>
-          )}
-        </Button>
+
+        {/* Token stats */}
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          <div className="rounded-lg bg-background/50 border border-border/40 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total tokens</div>
+            <div className="text-2xl font-semibold tabular-nums">{pushStats.total}</div>
+          </div>
+          <div className="rounded-lg bg-background/50 border border-border/40 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">iOS</div>
+            <div className="text-2xl font-semibold tabular-nums">{pushStats.ios}</div>
+          </div>
+          <div className="rounded-lg bg-background/50 border border-border/40 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Android</div>
+            <div className="text-2xl font-semibold tabular-nums">{pushStats.android}</div>
+          </div>
+        </div>
+        {pushStats.latestAt && (
+          <p className="text-xs text-muted-foreground">
+            Last token registered{" "}
+            <span className="text-foreground font-medium">
+              {new Date(pushStats.latestAt).toLocaleString()}
+            </span>
+          </p>
+        )}
+        {pushStats.total === 0 && (
+          <p className="text-xs text-muted-foreground italic">
+            No devices registered yet. Have a user open the iOS/Android app, sign in,
+            and tap Allow on the push permission prompt — token will register on next launch.
+          </p>
+        )}
+
+        <div className="border-t border-border/40 pt-3">
+          <p className="text-xs text-muted-foreground mb-2">
+            Send a real push to every device registered against your admin user. Verifies
+            APNs / FCM credentials + entitlements + device-token registration end-to-end.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={sendTestPush}
+            disabled={sendingTestPush}
+          >
+            {sendingTestPush ? (
+              <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending…</>
+            ) : (
+              <><Send className="w-3.5 h-3.5 mr-1.5" /> Send test push to me</>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

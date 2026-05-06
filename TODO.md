@@ -131,24 +131,28 @@ Recovered from git (commit `5526a859^`). The deleted function had 9
 logical sections; 4 are already covered elsewhere, 5 are genuinely
 novel automation ideas worth filing for later:
 
-- [ ] **Job-start reminders** — push helpers + customers ~30 min before
-  the scheduled `date_needed`/`start_time`. Currently no cron does
-  this; users have no proactive prompt that a job is about to start.
-- [ ] **No-show detection** — flag jobs where the helper hasn't sent a
-  `transit_updates` ping or messages within Xh of start time. Currently
-  jobs go silent and customers have to file a dispute manually.
-- [ ] **Auto-escalate users with 3+ reports in 7d** — currently
-  `AdminReports` queue requires manual review. A cron that flags
-  repeat-reportee accounts (3+ reports in rolling 7-day window) for
-  priority review would surface bad actors faster.
-- [ ] **Auto-restrict repeat violators** — extension of #3: if a user
-  has 3+ resolved reports as the offender, auto-set
-  `profiles.ban_status='restricted'` (read-only mode, can't post or
-  apply). Today this is fully manual.
-- [ ] **Suspicious pattern detection** — heuristics like "5+ jobs
-  posted in 1h with similar wording" → insert `fraud_flags` row.
-  fraud_flags table exists; just no automation populating it from
-  pattern detection.
+- [x] **Job-start reminders** — shipped 2026-05-06 as
+  `sweep_job_start_reminders` + pg_cron `*/5 * * * *`. T-30min push to
+  both customer and helper for `accepted` jobs. Idempotent via
+  `jobs.start_reminder_sent_at`.
+- [x] **No-show detection** — shipped 2026-05-06 as
+  `sweep_no_show_alerts` + pg_cron `*/5 * * * *`. T+30min nudge if
+  status is still `accepted`. Customer and helper get gentle prompts;
+  6h cap stops re-alerting on stale rows.
+- [x] **Auto-escalate users with 3+ reports** — shipped 2026-05-06 as
+  `auto_escalate_reports` AFTER INSERT trigger on `reports`. Fans
+  system_alert to all admins when 3+ open reports in 90d. Carpet-bomb
+  prevention skips if any admin got an alert for that user in 7d.
+- [ ] **Auto-restrict repeat violators** — DRAFTED at
+  `docs/proposed/auto_restrict_repeat_violators.sql`. Owner sign-off
+  needed on thresholds (proposed: 3 violations → final_warning, 5 →
+  7-day temp_ban) before applying. Permission classifier blocked the
+  initial migration pending policy review.
+- [x] **Suspicious pattern detection** — shipped 2026-05-06 as
+  `detect_suspicious_user_patterns` + daily pg_cron `30 4 * * *`.
+  Inserts into existing `fraud_flags` table when burst job posting
+  (10+/24h) or multi-reporter pile-on (3+ distinct reporters/30d) is
+  detected. Idempotent via existing-unresolved-flag check.
 
 Already covered by other functions, so NOT salvaged:
   - Review reminders → `review-nag-cron`

@@ -71,12 +71,14 @@ Listed in rough priority order.
   by category, with a drag-to-bid radius slider. 1-tap apply on pin.
   *Multi-day epic. Needs design pass + location permissions wiring.*
 - [ ] **Continue god-component extraction**
-  AdminUsers is at 2,164 lines (was 2,464 at start of audit, -300 / -12.2%).
-  Pattern is set with `AutoRestrictedRail` + `DenyUserDialog` +
-  `BanDialog`. Remaining extractions: `EditEmailDialog`,
-  `DeleteUserDialog`, `ManualVerifyDialog`, `ReuploadDialog`,
-  `ResetPasswordDialog`, `WarningDialog`. Each is a ~50-150 line
-  block that should live in its own file. Then do the same for
+  AdminUsers is at 2,055 lines (was 2,464 at start of audit, -409 / -16.6%).
+  Pattern set with 5 sub-components: `AutoRestrictedRail`,
+  `DenyUserDialog`, `BanDialog`, `EditEmailDialog`, `DeleteUserDialog`.
+  Remaining inline dialogs (`ManualVerifyDialog`, `ReuploadDialog`,
+  `ResetPasswordDialog`, `WarningDialog`) all share a `callAdminAction`
+  coordinator function — extracting them requires lifting that helper
+  carefully. Each dialog should own its own edge-fn invocation +
+  loading state in the new model. Then do the same treatment for
   `Profile.tsx` (1,299), `PostJob.tsx` (1,163), `Dashboard.tsx` (1,015).
 - [ ] **Stripe webhook 699-line refactor**
   Highest-risk file in the repo. Split the giant `switch` into

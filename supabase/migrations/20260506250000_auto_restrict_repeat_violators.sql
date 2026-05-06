@@ -1,27 +1,23 @@
--- PROPOSED — NOT APPLIED. Owner sign-off required before this lands.
+-- Auto-restrict trigger with admin-reverse safety net.
 --
--- This trigger auto-changes profiles.ban_status based on user_violations
--- count. It's the companion to auto_escalate_reports (which only sends
--- notifications). Touching ban_status is high blast radius — every
--- threshold here is a product/policy call, not an engineering one.
+-- Thresholds (lifetime user_violations count):
+--   3+ violations  →  ban_status='final_warning' (banner only, no functional restriction)
+--   5+ violations  →  ban_status='temp_banned' + auto_suspended_until = NOW()+7d
+--                     + admin notification fanned to every admin with a
+--                       direct link for one-click reverse
+--   8+ violations  →  no auto-action (permanent ban requires admin judgement)
 --
--- Current proposal:
---   3+ violations  →  ban_status = 'final_warning' (banner shown to user)
---   5+ violations  →  ban_status = 'temp_banned' + 7-day auto_suspended_until
---   8+ violations  →  (NOT auto — admin must permanent-ban manually)
+-- Distinguishing auto-bans from manual bans: auto_suspended_until is set
+-- ONLY by this trigger. Manual bans via AdminUsers.tsx flip ban_status
+-- but leave auto_suspended_until null. The AdminUsers "Recently
+-- auto-restricted" rail filters on (ban_status='temp_banned' AND
+-- auto_suspended_until IS NOT NULL).
 --
--- Things to confirm before applying:
---   • Counts: should this be lifetime, last 12 months, or last 90 days?
---   • Reversibility: do we want a manual "reset to active" admin button
---     to clear ban_status if a violation gets reversed?
---   • Notification copy: above messages were drafted by Claude, not Lexi
---   • Does StrikeBanner (src/components/StrikeBanner.tsx) need updates
---     to handle the new automatic transitions cleanly?
+-- Reversal path: admin updates profiles.ban_status='active' and clears
+-- auto_suspended_until. No special endpoint needed; existing AdminUsers
+-- ban-management already handles status flips.
 --
--- Apply path once approved:
---   1. Adjust thresholds + copy here
---   2. supabase mcp apply_migration --name auto_restrict_repeat_violators
---   3. Move this file to supabase/migrations/<ts>_auto_restrict_repeat_violators.sql
+-- Owner-confirmed thresholds — Lexi 2026-05-06.
 
 CREATE OR REPLACE FUNCTION public.auto_restrict_repeat_violators()
 RETURNS trigger
@@ -32,6 +28,7 @@ AS $$
 DECLARE
   violation_count integer;
   current_status text;
+  user_label text;
 BEGIN
   BEGIN
     SELECT COUNT(*)
@@ -39,13 +36,13 @@ BEGIN
     FROM public.user_violations
     WHERE user_id = NEW.user_id;
 
-    SELECT ban_status INTO current_status
+    SELECT ban_status, COALESCE(NULLIF(full_name, ''), email, 'A user')
+    INTO current_status, user_label
     FROM public.profiles
     WHERE user_id = NEW.user_id;
 
-    -- Order weakest → strongest:
+    -- Never downgrade from a stronger state. Order weakest -> strongest:
     --   active < final_warning < temp_banned < permanently_banned
-    -- Never downgrade from a stronger state.
     IF current_status = 'permanently_banned' THEN
       RETURN NEW;
     END IF;
@@ -56,6 +53,7 @@ BEGIN
           auto_suspended_until = NOW() + INTERVAL '7 days'
       WHERE user_id = NEW.user_id;
 
+      -- Notify the user.
       INSERT INTO public.notifications (user_id, type, title, message, link, read)
       VALUES (
         NEW.user_id,
@@ -65,6 +63,18 @@ BEGIN
         '/account-banned',
         false
       );
+
+      -- Fan to every admin so the reverse-if-mistaken loop is fast.
+      INSERT INTO public.notifications (user_id, type, title, message, link, read)
+      SELECT
+        ur.user_id,
+        'system_alert',
+        format('Auto-restricted: %s', user_label),
+        format('%s hit %s violations and was auto-temp-banned for 7 days. Review and reverse if mistaken.', user_label, violation_count),
+        format('/admin/users/%s', NEW.user_id),
+        false
+      FROM public.user_roles ur
+      WHERE ur.role = 'admin';
     ELSIF violation_count >= 3
        AND COALESCE(current_status, 'active') = 'active' THEN
       UPDATE public.profiles
@@ -88,6 +98,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS auto_restrict_repeat_violators_tg ON public.user_violations;
 CREATE TRIGGER auto_restrict_repeat_violators_tg

@@ -30,6 +30,17 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("pending");
 
+  // Recently auto-restricted users — surfaced as a top rail so admins
+  // can reverse mistaken auto-bans without going through profile detail.
+  // Distinguished from manual temp_bans by auto_suspended_until being set
+  // (the auto_restrict_repeat_violators trigger is the only writer of
+  // that column).
+  const [autoRestricted, setAutoRestricted] = useState<
+    { user_id: string; full_name: string | null; email: string | null;
+      auto_suspended_until: string; violation_count: number }[]
+  >([]);
+  const [reversing, setReversing] = useState<string | null>(null);
+
   // Profile detail view
   const [viewProfile, setViewProfile] = useState<Profile | null>(null);
   const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]>([]);
@@ -148,8 +159,72 @@ const AdminUsers = () => {
       loadRatingSummary(ids);
       loadJobsCompletedSummary(ids);
       loadOpenReportsSummary(ids);
+      loadAutoRestricted();
     }
     setLoading(false);
+  };
+
+  // Pull profiles auto-temp-banned by the trigger. Cap to last 7 days of
+  // suspensions (auto_suspended_until still in the future means the ban
+  // is still active; we surface those for fast reversal).
+  const loadAutoRestricted = async () => {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, email, auto_suspended_until")
+      .eq("ban_status", "temp_banned")
+      .not("auto_suspended_until", "is", null)
+      .gt("auto_suspended_until", new Date().toISOString())
+      .order("auto_suspended_until", { ascending: false })
+      .limit(10);
+    if (!profs || profs.length === 0) {
+      setAutoRestricted([]);
+      return;
+    }
+    // Pull violation counts for the same set so admins see the trigger's
+    // basis without clicking into each profile.
+    const ids = profs.map((p: any) => p.user_id);
+    const { data: vios } = await supabase
+      .from("user_violations")
+      .select("user_id")
+      .in("user_id", ids);
+    const counts: Record<string, number> = {};
+    (vios as any[] | null)?.forEach((v) => {
+      counts[v.user_id] = (counts[v.user_id] || 0) + 1;
+    });
+    setAutoRestricted(
+      profs.map((p: any) => ({
+        user_id: p.user_id,
+        full_name: p.full_name,
+        email: p.email,
+        auto_suspended_until: p.auto_suspended_until as string,
+        violation_count: counts[p.user_id] || 0,
+      })),
+    );
+  };
+
+  const reverseAutoBan = async (userId: string) => {
+    setReversing(userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ban_status: "active", auto_suspended_until: null })
+      .eq("user_id", userId);
+    if (error) {
+      toast.error(`Couldn't reverse: ${error.message}`);
+      setReversing(null);
+      return;
+    }
+    await logAdminAction("reverse_auto_ban", "profile", userId, { reason: "admin reversed auto-restrict" });
+    await createNotification({
+      user_id: userId,
+      title: "Restriction lifted",
+      message: "An admin reviewed your account and lifted the temporary restriction.",
+      type: "success",
+      link: "/account",
+    });
+    toast.success("Auto-ban reversed.");
+    setReversing(null);
+    loadAutoRestricted();
+    loadProfiles();
   };
 
   const loadRatingSummary = async (userIds: string[]) => {
@@ -947,6 +1022,67 @@ const AdminUsers = () => {
           </button>
         ))}
       </div>
+
+      {/* Recently auto-restricted rail. Visible only when there are
+          users currently serving an auto-temp-ban — every entry is a
+          one-tap reverse if the admin disagrees with the trigger.
+          Hides itself otherwise so admins don't see empty chrome. */}
+      {autoRestricted.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+            <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+              Auto-restricted ({autoRestricted.length}) — review and reverse if mistaken
+            </p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {autoRestricted.map((u) => {
+              const daysLeft = Math.max(
+                0,
+                Math.ceil(
+                  (new Date(u.auto_suspended_until).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                ),
+              );
+              return (
+                <div
+                  key={u.user_id}
+                  className="shrink-0 min-w-[220px] rounded-lg bg-background border border-amber-500/30 p-2.5 space-y-1.5"
+                >
+                  <p className="text-xs font-semibold truncate">
+                    {formatName(u.full_name, u.email || "User")}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {u.violation_count} violations · {daysLeft}d left
+                  </p>
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] px-2 flex-1"
+                      onClick={() => {
+                        const p = profiles.find((pr) => pr.user_id === u.user_id);
+                        if (p) openProfile(p);
+                      }}
+                    >
+                      <Eye className="w-3 h-3 mr-1" /> Review
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={reversing === u.user_id}
+                      className="h-7 text-[11px] px-2 flex-1 border-amber-500/40 hover:bg-amber-500/10"
+                      onClick={() => reverseAutoBan(u.user_id)}
+                    >
+                      {reversing === u.user_id ? "..." : "Reverse"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="flex flex-col sm:flex-row gap-2">

@@ -211,7 +211,7 @@ const ProfilePage = () => {
   const loadStats = async (userId: string) => {
     const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes, completedJobIdsRes] = await Promise.all([
       supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
-      supabase.from("reviews").select("rating").eq("reviewee_id", userId),
+      supabase.from("reviews").select("rating").eq("reviewee_id", userId).lte("feedback_visible_at", new Date().toISOString()),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
       supabase.from("tips").select("amount, job_id").eq("helper_id", userId),
       supabase.from("jobs").select("id").eq("helper_id", userId).eq("status", "completed"),
@@ -241,6 +241,7 @@ const ProfilePage = () => {
       .from("reviews")
       .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
       .eq("reviewee_id", user.id)
+      .lte("feedback_visible_at", new Date().toISOString())
       .neq("jobs.status", "cancelled")
       .order("created_at", { ascending: false });
 

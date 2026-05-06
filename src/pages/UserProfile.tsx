@@ -71,7 +71,10 @@ const UserProfile = () => {
       // Was previously gated on role === 'helper', but role distinction
       // no longer exists in the UI.
       const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
-        supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).order("created_at", { ascending: false }),
+        // feedback_visible_at filter: anti-retaliation reveal — hidden until
+        // both sides post or 14 days pass. set_review_visibility trigger
+        // stamps this column on insert.
+        supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),

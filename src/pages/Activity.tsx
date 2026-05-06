@@ -102,7 +102,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       const helperIds = visibleApps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
-        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds),
+        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
       ]);
       const reviewMap = new Map<string, number[]>();
       reviewsRes.data?.forEach((r) => {

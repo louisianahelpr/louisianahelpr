@@ -175,16 +175,12 @@ const Dashboard = () => {
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
-    // Anyone applying to a job needs a Stripe Connect payout account
-    // first — escrow can't release money to a user without one. Applies
-    // equally to every account (no role distinction).
-    const stripeCheck = await checkHelperStripeConnect();
-    if (!stripeCheck.ok) {
-      setPayoutSetupDialogOpen(true);
-      return;
-    }
+    // Apply has no gate — Stripe Connect payout setup + IDV both fire at
+    // first Accept (see Activity.tsx → handleHelperResponse). Applying
+    // is just expressing interest; no need to make users set up payouts
+    // for jobs they may never win.
     setConfirmApplyJobId(jobId);
-  }, [user, allJobs, navigate, checkHelperStripeConnect]);
+  }, [user, allJobs, navigate]);
 
   const handleApplyConfirm = useCallback(async () => {
     if (!user || !confirmApplyJobId || applyLoading) return;

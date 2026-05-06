@@ -292,11 +292,14 @@ novel automation ideas worth filing for later:
   `auto_escalate_reports` AFTER INSERT trigger on `reports`. Fans
   system_alert to all admins when 3+ open reports in 90d. Carpet-bomb
   prevention skips if any admin got an alert for that user in 7d.
-- [ ] **Auto-restrict repeat violators** — DRAFTED at
-  `docs/proposed/auto_restrict_repeat_violators.sql`. Owner sign-off
-  needed on thresholds (proposed: 3 violations → final_warning, 5 →
-  7-day temp_ban) before applying. Permission classifier blocked the
-  initial migration pending policy review.
+- [x] **Auto-restrict repeat violators** — shipped 2026-05-06.
+  Final ladder: 1st violation → `final_warning`, 2nd → 7-day
+  `temp_ban`, 3rd → 30-day `temp_ban`, 4th+ → admin-only notification
+  (no further auto-action). Trigger early-returns on admin-initiated
+  + self-managed violation types so it never overrides existing bans.
+  AdminUsers has a "Recently auto-restricted" rail with one-tap
+  Reverse for false positives. Companion sweeper releases expired
+  auto-bans hourly.
 - [x] **Suspicious pattern detection** — shipped 2026-05-06 as
   `detect_suspicious_user_patterns` + daily pg_cron `30 4 * * *`.
   Inserts into existing `fraud_flags` table when burst job posting

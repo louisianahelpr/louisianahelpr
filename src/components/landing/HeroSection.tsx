@@ -4,6 +4,7 @@ import { Sparkles, ArrowRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryBento from "@/components/landing/CategoryBento";
 import PhoneCluster from "@/components/landing/PhoneCluster";
+import { useCountUp } from "@/hooks/useCountUp";
 
 /**
  * Hero — Louisiana Helpr 2026 brand system.
@@ -21,6 +22,9 @@ const HeroSection = () => {
   // first call returns; stays null on error so the pill falls back to
   // honest copy without flashing a fake "0" or zero state.
   const [activeCount, setActiveCount] = useState<number | null>(null);
+  // Tween between successive counts so the number animates instead of
+  // snapping. Respects prefers-reduced-motion (snaps instantly there).
+  const animatedCount = useCountUp(activeCount, { durationMs: 1200 });
   const headlineRef = useRef<HTMLHeadingElement>(null);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
@@ -163,8 +167,8 @@ const HeroSection = () => {
             boxShadow: "0 0 6px hsl(120, 60%, 55%, 0.6)",
           }}
         />
-        {activeCount !== null
-          ? `${activeCount} ${activeCount === 1 ? "job" : "jobs"} open`
+        {animatedCount !== null
+          ? `${animatedCount} ${animatedCount === 1 ? "job" : "jobs"} open`
           : "Live in Louisiana"}
       </span>
       {/* Mesh gradient — five drifting radial washes (cream + sage + sienna)

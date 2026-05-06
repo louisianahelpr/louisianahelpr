@@ -120,9 +120,11 @@ serve(async (req) => {
   }
 
   // Helper must have an active Connect account with payouts enabled.
+  // Also pull onboarding_fee_paid — if false and they haven't paid via a
+  // prior post, deduct the one-time $2 fee from this payout below.
   const { data: helper } = await supabaseAdmin
     .from("profiles")
-    .select("stripe_account_id, full_name")
+    .select("stripe_account_id, full_name, onboarding_fee_paid")
     .eq("user_id", job.helper_id)
     .single();
 
@@ -174,8 +176,37 @@ serve(async (req) => {
   const platformFeeDollars =
     Math.round(Number(job.budget) * HELPER_FEE_PERCENT) / 100;
   const payoutDollars = grossDollars - platformFeeDollars;
-  const payoutCents = Math.round(payoutDollars * 100);
+  let payoutCents = Math.round(payoutDollars * 100);
   const platformFeeCents = Math.round(platformFeeDollars * 100);
+
+  // One-time $2 platform onboarding fee: charged at first action (post
+  // or payout). If they haven't paid it yet, deduct from this payout.
+  // Same flag (profiles.onboarding_fee_paid) is checked by
+  // create-payment when posting and process-scheduled-payouts when
+  // auto-paying out — single source of truth across all three paths.
+  const { data: settingsRow } = await supabaseAdmin
+    .from("platform_settings")
+    .select("onboarding_fee_cents")
+    .limit(1)
+    .single();
+  const onboardingFeeCents = settingsRow?.onboarding_fee_cents ?? 200;
+  const owesOnboardingFee = !helper.onboarding_fee_paid && onboardingFeeCents > 0;
+  let onboardingFeeDeductedCents = 0;
+  if (owesOnboardingFee) {
+    if (payoutCents <= onboardingFeeCents) {
+      return jsonResponse(
+        {
+          error:
+            "first payout does not cover the platform onboarding fee — manual reconciliation needed",
+          payout_cents: payoutCents,
+          fee_cents: onboardingFeeCents,
+        },
+        422,
+      );
+    }
+    payoutCents -= onboardingFeeCents;
+    onboardingFeeDeductedCents = onboardingFeeCents;
+  }
 
   if (payoutCents <= 0) {
     return jsonResponse({ error: "computed payout is non-positive" }, 422);
@@ -253,13 +284,40 @@ serve(async (req) => {
     .update({ payment_status: "released" })
     .eq("id", job.id);
 
+  // Mark onboarding fee as paid only after the transfer + ledger succeed.
+  // Doing it here (not before transfers.create) means a failed transfer
+  // doesn't burn the helper's onboarding-fee opportunity — they'll still
+  // owe it on their next successful payout.
+  if (onboardingFeeDeductedCents > 0) {
+    const { error: feeStampErr } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        onboarding_fee_paid: true,
+        onboarding_fee_charged_at: new Date().toISOString(),
+      })
+      .eq("user_id", job.helper_id);
+    if (feeStampErr) {
+      console.error(
+        `[release-payout] failed to stamp onboarding fee on profile for ${job.helper_id}:`,
+        feeStampErr,
+      );
+      // Non-fatal: transfer already succeeded. Worst case the helper gets
+      // a second $2 deduction on their next payout — admin can reverse.
+    }
+  }
+
   // Notify helper that money is on the way. The transfer is "pending" until
   // Stripe settles; transfer.paid webhook will flip the ledger row to 'paid'
   // and we could send a second notification then.
+  const netDollars = payoutCents / 100;
+  const feeNote =
+    onboardingFeeDeductedCents > 0
+      ? ` (one-time $2 onboarding fee deducted)`
+      : "";
   await supabaseAdmin.from("notifications").insert({
     user_id: job.helper_id,
     title: "💸 Payment released",
-    message: `Your earnings for "${job.title}" ($${payoutDollars.toFixed(2)}) have been sent to your bank.`,
+    message: `Your earnings for "${job.title}" ($${netDollars.toFixed(2)}) have been sent to your bank${feeNote}.`,
     type: "payment",
     link: "/dashboard?tab=earnings",
   });

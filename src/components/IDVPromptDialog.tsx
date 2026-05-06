@@ -43,8 +43,15 @@ export function IDVPromptDialog({
 }: IDVPromptDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  const isRetry = status === "failed" || status === "requires_input";
-  const isPending = status === "processing" || status === "manual_review";
+  // Owner policy (Lexi 2026-05-06): one Stripe Identity attempt per user.
+  // If it fails, no self-service retry — admin reviews manually via
+  // AdminIDVQueue. Saves Stripe Identity costs on dead accounts and on
+  // users repeatedly failing automated checks. The 'failed' /
+  // 'requires_input' states therefore route into the "admin review" UI,
+  // not a "try again" CTA.
+  const isAdminReview =
+    status === "failed" || status === "requires_input" || status === "manual_review";
+  const isPending = status === "processing";
 
   const handleStart = async () => {
     setLoading(true);
@@ -74,16 +81,16 @@ export function IDVPromptDialog({
     }
   };
 
-  const headline = isRetry
-    ? "Let's try that again"
+  const headline = isAdminReview
+    ? "Verification under admin review"
     : isPending
       ? "Verification in progress"
       : "Verify your identity";
 
-  const Icon = isRetry ? RefreshCw : isPending ? Hourglass : ShieldCheck;
+  const Icon = isAdminReview ? Hourglass : isPending ? Hourglass : ShieldCheck;
 
-  const description = isRetry
-    ? "Your last verification didn't go through. Most issues are easy fixes — see below, then start a new check."
+  const description = isAdminReview
+    ? "Your verification didn't auto-pass. An admin will review your submission manually within 24 hours. You'll get a notification when it's resolved."
     : isPending
       ? "We've received your documents and are reviewing them. This usually finishes in a few minutes."
       : (reason ?? "Helpr requires a quick ID + selfie check before you accept your first job. This protects posters and keeps the platform safe.");
@@ -99,26 +106,25 @@ export function IDVPromptDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {/* Failure callout — only when retrying. Stripe gives us a reason
-            string; show it verbatim plus the most common fixes inline. */}
-        {isRetry && (
-          <div className="flex items-start gap-3 p-3 rounded-[12px] bg-destructive/10 border border-destructive/30 mt-2">
-            <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+        {/* Admin-review state — show Stripe's reason for transparency, but
+            no self-service retry CTA. Per owner policy, Stripe Identity is
+            charged once; failures route to manual admin review. */}
+        {isAdminReview && (
+          <div className="flex items-start gap-3 p-3 rounded-[12px] bg-amber-500/10 border border-amber-500/30 mt-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
             <div className="text-sm text-foreground">
-              <p className="font-medium">What went wrong</p>
+              <p className="font-medium">What happened</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {failureReason || "Stripe couldn't confirm your identity from the photos provided."}
+                {failureReason || "Stripe couldn't confirm your identity automatically from the photos provided."}
               </p>
-              <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc pl-4">
-                <li>Use bright, even lighting — no glare on the ID.</li>
-                <li>Remove sunglasses, hats, or face coverings for the selfie.</li>
-                <li>Make sure all four corners of the ID are visible.</li>
-              </ul>
+              <p className="text-xs text-muted-foreground mt-2">
+                An admin will review your ID upload manually. You'll receive a notification when it's resolved — typically within 24 hours.
+              </p>
             </div>
           </div>
         )}
 
-        {!isRetry && !isPending && (
+        {!isAdminReview && !isPending && (
           <div className="space-y-3 py-2">
             <div className="flex items-start gap-3 p-3 rounded-[12px] bg-muted/40 border border-border">
               <FileCheck2 className="w-5 h-5 text-primary mt-0.5 shrink-0" />
@@ -148,12 +154,12 @@ export function IDVPromptDialog({
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-[12px]">
-            {isPending ? "OK" : "Not now"}
+            {isPending || isAdminReview ? "OK" : "Not now"}
           </Button>
-          {!isPending && (
+          {!isPending && !isAdminReview && (
             <Button onClick={handleStart} disabled={loading} className="rounded-[12px]">
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
-              {isRetry ? "Try again" : "Start verification"}
+              Start verification
             </Button>
           )}
         </DialogFooter>

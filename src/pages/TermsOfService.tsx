@@ -214,6 +214,29 @@ const TermsOfService = () => {
                 </>
               }
             />
+            <RowItem
+              icon={Receipt}
+              title="One-Time $2 Onboarding Fee"
+              body={
+                <>
+                  <p><strong className="text-foreground">Charged Once Per Account.</strong> Whichever happens first — your first job post or your first payout — is when the $2 platform onboarding fee is collected.</p>
+                  <p><strong className="text-foreground">If You Post First:</strong> the $2 is added as a line item at checkout the first time you post.</p>
+                  <p><strong className="text-foreground">If You Only Earn:</strong> the $2 is deducted from your first payout, automatically.</p>
+                  <p>You will never be charged twice. Once paid, your account is set.</p>
+                </>
+              }
+            />
+            <RowItem
+              icon={Shield}
+              title="Identity Verification — One Attempt"
+              body={
+                <>
+                  <p><strong className="text-foreground">Stripe Identity is on Helpr — once.</strong> The platform covers the cost of one Stripe ID + selfie check per account.</p>
+                  <p><strong className="text-foreground">If Your Verification Fails the First Time</strong>, an admin will review your submitted ID manually within 24 hours. There is <strong className="text-foreground">no self-service retry</strong>. Please make sure your photos are clear, well-lit, and show all four corners of the ID before you submit.</p>
+                  <p>Once verified (auto or by admin), you are set for the life of your account.</p>
+                </>
+              }
+            />
           </Section>
 
           <Section

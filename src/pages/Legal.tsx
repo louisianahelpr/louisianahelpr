@@ -4,7 +4,7 @@ import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
-  ShieldAlert,
+  ShieldAlert, ShieldCheck,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
@@ -141,6 +141,29 @@ const TermsContent = () => (
           <>
             <p><strong className="text-foreground">Payout schedule:</strong> Payouts are scheduled with a 24–48 hour delay after dual confirmation.</p>
             <p><strong className="text-foreground">Stripe Connect:</strong> Helprs must link a Stripe Connect Express account before accepting offers or receiving payouts.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Receipt}
+        title="One-time $2 onboarding fee"
+        body={
+          <>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first — your first job post or your first payout — is when the $2 onboarding fee is collected.</p>
+            <p><strong className="text-foreground">If you post first:</strong> the $2 is added as a line item at checkout the first time you post.</p>
+            <p><strong className="text-foreground">If you only earn:</strong> the $2 is deducted from your first payout, automatically.</p>
+            <p>You'll never be charged twice. Once paid, your account is set.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={ShieldCheck}
+        title="Identity verification (one attempt)"
+        body={
+          <>
+            <p><strong className="text-foreground">Stripe Identity is on us — once.</strong> Helpr covers the cost of one Stripe ID + selfie check per account.</p>
+            <p><strong className="text-foreground">If your verification fails the first time</strong>, an admin will review your submitted ID manually within 24 hours. There is no self-service retry — please make sure your photos are clear, well-lit, and show all four corners of the ID before you submit.</p>
+            <p>Once verified (auto or by admin), you're set for the life of your account.</p>
           </>
         }
       />

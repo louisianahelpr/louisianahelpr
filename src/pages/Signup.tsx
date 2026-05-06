@@ -39,8 +39,13 @@ const Signup = () => {
   const [lastName, setLastName] = useState("");
   const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
   const [skillSearch, setSkillSearch] = useState("");
-  const [email, setEmail] = useState("");
-  const [confirmEmail, setConfirmEmail] = useState("");
+  // Prefill email when arriving via a business team invite link.
+  // The pending business_members row's invited_email is matched to the
+  // signing-up user's email by the post-signup auto-claim flow, so the
+  // prefill needs to lock in the invite-target address.
+  const inviteEmail = searchParams.get("invite") || "";
+  const [email, setEmail] = useState(inviteEmail);
+  const [confirmEmail, setConfirmEmail] = useState(inviteEmail);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");

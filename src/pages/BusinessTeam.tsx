@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail, Sparkles, CreditCard } from "lucide-react";
+import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail, Sparkles, CreditCard, Send } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -163,13 +163,40 @@ const BusinessTeam = () => {
         invited_by: user?.id,
       });
       if (error) throw error;
-      toast.success(`Invite sent to ${email}. They'll join when they sign up.`);
+
+      // Fire the invite email after the row is created. Best-effort:
+      // if the email send fails (e.g. Resend rate limit), the pending
+      // row still exists and the invitee can be notified some other
+      // way. The toast reflects what actually happened.
+      const { error: emailErr } = await supabase.functions.invoke(
+        "send-business-invite-email",
+        { body: { businessId: business.business_id, invitedEmail: email } },
+      );
+      if (emailErr) {
+        toast.warning(
+          `Invite saved, but email failed to send. Share this link manually: louisianahelpr.com/signup?invite=${encodeURIComponent(email)}`,
+        );
+      } else {
+        toast.success(`Invite emailed to ${email}.`);
+      }
       setInviteEmail("");
       queryClient.invalidateQueries({ queryKey: ["businessMembers", business.business_id] });
     } catch (err: any) {
       toast.error(err.message || "Failed to send invite");
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleResendInvite = async (memberEmail: string) => {
+    if (!business) return;
+    const { error } = await supabase.functions.invoke("send-business-invite-email", {
+      body: { businessId: business.business_id, invitedEmail: memberEmail },
+    });
+    if (error) {
+      toast.error("Failed to resend invite");
+    } else {
+      toast.success(`Invite resent to ${memberEmail}.`);
     }
   };
 
@@ -412,9 +439,21 @@ const BusinessTeam = () => {
                         </p>
                       </div>
                       {business.is_owner && (
-                        <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {m.invited_email && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleResendInvite(m.invited_email!)}
+                              title="Resend invite email"
+                            >
+                              <Send className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       )}
                     </Card>
                   ))}

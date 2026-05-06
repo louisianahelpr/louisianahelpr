@@ -283,16 +283,71 @@ serve(async (req) => {
           if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
           else logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
 
-          // Mark poster's onboarding fee paid if it was charged on this session
+          // Mark poster's onboarding fee paid if it was charged on this session.
+          //
+          // Race protection: two checkouts opened in parallel can each carry
+          // the $2 fee in their line items if both were generated before the
+          // first one's webhook fired. The atomic UPDATE below only flips
+          // the flag if it was still false at write time. If the WHERE
+          // clause matches (1 row updated), this checkout was the first
+          // and the charge is legitimate. If it doesn't match (0 rows),
+          // another path already collected the fee — refund this $2.
           if ((session.metadata as any)?.onboarding_fee_charged === "true") {
             const posterId = (session.metadata as any)?.customer_id;
             if (posterId) {
-              const { error: feeErr } = await supabase
+              const { data: flipped, error: feeErr } = await supabase
                 .from("profiles")
                 .update({ onboarding_fee_paid: true, onboarding_fee_charged_at: new Date().toISOString() })
-                .eq("user_id", posterId);
-              if (feeErr) logStep("ERROR marking onboarding fee paid", { error: feeErr.message });
-              else logStep("Onboarding fee marked paid for poster", { posterId });
+                .eq("user_id", posterId)
+                .eq("onboarding_fee_paid", false)
+                .select("user_id");
+
+              if (feeErr) {
+                logStep("ERROR atomic flip onboarding fee", { error: feeErr.message });
+              } else if (flipped && flipped.length > 0) {
+                logStep("Onboarding fee marked paid for poster", { posterId });
+              } else {
+                // Flag was already true — duplicate fee charged. Auto-refund $2.
+                // Stripe idempotency key keyed on session.id so webhook
+                // re-deliveries don't create multiple refunds for the same
+                // duplicate charge.
+                try {
+                  const ONBOARDING_FEE_CENTS = 200;
+                  const refund = await stripe.refunds.create(
+                    {
+                      payment_intent: piId,
+                      amount: ONBOARDING_FEE_CENTS,
+                      reason: "requested_by_customer",
+                      metadata: {
+                        reason: "duplicate_onboarding_fee",
+                        session_id: session.id,
+                        user_id: posterId,
+                      },
+                    },
+                    { idempotencyKey: `dup-onboarding-fee-${session.id}` },
+                  );
+                  await supabase.from("notifications").insert({
+                    user_id: posterId,
+                    type: "payment",
+                    title: "💸 Duplicate fee refunded",
+                    message:
+                      "We caught a duplicate $2 onboarding fee on your account and refunded it. The fee is one-time only — you won't see it again.",
+                    link: "/profile",
+                    read: false,
+                  });
+                  logStep("Refunded duplicate onboarding fee", {
+                    posterId,
+                    sessionId: session.id,
+                    refundId: refund.id,
+                  });
+                } catch (refundErr) {
+                  logStep("ERROR refunding duplicate onboarding fee", {
+                    error: (refundErr as Error).message,
+                    posterId,
+                    sessionId: session.id,
+                  });
+                }
+              }
             }
           }
         } else if (jobId) {

@@ -190,22 +190,45 @@ serve(async (req) => {
     .limit(1)
     .single();
   const onboardingFeeCents = settingsRow?.onboarding_fee_cents ?? 200;
-  const owesOnboardingFee = !helper.onboarding_fee_paid && onboardingFeeCents > 0;
   let onboardingFeeDeductedCents = 0;
-  if (owesOnboardingFee) {
-    if (payoutCents <= onboardingFeeCents) {
-      return jsonResponse(
-        {
-          error:
-            "first payout does not cover the platform onboarding fee — manual reconciliation needed",
-          payout_cents: payoutCents,
-          fee_cents: onboardingFeeCents,
-        },
-        422,
-      );
+
+  // Race-safe atomic claim BEFORE deducting (and BEFORE the transfer
+  // call). If the flag was already true, another path collected the
+  // fee and we leave the helper's payout alone. If the claim succeeds,
+  // we own the deduction.
+  if (!helper.onboarding_fee_paid && onboardingFeeCents > 0) {
+    const { data: claimed } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        onboarding_fee_paid: true,
+        onboarding_fee_charged_at: new Date().toISOString(),
+      })
+      .eq("user_id", job.helper_id)
+      .eq("onboarding_fee_paid", false)
+      .select("user_id");
+
+    if (claimed && claimed.length > 0) {
+      if (payoutCents <= onboardingFeeCents) {
+        // Edge case: claim succeeded but payout is too small to cover.
+        // Roll back the claim and refuse so admin can reconcile manually.
+        await supabaseAdmin
+          .from("profiles")
+          .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+          .eq("user_id", job.helper_id);
+        return jsonResponse(
+          {
+            error:
+              "first payout does not cover the platform onboarding fee — manual reconciliation needed",
+            payout_cents: payoutCents,
+            fee_cents: onboardingFeeCents,
+          },
+          422,
+        );
+      }
+      payoutCents -= onboardingFeeCents;
+      onboardingFeeDeductedCents = onboardingFeeCents;
     }
-    payoutCents -= onboardingFeeCents;
-    onboardingFeeDeductedCents = onboardingFeeCents;
+    // Lost the race — flag flipped between read and claim. Don't deduct.
   }
 
   if (payoutCents <= 0) {
@@ -284,27 +307,8 @@ serve(async (req) => {
     .update({ payment_status: "released" })
     .eq("id", job.id);
 
-  // Mark onboarding fee as paid only after the transfer + ledger succeed.
-  // Doing it here (not before transfers.create) means a failed transfer
-  // doesn't burn the helper's onboarding-fee opportunity — they'll still
-  // owe it on their next successful payout.
-  if (onboardingFeeDeductedCents > 0) {
-    const { error: feeStampErr } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        onboarding_fee_paid: true,
-        onboarding_fee_charged_at: new Date().toISOString(),
-      })
-      .eq("user_id", job.helper_id);
-    if (feeStampErr) {
-      console.error(
-        `[release-payout] failed to stamp onboarding fee on profile for ${job.helper_id}:`,
-        feeStampErr,
-      );
-      // Non-fatal: transfer already succeeded. Worst case the helper gets
-      // a second $2 deduction on their next payout — admin can reverse.
-    }
-  }
+  // Note: onboarding-fee flag was already flipped atomically above,
+  // before the transfer ran, so no follow-up write is needed here.
 
   // Notify helper that money is on the way. The transfer is "pending" until
   // Stripe settles; transfer.paid webhook will flip the ledger row to 'paid'

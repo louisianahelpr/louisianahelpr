@@ -70,11 +70,30 @@ serve(async (req) => {
         .eq("user_id", job.helper_id)
         .single();
 
-      // First-payout onboarding fee: deduct one-time fee from this payout
-      const owesOnboardingFee = !helperProfile?.onboarding_fee_paid && onboardingFeeCents > 0;
-      const onboardingFeeDollars = owesOnboardingFee ? onboardingFeeCents / 100 : 0;
-      if (owesOnboardingFee) {
-        helperPayout = Math.max(0, helperPayout - onboardingFeeDollars);
+      // First-payout onboarding fee — race-safe atomic claim BEFORE deducting.
+      // The atomic UPDATE only flips the flag if it was still false at write
+      // time, so two concurrent paths (e.g. checkout webhook + this cron)
+      // can't both think they're collecting the fee. We deduct only if the
+      // claim succeeds; otherwise the helper keeps their full payout.
+      let owesOnboardingFee = false;
+      let onboardingFeeDollars = 0;
+      if (!helperProfile?.onboarding_fee_paid && onboardingFeeCents > 0) {
+        const { data: claimed } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            onboarding_fee_paid: true,
+            onboarding_fee_charged_at: new Date().toISOString(),
+          })
+          .eq("user_id", job.helper_id)
+          .eq("onboarding_fee_paid", false)
+          .select("user_id");
+
+        if (claimed && claimed.length > 0) {
+          owesOnboardingFee = true;
+          onboardingFeeDollars = onboardingFeeCents / 100;
+          helperPayout = Math.max(0, helperPayout - onboardingFeeDollars);
+        }
+        // Lost the race: another path collected the fee first; do not deduct.
       }
 
       if (helperPayout <= 0) {
@@ -181,13 +200,9 @@ serve(async (req) => {
           payment_status: "released",
         }).eq("id", job.id);
 
-        // Mark helper's onboarding fee as paid (one-time deduction on first successful payout)
-        if (owesOnboardingFee) {
-          await supabaseAdmin.from("profiles").update({
-            onboarding_fee_paid: true,
-            onboarding_fee_charged_at: new Date().toISOString(),
-          }).eq("user_id", job.helper_id);
-        }
+        // Note: the onboarding-fee flag was already flipped atomically
+        // above, before the transfer ran, so no follow-up write is needed
+        // here. Leaving this comment as a marker for the prior pattern.
 
         const feeNote = owesOnboardingFee
           ? ` (one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted)`

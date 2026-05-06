@@ -34,7 +34,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const HELPER_FEE_PERCENT = 10; // platform cut
+// Default fallback if platform_settings row is missing for any reason.
+// Real value is read from platform_settings.helper_fee_percent at runtime
+// so all three payout paths (this fn, process-scheduled-payouts,
+// create-payment) stay consistent without a code change in three places.
+const HELPER_FEE_PERCENT_FALLBACK = 10;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -92,10 +96,14 @@ serve(async (req) => {
   if (body.initiated_by && isCron) initiatedBy = body.initiated_by;
 
   // Validate job is eligible to release.
+  // dispute_status + disputed_at are read for defense-in-depth: the
+  // primary gate is status='completed', but a job in dispute that
+  // somehow got marked completed (legacy data, future code paths)
+  // should never auto-pay out. Belt + suspenders.
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at",
     )
     .eq("id", body.job_id)
     .single();
@@ -117,6 +125,21 @@ serve(async (req) => {
   }
   if (!job.helper_id) {
     return jsonResponse({ error: "job has no helper_id" }, 409);
+  }
+
+  // Defense-in-depth: refuse payout on any dispute marker, even if
+  // status somehow got back to 'completed'. dispute_status='resolved'
+  // means an admin closed the dispute in the helper's favor — that's OK.
+  // Anything else (open, pending, escalated) → block.
+  if (job.disputed_at !== null && (job.dispute_status === null || job.dispute_status !== "resolved")) {
+    return jsonResponse(
+      {
+        error: "job has an active dispute marker; payout blocked",
+        dispute_status: job.dispute_status,
+        disputed_at: job.disputed_at,
+      },
+      409,
+    );
   }
 
   // Helper must have an active Connect account with payouts enabled.
@@ -171,10 +194,18 @@ serve(async (req) => {
     );
   }
 
-  // Compute payout: budget - 10% platform cut + any urgent fee, in cents.
+  // Compute payout: budget - platform cut + any urgent fee, in cents.
+  // Fee % comes from platform_settings (single source of truth across
+  // create-payment, process-scheduled-payouts, and this function).
+  const { data: feeSettings } = await supabaseAdmin
+    .from("platform_settings")
+    .select("helper_fee_percent")
+    .limit(1)
+    .single();
+  const helperFeePercent = feeSettings?.helper_fee_percent ?? HELPER_FEE_PERCENT_FALLBACK;
   const grossDollars = Number(job.budget) + Number(job.urgent_fee ?? 0);
   const platformFeeDollars =
-    Math.round(Number(job.budget) * HELPER_FEE_PERCENT) / 100;
+    Math.round(Number(job.budget) * helperFeePercent) / 100;
   const payoutDollars = grossDollars - platformFeeDollars;
   let payoutCents = Math.round(payoutDollars * 100);
   const platformFeeCents = Math.round(platformFeeDollars * 100);

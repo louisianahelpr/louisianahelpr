@@ -477,7 +477,10 @@ history during a failed `ALTER DATABASE` for vault GUCs.
 - [x] Surface payout_transfers ledger to helpers (earnings tab — commit afc83213) and admin reconciliation view (commit 3bccf4d8 — last 50 transfers in AdminPayoutBatches with status, failure reason, helper name, job title)
 
 ### Messaging & realtime
-- [ ] Supabase Realtime channel per job thread; presence + typing indicators
+- [x] Supabase Realtime channel per job thread; presence + typing
+  indicators — already shipped in `src/hooks/useChatPresence.ts`.
+  Messages.tsx wires `isOtherOnline`, `isOtherTyping`, and
+  `broadcastTyping` into the conversation header.
 - [x] Attachment uploads (photos for quotes / completion proof) with
   size + MIME guards — already implemented in `src/lib/messageAttachments.ts`.
   5MB cap, MIME whitelist (JPG/PNG/WEBP/HEIC/PDF), EXIF stripping

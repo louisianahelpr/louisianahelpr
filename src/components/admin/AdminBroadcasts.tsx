@@ -54,26 +54,54 @@ const AdminBroadcasts = () => {
 
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60 * 60 * 1000).toISOString();
 
-    const { error } = await supabase.from("broadcast_messages").insert({
-      title: title.trim(),
-      message: message.trim(),
-      type,
-      created_by: user.id,
-      expires_at: expiresAt,
-    });
+    const { data: insertResult, error } = await supabase
+      .from("broadcast_messages")
+      .insert({
+        title: title.trim(),
+        message: message.trim(),
+        type,
+        created_by: user.id,
+        expires_at: expiresAt,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      setCreating(false);
+      toast.error(error.message);
+      return;
+    }
+
+    // Fan out to push notifications for every eligible user (has push_token
+    // + push_enabled + system_alerts in their notification_preferences).
+    // Each notification row inserted by the RPC fires the existing
+    // fan_out_push_on_notification trigger → APNs/FCM. Best-effort: if the
+    // fan-out errors, the broadcast banner still shows on Dashboard for
+    // every user via the existing BroadcastBanner component.
+    let pushedCount: number | null = null;
+    try {
+      const { data: count, error: rpcError } = await (supabase.rpc as any)(
+        "fan_out_broadcast_to_notifications",
+        { _broadcast_id: insertResult.id },
+      );
+      if (rpcError) throw rpcError;
+      pushedCount = typeof count === "number" ? count : null;
+    } catch (rpcErr: any) {
+      console.warn("Broadcast fan-out failed (banner still visible):", rpcErr);
+    }
 
     setCreating(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Broadcast sent!");
-      setTitle("");
-      setMessage("");
-      setType("info");
-      setDuration("24");
-      setShowForm(false);
-      load();
-    }
+    toast.success(
+      pushedCount !== null
+        ? `Broadcast sent + pushed to ${pushedCount} device${pushedCount === 1 ? "" : "s"}.`
+        : "Broadcast sent! (push fan-out failed; banner is visible)",
+    );
+    setTitle("");
+    setMessage("");
+    setType("info");
+    setDuration("24");
+    setShowForm(false);
+    load();
   };
 
   const remove = async (id: string) => {

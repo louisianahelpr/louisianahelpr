@@ -34,6 +34,7 @@ const FLAG_TYPES = [
   { value: "scope_creep", label: "Scope Creep (3+ revisions)" },
   { value: "burst_job_posting", label: "Burst Job Posting" },
   { value: "multi_reporter_flag", label: "Multi-Reporter Pile-On" },
+  { value: "rapid_cancellation_pattern", label: "Rapid Cancellation" },
 ];
 
 const AdminFraudDashboard = () => {
@@ -95,6 +96,7 @@ const AdminFraudDashboard = () => {
     scope_creep: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
     burst_job_posting: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
     multi_reporter_flag: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    rapid_cancellation_pattern: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
   };
 
   return (

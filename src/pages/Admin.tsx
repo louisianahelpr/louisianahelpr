@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
@@ -119,7 +119,13 @@ const Admin = () => {
   const { loading } = useAdminAuth();
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
-  const [view, setView] = useState<View>("home");
+  // ?view= deep-links from notifications (e.g. /admin?view=people&user=<id>).
+  // Notifications fanned out by triggers point here so admins land on the
+  // right sub-view in one tap. ?user= is forwarded into AdminUsers so it
+  // can openProfile() automatically.
+  const [searchParams] = useSearchParams();
+  const initialView = (searchParams.get("view") as View) || "home";
+  const [view, setView] = useState<View>(initialView);
   const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState<Stats>({

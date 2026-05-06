@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { createNotification } from "@/lib/notifications";
@@ -382,6 +383,23 @@ const AdminUsers = () => {
   useEffect(() => {
     loadProfiles();
   }, []);
+
+  // Deep-link from admin notifications: /admin?view=people&user=<id>.
+  // Once profiles are loaded, find the user and open their detail dialog
+  // automatically. Strip the ?user= param afterwards so navigating back
+  // doesn't re-open the dialog every time.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const userIdParam = searchParams.get("user");
+    if (!userIdParam || profiles.length === 0) return;
+    const target = profiles.find((p) => p.user_id === userIdParam);
+    if (target) {
+      openProfile(target);
+      const next = new URLSearchParams(searchParams);
+      next.delete("user");
+      setSearchParams(next, { replace: true });
+    }
+  }, [profiles, searchParams]);
 
   const openProfile = async (profile: Profile) => {
     setViewProfile(profile);

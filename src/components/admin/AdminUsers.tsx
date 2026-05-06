@@ -24,6 +24,7 @@ import UserVerificationHistory from "./UserVerificationHistory";
 import { hapticSuccess } from "@/lib/haptics";
 import { AutoRestrictedRail } from "./AutoRestrictedRail";
 import { DenyUserDialog } from "./DenyUserDialog";
+import { BanDialog } from "./BanDialog";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -57,12 +58,9 @@ const AdminUsers = () => {
   // owns reason + saving state internally.
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
 
-  // Ban dialog
+  // Ban dialog — moved into BanDialog component. Parent only tracks
+  // which profile is targeted; dialog owns type/reason/duration/saving.
   const [banProfile, setBanProfile] = useState<Profile | null>(null);
-  const [banType, setBanType] = useState<"warning" | "temporary" | "permanent">("warning");
-  const [banReason, setBanReason] = useState("");
-  const [banDuration, setBanDuration] = useState("7"); // days — presets 2 / 7 / 30
-  const [banning, setBanning] = useState(false);
 
   // Edit email dialog
   const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
@@ -554,87 +552,8 @@ const AdminUsers = () => {
     }
   };
 
-  const handleBanAction = async () => {
-    if (!banProfile) return;
-    setBanning(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setBanning(false); return; }
-
-    try {
-      if (banType === "warning") {
-        // Issue warning
-        await supabase.from("user_violations").insert({
-          user_id: banProfile.user_id,
-          violation_type: "admin_warning",
-          description: banReason.trim(),
-          action_taken: "warning",
-          reported_by: user.id,
-        });
-        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", banProfile.user_id);
-        await createNotification({
-          user_id: banProfile.user_id, title: "⚠️ Warning from Admin",
-          message: banReason.trim() || "You have received a warning for violating platform rules. Another violation may result in a ban.",
-          type: "warning", link: "/profile",
-        });
-        toast.success("Warning issued.");
-        await logAdminAction("ban_user", "user", banProfile.user_id, { type: "warning", reason: banReason.trim() });
-      } else if (banType === "temporary") {
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + parseInt(banDuration));
-        await supabase.from("user_bans").insert({
-          user_id: banProfile.user_id,
-          ban_type: "temporary",
-          reason: banReason.trim(),
-          banned_by: user.id,
-          expires_at: expiresAt.toISOString(),
-        });
-        await supabase.from("user_violations").insert({
-          user_id: banProfile.user_id,
-          violation_type: "admin_action",
-          description: banReason.trim(),
-          action_taken: "temp_ban",
-          reported_by: user.id,
-        });
-        await supabase.from("profiles").update({ ban_status: "temp_banned" }).eq("user_id", banProfile.user_id);
-        await createNotification({
-          user_id: banProfile.user_id, title: "🚫 Temporary Ban",
-          message: `Your account has been temporarily banned for ${banDuration} days. Reason: ${banReason.trim() || "Platform rule violation."}`,
-          type: "warning", link: "/profile",
-        });
-        toast.success(`User temporarily banned for ${banDuration} days.`);
-      } else {
-        await supabase.from("user_bans").insert({
-          user_id: banProfile.user_id,
-          ban_type: "permanent",
-          reason: banReason.trim(),
-          banned_by: user.id,
-        });
-        await supabase.from("user_violations").insert({
-          user_id: banProfile.user_id,
-          violation_type: "admin_action",
-          description: banReason.trim(),
-          action_taken: "permanent_ban",
-          reported_by: user.id,
-        });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", banProfile.user_id);
-        await createNotification({
-          user_id: banProfile.user_id, title: "⛔ Account Permanently Banned",
-          message: `Your account has been permanently banned. Reason: ${banReason.trim() || "Severe platform rule violation."}`,
-          type: "warning", link: "/profile",
-        });
-        toast.success("User permanently banned.");
-      }
-
-      loadProfiles();
-      setBanProfile(null);
-      setBanReason("");
-      setViewProfile(null);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to take action");
-    } finally {
-      setBanning(false);
-    }
-  };
+  // handleBanAction logic moved into BanDialog. Parent only opens the
+  // dialog (via setBanProfile) and refetches via the dialog's onSuccess.
 
   const unbanUser = async (profile: Profile) => {
     await supabase.from("user_bans").update({ is_active: false }).eq("user_id", profile.user_id).eq("is_active", true);
@@ -1991,7 +1910,7 @@ const AdminUsers = () => {
                         <History className="w-4 h-4 mr-1.5" /> View History
                       </Button>
                       {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
-                        <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => { setBanProfile(viewProfile); setBanReason(""); setBanType("warning"); }}>
+                        <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>
                           <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
                         </Button>
                       ) : (
@@ -2022,79 +1941,14 @@ const AdminUsers = () => {
       />
 
       {/* Ban / Warning Dialog */}
-      <Dialog open={!!banProfile} onOpenChange={() => setBanProfile(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
-          <DialogHeader className="pr-8 space-y-1">
-            <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
-              <ShieldAlert className="w-5 h-5 text-destructive shrink-0" />
-              <span className="truncate">Take Action: {banProfile?.full_name || "User"}</span>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { key: "warning", label: "Warning", icon: <AlertTriangle className="w-4 h-4" />, color: "border-accent/40 bg-accent/10" },
-                  { key: "temporary", label: "Temp Ban", icon: <Clock className="w-4 h-4" />, color: "border-destructive/40 bg-destructive/10" },
-                  { key: "permanent", label: "Perm Ban", icon: <Ban className="w-4 h-4" />, color: "border-destructive/60 bg-destructive/20" },
-                ] as const).map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setBanType(opt.key)}
-                    className={`p-2.5 rounded-xl border text-center space-y-1 transition-colors ${
-                      banType === opt.key ? opt.color : "border-border bg-card hover:bg-secondary/30"
-                    }`}
-                  >
-                    <div className="flex justify-center">{opt.icon}</div>
-                    <p className="text-xs font-medium">{opt.label}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {banType === "temporary" && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Duration (days)</p>
-                <Select value={banDuration} onValueChange={setBanDuration}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2">48 hours (2 days)</SelectItem>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
-              <Textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Describe the reason for this action…" rows={3} />
-            </div>
-
-            {banType === "permanent" && (
-              <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-                <p className="text-xs text-destructive flex items-start gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>This action is severe. The user will lose access permanently.</span>
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
-
-            <Button variant="ghost" onClick={() => setBanProfile(null)} className="w-full sm:w-auto">Cancel</Button>
-            <Button
-              variant={banType === "warning" ? "default" : "destructive"}
-              onClick={handleBanAction}
-              disabled={banning || !banReason.trim()}
-              className="w-full sm:w-auto"
-            >
-              {banning ? "Processing…" : banType === "warning" ? "Issue Warning" : banType === "temporary" ? `Ban for ${banDuration} days` : "Permanently Ban"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BanDialog
+        profile={banProfile}
+        onClose={() => setBanProfile(null)}
+        onSuccess={() => {
+          loadProfiles();
+          setViewProfile(null);
+        }}
+      />
 
       {/* Edit Email Dialog */}
       <Dialog open={!!editEmailProfile} onOpenChange={() => setEditEmailProfile(null)}>

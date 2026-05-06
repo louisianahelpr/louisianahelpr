@@ -16,6 +16,11 @@ import PhoneCluster from "@/components/landing/PhoneCluster";
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
+  // Real "active now" count of open jobs from the last 7 days. Pulled
+  // via the public get_marketplace_activity_count RPC. Null until the
+  // first call returns; stays null on error so the pill falls back to
+  // honest copy without flashing a fake "0" or zero state.
+  const [activeCount, setActiveCount] = useState<number | null>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
@@ -45,6 +50,28 @@ const HeroSection = () => {
     return () => {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Fetch the real "active now" count after first interaction so the
+  // initial paint stays static and the supabase chunk doesn't block LCP.
+  // Failures stay quiet — pill falls back to "Live in Louisiana".
+  useEffect(() => {
+    let cancelled = false;
+    const kick = async () => {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data, error } = await supabase.rpc("get_marketplace_activity_count");
+        if (cancelled || error) return;
+        if (typeof data === "number" && data > 0) setActiveCount(data);
+      } catch {
+        /* keep activeCount null → pill stays generic */
+      }
+    };
+    const timer = window.setTimeout(kick, 1500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
     };
   }, []);
 
@@ -124,10 +151,11 @@ const HeroSection = () => {
           letterSpacing: "0.01em",
         }}
       >
-        {/* Live-in-Louisiana pill — honest copy until we wire a real
-            "open jobs nearby" count from a public RPC. The previous
-            hardcoded "46 active now" was effectively a lie at current
-            scale; brand trust matters more than the optical bump. */}
+        {/* Status pill — shows real count of currently-open jobs from
+            the last 7 days when activity exists, falls back to "Live in
+            Louisiana" otherwise (so we never flash a deflating "0 jobs
+            open"). Count is fetched lazily via public RPC after first
+            paint to keep LCP fast. */}
         <span
           className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{
@@ -135,7 +163,9 @@ const HeroSection = () => {
             boxShadow: "0 0 6px hsl(120, 60%, 55%, 0.6)",
           }}
         />
-        Live in Louisiana
+        {activeCount !== null
+          ? `${activeCount} ${activeCount === 1 ? "job" : "jobs"} open`
+          : "Live in Louisiana"}
       </span>
       {/* Mesh gradient — five drifting radial washes (cream + sage + sienna)
           that animate slowly, giving the "liquid" page mood without

@@ -5,6 +5,7 @@ import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2 } from "luci
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticError } from "@/lib/haptics";
+import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import {
   uploadMessageAttachment,
   isImageMime,
@@ -56,6 +57,7 @@ export const RichMessageInput = ({
   const [uploading, setUploading] = useState(false);
   const [pendingViolation, setPendingViolation] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { request: requestPermission } = usePermissionRationale();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,18 +94,29 @@ export const RichMessageInput = ({
     return { path: result.path, mime: result.mime, size: result.size };
   };
 
-  const handleShareLocation = () => {
+  const handleShareLocation = async () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation not supported");
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
-      },
-      () => toast.error("Location access denied")
-    );
+    // Soft pre-prompt before triggering the OS permission dialog.
+    // Improves accept rates and keeps the OS prompt from being burned
+    // by a panic-tap "deny."
+    await requestPermission("location", () => {
+      return new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
+            resolve();
+          },
+          () => {
+            toast.error("Location access denied");
+            resolve();
+          },
+        );
+      });
+    });
   };
 
   const performSend = async () => {

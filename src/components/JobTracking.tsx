@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 
 const STATUSES = [
   { key: "assigned", label: "Offered", icon: Clock, color: "text-muted-foreground" },
@@ -49,6 +50,7 @@ export function JobTracking({
   const [updating, setUpdating] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
+  const { request: requestPermission } = usePermissionRationale();
 
   // Sync props
   useEffect(() => { setHelperConfirmedAt(initialHelperConfirmedAt); }, [initialHelperConfirmedAt]);
@@ -98,15 +100,25 @@ export function JobTracking({
     return () => { supabase.removeChannel(channel); };
   }, [jobId, helperId, loadTracking]);
 
-  const getLocation = (): Promise<{ lat: number; lng: number } | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve(null),
-        { timeout: 10000 }
-      );
+  const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+    if (!navigator.geolocation) return null;
+    let location: { lat: number; lng: number } | null = null;
+    // Pre-prompt before the first OS dialog this session, so the helper
+    // sees a friendly "we use your location to confirm arrival" message
+    // before iOS shows its system alert.
+    await requestPermission("location", () => {
+      return new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            resolve();
+          },
+          () => resolve(),
+          { timeout: 10000 },
+        );
+      });
     });
+    return location;
   };
 
   const getDistanceFt = (lat1: number, lon1: number, lat2: number, lon2: number): number => {

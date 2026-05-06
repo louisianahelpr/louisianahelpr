@@ -70,10 +70,38 @@ const setState = (next: State) => {
   listeners.forEach((fn) => fn(next));
 };
 
+// Session-scoped record of which permission kinds have already shown
+// the rationale dialog AND been confirmed. We only short-circuit on
+// confirm — if the user said "Not now," we'll show the dialog again
+// on the next ask so they can change their mind.
+const SESSION_KEY = "__helpr_rationale_confirmed";
+
+function readConfirmedSet(): Set<PermissionKind> {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as PermissionKind[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function markConfirmed(kind: PermissionKind) {
+  try {
+    const set = readConfirmedSet();
+    set.add(kind);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    // sessionStorage unavailable in private mode / SSR — ignore.
+  }
+}
+
 /**
  * Page-level hook for components that need to request a permission.
- * Returns `request(kind, onGranted)` — shows rationale, then on confirm,
- * runs the actual native API call (which triggers the OS prompt).
+ * Returns `request(kind, onGranted)` — shows rationale on first ask,
+ * then on confirm runs the actual native API call (which triggers
+ * the OS prompt). Subsequent asks for the same kind in the same
+ * session skip the rationale (user has already opted in once).
  */
 export function usePermissionRationale() {
   const request = useCallback(
@@ -81,6 +109,16 @@ export function usePermissionRationale() {
       kind: PermissionKind,
       runNativeCall: () => Promise<void> | void,
     ): Promise<boolean> => {
+      // Already confirmed this kind in this session — skip the dialog
+      // and go straight to the native call.
+      if (readConfirmedSet().has(kind)) {
+        try {
+          await runNativeCall();
+          return true;
+        } catch {
+          return false;
+        }
+      }
       return new Promise((resolve) => {
         setState({
           open: true,
@@ -90,6 +128,7 @@ export function usePermissionRationale() {
               resolve(false);
               return;
             }
+            markConfirmed(kind);
             try {
               await runNativeCall();
               resolve(true);

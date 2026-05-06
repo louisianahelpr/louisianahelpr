@@ -27,6 +27,7 @@ import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
+import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 
 // Fires brand-tinted confetti for the user's first 3 successful posts.
 // After post #3 the novelty fades back to a quiet checkmark — counter
@@ -107,10 +108,7 @@ const PostJob = () => {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
-  // AI Job Builder
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
+  // AI Job Builder state moved into the AiJobBuilder component itself.
 
   // Image upload state
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -213,32 +211,21 @@ const PostJob = () => {
 
 
 
-  const handleAiBuild = async () => {
-    if (!aiPrompt.trim()) { toast.error("Describe what you need help with"); return; }
-    setAiLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-job-builder", {
-        body: { messages: [{ role: "user", content: aiPrompt }], jobContext: { location: `${city}, ${addrState}` } },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setTitle(data.title || "");
-      setDescription(data.description || "");
-      setCategory(data.category || "other");
-      setEstimatedHours(data.estimated_hours?.toString() || "");
-      setBudget(data.budget_max?.toString() || data.budget_min?.toString() || "");
-      setSpecialRequirements(data.special_requirements || "");
-      if (data.is_group_job) {
-        setIsGroupJob(true);
-        setHelpersNeeded(data.helpers_needed?.toString() || "2");
-      }
-      setAiOpen(false);
-      toast.success("Job details generated! Review and edit as needed.");
-    } catch (err: any) {
-      toast.error(err.message || "AI generation failed");
-    } finally {
-      setAiLoading(false);
+  // Apply AI-generated fields to the form. Pure assignment — caller
+  // can revise anything before submit. Empty strings/zero values are
+  // preserved so a generated "" doesn't blow away existing user input
+  // unless the AI returned a real value.
+  const applyAiJob = (data: AiGeneratedJob) => {
+    if (data.title) setTitle(data.title);
+    if (data.description) setDescription(data.description);
+    if (data.category) setCategory(data.category);
+    if (data.estimated_hours !== undefined) setEstimatedHours(String(data.estimated_hours));
+    const budgetCandidate = data.budget_max ?? data.budget_min;
+    if (budgetCandidate !== undefined) setBudget(String(budgetCandidate));
+    if (data.special_requirements) setSpecialRequirements(data.special_requirements);
+    if (data.is_group_job) {
+      setIsGroupJob(true);
+      if (data.helpers_needed !== undefined) setHelpersNeeded(String(data.helpers_needed));
     }
   };
 
@@ -631,45 +618,11 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* AI Job Builder — secondary helper, collapsed by default */}
-              <div className="rounded-lg border border-dashed border-border bg-muted/30">
-                <button
-                  type="button"
-                  onClick={() => setAiOpen(!aiOpen)}
-                  className="flex items-center gap-2 w-full text-left px-3 py-2.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground flex-1">
-                    <span className="font-medium text-foreground">Try the AI Job Builder</span> — describe your task and let AI fill the form
-                  </span>
-                  <span className="text-xs text-muted-foreground">{aiOpen ? "Hide" : "Show"}</span>
-                </button>
-                {aiOpen && (
-                  <div className="space-y-2 p-3 pt-0 border-t border-dashed border-border">
-                    <Textarea
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
-                      rows={3}
-                      className="text-sm"
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleAiBuild}
-                      disabled={aiLoading}
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                    >
-                      {aiLoading ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</>
-                      ) : (
-                        <><Sparkles className="w-4 h-4 mr-2" /> Generate Job Posting</>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* AI Job Builder — secondary helper, collapsed by default. */}
+              <AiJobBuilder
+                locationContext={`${city}, ${addrState}`.trim().replace(/^,\s*/, "")}
+                onGenerated={applyAiJob}
+              />
 
               <form onSubmit={handleReview} className="space-y-5">
                 {/* SECTION 1: DETAILS */}

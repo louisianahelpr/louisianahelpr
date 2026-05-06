@@ -78,14 +78,14 @@ Listed in rough priority order.
   apply directly from pin popup for logged-in users (skip the
   `?quickApply=` redirect).
 - [ ] **Continue god-component extraction**
-  AdminUsers is at 2,055 lines (was 2,464 at start of audit, -409 / -16.6%).
-  Pattern set with 5 sub-components: `AutoRestrictedRail`,
-  `DenyUserDialog`, `BanDialog`, `EditEmailDialog`, `DeleteUserDialog`.
-  Remaining inline dialogs (`ManualVerifyDialog`, `ReuploadDialog`,
-  `ResetPasswordDialog`, `WarningDialog`) all share a `callAdminAction`
-  coordinator function — extracting them requires lifting that helper
-  carefully. Each dialog should own its own edge-fn invocation +
-  loading state in the new model. Then do the same treatment for
+  AdminUsers is at 1,916 lines (was 2,464 at start of audit, -548 / -22.2%).
+  9 sub-components extracted: `AutoRestrictedRail`, `DenyUserDialog`,
+  `BanDialog`, `EditEmailDialog`, `DeleteUserDialog`,
+  `ManualVerifyDialog`, `ResetPasswordDialog`, `ReuploadIdDialog`,
+  `FormalWarningDialog`. The shared `callAdminAction` coordinator
+  + `actionBusy` state are retired from the parent. AdminUsers is
+  now mostly the user-list + filter pills + per-card menu —
+  no further dialog extractions needed at this point. Next:
   `Profile.tsx` (1,299), `PostJob.tsx` (1,163), `Dashboard.tsx` (1,015).
 - [ ] **Stripe webhook 699-line refactor**
   Highest-risk file in the repo. Split the giant `switch` into

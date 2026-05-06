@@ -65,15 +65,16 @@ const UserProfile = () => {
         return { profile: null as Profile | null };
       }
       const prof = profileRes.data[0] as any;
-      const isHelper = prof.role === "helper";
 
+      // Unified user model — every user can apply OR post. Always fetch
+      // applications; the metrics section just hides itself if empty.
+      // Was previously gated on role === 'helper', but role distinction
+      // no longer exists in the UI.
       const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
         supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
-        isHelper
-          ? supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!)
-          : Promise.resolve({ data: null }),
+        supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
         supabase.from("profiles").select("id_document_url").eq("user_id", userId!).single(),
       ]);
 
@@ -89,7 +90,7 @@ const UserProfile = () => {
       };
 
       let responseMetrics = { avgResponseHours: null as number | null, acceptanceRate: null as number | null, totalApplications: 0 };
-      if (isHelper && appsRes?.data && appsRes.data.length > 0) {
+      if (appsRes?.data && appsRes.data.length > 0) {
         const allApps = appsRes.data;
         const accepted = allApps.filter((a: any) => a.status === "accepted");
         const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;

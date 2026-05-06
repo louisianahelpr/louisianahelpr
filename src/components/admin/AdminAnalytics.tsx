@@ -107,8 +107,24 @@ const AdminAnalytics = () => {
   }
 
   // ─── Computed metrics ───
-  const helpers = profiles.filter(p => roleByUser.get(p.user_id) === "helper");
-  const customers = profiles.filter(p => roleByUser.get(p.user_id) === "customer");
+  // Unified user model: there's no helper-vs-customer distinction at the
+  // user level. Define cohorts by behavior instead — anyone who's applied
+  // to a job is treated as supply-side; anyone who's posted as demand-side.
+  // Same user can be both.
+  const helperUserIds = new Set<string>();
+  for (const j of allJobs) {
+    if (j.helper_id) helperUserIds.add(j.helper_id);
+  }
+  // also count anyone who's applied (even if never selected)
+  // (allApps state isn't fetched here today — fall back to helper_id from
+  //  jobs, which captures actual workers; tracking applicants would need
+  //  a separate query if we want full supply-side funnel.)
+  const customerUserIds = new Set<string>();
+  for (const j of allJobs) {
+    if (j.customer_id) customerUserIds.add(j.customer_id);
+  }
+  const helpers = profiles.filter(p => helperUserIds.has(p.user_id));
+  const customers = profiles.filter(p => customerUserIds.has(p.user_id));
 
   // ─── Activation funnels ───
   // Two SaaS-standard funnels: customer-side (revenue funnel) and

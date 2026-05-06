@@ -86,6 +86,17 @@ skipped, build/tsc/lint all green.
 - 75 policies scoped to `{authenticated}` (was `{public}`)
 - 158 `auth.uid()` calls wrapped in `(SELECT auth.uid())` for initPlan
 
+### Open product decisions
+
+- 🟡 **Should admin broadcasts → push notifications?** Currently
+  `AdminBroadcasts` writes to `broadcast_messages` (shown via the
+  banner on Dashboard), but does NOT insert into `notifications` —
+  so broadcasts don't fan out to push. If you want broadcasts to
+  also push to every user, ~10 lines: in the broadcast send handler,
+  query all users where `notification_preferences.push_enabled` AND
+  `system_alerts`, then fan out via `createNotification`. Currently
+  banner-only because the design intent was passive vs. push-y.
+
 ### Pending YOUR action (only you can do these)
 
 - 🟠 **iOS Build #17** — cowork ships this afternoon when you're back.

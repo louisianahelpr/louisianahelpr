@@ -88,6 +88,26 @@ export function useNativePushSetup() {
 
         if (cancelled) return;
 
+        // Auto-register on every app boot when permission is already
+        // granted. Capacitor's PushNotifications plugin does NOT cache or
+        // re-emit the token across app launches — register() must be
+        // called each session for the registration event to fire. Without
+        // this, users who granted permission previously never get their
+        // token persisted (the user-initiated requestPushPermission flow
+        // is the only other call site, and it's gated behind a 30-day
+        // snooze on the dashboard prompt). Idempotent + fast when already
+        // registered.
+        try {
+          const status = await PushNotifications.checkPermissions();
+          if (status.receive === "granted") {
+            await PushNotifications.register();
+          }
+        } catch (regErr) {
+          report(regErr, { tags: { source: "push.autoRegister" } });
+        }
+
+        if (cancelled) return;
+
         // Universal Links / App Links — handle taps from outside the app.
         const { App } = await import("@capacitor/app");
         await App.addListener("appUrlOpen", (event) => {

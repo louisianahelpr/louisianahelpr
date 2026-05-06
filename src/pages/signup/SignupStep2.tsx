@@ -62,7 +62,6 @@ export function SignupStep2(props: SignupStep2Props) {
     isBusinessSignup,
     companyName,
     setCompanyName,
-    avatarFile,
     avatarPreview,
     onAvatarChange,
     firstName,

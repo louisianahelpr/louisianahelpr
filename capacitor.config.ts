@@ -13,7 +13,6 @@ const devServerUrl =
     ? rawDevUrl
     : undefined;
 if (rawDevUrl && !devServerUrl) {
-  // eslint-disable-next-line no-console
   console.warn(
     `[capacitor.config] Ignoring CAP_DEV_URL="${rawDevUrl}" — only Lovable sandbox URLs are allowed.`,
   );

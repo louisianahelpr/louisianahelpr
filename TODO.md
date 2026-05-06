@@ -69,14 +69,13 @@ Listed in rough priority order.
   Leaflet + react-leaflet + OpenStreetMap tiles. Public RPC
   `get_open_jobs_for_map` returns coords rounded to 3 decimals (~110m
   precision) so doorstep is never exposed. `BrowseMap` lazy-loaded
-  via Suspense. List/Map toggle live on `/browse` (DashboardGuest).
-  Pin tap → popup with title/budget/category/urgent flag → CTA to
-  apply. Geocoding wired into PostJob (Nominatim, free, US-scoped) so
-  new posts populate coords automatically.
-  **Remaining map work** (next session): same toggle on authenticated
-  `/dashboard`, pin clustering at high zoom (`react-leaflet-cluster`),
-  apply directly from pin popup for logged-in users (skip the
-  `?quickApply=` redirect).
+  via Suspense. List/Map toggle live on `/browse` (DashboardGuest)
+  AND on authenticated `/dashboard`. Pin tap → popup with title/budget/
+  category/urgent flag → 1-tap apply (auth) or "Sign up to apply"
+  redirect (guest). Pin clustering via `react-leaflet-cluster`
+  (chunkedLoading + spiderfyOnMaxZoom + 50px cluster radius).
+  Geocoding wired into PostJob (Nominatim, free, US-scoped) so
+  new posts populate coords automatically. Map item COMPLETE.
 - [ ] **Continue god-component extraction**
   AdminUsers is at 1,916 lines (was 2,464 at start of audit, -548 / -22.2%).
   9 sub-components extracted: `AutoRestrictedRail`, `DenyUserDialog`,

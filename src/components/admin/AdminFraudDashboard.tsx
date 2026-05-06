@@ -35,6 +35,7 @@ const FLAG_TYPES = [
   { value: "burst_job_posting", label: "Burst Job Posting" },
   { value: "multi_reporter_flag", label: "Multi-Reporter Pile-On" },
   { value: "rapid_cancellation_pattern", label: "Rapid Cancellation" },
+  { value: "duplicate_content_posting", label: "Duplicate Content" },
 ];
 
 const AdminFraudDashboard = () => {
@@ -97,6 +98,7 @@ const AdminFraudDashboard = () => {
     burst_job_posting: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
     multi_reporter_flag: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
     rapid_cancellation_pattern: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
+    duplicate_content_posting: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
   };
 
   return (

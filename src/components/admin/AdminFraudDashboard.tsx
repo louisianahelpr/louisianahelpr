@@ -32,6 +32,8 @@ const FLAG_TYPES = [
   { value: "review_manipulation", label: "Review Manipulation" },
   { value: "message_flooding", label: "Message Flooding" },
   { value: "scope_creep", label: "Scope Creep (3+ revisions)" },
+  { value: "burst_job_posting", label: "Burst Job Posting" },
+  { value: "multi_reporter_flag", label: "Multi-Reporter Pile-On" },
 ];
 
 const AdminFraudDashboard = () => {
@@ -91,6 +93,8 @@ const AdminFraudDashboard = () => {
     review_manipulation: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
     message_flooding: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
     scope_creep: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    burst_job_posting: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
+    multi_reporter_flag: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
   return (

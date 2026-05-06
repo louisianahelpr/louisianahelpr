@@ -23,6 +23,7 @@ import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import BroadcastBanner from "@/components/BroadcastBanner";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 
 import { SavedSearches } from "@/components/SavedSearches";
 
@@ -379,6 +380,7 @@ const Dashboard = () => {
         <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden">
 
           <BroadcastBanner />
+          <PushNotificationPrompt />
 
 
           <motion.div

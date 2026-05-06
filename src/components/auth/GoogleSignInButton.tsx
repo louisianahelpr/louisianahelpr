@@ -2,25 +2,41 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { nativeGoogleSignIn } from "@/lib/socialLogin";
 
 interface GoogleSignInButtonProps {
   label?: string;
   redirectTo?: string;
 }
 
-// Google sign-in via Supabase OAuth. Web flow only; native Google
-// Sign-In on iOS will need the @codetrix-studio/capacitor-google-auth
-// plugin during the next iOS rebuild (Google blocks generic webview
-// OAuth, so the in-app webview can't run this flow on iOS today).
+// Google sign-in. On native iOS uses Google's iOS SDK via
+// @capgo/capacitor-social-login + signInWithIdToken (no browser
+// round-trip — Google blocks generic webview OAuth so the in-app
+// webview can't run the web flow on iOS). On web uses Supabase OAuth.
 export const GoogleSignInButton = ({
   label = "Continue with Google",
   redirectTo,
 }: GoogleSignInButtonProps) => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleClick = async () => {
     setLoading(true);
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await nativeGoogleSignIn();
+        navigate(redirectTo ? new URL(redirectTo, window.location.origin).pathname : "/dashboard");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Google sign-in failed.");
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",

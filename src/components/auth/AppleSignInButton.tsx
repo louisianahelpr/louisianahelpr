@@ -2,25 +2,44 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { nativeAppleSignIn } from "@/lib/socialLogin";
 
 interface AppleSignInButtonProps {
   label?: string;
   redirectTo?: string;
 }
 
-// Apple sign-in via Supabase OAuth. Web flow only; on iOS the Capacitor
-// app should use Apple's native ASAuthorization framework via a
-// Capacitor plugin (e.g. @capacitor-community/apple-sign-in) — paired
-// with the iOS rebuild for the JWT migration.
+// Apple sign-in. On native iOS uses Apple's ASAuthorization framework
+// via @capgo/capacitor-social-login + signInWithIdToken (no browser
+// round-trip). On web uses Supabase OAuth (browser redirects to Apple).
 export const AppleSignInButton = ({
   label = "Continue with Apple",
   redirectTo,
 }: AppleSignInButtonProps) => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleClick = async () => {
     setLoading(true);
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await nativeAppleSignIn();
+        // Session is now live. Mirror the post-OAuth landing logic:
+        // navigate to /dashboard (or the redirectTo if explicit).
+        // SPA new-user routing handler will redirect to /complete-profile
+        // for first-time users.
+        navigate(redirectTo ? new URL(redirectTo, window.location.origin).pathname : "/dashboard");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Apple sign-in failed.");
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "apple",

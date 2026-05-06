@@ -51,3 +51,5 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.spawn-recurring-jobs]
     verify_jwt = false
+  [functions.send-push-notification]
+    verify_jwt = false

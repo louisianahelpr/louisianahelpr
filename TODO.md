@@ -1,5 +1,137 @@
 # TODO
 
+## Handoff List — 2026-05-06 (post-audit session)
+
+This block consolidates everything that wasn't shippable in the audit
+session, sorted by who can do it. Everything else above this line is
+historical session notes — keep those for context but don't reread top
+to bottom unless looking up history.
+
+---
+
+### A — Lexi only (you, account credentials / UX decisions)
+
+These need your accounts, your DNS, your judgement on copy or product.
+None can be done from code alone.
+
+- [ ] **Sentry alert rules** — paste the 5 alert specs from
+  `docs/SENTRY_ALERT_RULES.md` into helpr-4m.sentry.io. Code is wired;
+  the rules are dashboard configuration.
+- [ ] **Stripe DNS records** for branded receipt emails (low-pri until
+  you're ready for branded receipts — Stripe sends generic ones until
+  then).
+- [ ] **Logo uploads to external services** — App Store Connect (already
+  shipped via icon-set), Stripe brand settings (icon + logo + brand
+  color), Google OAuth consent screen, Gmail Workspace sender avatars.
+  `docs/LOGO_UPDATE_RUNBOOK.md` lists every surface.
+- [ ] **Notification copy decisions** — these need your voice, not mine:
+    - Daily digest "5 new jobs in [parish]" subject lines for email
+    - Review-result email tone (helper got 5 stars vs 2 stars)
+    - Week-1 nag sequence ("you haven't browsed in 3 days — here's what
+      you missed")
+    - Re-engagement push for users dormant 30+ days
+- [ ] **Tune auto-restrict thresholds after 2-3 weeks of real data**
+  — currently 1 violation → `final_warning`, 2 → 7-day temp_ban, 3 →
+  30-day temp_ban. Watch the AdminUsers reverse-rail; if you're
+  reversing >30% of auto-bans, loosen to 2/3/4. If you're not catching
+  bad actors fast enough, tighten to 1/2/2.
+- [ ] **Real-name vs initial display** — `formatName()` returns "First
+  L." for privacy. Decide whether some surfaces (helper bios, your
+  admin queue) should show full names. Currently uniform.
+
+---
+
+### B — Cowork (offshore iOS dev / deploys)
+
+Native-iOS or deploy-pipeline work that lives on their machine.
+
+- [ ] **Ship iOS Build #17+** — includes today's auth-session push
+  buffering fix (`f91885fc`). Required before any user — including
+  admins — gets push tokens. Right now production has 0 push tokens.
+- [ ] **Apple Sign-In native iOS rewire** — deferred to next iOS build.
+  Web flow works. Native plugin (`@capgo/capacitor-social-login`) needs
+  the Service ID + Key ID stored as native config (see
+  `reference_oauth_client_ids.md` in memory for IDs).
+- [ ] **iOS Alternate App Icon** for 36px notification thumbnails
+  (low-pri) — current wrought-iron H smudges at 36px. Drop a flatter
+  "H + fleur-de-lis silhouette" PNG and wire iOS 18 Alternate App Icons
+  so users can opt in via Settings → Helpr → App Icon.
+- [ ] **Submit to App Store review** when Lexi gives the OK.
+
+---
+
+### C — Future engineering sessions (Claude or human dev, multi-hour each)
+
+Real shippable work that genuinely needs more than one session each.
+Listed in rough priority order.
+
+- [ ] **Real-time job radar map (the "force multiplier")**
+  — Mapbox or Google Maps integration. Open the app → see a
+  parish-zoomed map with 5-10 pins of jobs within 2 miles, color-coded
+  by category, with a drag-to-bid radius slider. 1-tap apply on pin.
+  *Multi-day epic. Needs design pass + location permissions wiring.*
+- [ ] **Continue god-component extraction**
+  AdminUsers is at 2,310 lines (was 2,464). Pattern is set with
+  `AutoRestrictedRail` + `DenyUserDialog`. Remaining extractions:
+  `BanDialog`, `EditEmailDialog`, `DeleteUserDialog`,
+  `ManualVerifyDialog`, `ReuploadDialog`, `ResetPasswordDialog`,
+  `WarningDialog`. Each is a ~50-150 line block that should live in
+  its own file. Then do the same for `Profile.tsx` (1,299), `PostJob.tsx`
+  (1,163), `Dashboard.tsx` (1,015).
+- [ ] **Stripe webhook 699-line refactor**
+  Highest-risk file in the repo. Split the giant `switch` into
+  per-event handlers (one file per event type), keep the central
+  signature-verify + event-dispatch shell thin. Deploy after each
+  extraction with verification.
+- [ ] **Migrate Profile/Dashboard/Messages to `useProfile()` hook**
+  Foundation laid in `src/hooks/useProfile.ts`. Each consumer needs
+  its own careful migration (read sites identified, but profile-shape
+  expectations differ by call site). Saves DB cost + simplifies cache
+  invalidation.
+- [ ] **Test coverage past 43**
+  Currently 6 test files / 43 cases / 2 real bugs found. Next targets:
+  `errorLogger` already covered; add `analytics`, `messageAttachments`,
+  `imageCompression`, `parishLookup`, `applicationAttachments`. Build
+  testable pure helpers out of god-component logic during refactors
+  — co-locate `.test.ts` next to each.
+- [ ] **End-to-end Playwright with a test-customer fixture**
+  Current e2e (post-and-apply.spec.ts) covers redirect + navigation
+  paths only. Full happy path (post → checkout → apply → accept →
+  complete → review reveal) needs a fixture user whose creds live in
+  CI secrets.
+- [ ] **Drop legacy `'helper'` enum value** from `app_role`
+  Vestigial after today's unified-user shift. Postgres enum value
+  removal is a 5-step migration (new enum without value → migrate
+  columns → drop old). Zero `'helper'` rows in production right now,
+  so safe to do — just heavy.
+- [ ] **Honest hero "active now" count**
+  Today replaced the fake hardcoded "46 active now" with "Live in
+  Louisiana." When you have meaningful active-job traffic, swap to a
+  real count from a public RPC + animate count-up transitions.
+- [ ] **Salvaged automations from job-lifecycle-automations** that
+  weren't shipped today: `auto_restrict_repeat_violators` is live
+  (today). Remaining ideas worth building: more nuanced fraud
+  detection (e.g. velocity/IP heuristics), advanced suspicious pattern
+  signals (rapid cancellations, image-reuse across postings).
+
+---
+
+### D — Decisions paused on owner sign-off
+
+- [ ] **Auto-restrict threshold tuning** — 1/2/3 ladder shipped today.
+  Reassess after real data lands.
+- [ ] **Notification cadence** — `sweep-daily-job-digest` is live (9am
+  CT). Future sessions can layer review-result emails + week-1 nag
+  sequence + 30-day re-engagement. Each needs your copy choice first.
+- [ ] **Skeleton screens beyond what shadcn `<Skeleton>` covers** — the
+  audit's recommendation was overstated; most existing Loader2 usages
+  are inline button spinners that should stay. The DashboardSkeleton +
+  9 sibling variants in `SkeletonLoaders.tsx` already handle the major
+  full-page loading states. Re-audit if the perceived-speed feels off
+  after iOS Build #17 ships.
+
+---
+
 ## Where We Left Off — 2026-05-06 (overnight + morning sessions, 81 commits)
 
 Production state: 0 unresolved Sentry issues, all 13 cron jobs firing

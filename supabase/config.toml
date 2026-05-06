@@ -49,3 +49,5 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.cleanup-abandoned-accounts]
     verify_jwt = false
+  [functions.spawn-recurring-jobs]
+    verify_jwt = false

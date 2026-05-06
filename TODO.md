@@ -109,11 +109,14 @@ Listed in rough priority order.
   paths only. Full happy path (post → checkout → apply → accept →
   complete → review reveal) needs a fixture user whose creds live in
   CI secrets.
-- [ ] **Drop legacy `'helper'` enum value** from `app_role`
-  Vestigial after today's unified-user shift. Postgres enum value
-  removal is a 5-step migration (new enum without value → migrate
-  columns → drop old). Zero `'helper'` rows in production right now,
-  so safe to do — just heavy.
+- [x] **Drop legacy `'helper'` enum value** — runtime cleanup shipped
+  2026-05-06 (8 functions rewritten to behavior-based filters,
+  migration `20260506380000_*`). The physical Postgres enum value is
+  retained because dropping it would require recreating `has_role`
+  (which has `app_role` as a parameter type) plus the user_roles type
+  cast — non-trivial risk for zero practical benefit since 0 rows and
+  0 functions reference `'helper'::app_role` anymore. The value is
+  effectively dead at runtime; the schema-level vestige is harmless.
 - [ ] **Animated count-up on the hero "active now" pill**
   Real count is wired (RPC `get_marketplace_activity_count` + lazy
   fetch in HeroSection); pill shows "N jobs open" or falls back to

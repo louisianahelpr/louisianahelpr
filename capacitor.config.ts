@@ -107,16 +107,8 @@ const config: CapacitorConfig = {
       resize: 'body',
       style: 'LIGHT',
       resizeOnFullScreen: true,
-          SocialLogin: {
-                  // @capgo/capacitor-social-login: which providers get bundled in the
-                  // iOS/Android binary. Apple uses ASAuthorization (system framework, no
-                  // external dep). Google uses GoogleSignIn SDK on iOS — pulled in by Pod.
-                  providers: {
-                            google: true,
-                            apple: true
-                  }
-          }
-    }
+    },
+    SocialLogin: { providers: { google: true, apple: true } }
   }
 };
 

@@ -14,6 +14,16 @@ serve(async (req) => {
     apiVersion: "2023-10-16",
   });
   const webhookSecret = Deno.env.get("STRIPE_IDV_WEBHOOK_SECRET");
+  if (!webhookSecret) {
+    // Fail closed — without a secret we cannot verify Stripe is the sender,
+    // and any unsigned POST could otherwise fake an
+    // identity.verification_session.verified event and bypass IDV.
+    console.error("STRIPE_IDV_WEBHOOK_SECRET is not configured — refusing event");
+    return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
@@ -23,11 +33,13 @@ serve(async (req) => {
   try {
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
-    if (webhookSecret && sig) {
-      event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
-    } else {
-      event = JSON.parse(body) as Stripe.Event;
+    if (!sig) {
+      console.error("Missing stripe-signature header — refusing event");
+      return new Response(JSON.stringify({ error: "Missing signature" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verify failed:", err);
     return new Response(JSON.stringify({ error: "Invalid signature" }), {

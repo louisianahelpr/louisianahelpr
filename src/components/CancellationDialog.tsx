@@ -140,7 +140,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         const warningNum = priorCount + 1;
 
         if (actionTaken === "warning") {
-          await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", userId);
+          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
           await createNotification({
             user_id: userId,
             title: `⚠️ Cancellation Warning (${warningNum}/2)`,

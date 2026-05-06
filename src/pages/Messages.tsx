@@ -353,7 +353,7 @@ const Messages = () => {
           await createNotification({
             user_id: admin.user_id, title: "⛔ User permanently banned",
             message: `${senderName} was auto-banned for repeated off-platform activity. They tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
-            type: "warning", link: `/admin?tab=reports`,
+            type: "warning", link: `/admin?view=reports`,
           });
         }
       }
@@ -363,14 +363,14 @@ const Messages = () => {
         user_id: userId, violation_type: "off_platform",
         description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "warning",
       });
-      await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", userId);
+      await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (adminRoles) {
         for (const admin of adminRoles) {
           await createNotification({
             user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
             message: `${senderName} tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
-            type: "warning", link: `/admin?tab=reports`,
+            type: "warning", link: `/admin?view=reports`,
           });
         }
       }

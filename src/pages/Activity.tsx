@@ -193,7 +193,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
-        await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", user.id);
+        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
         await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
         toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
@@ -416,7 +416,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         await supabase.from("user_bans").insert({ user_id: job.helper_id, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
         await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", job.helper_id);
       } else {
-        await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", job.helper_id);
+        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", job.helper_id);
       }
       await createNotification({ user_id: job.helper_id, title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: priorCount >= 1 ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");

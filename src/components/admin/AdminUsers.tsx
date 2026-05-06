@@ -667,7 +667,7 @@ const AdminUsers = () => {
           action_taken: "warning",
           reported_by: user.id,
         });
-        await supabase.from("profiles").update({ ban_status: "warned" }).eq("user_id", banProfile.user_id);
+        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", banProfile.user_id);
         await createNotification({
           user_id: banProfile.user_id, title: "⚠️ Warning from Admin",
           message: banReason.trim() || "You have received a warning for violating platform rules. Another violation may result in a ban.",

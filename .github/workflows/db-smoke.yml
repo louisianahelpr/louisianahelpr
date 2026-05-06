@@ -240,12 +240,18 @@ jobs:
         # test creates a fake user, then inserts a job, and FAILS LOUDLY if
         # any trigger raises. Wrapped in a transaction + ROLLBACK to leave no
         # state.
+        #
+        # Note: handle_new_user() trigger auto-creates the profiles row
+        # when auth.users is inserted (per migration 20260505230500), so we
+        # UPDATE the auto-created row to set approval_status='approved'
+        # instead of INSERTing a duplicate.
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
           BEGIN;
           INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), 'smoke@helpr.test');
-          INSERT INTO public.profiles (user_id, full_name, approval_status)
-            SELECT id, 'Smoke Tester', 'approved' FROM auth.users WHERE email='smoke@helpr.test';
+          UPDATE public.profiles
+            SET full_name = 'Smoke Tester', approval_status = 'approved'
+            WHERE user_id = (SELECT id FROM auth.users WHERE email='smoke@helpr.test');
           INSERT INTO public.jobs (
             title, description, category, budget, location, parish, status,
             customer_id, date_needed

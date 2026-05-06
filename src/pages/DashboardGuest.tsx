@@ -269,7 +269,7 @@ const DashboardGuest = () => {
             ))}
           </div>
         ) : filteredJobs.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-16 animate-in fade-in-0 duration-500">
             <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
               <Briefcase className="w-6 h-6 text-muted-foreground" />
             </div>
@@ -277,7 +277,7 @@ const DashboardGuest = () => {
             <p className="text-xs text-muted-foreground mt-1">Try clearing filters or check back later.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-in fade-in-0 duration-500">
             {filteredJobs.map((job, idx) => (
               <JobCard
                 key={job.id}

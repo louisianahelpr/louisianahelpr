@@ -379,7 +379,7 @@ const Dashboard = () => {
   return (
     <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div
-      className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden"
+      className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
       <DashboardHeader />
       <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
@@ -1057,6 +1057,32 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
       <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
+
+      {/* Floating "Post a Request" — mobile-only FAB pinned bottom-right
+          above the MobileNav. Persistent across scroll so the primary
+          action is always one thumb-tap away. iOS users expect this
+          pattern; without it they have to scroll to the top to find
+          a CTA. md:hidden because the desktop dashboard surfaces the
+          CTA in the header. */}
+      <button
+        onClick={() => navigate("/post-job")}
+        className="md:hidden fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-[0.92] hover:-translate-y-0.5"
+        style={{
+          background:
+            "radial-gradient(120% 120% at 25% 20%, hsl(70 22% 44%) 0%, hsl(70 20% 33%) 55%, hsl(70 22% 24%) 100%)",
+          color: "hsl(var(--parchment))",
+          border: "1px solid hsl(70 20% 33%)",
+          boxShadow:
+            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
+            "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15), " +
+            "0 6px 14px hsl(var(--bark) / 0.45), " +
+            "0 14px 28px -8px hsl(var(--bark) / 0.4)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+        aria-label="Post a Request"
+      >
+        <Plus className="w-6 h-6" strokeWidth={2.5} />
+      </button>
     </div>
     </PullToRefreshWrapper>
   );

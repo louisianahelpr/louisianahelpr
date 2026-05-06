@@ -455,7 +455,12 @@ history during a failed `ALTER DATABASE` for vault GUCs.
 
 ### Jobs & matching
 - [x] Define job-state machine end-to-end (DB-level enforcement shipped 2026-05-04). UI side shipped 2026-05-05: PaymentSuccess shows a 4-step visual lifecycle (commit 92773bba); PostedJobsTab/AppliedJobsTab already surface live state with bilateral confirmation indicators; JobCard intentionally stays state-less (only renders OPEN jobs).
-- [ ] Helper discovery: location-aware ranking on the job feed (NOLA / Baton Rouge / Shreveport service areas)
+- [x] Helper discovery: location-aware ranking on the job feed —
+  shipped 2026-05-06 as parish-match sort tier in
+  `useDashboardFilters.ts`. Same-parish jobs float above other-parish
+  jobs after urgent + boosted, before subscription-tier priority.
+  Future polish: weighted distance via `haversineMiles` when both
+  user and job have lat/lng (granular within-parish ordering).
 - [x] Saved searches + push/email notifications when a matching job is posted (DB triggers exist + cron scheduled by cowork 2026-05-05 + triggers migrated to vault.decrypted_secrets in commit 5ac17952 — fan-out fully live)
 
 ### Trust & safety

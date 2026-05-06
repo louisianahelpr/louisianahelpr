@@ -23,6 +23,7 @@ import AdminUserNotes from "./AdminUserNotes";
 import UserVerificationHistory from "./UserVerificationHistory";
 import { hapticSuccess } from "@/lib/haptics";
 import { AutoRestrictedRail } from "./AutoRestrictedRail";
+import { DenyUserDialog } from "./DenyUserDialog";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -51,10 +52,10 @@ const AdminUsers = () => {
   const [jobsRole, setJobsRole] = useState<"all" | "worked" | "posted">("all");
   const [jobsSort] = useState<"recent" | "earnings_desc" | "earnings_asc">("recent");
 
-  // Deny dialog
+  // Deny dialog — moved into DenyUserDialog component. Parent only
+  // tracks "which profile is being denied right now"; the dialog
+  // owns reason + saving state internally.
   const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
-  const [denyReason, setDenyReason] = useState("");
-  const [denying, setDenying] = useState(false);
 
   // Ban dialog
   const [banProfile, setBanProfile] = useState<Profile | null>(null);
@@ -485,38 +486,9 @@ const AdminUsers = () => {
     }
   };
 
-  const denyUser = async () => {
-    if (!denyProfile) return;
-    setDenying(true);
-    const { error } = await supabase.from("profiles").update({
-      approval_status: "denied",
-      denial_reason: denyReason.trim() || null,
-      denial_email_count: 1,
-      last_denial_email_at: new Date().toISOString(),
-    }).eq("id", denyProfile.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success(`${formatName(denyProfile.full_name)} denied.`);
-      await logAdminAction("deny_user", "user", denyProfile.user_id, { name: denyProfile.full_name, reason: denyReason.trim() });
-      await createNotification({
-        user_id: denyProfile.user_id, title: "Account not approved",
-        message: denyReason.trim()
-          ? `Your account was not approved. Reason: ${denyReason.trim()}`
-          : "Your account was not approved. Please contact support for details.",
-        type: "warning", link: "/profile",
-      });
-      // Send denial email
-      supabase.functions.invoke("send-account-status-email", {
-        body: { userId: denyProfile.user_id, status: "denied", reason: denyReason.trim() },
-      }).catch((err) => report(err, { tags: { source: "AdminUsers.sendDenialEmail" } }));
-      loadProfiles();
-      setDenyProfile(null);
-      setDenyReason("");
-      setViewProfile(null);
-    }
-    setDenying(false);
-  };
+  // denyUser logic moved into DenyUserDialog. This component only opens
+  // the dialog (via setDenyProfile) and handles the post-success refetch
+  // through DenyUserDialog's onSuccess prop.
 
   const deleteDeniedUser = async () => {
     if (!deleteProfile) return;
@@ -1954,7 +1926,7 @@ const AdminUsers = () => {
                     {viewProfile.approval_status === "pending" && (
                       <>
                         <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                          onClick={() => { setDenyProfile(viewProfile); setDenyReason(""); }}>
+                          onClick={() => setDenyProfile(viewProfile)}>
                           <XCircle className="w-4 h-4 mr-1" /> Deny
                         </Button>
                         <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
@@ -2040,21 +2012,14 @@ const AdminUsers = () => {
       </Dialog>
 
       {/* Deny Reason Dialog */}
-      <Dialog open={!!denyProfile} onOpenChange={() => setDenyProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Deny {formatName(denyProfile?.full_name)}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">Provide a reason for denying this application.</p>
-            <Textarea value={denyReason} onChange={(e) => setDenyReason(e.target.value)} placeholder="Reason for denial (optional)…" rows={3} />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDenyProfile(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={denyUser} disabled={denying}>{denying ? "Denying…" : "Deny User"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DenyUserDialog
+        profile={denyProfile}
+        onClose={() => setDenyProfile(null)}
+        onSuccess={() => {
+          loadProfiles();
+          setViewProfile(null);
+        }}
+      />
 
       {/* Ban / Warning Dialog */}
       <Dialog open={!!banProfile} onOpenChange={() => setBanProfile(null)}>

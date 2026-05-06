@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -797,6 +797,36 @@ export type Database = {
         }
         Relationships: []
       }
+      helper_verifications: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       instant_payouts: {
         Row: {
           created_at: string
@@ -965,6 +995,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          boost_auto_extended: boolean
           boost_expires_at: string | null
           boosted_at: string | null
           budget: number
@@ -1050,6 +1081,7 @@ export type Database = {
           zip_code: string | null
         }
         Insert: {
+          boost_auto_extended?: boolean
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget: number
@@ -1135,6 +1167,7 @@ export type Database = {
           zip_code?: string | null
         }
         Update: {
+          boost_auto_extended?: boolean
           boost_expires_at?: string | null
           boosted_at?: string | null
           budget?: number
@@ -1337,6 +1370,9 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_mime: string | null
+          attachment_size: number | null
+          attachment_url: string | null
           content: string
           created_at: string
           flag_reason: string | null
@@ -1348,6 +1384,9 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          attachment_mime?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
           content: string
           created_at?: string
           flag_reason?: string | null
@@ -1359,6 +1398,9 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          attachment_mime?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
           content?: string
           created_at?: string
           flag_reason?: string | null
@@ -1532,6 +1574,24 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_type_pref_map: {
+        Row: {
+          description: string | null
+          pref_column: string | null
+          type: string
+        }
+        Insert: {
+          description?: string | null
+          pref_column?: string | null
+          type: string
+        }
+        Update: {
+          description?: string | null
+          pref_column?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1591,6 +1651,95 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payout_transfers: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          failed_at: string | null
+          failure_reason: string | null
+          helper_id: string
+          id: string
+          initiated_by: string
+          initiated_by_user_id: string | null
+          job_id: string
+          metadata: Json
+          paid_at: string | null
+          platform_fee_cents: number
+          reversed_at: string | null
+          status: string
+          stripe_account_id: string
+          stripe_transfer_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          helper_id: string
+          id?: string
+          initiated_by?: string
+          initiated_by_user_id?: string | null
+          job_id: string
+          metadata?: Json
+          paid_at?: string | null
+          platform_fee_cents?: number
+          reversed_at?: string | null
+          status?: string
+          stripe_account_id: string
+          stripe_transfer_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          helper_id?: string
+          id?: string
+          initiated_by?: string
+          initiated_by_user_id?: string | null
+          job_id?: string
+          metadata?: Json
+          paid_at?: string | null
+          platform_fee_cents?: number
+          reversed_at?: string | null
+          status?: string
+          stripe_account_id?: string
+          stripe_transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_settings: {
         Row: {
@@ -2933,6 +3082,17 @@ export type Database = {
         Returns: number
       }
       expire_pending_direct_offers: { Args: never; Returns: number }
+      extend_boosts_with_no_applications: {
+        Args: never
+        Returns: {
+          job_id: string
+          new_expires_at: string
+        }[]
+      }
+      fan_out_broadcast_to_notifications: {
+        Args: { _broadcast_id: string }
+        Returns: number
+      }
       get_approved_helpers: {
         Args: { max_count?: number }
         Returns: {
@@ -3105,6 +3265,7 @@ export type Database = {
           category: string
           date_needed: string
           id: string
+          is_boosted: boolean
           is_urgent: boolean
           location: string
           title: string
@@ -3122,6 +3283,35 @@ export type Database = {
           platform_fee_percent: number
         }[]
       }
+      get_ranked_open_jobs: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          boost_expires_at: string
+          boosted_at: string
+          budget: number
+          category: Database["public"]["Enums"]["job_category"]
+          created_at: string
+          date_needed: string
+          description: string
+          estimated_hours: number
+          expires_at: string
+          helpers_needed: number
+          id: string
+          is_flexible_schedule: boolean
+          is_group_job: boolean
+          is_recurring: boolean
+          is_urgent: boolean
+          location: string
+          parish: string
+          parish_match: boolean
+          photos: string[]
+          rank_score: number
+          special_requirements: string
+          start_time: string
+          title: string
+          urgent_fee: number
+        }[]
+      }
       get_safe_profiles: {
         Args: { user_ids: string[] }
         Returns: {
@@ -3132,6 +3322,7 @@ export type Database = {
           hourly_rate: number
           location: string
           portfolio_urls: string[]
+          role: string
           skills: string
           subscription_tier: string
           user_id: string

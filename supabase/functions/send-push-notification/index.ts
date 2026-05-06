@@ -29,6 +29,7 @@
 //   { sent: N, failed: M, no_tokens: bool, ios?: {...}, android?: {...} }
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,54 +67,13 @@ const APNS_JWT_TTL_MS = 55 * 60 * 1000
 let apnsJwtCache: { jwt: string; expiresAt: number; keyHash: string } | null = null
 
 async function buildApnsJwt(keyId: string, teamId: string, p8Pem: string): Promise<string> {
-  // Cache key includes a fingerprint of the inputs so a config change
-  // (key rotation, team ID swap) invalidates the cache automatically.
   const keyHash = `${keyId}:${teamId}:${p8Pem.length}`
   if (apnsJwtCache && apnsJwtCache.keyHash === keyHash && apnsJwtCache.expiresAt > Date.now()) {
     return apnsJwtCache.jwt
   }
-
-  const now = Math.floor(Date.now() / 1000)
-  const header = { alg: 'ES256', kid: keyId, typ: 'JWT' }
-  const claims = { iss: teamId, iat: now }
-
-  const encoder = new TextEncoder()
-  const headerB64 = base64UrlEncode(encoder.encode(JSON.stringify(header)))
-  const claimsB64 = base64UrlEncode(encoder.encode(JSON.stringify(claims)))
-  const signingInput = `${headerB64}.${claimsB64}`
-
-  const key = await importP8PrivateKey(p8Pem)
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    key,
-    encoder.encode(signingInput),
-  )
-  const sigB64 = base64UrlEncode(new Uint8Array(signature))
-  const jwt = `${signingInput}.${sigB64}`
-
+  const jwt = await signEs256Jwt({ keyId, issuer: teamId, p8Pem })
   apnsJwtCache = { jwt, expiresAt: Date.now() + APNS_JWT_TTL_MS, keyHash }
   return jwt
-}
-
-async function importP8PrivateKey(p8Pem: string): Promise<CryptoKey> {
-  const b64 = p8Pem
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
-    .replace(/\s/g, '')
-  const der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-  return await crypto.subtle.importKey(
-    'pkcs8',
-    der.buffer,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign'],
-  )
-}
-
-function base64UrlEncode(bytes: Uint8Array): string {
-  let s = ''
-  for (const b of bytes) s += String.fromCharCode(b)
-  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
 async function sendApnsOne(
@@ -175,51 +135,26 @@ interface FcmServiceAccount {
 const FCM_TOKEN_TTL_MS = 55 * 60 * 1000
 let fcmTokenCache: { accessToken: string; expiresAt: number; saEmail: string } | null = null
 
-async function importFcmPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
-  // Service account keys are RS256-signed RSA-2048 in PKCS8 PEM format.
-  const b64 = privateKeyPem
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
-    .replace(/\s/g, '')
-  const der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-  return await crypto.subtle.importKey(
-    'pkcs8',
-    der.buffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  )
-}
-
 async function buildFcmAccessToken(sa: FcmServiceAccount): Promise<string> {
   if (fcmTokenCache && fcmTokenCache.saEmail === sa.client_email && fcmTokenCache.expiresAt > Date.now()) {
     return fcmTokenCache.accessToken
   }
 
   const now = Math.floor(Date.now() / 1000)
-  const header = { alg: 'RS256', typ: 'JWT' }
-  const claims = {
-    iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/firebase.messaging',
-    aud: sa.token_uri ?? 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-  }
-  const encoder = new TextEncoder()
-  const headerB64 = base64UrlEncode(encoder.encode(JSON.stringify(header)))
-  const claimsB64 = base64UrlEncode(encoder.encode(JSON.stringify(claims)))
-  const signingInput = `${headerB64}.${claimsB64}`
-
-  const key = await importFcmPrivateKey(sa.private_key)
-  const signature = await crypto.subtle.sign(
-    { name: 'RSASSA-PKCS1-v1_5' },
-    key,
-    encoder.encode(signingInput),
-  )
-  const jwt = `${signingInput}.${base64UrlEncode(new Uint8Array(signature))}`
+  const tokenUri = sa.token_uri ?? 'https://oauth2.googleapis.com/token'
+  const jwt = await signRs256Jwt({
+    privateKeyPem: sa.private_key,
+    claims: {
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/firebase.messaging',
+      aud: tokenUri,
+      iat: now,
+      exp: now + 3600,
+    },
+  })
 
   // Exchange the signed JWT for an OAuth2 access token.
-  const res = await fetch(claims.aud, {
+  const res = await fetch(tokenUri, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({

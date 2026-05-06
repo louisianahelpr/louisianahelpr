@@ -42,7 +42,7 @@ function currentAppVersion(): string {
 
 async function persistPushToken(userId: string, token: string, platform: "ios" | "android") {
   try {
-    const { error } = await supabase.from("push_tokens" as never).upsert(
+    const { error } = await supabase.from("push_tokens").upsert(
       {
         user_id: userId,
         token,
@@ -225,6 +225,6 @@ export function useRequestPushPermission() {
 /** Remove all device tokens for the current user. Call on sign-out. */
 export async function unregisterPushOnSignOut(userId: string) {
   try {
-    await supabase.from("push_tokens" as never).delete().eq("user_id", userId);
+    await supabase.from("push_tokens").delete().eq("user_id", userId);
   } catch { /* ignore */ }
 }

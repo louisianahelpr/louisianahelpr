@@ -26,6 +26,21 @@ const SECRET_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /sb_secret_[A-Za-z0-9._-]+/g, replacement: "sb_secret_<redacted>" },
 ];
 
+// Exported for unit tests. Production code should call report() instead.
+export function _redact(input: string | null | undefined): string | null {
+  return redact(input);
+}
+
+// Exported for unit tests.
+export function _sanitizeUrl(url: string | null | undefined): string | null {
+  return sanitizeUrl(url);
+}
+
+// Exported for unit tests.
+export function _isDevEnvironment(stack: string | null | undefined): boolean {
+  return isDevEnvironment(stack);
+}
+
 function redact(input: string | null | undefined): string | null {
   if (!input) return input ?? null;
   let out = input;
@@ -118,7 +133,7 @@ async function flush() {
   const batch = queue.splice(0, queue.length);
   try {
     const supabase = await getSupabase();
-    await supabase.from("error_logs" as never).insert(batch);
+    await supabase.from("error_logs").insert(batch);
   } catch {
     // Network failed — drop. We don't want logging to recurse on itself.
   } finally {

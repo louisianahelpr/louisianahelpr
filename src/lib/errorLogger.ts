@@ -70,13 +70,25 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   const message = isError ? err.message : String(err);
   const stack = isError ? err.stack : null;
 
-  // Best-effort user identification.
+  // Best-effort user identification. Supabase JS v2 stores the session
+  // in localStorage under `sb-<projectRef>-auth-token` (not `sb-auth-token`,
+  // which was the v1 key). Scan all localStorage keys for the v2 pattern
+  // so this stays robust if the project ref changes.
   let userId: string | null = null;
   try {
-    const cached = localStorage.getItem("sb-auth-token");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      userId = parsed?.user?.id ?? null;
+    if (typeof localStorage !== "undefined") {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+        const cached = localStorage.getItem(key);
+        if (!cached) continue;
+        try {
+          const parsed = JSON.parse(cached);
+          // v2 shape: { access_token, refresh_token, user: { id, ... } }
+          userId = parsed?.user?.id ?? parsed?.currentSession?.user?.id ?? null;
+          if (userId) break;
+        } catch { /* not JSON, skip */ }
+      }
     }
   } catch { /* ignore */ }
 

@@ -25,6 +25,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
+import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 
 const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -420,6 +421,7 @@ const PostJob = () => {
       setUploading(false);
     }
 
+    hapticSuccess();
     toast.info("Redirecting to payment…");
 
     // Trigger instant job matching in background

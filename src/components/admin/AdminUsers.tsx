@@ -21,6 +21,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import AdminUserNotes from "./AdminUserNotes";
 import UserVerificationHistory from "./UserVerificationHistory";
+import { hapticSuccess } from "@/lib/haptics";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -222,6 +223,7 @@ const AdminUsers = () => {
       type: "success",
       link: "/account",
     });
+    hapticSuccess();
     toast.success("Auto-ban reversed.");
     setReversing(null);
     loadAutoRestricted();

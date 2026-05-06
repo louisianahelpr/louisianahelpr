@@ -124,6 +124,10 @@ const HeroSection = () => {
           letterSpacing: "0.01em",
         }}
       >
+        {/* Live-in-Louisiana pill — honest copy until we wire a real
+            "open jobs nearby" count from a public RPC. The previous
+            hardcoded "46 active now" was effectively a lie at current
+            scale; brand trust matters more than the optical bump. */}
         <span
           className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{
@@ -131,7 +135,7 @@ const HeroSection = () => {
             boxShadow: "0 0 6px hsl(120, 60%, 55%, 0.6)",
           }}
         />
-        46 active now
+        Live in Louisiana
       </span>
       {/* Mesh gradient — five drifting radial washes (cream + sage + sienna)
           that animate slowly, giving the "liquid" page mood without

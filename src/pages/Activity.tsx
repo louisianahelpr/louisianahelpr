@@ -180,6 +180,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
       await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null }).eq("id", app.job_id);
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
+      hapticSuccess();
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       await refresh();
       setStatusFilter("accepted");

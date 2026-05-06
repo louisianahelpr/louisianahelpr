@@ -6,4 +6,5 @@ export const queryKeys = {
   referral: (userId: string) => ["referral", userId] as const,
   activity: (userId: string) => ["activity", userId] as const,
   jobsOpen: () => ["jobs", "open"] as const,
+  profile: (userId: string) => ["profile", userId] as const,
 };

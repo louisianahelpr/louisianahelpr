@@ -1,0 +1,68 @@
+// Shared profile-read hook. Profile/Dashboard/Messages were all
+// independently fetching overlapping profile fields on every mount,
+// driving redundant DB hits as users grow. This hook centralizes the
+// fetch + cache so everywhere that needs "show me this user's profile"
+// hits the same query slot.
+//
+// Pairs with src/lib/queryKeys.ts profile slot. Stale time is generous
+// (60s) because profiles rarely change inside a session — when they do
+// (avatar update, name change), invalidate the slot explicitly.
+//
+// Usage:
+//   const { data: profile, isLoading } = useProfile(userId);
+//
+// Don't use this for the FULL profile detail page (avatar uploads, edits,
+// etc.) — that's a different shape. This hook returns the small
+// presentation-layer slice every consumer in the app actually needs.
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/lib/queryKeys";
+
+export interface SharedProfile {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  ban_status: string | null;
+  approval_status: string | null;
+  idv_status: string | null;
+  created_at: string | null;
+  bio: string | null;
+  location: string | null;
+  onboarding_fee_paid: boolean | null;
+}
+
+const PROFILE_FIELDS =
+  "user_id, full_name, email, avatar_url, ban_status, approval_status, idv_status, created_at, bio, location, onboarding_fee_paid";
+
+async function fetchProfile(userId: string): Promise<SharedProfile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PROFILE_FIELDS)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as SharedProfile | null;
+}
+
+export function useProfile(userId: string | null | undefined) {
+  return useQuery({
+    queryKey: userId ? queryKeys.profile(userId) : ["profile", "none"],
+    queryFn: () => fetchProfile(userId!),
+    enabled: !!userId,
+    staleTime: 60_000, // 1 minute — profiles rarely change mid-session
+    gcTime: 5 * 60_000,
+  });
+}
+
+/**
+ * Force-refresh a profile across the whole app. Call after avatar
+ * uploads, name changes, ban-state flips, or anything else that
+ * mutates profile fields.
+ */
+export function useInvalidateProfile() {
+  const qc = useQueryClient();
+  return (userId: string) =>
+    qc.invalidateQueries({ queryKey: queryKeys.profile(userId) });
+}

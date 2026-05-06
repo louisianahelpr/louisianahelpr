@@ -27,6 +27,30 @@ import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 
+// Fires brand-tinted confetti for the user's first 3 successful posts.
+// After post #3 the novelty fades back to a quiet checkmark — counter
+// kept in safeStorage (per-device, not per-account) so we don't burn
+// a DB column on a vibe.
+const FIRST_POST_CONFETTI_LIMIT = 3;
+async function maybeFireFirstPostConfetti() {
+  try {
+    const key = "helpr_post_count";
+    const current = parseInt(safeStorage.getItem(key) ?? "0", 10) || 0;
+    if (current >= FIRST_POST_CONFETTI_LIMIT) return;
+    const confetti = (await import("canvas-confetti")).default;
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.4 },
+      colors: ["#5E6544", "#8C947D", "#A0613B", "#FAF8F5"],
+      scalar: 0.9,
+    });
+    safeStorage.setItem(key, String(current + 1));
+  } catch {
+    /* confetti is candy — never break the flow */
+  }
+}
+
 const categories = [
   { value: "cleaning", label: "Cleaning" },
   { value: "yard_work", label: "Yard Work" },
@@ -422,6 +446,7 @@ const PostJob = () => {
     }
 
     hapticSuccess();
+    void maybeFireFirstPostConfetti();
     toast.info("Redirecting to payment…");
 
     // Trigger instant job matching in background

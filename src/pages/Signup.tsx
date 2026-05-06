@@ -179,7 +179,6 @@ const Signup = () => {
   // Step 2 = Account credentials + agreements
   const validateStep2 = async () => {
     if (!email.trim()) { toast.error("Email is required"); return false; }
-    if (email !== confirmEmail) { toast.error("Emails do not match"); return false; }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
     if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
     if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }

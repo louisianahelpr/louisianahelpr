@@ -5,8 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Star, Gift, PartyPopper } from "lucide-react";
+import { Star, Gift, PartyPopper, Heart, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { fetchReferralData } from "@/hooks/useReferralData";
 
 type CompletionPromptsProps = {
   jobId: string;
@@ -18,14 +19,39 @@ type CompletionPromptsProps = {
 };
 
 export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, userId, onDone }: CompletionPromptsProps) => {
-  const [step, setStep] = useState<"review" | "tip" | null>("review");
+  const [step, setStep] = useState<"review" | "tip" | "share" | null>("review");
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [, setAlreadyReviewed] = useState(false);
   const [customTip, setCustomTip] = useState("");
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
   const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
+
+  // Lazy-fetch referral code only when we hit the share step. Job-completion
+  // is the highest-affinity moment — both parties just had a good experience.
+  useEffect(() => {
+    if (step !== "share" || referralCode) return;
+    fetchReferralData(userId).then((d) => setReferralCode(d.referralCode));
+  }, [step, referralCode, userId]);
+
+  const referralLink = referralCode
+    ? `https://www.louisianahelpr.com/?ref=${referralCode}`
+    : "";
+
+  const copyReferral = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setReferralCopied(true);
+      toast.success("Link copied — paste it anywhere.");
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy. Try long-pressing the link.");
+    }
+  };
 
   const toggleQuickOption = (option: string) => {
     setFeedback(prev => {
@@ -159,8 +185,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
         </DialogContent>
       </Dialog>
 
-      {/* Tip Prompt */}
-      <Dialog open={step === "tip"} onOpenChange={() => { setStep(null); onDone(); }}>
+      {/* Tip Prompt — close advances to share step (peak emotional moment
+          for a referral ask). Skipping the tip still hits the share step. */}
+      <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
@@ -206,7 +233,46 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setStep(null); onDone(); }}>No thanks</Button>
+            <Button variant="ghost" onClick={() => setStep("share")}>No thanks</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Prompt — peak emotional moment. Job is done, both parties
+          are happy. Best time to ask for a referral. Hidden if we
+          couldn't load a referral code (offline / first-time edge). */}
+      <Dialog open={step === "share"} onOpenChange={() => { setStep(null); onDone(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Heart className="w-5 h-5 text-primary" /> Loved it? Share Helpr.
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Helpr grows by neighbors telling neighbors. Send a friend
+              your link — when they sign up and complete their first job,
+              you both get a credit.
+            </p>
+            {referralLink ? (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-2 pl-3">
+                <span className="flex-1 text-xs font-mono truncate text-foreground">
+                  {referralLink}
+                </span>
+                <Button size="sm" onClick={copyReferral} className="rounded-lg shrink-0">
+                  {referralCopied ? (
+                    <><Check className="w-4 h-4 mr-1" /> Copied</>
+                  ) : (
+                    <><Copy className="w-4 h-4 mr-1" /> Copy</>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Loading your invite link…</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setStep(null); onDone(); }}>Maybe later</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

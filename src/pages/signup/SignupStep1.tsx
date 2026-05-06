@@ -61,17 +61,12 @@ export function SignupStep1({
     <div className="space-y-6">
       <section className="space-y-3">
         <div className="space-y-2">
+          {/* Single email field — confirm-email was removed since
+              email-verification (the click-the-link step after signup)
+              already catches typos. The double field was 2014-era
+              friction that costs activations without preventing errors. */}
           <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
           <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirmEmail" className={labelCls}>Confirm email <span className="text-destructive">*</span></Label>
-          <Input id="confirmEmail" type="email" placeholder="Re-enter your email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} required autoComplete="email" className={inputCls} />
-          {confirmEmail && (
-            <p className={`text-xs ${email === confirmEmail ? "text-primary" : "text-destructive"}`}>
-              {email === confirmEmail ? "✓ Emails match" : "✗ Emails do not match"}
-            </p>
-          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>

@@ -2,7 +2,7 @@ import { useEffect, useState, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, BellRing } from "lucide-react";
+import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, BellRing, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, Megaphone } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { isPushSupported, registerServiceWorker, requestPushPermission, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { toast } from "sonner";
@@ -26,6 +26,16 @@ const typeIcons: Record<string, React.ReactNode> = {
   payment: <DollarSign className="w-4 h-4 text-primary" />,
   review: <Star className="w-4 h-4 text-accent" />,
   job_update: <Info className="w-4 h-4 text-primary" />,
+  job_updates: <Info className="w-4 h-4 text-primary" />,
+  message: <MessageCircle className="w-4 h-4 text-primary" />,
+  transit_updates: <Truck className="w-4 h-4 text-primary" />,
+  work_status: <Wrench className="w-4 h-4 text-primary" />,
+  new_offers: <Sparkles className="w-4 h-4 text-accent" />,
+  system_alert: <Megaphone className="w-4 h-4 text-accent" />,
+  financial_alerts: <DollarSign className="w-4 h-4 text-primary" />,
+  verified: <ShieldCheck className="w-4 h-4 text-primary" />,
+  job_match: <Sparkles className="w-4 h-4 text-primary" />,
+  expired: <AlertTriangle className="w-4 h-4 text-muted-foreground" />,
 };
 
 const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(

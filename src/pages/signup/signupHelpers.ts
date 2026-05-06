@@ -53,9 +53,18 @@ export function validateFile(
  * Format a 10-digit US phone number into "(XXX) XXX-XXXX" as the user
  * types. Drops everything past the 10th digit; partial-input friendly so
  * `(504` and `(504) 555` both render correctly mid-typing.
+ *
+ * If the raw input has 11 digits starting with 1 (e.g. user pasted
+ * "+1 (504) 555-1234"), drops the leading country-code 1 first so the
+ * result is the local 10-digit number rather than a mis-grouped 10
+ * digits including the country code.
  */
 export function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 10);
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) {
+    digits = digits.slice(1);
+  }
+  digits = digits.slice(0, 10);
   if (digits.length === 0) return "";
   if (digits.length < 4) return `(${digits}`;
   if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;

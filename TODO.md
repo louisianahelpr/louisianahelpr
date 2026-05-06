@@ -482,7 +482,11 @@ history during a failed `ALTER DATABASE` for vault GUCs.
 
 ### Messaging & realtime
 - [ ] Supabase Realtime channel per job thread; presence + typing indicators
-- [ ] Attachment uploads (photos for quotes / completion proof) with size + MIME guards
+- [x] Attachment uploads (photos for quotes / completion proof) with
+  size + MIME guards — already implemented in `src/lib/messageAttachments.ts`.
+  5MB cap, MIME whitelist (JPG/PNG/WEBP/HEIC/PDF), EXIF stripping
+  on upload, RLS-enforced path convention `<jobId>/<senderId>/<uuid>-<safeName>`,
+  signed URLs for display.
 - [ ] Push notifications via Capacitor on iOS for new messages and status changes
 
 ### Business accounts

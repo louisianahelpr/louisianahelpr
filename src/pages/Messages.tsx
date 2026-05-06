@@ -28,6 +28,7 @@ import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
+import { MessageAttachment } from "@/components/MessageAttachment";
 import { useChatPresence } from "@/hooks/useChatPresence";
 import { OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 import { ConversationSkeleton } from "@/components/SkeletonLoaders";
@@ -44,6 +45,9 @@ type Message = {
   content: string;
   read: boolean;
   created_at: string;
+  attachment_url: string | null;
+  attachment_mime: string | null;
+  attachment_size: number | null;
 };
 
 type Conversation = {
@@ -373,13 +377,16 @@ const Messages = () => {
     }
   };
 
-  const sendMessage = async (content: string) => {
-    if (!content.trim() || !activeConvo || !userId) return;
+  const sendMessage = async (
+    content: string,
+    attachment?: { path: string; mime: string; size: number },
+  ) => {
+    if (!activeConvo || !userId) return;
+    if (!content.trim() && !attachment) return;
 
-    // Skip scanning for system-generated messages (location shares, photos)
-    const isSystemMessage = content.startsWith("📍 Location:") || content.startsWith("📷 ");
+    // Skip scanning for system-generated messages (location shares, attachments)
+    const isSystemMessage = content.startsWith("📍 Location:") || !!attachment;
 
-    // Scan for off-platform activity (skip for location/photo messages)
     if (!isSystemMessage) {
       const violations = scanMessage(content);
       if (violations.length > 0) {
@@ -404,6 +411,9 @@ const Messages = () => {
       sender_id: userId,
       receiver_id: activeConvo.otherUserId,
       content: content.trim(),
+      attachment_url: attachment?.path ?? null,
+      attachment_mime: attachment?.mime ?? null,
+      attachment_size: attachment?.size ?? null,
     });
     if (error) toast.error("Failed to send message");
   };
@@ -789,13 +799,21 @@ const Messages = () => {
                   return (
                     <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                       <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative ${
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative space-y-2 ${
                           mine
                             ? "bg-primary text-primary-foreground rounded-br-md"
                             : "bg-secondary text-secondary-foreground rounded-bl-md"
                         }`}
                       >
-                        {renderMessageContent(m.content)}
+                        {m.attachment_url && m.attachment_mime && (
+                          <MessageAttachment
+                            path={m.attachment_url}
+                            mime={m.attachment_mime}
+                            size={m.attachment_size}
+                            mine={mine}
+                          />
+                        )}
+                        {m.content && renderMessageContent(m.content)}
                         {/* Action buttons on hover */}
                         <div className={`absolute ${mine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
                           {!mine && (
@@ -844,9 +862,10 @@ const Messages = () => {
                 <RichMessageInput
                   value={draft}
                   onChange={setDraft}
-                  onSend={(content) => { sendMessage(content); setDraft(""); }}
+                  onSend={(content, attachment) => { sendMessage(content, attachment); setDraft(""); }}
                   onTyping={broadcastTyping}
                   jobId={activeConvo.jobId}
+                  senderId={userId || undefined}
                 />
               </div>
             </div>

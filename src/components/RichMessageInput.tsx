@@ -1,11 +1,16 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, ImagePlus, MapPin, X, ShieldAlert } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticError } from "@/lib/haptics";
+import {
+  uploadMessageAttachment,
+  isImageMime,
+  isPdfMime,
+  MESSAGE_ATTACHMENT_MAX_BYTES,
+} from "@/lib/messageAttachments";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,18 +22,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+export type SendAttachment = {
+  path: string;
+  mime: string;
+  size: number;
+};
+
 interface RichMessageInputProps {
-  onSend: (content: string) => void;
+  onSend: (content: string, attachment?: SendAttachment) => void;
   onTyping?: () => void;
   disabled?: boolean;
   /** Optional controlled value — when provided, parent owns the text state. */
   value?: string;
   onChange?: (value: string) => void;
-  /** Job ID for the active conversation — required for image uploads (RLS scopes chat/<jobId>/...). */
+  /** Job ID for the active conversation — required for attachment uploads. */
   jobId?: string;
+  /** Sender ID (current user) — required for attachment uploads (path scoping). */
+  senderId?: string;
 }
 
-export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, jobId }: RichMessageInputProps) => {
+export const RichMessageInput = ({
+  onSend, onTyping, disabled, value, onChange, jobId, senderId,
+}: RichMessageInputProps) => {
   const [internalText, setInternalText] = useState("");
   const isControlled = value !== undefined;
   const text = isControlled ? (value as string) : internalText;
@@ -36,43 +51,45 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
     if (isControlled) onChange?.(v);
     else setInternalText(v);
   };
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingViolation, setPendingViolation] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5MB");
+    if (file.size > MESSAGE_ATTACHMENT_MAX_BYTES) {
+      toast.error(`File must be under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB`);
       return;
     }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setStagedFile(file);
+    setImagePreview(isImageMime(file.type) ? URL.createObjectURL(file) : null);
+    // Reset input so re-selecting the same file fires onChange
+    if (fileRef.current) fileRef.current.value = "";
   };
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return null;
-    if (!jobId) {
-      toast.error("Cannot upload image without a job context");
+  const clearStaged = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setStagedFile(null);
+    setImagePreview(null);
+  };
+
+  const uploadStaged = async (): Promise<SendAttachment | null> => {
+    if (!stagedFile) return null;
+    if (!jobId || !senderId) {
+      toast.error("Missing chat context for upload");
       return null;
     }
     setUploading(true);
-    const ext = imageFile.name.split(".").pop();
-    const path = `chat/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from("job-photos").upload(path, imageFile);
+    const result = await uploadMessageAttachment(stagedFile, jobId, senderId);
     setUploading(false);
-    if (error) {
-      toast.error("Failed to upload image");
+    if ("error" in result) {
+      toast.error(result.error);
       return null;
     }
-    // Bucket is public for backwards-compat with shared URLs; chat uploads
-    // are scoped to chat/<jobId>/... and write access is RLS-restricted to
-    // job participants.
-    const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
-    return data.publicUrl;
+    return { path: result.path, mime: result.mime, size: result.size };
   };
 
   const handleShareLocation = () => {
@@ -90,19 +107,17 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
   };
 
   const performSend = async () => {
-    if (imageFile) {
-      const url = await uploadImage();
-      if (url) {
-        onSend(`📷 ${url}${text ? `\n${text}` : ""}`);
-      }
-      setImageFile(null);
-      setImagePreview(null);
+    if (stagedFile) {
+      const attachment = await uploadStaged();
+      if (!attachment) return; // upload failed; toast already shown
+      onSend(text.trim(), attachment);
+      clearStaged();
       setText("");
       return;
     }
 
     if (!text.trim()) return;
-    hapticLight(); // gentle confirmation tap on message send
+    hapticLight();
     onSend(text.trim());
     setText("");
   };
@@ -110,8 +125,6 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
   const handleSend = async () => {
     if (uploading) return;
 
-    // Layer 1 (UX): warn before sending if message contains forbidden content.
-    // The server will still hide & flag if they bypass — this just educates first.
     if (text.trim()) {
       const violations = scanMessage(text);
       if (violations.length > 0) {
@@ -129,17 +142,29 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
     await performSend();
   };
 
+  const stagedIsPdf = stagedFile && isPdfMime(stagedFile.type);
+
   return (
     <div className="space-y-2">
-      {imagePreview && (
+      {stagedFile && (
         <div className="relative inline-block">
-          <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded-lg object-cover border border-border" />
+          {imagePreview ? (
+            <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded-lg object-cover border border-border" />
+          ) : (
+            <div className="h-20 w-32 rounded-lg border border-border bg-muted flex items-center gap-2 px-3">
+              <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-foreground truncate">{stagedFile.name}</span>
+            </div>
+          )}
           <button
-            onClick={() => { setImagePreview(null); setImageFile(null); }}
+            onClick={clearStaged}
             className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+            disabled={uploading}
+            aria-label="Remove attachment"
           >
             <X className="w-3 h-3" />
           </button>
+          {stagedIsPdf && <p className="text-[10px] text-muted-foreground mt-1">PDF · {(stagedFile.size / 1024).toFixed(0)} KB</p>}
         </div>
       )}
       <div className="flex gap-1.5 items-center">
@@ -148,17 +173,17 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
           size="icon"
           className="shrink-0 h-9 w-9"
           onClick={() => fileRef.current?.click()}
-          disabled={disabled}
-          title="Send photo"
+          disabled={disabled || uploading}
+          title="Attach photo or PDF"
         >
-          <ImagePlus className="w-4 h-4" />
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
         </Button>
         <Button
           variant="ghost"
           size="icon"
           className="shrink-0 h-9 w-9"
           onClick={handleShareLocation}
-          disabled={disabled}
+          disabled={disabled || uploading}
           title="Share location"
         >
           <MapPin className="w-4 h-4" />
@@ -169,12 +194,22 @@ export const RichMessageInput = ({ onSend, onTyping, disabled, value, onChange, 
           onChange={(e) => { setText(e.target.value); onTyping?.(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           className="flex-1"
-          disabled={disabled}
+          disabled={disabled || uploading}
         />
-        <Button size="icon" onClick={handleSend} disabled={(!text.trim() && !imageFile) || uploading || disabled}>
+        <Button
+          size="icon"
+          onClick={handleSend}
+          disabled={(!text.trim() && !stagedFile) || uploading || disabled}
+        >
           <Send className="w-4 h-4" />
         </Button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
       </div>
 
       <AlertDialog open={!!pendingViolation} onOpenChange={(open) => !open && setPendingViolation(null)}>

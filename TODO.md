@@ -1,8 +1,110 @@
 # TODO
 
-## Where We Left Off — 2026-05-05 (autonomous shipping session)
+## Where We Left Off — 2026-05-06 (overnight + morning sessions, 81 commits)
 
-47 commits today. Production quiet (Sentry: 0 unresolved issues; 9/9
+Production state: 0 unresolved Sentry issues, all 13 cron jobs firing
+on schedule, RLS perf advisor 281 → 85 (-196), security advisor
+167 → 65 (intentional public RPCs only), Playwright 9/9 + 2 auth
+skipped, build/tsc/lint all green.
+
+### Shipped this session
+
+**Push notifications system (end-to-end, awaiting iOS Build #17)**
+- `send-push-notification` edge function with both APNs (iOS) + FCM
+  (Android) paths. Skip-with-warning when creds missing. Auto-cleans
+  dead tokens (410/404/UNREGISTERED).
+- APNs creds set in Supabase function secrets: KEY_ID `D767K5J877`,
+  TEAM_ID `P85MCK558V`, BUNDLE_ID `com.Helpr`, AUTH_KEY (.p8 contents).
+- DB trigger `notifications → send-push-notification` so every in-app
+  notification automatically becomes a push (respects per-user
+  notification_preferences with master push_enabled toggle + per-category bools).
+- `PushNotificationPrompt` mounted on Dashboard.
+- Auto-call `register()` on app boot when permission already granted
+  (commit 0fc54f24 — Capacitor doesn't auto-re-emit cached tokens).
+- Buffer device token until auth session restored from local storage
+  (commit f91885fc — APNs delivers in <100ms, faster than supabase-js
+  session hydration; buffer in module ref + flush on SIGNED_IN).
+- Admin Health page now shows live token stats (total / iOS / Android /
+  last registered) + "Send test push to me" button.
+
+**Native iOS OAuth (TestFlight #14 verified working)**
+- `@capgo/capacitor-social-login` wired for Apple + Google native sign-in.
+- `AppleSignInButton` + `GoogleSignInButton` switch to native path on
+  `Capacitor.isNativePlatform()`, exchange idToken via
+  `supabase.auth.signInWithIdToken`. Web fallback unchanged.
+- `initSocialLogin()` called from `initNative()` on app boot.
+- TestFlight build #14 succeeded; tested on real iPhone, both buttons work.
+
+**Apple Developer cleanup (cowork last night)**
+- 13 items revoked: `com.nexltech.oldnock` + `com.louisianahelpr.app` +
+  XC Wildcard App IDs; 5 API-created Dev certs; old SIWA key
+  `Y754ZY5DQ2`; cert `Q2MD48R498`; Distribution Managed `GN5F5RQX2L`;
+  5 Invalid Profiles. Account is now: 1 App ID (`com.Helpr`), 1
+  Services ID (`com.Helpr.signin`), 2 Certs (active Distribution
+  `96A589WNN9` + personal Dev), 1 SIWA Key (`67WQZ3F8Q5`).
+
+**DB Smoke workflow fixed** — was failing 4× since 2026-05-04
+- Added 4 newer migrations to KNOWN_CI_FLAKY (storage.objects /
+  realtime.messages — image-perm-sensitive)
+- Wrapped REVOKE loops in `EXCEPTION WHEN undefined_function` so
+  Supabase-managed funcs (`rls_auto_enable`,
+  `extend_boosts_with_no_applications`) absent in fresh DBs don't
+  abort the run
+- Smoke test now UPDATEs profile instead of INSERT (handle_new_user
+  trigger auto-creates the row)
+- Static role-string guard scoped to .ts/.tsx only (migration history
+  was flagging dead historical patterns)
+- Run time: 1m43s, all green.
+
+**Other features**
+- Branded business-team invite emails + resend button + `?invite=` prefill
+- Recurring job templates: `spawn-recurring-jobs` cron firing daily 5am UTC
+- `get_ranked_open_jobs` falls back to `profile.parish` when helper
+  hasn't set preferred parishes
+- Reports admin queue: SLA timer (24h) + audit_log entry on resolve
+- Realtime typing-broadcast bug fixed (was creating fresh channel
+  each call); added throttling
+- Postgres-changes Messages subscription gets server-side filter
+  (was receiving every INSERT in public.messages)
+- Email send log: collapse pending row into terminal status (no more
+  orphan pending entries)
+- 6 unused edge functions deleted (auto-resend-* trio, auto-resolve-revisions,
+  job-lifecycle-automations, job-match-digest)
+- 10 unused landing components deleted (-1023 LOC)
+- `@capacitor/android` removed from package.json
+
+**Security fix (real)**
+- `stripe-idv-webhook` had a silent unsigned fallback: anyone could
+  POST a fake `identity.verification_session.verified` event and
+  bypass IDV. Patched to fail closed when secret/signature missing.
+
+**Backwards-compat memory**
+- Realtime tokens via `cron.alter_job()` to read from new vault keys
+- Storage paths stored as paths (not URLs) on profiles + applications
+  + messages.attachment_url; signed URLs generated at display time
+- 14 service-role policies scoped to `{service_role}` (was `{public}`)
+- 75 policies scoped to `{authenticated}` (was `{public}`)
+- 158 `auth.uid()` calls wrapped in `(SELECT auth.uid())` for initPlan
+
+### Pending YOUR action (only you can do these)
+
+- 🟠 **iOS Build #17** — cowork ships this afternoon when you're back.
+  Required to land push tokens in `push_tokens` (the auth-session
+  buffering fix from commit f91885fc).
+- 🟠 **Sentry alert rules** — paste the 5 specs from
+  `docs/SENTRY_ALERT_RULES.md` into helpr-4m.sentry.io. ~30 sec each.
+- 🟠 **HIBP password protection** — Studio → Auth → Policies → "Check
+  for leaked passwords." Closes the last security advisor warning.
+  Needs Supabase Pro ($25/mo) — skip if not on Pro.
+- 🟠 **Submit build #14 (or latest) to App Store review** — TestFlight
+  is internal-only. Cowork can do it from App Store Connect once
+  you've smoke-tested the native OAuth paths on TestFlight.
+- 🟠 **Stripe DNS records** (low-pri) — for branded
+  `*@louisianahelpr.com` Stripe receipts.
+
+## Where We Left Off — 2026-05-05 (prior session)
+
+47 commits. Production quiet (Sentry: 0 unresolved issues; 9/9
 Playwright tests pass; RLS spot-check confirms wrapped policies still
 enforce correctly).
 

@@ -23,13 +23,19 @@ import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 
 let listenersAttached = false;
 
-async function savePushToken(token: string, platform: "ios" | "android") {
+// Pending token captured before supabase.auth has restored the session
+// from local storage. APNs sometimes delivers the device token in
+// <100ms of register() — faster than supabase-js's session hydration —
+// so getUser() returns null and we'd lose the token. Buffer it here
+// and flush on the next SIGNED_IN auth event.
+let pendingToken: { token: string; platform: "ios" | "android" } | null = null;
+let authListenerAttached = false;
+
+async function persistPushToken(userId: string, token: string, platform: "ios" | "android") {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("push_tokens" as any).upsert(
+    const { error } = await supabase.from("push_tokens" as any).upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         token,
         platform,
         device_id: platform + "-" + token.slice(0, 8),
@@ -37,6 +43,36 @@ async function savePushToken(token: string, platform: "ios" | "android") {
       },
       { onConflict: "user_id,token" },
     );
+    if (error) {
+      report(error, { tags: { source: "persistPushToken.upsert" }, context: { userId } });
+    }
+  } catch (err) {
+    report(err, { tags: { source: "persistPushToken" }, context: { userId } });
+  }
+}
+
+function attachAuthListenerOnce() {
+  if (authListenerAttached) return;
+  authListenerAttached = true;
+  supabase.auth.onAuthStateChange((event, session) => {
+    if ((event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") && session?.user && pendingToken) {
+      const { token, platform } = pendingToken;
+      pendingToken = null;
+      void persistPushToken(session.user.id, token, platform);
+    }
+  });
+}
+
+async function savePushToken(token: string, platform: "ios" | "android") {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await persistPushToken(user.id, token, platform);
+      return;
+    }
+    // Session not yet restored — buffer the token and flush on first auth event.
+    pendingToken = { token, platform };
+    attachAuthListenerOnce();
   } catch (err) {
     report(err, { tags: { source: "savePushToken" } });
   }

@@ -25,6 +25,8 @@ type Report = {
   reported_name?: string;
 };
 
+const SLA_BREACH_HOURS = 24;
+
 const AdminReports = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -39,7 +41,11 @@ const AdminReports = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      let query = supabase.from("reports").select("*").neq("reported_type", "support").order("created_at", { ascending: false });
+      // For the pending queue, oldest-first surfaces SLA-breaching items at
+      // the top (they need triage soonest). For resolved/all, newest-first
+      // matches the rest of admin views.
+      const ascending = filter === "pending";
+      let query = supabase.from("reports").select("*").neq("reported_type", "support").order("created_at", { ascending });
       if (filter === "pending") query = query.eq("status", "pending");
       if (filter === "resolved") query = query.eq("status", "resolved");
 
@@ -70,13 +76,45 @@ const AdminReports = () => {
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("reports").update({ status }).eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`Report marked as ${status}`);
-      loadReports();
+    if (error) {
+      toast.error(error.message);
+      setUpdating(null);
+      return;
     }
+    // Audit trail for the status change. Best-effort — don't fail the
+    // resolution if the audit insert errors (admin already saw success).
+    if (user) {
+      const report = reports?.find(r => r.id === id);
+      const ageHours = report ? Math.round((Date.now() - new Date(report.created_at).getTime()) / 3600_000) : null;
+      void supabase.from("admin_audit_log").insert({
+        admin_id: user.id,
+        action: status === "resolved" ? "report_resolved" : "report_dismissed",
+        target_type: "report",
+        target_id: id,
+        details: {
+          report_id: id,
+          new_status: status,
+          age_hours_at_resolution: ageHours,
+          sla_breached: ageHours !== null && ageHours > SLA_BREACH_HOURS,
+        },
+      });
+    }
+    toast.success(`Report marked as ${status}`);
+    loadReports();
     setUpdating(null);
+  };
+
+  // SLA: trust & safety reports must be triaged within 24h. Visual
+  // indicator at >24h (yellow) and >48h (red) so the queue self-prioritizes.
+  const slaInfo = (createdAt: string) => {
+    const ageMs = Date.now() - new Date(createdAt).getTime();
+    const hours = ageMs / 3600_000;
+    if (hours > SLA_BREACH_HOURS * 2) return { label: `${Math.floor(hours)}h overdue`, tone: "red" as const };
+    if (hours > SLA_BREACH_HOURS) return { label: `${Math.floor(hours)}h overdue`, tone: "yellow" as const };
+    const hoursLeft = Math.max(0, SLA_BREACH_HOURS - hours);
+    return { label: `${Math.ceil(hoursLeft)}h to SLA`, tone: "green" as const };
   };
 
   const handleSendMessage = async () => {
@@ -160,9 +198,23 @@ const AdminReports = () => {
                     </p>
                   </div>
                 </div>
-                <Badge variant={report.status === "pending" ? "destructive" : "secondary"} className="shrink-0">
-                  {report.status}
-                </Badge>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <Badge variant={report.status === "pending" ? "destructive" : "secondary"}>
+                    {report.status}
+                  </Badge>
+                  {report.status === "pending" && (() => {
+                    const sla = slaInfo(report.created_at);
+                    const slaClass =
+                      sla.tone === "red" ? "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400" :
+                      sla.tone === "yellow" ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400" :
+                      "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+                    return (
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${slaClass}`}>
+                        {sla.label}
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
 
               {report.description && (

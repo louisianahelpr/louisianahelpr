@@ -76,15 +76,20 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             description: `User has ${lowRatings} ratings of 2 stars or below. Auto-flagged for admin review.`,
             reported_by: null, action_taken: "warning",
           });
+          // Bulk-insert one row per admin instead of awaiting per admin.
+          // For 5+ admins this difference is visible to the user (~1.5s vs ~300ms).
           const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-          if (adminRoles) {
-            for (const admin of adminRoles) {
-              await createNotification({
-                user_id: admin.user_id, title: "⚠️ Low rating alert",
+          if (adminRoles?.length) {
+            await supabase.from("notifications").insert(
+              adminRoles.map((a: { user_id: string }) => ({
+                user_id: a.user_id,
+                title: "⚠️ Low rating alert",
                 message: `A user has received ${lowRatings} low ratings and has been auto-flagged.`,
-                type: "warning", link: "/admin",
-              });
-            }
+                type: "warning",
+                link: "/admin?view=fraud",
+                read: false,
+              })),
+            );
           }
         }
       }

@@ -89,18 +89,19 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
 
       if (error) throw error;
 
-      // Notify admins
+      // Bulk-fan to admins in one INSERT.
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRoles) {
-        for (const admin of adminRoles) {
-          await createNotification({
-            user_id: admin.user_id,
+      if (adminRoles?.length) {
+        await supabase.from("notifications").insert(
+          adminRoles.map((a: { user_id: string }) => ({
+            user_id: a.user_id,
             title: "🚨 Job disputed",
             message: `"${jobTitle}" has been disputed. Reason: ${DISPUTE_REASONS.find((r) => r.value === reason)?.label}. Payment is on hold pending review.`,
             type: "warning",
-            link: "/admin",
-          });
-        }
+            link: "/admin?view=disputes",
+            read: false,
+          })),
+        );
       }
 
       // Fire Slack ops alert (non-blocking)

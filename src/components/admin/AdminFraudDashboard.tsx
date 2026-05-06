@@ -47,7 +47,7 @@ const AdminFraudDashboard = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      let query = (supabase.from as any)("fraud_flags")
+      let query = supabase.from("fraud_flags")
         .select("*")
         .eq("resolved", showResolved)
         .order("created_at", { ascending: false })
@@ -71,7 +71,7 @@ const AdminFraudDashboard = () => {
 
   const resolveFlag = async (flag: FraudFlag) => {
     setResolving(flag.id);
-    const { error } = await (supabase.from as any)("fraud_flags")
+    const { error } = await supabase.from("fraud_flags")
       .update({ resolved: true })
       .eq("id", flag.id);
 

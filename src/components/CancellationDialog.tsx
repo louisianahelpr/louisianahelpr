@@ -158,16 +158,19 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helpr.");
         }
 
-        // Notify admins
+        // Bulk-fan to admins in one INSERT instead of awaiting per row.
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        if (adminRoles) {
-          for (const admin of adminRoles) {
-            await createNotification({
-              user_id: admin.user_id, title: "⚠️ Cancellation with helpr",
+        if (adminRoles?.length) {
+          await supabase.from("notifications").insert(
+            adminRoles.map((a: { user_id: string }) => ({
+              user_id: a.user_id,
+              title: "⚠️ Cancellation with helpr",
               message: `User cancelled "${jobTitle}" after selecting a helpr (${warningNum} total). Action: ${actionTaken}.`,
-              type: "warning", link: "/admin",
-            });
-          }
+              type: "warning",
+              link: "/admin?view=people",
+              read: false,
+            })),
+          );
         }
       } else {
         toast.success("Job cancelled successfully.");

@@ -348,14 +348,17 @@ const Messages = () => {
         description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "permanent_ban",
       });
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRoles) {
-        for (const admin of adminRoles) {
-          await createNotification({
-            user_id: admin.user_id, title: "⛔ User permanently banned",
+      if (adminRoles?.length) {
+        await supabase.from("notifications").insert(
+          adminRoles.map((a: { user_id: string }) => ({
+            user_id: a.user_id,
+            title: "⛔ User permanently banned",
             message: `${senderName} was auto-banned for repeated off-platform activity. They tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
-            type: "warning", link: `/admin?view=reports`,
-          });
-        }
+            type: "warning",
+            link: `/admin?view=reports`,
+            read: false,
+          })),
+        );
       }
       toast.error("Your account has been banned for violating platform rules.");
     } else {
@@ -365,14 +368,17 @@ const Messages = () => {
       });
       await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRoles) {
-        for (const admin of adminRoles) {
-          await createNotification({
-            user_id: admin.user_id, title: "⚠️ Off-platform attempt detected",
+      if (adminRoles?.length) {
+        await supabase.from("notifications").insert(
+          adminRoles.map((a: { user_id: string }) => ({
+            user_id: a.user_id,
+            title: "⚠️ Off-platform attempt detected",
             message: `${senderName} tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
-            type: "warning", link: `/admin?view=reports`,
-          });
-        }
+            type: "warning",
+            link: `/admin?view=reports`,
+            read: false,
+          })),
+        );
       }
     }
   };

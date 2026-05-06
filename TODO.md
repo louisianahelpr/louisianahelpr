@@ -65,11 +65,18 @@ Native-iOS or deploy-pipeline work that lives on their machine.
 Real shippable work that genuinely needs more than one session each.
 Listed in rough priority order.
 
-- [ ] **Real-time job radar map (the "force multiplier")**
-  — Mapbox or Google Maps integration. Open the app → see a
-  parish-zoomed map with 5-10 pins of jobs within 2 miles, color-coded
-  by category, with a drag-to-bid radius slider. 1-tap apply on pin.
-  *Multi-day epic. Needs design pass + location permissions wiring.*
+- [x] **Real-time job radar map (the "force multiplier")** — shipped 2026-05-06.
+  Leaflet + react-leaflet + OpenStreetMap tiles. Public RPC
+  `get_open_jobs_for_map` returns coords rounded to 3 decimals (~110m
+  precision) so doorstep is never exposed. `BrowseMap` lazy-loaded
+  via Suspense. List/Map toggle live on `/browse` (DashboardGuest).
+  Pin tap → popup with title/budget/category/urgent flag → CTA to
+  apply. Geocoding wired into PostJob (Nominatim, free, US-scoped) so
+  new posts populate coords automatically.
+  **Remaining map work** (next session): same toggle on authenticated
+  `/dashboard`, pin clustering at high zoom (`react-leaflet-cluster`),
+  apply directly from pin popup for logged-in users (skip the
+  `?quickApply=` redirect).
 - [ ] **Continue god-component extraction**
   AdminUsers is at 2,055 lines (was 2,464 at start of audit, -409 / -16.6%).
   Pattern set with 5 sub-components: `AutoRestrictedRail`,

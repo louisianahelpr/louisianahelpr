@@ -33,6 +33,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 // Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
 // Each tab is only fetched the first time the user clicks it.
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { PayoutSetupBanner } from "@/components/profile/PayoutSetupBanner";
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));

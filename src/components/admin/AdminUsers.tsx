@@ -25,6 +25,8 @@ import { hapticSuccess } from "@/lib/haptics";
 import { AutoRestrictedRail } from "./AutoRestrictedRail";
 import { DenyUserDialog } from "./DenyUserDialog";
 import { BanDialog } from "./BanDialog";
+import { DeleteUserDialog } from "./DeleteUserDialog";
+import { EditEmailDialog } from "./EditEmailDialog";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -63,14 +65,12 @@ const AdminUsers = () => {
   const [banProfile, setBanProfile] = useState<Profile | null>(null);
 
   // Edit email dialog
+  // Edit email dialog — moved into EditEmailDialog component.
   const [editEmailProfile, setEditEmailProfile] = useState<Profile | null>(null);
-  const [newEmail1, setNewEmail1] = useState("");
-  const [newEmail2, setNewEmail2] = useState("");
-  const [updatingEmail, setUpdatingEmail] = useState(false);
 
   // Delete denied account
+  // Delete dialog — moved into DeleteUserDialog component.
   const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   // Re-upload ID dialog
   const [reuploadProfile, setReuploadProfile] = useState<Profile | null>(null);
@@ -488,25 +488,8 @@ const AdminUsers = () => {
   // the dialog (via setDenyProfile) and handles the post-success refetch
   // through DenyUserDialog's onSuccess prop.
 
-  const deleteDeniedUser = async () => {
-    if (!deleteProfile) return;
-    setDeleting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
-        body: { userId: deleteProfile.user_id },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success(`${formatName(deleteProfile.full_name)}'s account has been deleted.`);
-      setDeleteProfile(null);
-      setViewProfile(null);
-      loadProfiles();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete account");
-    } finally {
-      setDeleting(false);
-    }
-  };
+  // deleteDeniedUser logic moved into DeleteUserDialog. Parent only
+  // opens via setDeleteProfile + refetches via the dialog's onSuccess.
 
   const [resending, setResending] = useState<string | null>(null);
 
@@ -568,39 +551,8 @@ const AdminUsers = () => {
     setViewProfile(null);
   };
 
-  const handleUpdateEmail = async () => {
-    if (!editEmailProfile) return;
-    if (newEmail1 !== newEmail2) { toast.error("Emails don't match"); return; }
-    if (!newEmail1.trim()) { toast.error("New email is required"); return; }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail1)) { toast.error("Invalid email format"); return; }
-
-    setUpdatingEmail(true);
-    try {
-      const { error } = await supabase.functions.invoke("admin-update-email", {
-        body: { userId: editEmailProfile.user_id, newEmail: newEmail1.trim() },
-      });
-      if (error) throw error;
-      toast.success(`Email updated to ${newEmail1.trim()}`);
-      setEditEmailProfile(null);
-      setNewEmail1(""); setNewEmail2("");
-      loadProfiles();
-      setViewProfile(null);
-    } catch (err: any) {
-      let message = err?.message || "Failed to update email";
-      if (err?.context && typeof err.context?.json === "function") {
-        try {
-          const body = await err.context.json();
-          if (body?.error) message = body.error;
-        } catch {
-          // keep fallback message
-        }
-      }
-      toast.error(message);
-    } finally {
-      setUpdatingEmail(false);
-    }
-  };
+  // handleUpdateEmail logic moved into EditEmailDialog. Parent only opens
+  // via setEditEmailProfile + refetches via the dialog's onSuccess prop.
 
   const callAdminAction = async (
     action: "manual_verify" | "request_id_reupload" | "reset_password" | "formal_warning",
@@ -1205,7 +1157,7 @@ const AdminUsers = () => {
                   <div className="flex items-center gap-1.5 min-w-0">
                     <p className="text-xs sm:text-xs text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
                     <button
-                      onClick={() => { setEditEmailProfile(viewProfile); setNewEmail1(""); setNewEmail2(""); }}
+                      onClick={() => setEditEmailProfile(viewProfile)}
                       className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
                       title="Edit email"
                     >
@@ -1950,78 +1902,17 @@ const AdminUsers = () => {
         }}
       />
 
-      {/* Edit Email Dialog */}
-      <Dialog open={!!editEmailProfile} onOpenChange={() => setEditEmailProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-primary" /> Change Email for {editEmailProfile?.full_name || "User"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted/50 border border-border p-3">
-              <p className="text-xs text-muted-foreground">Current email: <strong className="text-foreground">{(editEmailProfile as any)?.email || "—"}</strong></p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">New Email</p>
-              <Input type="email" value={newEmail1} onChange={(e) => setNewEmail1(e.target.value)} placeholder="Enter new email" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm New Email</p>
-              <Input type="email" value={newEmail2} onChange={(e) => setNewEmail2(e.target.value)} placeholder="Re-enter new email" />
-              {newEmail2 && newEmail1 !== newEmail2 && (
-                <p className="text-xs text-destructive">Emails don't match</p>
-              )}
-              {newEmail2 && newEmail1 === newEmail2 && newEmail1.length > 0 && (
-                <p className="text-xs text-primary">✓ Emails match</p>
-              )}
-            </div>
-
-            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
-              <p className="text-xs text-muted-foreground">
-                ⚠️ This will immediately update the user's login email. They'll be notified of the change.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditEmailProfile(null)}>Cancel</Button>
-            <Button
-              onClick={handleUpdateEmail}
-              disabled={updatingEmail || !newEmail1 || newEmail1 !== newEmail2}
-            >
-              {updatingEmail ? "Updating…" : "Update Email"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Denied Account Dialog */}
-      <Dialog open={!!deleteProfile} onOpenChange={() => setDeleteProfile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2 text-destructive">
-              <Trash2 className="w-5 h-5" /> Delete Account
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              Are you sure you want to permanently delete <strong className="text-foreground">{formatName(deleteProfile?.full_name)}</strong>'s account?
-            </p>
-            <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> This action is permanent and cannot be undone. All user data will be removed.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteProfile(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={deleteDeniedUser} disabled={deleting}>
-              {deleting ? "Deleting…" : "Delete Permanently"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Email + Delete dialogs — extracted into their own components. */}
+      <EditEmailDialog
+        profile={editEmailProfile}
+        onClose={() => setEditEmailProfile(null)}
+        onSuccess={() => { loadProfiles(); setViewProfile(null); }}
+      />
+      <DeleteUserDialog
+        profile={deleteProfile}
+        onClose={() => setDeleteProfile(null)}
+        onSuccess={() => { loadProfiles(); setViewProfile(null); }}
+      />
 
       {/* Manually Verify Confirm */}
       <Dialog open={!!manualVerifyProfile} onOpenChange={() => !actionBusy && setManualVerifyProfile(null)}>

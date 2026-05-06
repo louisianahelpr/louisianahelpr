@@ -466,7 +466,13 @@ history during a failed `ALTER DATABASE` for vault GUCs.
 ### Trust & safety
 - [~] Helper verification flow — Stripe Identity is wired, IDV retry UX shipped. `helper_verifications` history table + AFTER UPDATE trigger on profiles shipped commit e2536835; Verification History panel inside AdminUsers profile dialog shipped commit ad6214e5. Still TODO: deprecate `legacy_manual_review` flag (referenced in 4 migrations + 2 edge functions + 2 admin components — separate change)
 - [x] Two-way reviews — DB enforcement trigger shipped 2026-05-04. UI side: reviews already surfaced on own Profile (ReviewsTab) and other-user UserProfile (inline panel with sub-ratings); review-nag-cron handles 24h+72h reminders.
-- [ ] Dispute / report-issue path wired into `Admin` queue with SLA
+- [x] Dispute / report-issue path wired into `Admin` queue with SLA —
+  shipped 2026-05-06. `AdminDisputes` now shows color-coded age
+  badges (Fresh <24h / 24-48h / Stale >48h / **Chargeback risk** >5d)
+  and the queue sort puts chargeback-risk disputes at the very top
+  regardless of subscriber tier (Stripe lets card issuers reverse
+  charges past the 5-day window — those MUST get attention first).
+  Within each priority bucket: oldest dispute first.
 
 ### Payments
 - [x] Stripe Connect onboarding for helpers (Express accounts) — shipped + idempotency added 2026-05-04

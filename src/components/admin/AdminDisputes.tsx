@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Flame } from "lucide-react";
 import { toast } from "sonner";
 
 interface DisputedJob {
@@ -53,20 +53,74 @@ const AdminDisputes = () => {
       setTiers(tMap);
     }
 
-    // Priority Dispute Resolution: Elite subscribers' disputes appear first
+    // Priority Dispute Resolution. Tiering rules (most important first):
+    //   1. Chargeback-risk disputes (>5 days) — Stripe lets card issuers
+    //      reverse the charge directly past this window, costing the
+    //      platform the dispute fee + the original transaction. These
+    //      MUST be at the top regardless of subscriber tier.
+    //   2. Stale disputes (>48h) — about to become chargeback risk.
+    //   3. Elite/Pro/Basic subscriber priority (the existing tier sort).
+    //   4. Within each tier, oldest first.
     const tierPriority = (uid: string | null) => {
       if (!uid) return 0;
       const t = tMap[uid];
       return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
     };
+    const ageHours = (j: DisputedJob): number => {
+      if (!j.disputed_at) return 0;
+      return (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
+    };
     const sorted = jobs.sort((a, b) => {
+      const aAge = ageHours(a);
+      const bAge = ageHours(b);
+      const aChargeback = aAge > 120; // 5 days
+      const bChargeback = bAge > 120;
+      if (aChargeback !== bChargeback) return aChargeback ? -1 : 1;
+      const aStale = aAge > 48;
+      const bStale = bAge > 48;
+      if (aStale !== bStale) return aStale ? -1 : 1;
       const aMax = Math.max(tierPriority(a.customer_id), tierPriority(a.helper_id));
       const bMax = Math.max(tierPriority(b.customer_id), tierPriority(b.helper_id));
-      return bMax - aMax;
+      if (aMax !== bMax) return bMax - aMax;
+      return bAge - aAge; // older first within the same priority bucket
     });
 
     setDisputes(sorted);
     setLoading(false);
+  };
+
+  // SLA badge — green/amber/red based on time since the dispute was filed.
+  // Past 5 days the customer can chargeback through their card issuer
+  // bypassing our resolution flow, so we surface that as a hot warning.
+  const slaBadge = (disputedAt: string | null) => {
+    if (!disputedAt) return null;
+    const hours = (Date.now() - new Date(disputedAt).getTime()) / 3600_000;
+    if (hours > 120) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold uppercase tracking-wide">
+          <Flame className="w-3 h-3" /> Chargeback risk · {Math.floor(hours / 24)}d
+        </span>
+      );
+    }
+    if (hours > 48) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wide">
+          <AlertTriangle className="w-3 h-3" /> Stale · {Math.floor(hours / 24)}d
+        </span>
+      );
+    }
+    if (hours > 24) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide">
+          <Clock className="w-3 h-3" /> {Math.floor(hours)}h
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium uppercase tracking-wide">
+        <Clock className="w-3 h-3" /> Fresh · {Math.floor(hours)}h
+      </span>
+    );
   };
 
   const resolveDispute = async (job: DisputedJob, action: "release" | "refund") => {
@@ -115,8 +169,9 @@ const AdminDisputes = () => {
         <div key={job.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-foreground">{job.title}</h3>
+                {slaBadge(job.disputed_at)}
                 {[job.customer_id, job.helper_id].some(id => id && tiers[id] === "elite") && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
                 )}

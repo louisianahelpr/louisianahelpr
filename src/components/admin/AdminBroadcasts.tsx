@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, X } from "lucide-react";
 
 interface Broadcast {
   id: string;
@@ -19,10 +19,21 @@ interface Broadcast {
   created_at: string;
 }
 
+// Window between broadcast row insert and the irreversible push fan-out.
+// Gives admins a chance to catch typos before every device buzzes.
+const UNDO_COUNTDOWN_SECONDS = 30;
+
 const AdminBroadcasts = () => {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+
+  // Pending broadcast in the undo window. While non-null, the banner is
+  // visible (broadcast_messages row exists) but no push has fired yet.
+  // Cancel deletes the row; timer expiry triggers the RPC fan-out.
+  const [pendingBroadcast, setPendingBroadcast] = useState<
+    { id: string; secondsLeft: number } | null
+  >(null);
 
   // Form
   const [title, setTitle] = useState("");
@@ -43,14 +54,69 @@ const AdminBroadcasts = () => {
 
   useEffect(() => { load(); }, []);
 
+  // Drive the undo countdown when there's a pending broadcast.
+  // Decrements once per second; at zero, fires the irreversible push fan-out.
+  useEffect(() => {
+    if (!pendingBroadcast) return;
+    if (pendingBroadcast.secondsLeft <= 0) {
+      const broadcastId = pendingBroadcast.id;
+      setPendingBroadcast(null);
+      void firePushFanOut(broadcastId);
+      return;
+    }
+    const t = setTimeout(() => {
+      setPendingBroadcast((prev) =>
+        prev ? { ...prev, secondsLeft: prev.secondsLeft - 1 } : null
+      );
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [pendingBroadcast]);
+
+  const firePushFanOut = async (broadcastId: string) => {
+    try {
+      const { data: count, error: rpcError } = await supabase.rpc(
+        "fan_out_broadcast_to_notifications",
+        { _broadcast_id: broadcastId },
+      );
+      if (rpcError) throw rpcError;
+      const pushedCount = typeof count === "number" ? count : null;
+      toast.success(
+        pushedCount !== null
+          ? `Pushed to ${pushedCount} device${pushedCount === 1 ? "" : "s"}.`
+          : "Push fan-out finished (count unknown).",
+      );
+    } catch (rpcErr) {
+      const msg = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
+      // Rate-limit error from the RPC has a clear message; surface it directly.
+      toast.error(msg.includes("rate limit") ? msg : "Push fan-out failed (banner is still visible)");
+    }
+    load();
+  };
+
+  const cancelPending = async () => {
+    if (!pendingBroadcast) return;
+    const id = pendingBroadcast.id;
+    setPendingBroadcast(null);
+    await supabase.from("broadcast_messages").delete().eq("id", id);
+    toast.success("Broadcast cancelled — no push went out.");
+    load();
+  };
+
   const create = async () => {
     if (!title.trim() || !message.trim()) {
       toast.error("Title and message are required");
       return;
     }
+    if (pendingBroadcast) {
+      toast.error("A broadcast is in the undo window. Wait or cancel it first.");
+      return;
+    }
     setCreating(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setCreating(false);
+      return;
+    }
 
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60 * 60 * 1000).toISOString();
 
@@ -66,36 +132,16 @@ const AdminBroadcasts = () => {
       .select("id")
       .single();
 
+    setCreating(false);
     if (error) {
-      setCreating(false);
       toast.error(error.message);
       return;
     }
 
-    // Fan out to push notifications for every eligible user (has push_token
-    // + push_enabled + system_alerts in their notification_preferences).
-    // Each notification row inserted by the RPC fires the existing
-    // fan_out_push_on_notification trigger → APNs/FCM. Best-effort: if the
-    // fan-out errors, the broadcast banner still shows on Dashboard for
-    // every user via the existing BroadcastBanner component.
-    let pushedCount: number | null = null;
-    try {
-      const { data: count, error: rpcError } = await (supabase.rpc as any)(
-        "fan_out_broadcast_to_notifications",
-        { _broadcast_id: insertResult.id },
-      );
-      if (rpcError) throw rpcError;
-      pushedCount = typeof count === "number" ? count : null;
-    } catch (rpcErr: any) {
-      console.warn("Broadcast fan-out failed (banner still visible):", rpcErr);
-    }
-
-    setCreating(false);
-    toast.success(
-      pushedCount !== null
-        ? `Broadcast sent + pushed to ${pushedCount} device${pushedCount === 1 ? "" : "s"}.`
-        : "Broadcast sent! (push fan-out failed; banner is visible)",
-    );
+    // Banner is now visible to every user. Push fan-out is held for
+    // UNDO_COUNTDOWN_SECONDS so admins can cancel typos.
+    setPendingBroadcast({ id: insertResult.id, secondsLeft: UNDO_COUNTDOWN_SECONDS });
+    toast.info(`Broadcast posted. Push fires in ${UNDO_COUNTDOWN_SECONDS}s — cancel from the banner if there's a typo.`);
     setTitle("");
     setMessage("");
     setType("info");
@@ -124,6 +170,30 @@ const AdminBroadcasts = () => {
 
   return (
     <div className="space-y-4">
+      {/* Undo countdown banner — visible only while a broadcast is in
+          its grace window before the push fans out to every device. */}
+      {pendingBroadcast && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Push fires in {pendingBroadcast.secondsLeft}s
+            </p>
+            <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+              Banner is already visible to users. Cancel within {pendingBroadcast.secondsLeft}s
+              to retract the broadcast and skip the push.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={cancelPending}
+            className="border-amber-500/60 text-amber-900 hover:bg-amber-500/20 dark:text-amber-200 shrink-0"
+          >
+            <X className="w-3.5 h-3.5 mr-1.5" /> Cancel
+          </Button>
+        </div>
+      )}
+
       <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1">
           <Plus className="w-3.5 h-3.5" /> New Broadcast

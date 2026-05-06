@@ -113,6 +113,52 @@ skipped, build/tsc/lint all green.
 - 🟠 **Stripe DNS records** (low-pri) — for branded
   `*@louisianahelpr.com` Stripe receipts.
 
+### Branding (low-pri follow-up)
+
+- [ ] **iOS Alternate App Icon for very small surfaces.** The wrought-iron
+  H reads great at 60-180px (home screen, FB profile, App Store listing
+  hero) but smudges to a recognizable-but-detail-lost blob at 36px
+  (notification thumbnails, iOS Settings list). Most users won't notice,
+  but if user feedback ever surfaces "I can't tell which app sent this,"
+  ship a simplified glyph version via iOS 18 Alternate App Icons (user
+  can opt in via Settings → Helpr → App Icon). Source files in
+  `public/apple-touch-icon.png` (current wrought-iron) — alt would be
+  a flatter "H + fleur-de-lis silhouette" PNG of the same dimensions.
+
+### Salvage from deleted `job-lifecycle-automations.ts`
+
+Recovered from git (commit `5526a859^`). The deleted function had 9
+logical sections; 4 are already covered elsewhere, 5 are genuinely
+novel automation ideas worth filing for later:
+
+- [ ] **Job-start reminders** — push helpers + customers ~30 min before
+  the scheduled `date_needed`/`start_time`. Currently no cron does
+  this; users have no proactive prompt that a job is about to start.
+- [ ] **No-show detection** — flag jobs where the helper hasn't sent a
+  `transit_updates` ping or messages within Xh of start time. Currently
+  jobs go silent and customers have to file a dispute manually.
+- [ ] **Auto-escalate users with 3+ reports in 7d** — currently
+  `AdminReports` queue requires manual review. A cron that flags
+  repeat-reportee accounts (3+ reports in rolling 7-day window) for
+  priority review would surface bad actors faster.
+- [ ] **Auto-restrict repeat violators** — extension of #3: if a user
+  has 3+ resolved reports as the offender, auto-set
+  `profiles.ban_status='restricted'` (read-only mode, can't post or
+  apply). Today this is fully manual.
+- [ ] **Suspicious pattern detection** — heuristics like "5+ jobs
+  posted in 1h with similar wording" → insert `fraud_flags` row.
+  fraud_flags table exists; just no automation populating it from
+  pattern detection.
+
+Already covered by other functions, so NOT salvaged:
+  - Review reminders → `review-nag-cron`
+  - Expire open jobs → `auto-expire-jobs`
+  - Auto-release payment reminders → `auto-release-payment`
+  - Auto-complete stale jobs → partially covered by `auto-resolve-disputes`
+
+If any of these become a priority, the source code is in
+`git show 5526a859^:supabase/functions/job-lifecycle-automations/index.ts`.
+
 ## Where We Left Off — 2026-05-05 (prior session)
 
 47 commits. Production quiet (Sentry: 0 unresolved issues; 9/9

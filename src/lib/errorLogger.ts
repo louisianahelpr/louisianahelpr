@@ -70,16 +70,23 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   const message = isError ? err.message : String(err);
   const stack = isError ? err.stack : null;
 
-  // Skip Vite HMR websocket noise. The dev server's @vite/client throws
-  // 'send was called before connect' as an unhandled rejection on every
-  // HMR reconnect, and we don't want those in the production error_logs
-  // table (they're useless dev-environment chatter).
-  if (
-    (message.includes("send was called before connect") ||
-      message.includes("WebSocket is already in CLOSING")) &&
-    (stack?.includes("@vite/client") ?? false)
-  ) {
-    return;
+  // Skip ALL dev-environment error reporting. Local dev should not be
+  // sending errors to the production error_logs table — every "Foo is
+  // not defined" / HMR reconnect / failed-dynamic-import we'd see in
+  // dev is noise once shipped, and we'd rather have a clean log of
+  // real production issues.
+  //
+  // Detection: if the error stack or current URL points at localhost
+  // or a Vite dev-server marker, skip the report.
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isDev =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".local") ||
+      stack?.includes("localhost:") === true ||
+      stack?.includes("@vite/client") === true;
+    if (isDev) return;
   }
 
   // Best-effort user identification. Supabase JS v2 stores the session

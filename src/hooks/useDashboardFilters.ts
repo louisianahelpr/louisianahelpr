@@ -93,6 +93,16 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       if (!aUrgent && bUrgent) return 1;
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;
+      // Parish-proximity priority — jobs in the user's own parish float
+      // above jobs in other parishes. Same-parish helpers can drive faster
+      // and the marketplace runs faster when posts find local takers.
+      // Skipped if the user hasn't set a parish on their profile.
+      if (profile?.parish) {
+        const aParishMatch = a.parish === profile.parish;
+        const bParishMatch = b.parish === profile.parish;
+        if (aParishMatch && !bParishMatch) return -1;
+        if (!aParishMatch && bParishMatch) return 1;
+      }
       // Search Priority: subscribed helpers see jobs from subscribed posters first (Basic+)
       // This doesn't change content, just prioritization — subscribed posters' jobs float up
       if (helprTier) {
@@ -107,7 +117,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly]);
+    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";

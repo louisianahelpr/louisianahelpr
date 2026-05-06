@@ -321,18 +321,23 @@ jobs:
 
       - name: Static guard — no p.role = 'helper'-style hardcoded role strings
         # Belt-and-suspenders #2: even if the DB tests pass, fail the PR if
-        # anyone reintroduces a string-literal role comparison anywhere in
-        # the codebase. The fix is always: has_role(uid, 'role'::app_role).
+        # anyone reintroduces a string-literal role comparison in code that
+        # ships at runtime. The fix is always: has_role(uid, 'role'::app_role).
+        #
+        # Scoped to .ts/.tsx only. Migration history (.sql files) is
+        # immutable record — old migrations with the legacy pattern were
+        # superseded by 20260504142454_fix_role_checks_via_user_roles.sql;
+        # the actual DB state is verified by the post-job smoke test above.
         run: |
           set -e
           PAT="(profiles?|p)\\.role\\s*=\\s*'(helper|customer|admin|client|provider)'"
           MATCHES=$(grep -rEn -i \
-            --include='*.sql' --include='*.ts' --include='*.tsx' \
+            --include='*.ts' --include='*.tsx' \
             "$PAT" \
-            supabase/ src/ 2>/dev/null || true)
+            src/ supabase/functions/ 2>/dev/null || true)
           if [ -n "$MATCHES" ]; then
             echo "::error::Hardcoded role-string comparison found — use has_role(uid, 'role'::app_role) instead"
             echo "$MATCHES"
             exit 1
           fi
-          echo "✅ No hardcoded role-string comparisons found"
+          echo "✅ No hardcoded role-string comparisons found in runtime code"

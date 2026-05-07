@@ -309,7 +309,15 @@ const AdminJobs = () => {
             <div
               key={job.id}
               onClick={() => openJob(job)}
-              className={`rounded-xl border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors ${
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openJob(job);
+                }
+              }}
+              className={`rounded-xl border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 showFlagStyle ? "border-destructive/30" : "border-border"
               } ${isRemoved ? "opacity-60" : ""}`}
             >

@@ -135,12 +135,14 @@ const AdminParishTaxRates = () => {
         <p className="text-sm font-semibold text-foreground">Add new parish</p>
         <div className="flex gap-2 flex-wrap">
           <Input
+            aria-label="Parish name"
             placeholder="Parish name (e.g. Calcasieu)"
             value={newParish}
             onChange={(e) => setNewParish(e.target.value)}
             className="flex-1 min-w-[160px]"
           />
           <Input
+            aria-label="Local tax rate (percent)"
             placeholder="Local rate %"
             type="number"
             step="0.01"
@@ -158,6 +160,8 @@ const AdminParishTaxRates = () => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
+          type="search"
+          aria-label="Search parishes"
           placeholder="Search parishes…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}

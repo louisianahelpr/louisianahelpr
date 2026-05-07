@@ -797,6 +797,8 @@ const AdminUsers = () => {
       {/* Search */}
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
+          type="search"
+          aria-label="Search users by name"
           placeholder="Search by name…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

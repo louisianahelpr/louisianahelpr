@@ -329,6 +329,8 @@ const AdminSettings = () => {
           <div className="space-y-4">
             <div className="flex gap-2">
               <Input
+                type="search"
+                aria-label="Search users by name or email"
                 placeholder="Search by name or email…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

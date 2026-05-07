@@ -40,8 +40,8 @@ const localBusinessSchema = {
   name: "Helpr",
   description: "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
   url: SITE_URL,
-  logo: `${SITE_URL}/pwa-512x512.png`,
-  image: `${SITE_URL}/pwa-512x512.png`,
+  logo: `${SITE_URL}/pwa-512x512-v2.png`,
+  image: `${SITE_URL}/pwa-512x512-v2.png`,
   telephone: "",
   priceRange: "$$",
   areaServed: [

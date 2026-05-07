@@ -197,11 +197,12 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Enter your tip</label>
+              <label htmlFor="custom-tip-amount" className="text-sm font-medium text-foreground">Enter your tip</label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
                   <Input
+                    id="custom-tip-amount"
                     type="number"
                     placeholder="0.00"
                     value={customTip}

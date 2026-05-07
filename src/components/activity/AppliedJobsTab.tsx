@@ -679,6 +679,7 @@ export const AppliedJobsTab = ({
                       {respondingJobId === app.job_id ? (
                         <div className="space-y-2">
                           <Textarea
+                            aria-label="Your response to the dispute"
                             placeholder="Explain your side — what work was done, any issues, etc."
                             value={disputeResponse}
                             onChange={(e) => setDisputeResponse(e.target.value)}

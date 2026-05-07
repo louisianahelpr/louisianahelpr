@@ -53,11 +53,12 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
           {/* Custom amount — primary option */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Enter tip amount</label>
+            <label htmlFor="tip-dialog-amount" className="text-sm font-medium text-foreground">Enter tip amount</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
                 <Input
+                  id="tip-dialog-amount"
                   type="number"
                   placeholder="0.00"
                   value={amount}

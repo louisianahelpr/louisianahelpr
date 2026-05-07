@@ -118,6 +118,7 @@ export function BlockUserDialog({
                 )}
               </ul>
               <Textarea
+                aria-label="Block reason (optional, admin-only)"
                 placeholder="Reason (optional, only visible to admins)"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

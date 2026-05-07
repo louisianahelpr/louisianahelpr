@@ -204,6 +204,7 @@ export const RichMessageInput = ({
           <MapPin className="w-4 h-4" />
         </Button>
         <Input
+          aria-label="Type a message"
           placeholder="Type a message…"
           value={text}
           onChange={(e) => { setText(e.target.value); onTyping?.(); }}

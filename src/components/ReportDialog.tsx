@@ -75,6 +75,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             </div>
           </div>
           <Textarea
+            aria-label="Report description"
             placeholder="Please describe the issue (required, at least 10 characters)…"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

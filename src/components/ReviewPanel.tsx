@@ -162,6 +162,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             ))}
           </div>
           <Textarea
+            aria-label="Review comment (optional)"
             placeholder="Add a comment (optional)…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}

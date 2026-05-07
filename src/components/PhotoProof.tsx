@@ -77,7 +77,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                 <p className="text-xs text-muted-foreground font-medium">Already uploaded</p>
                 <div className="flex gap-2 flex-wrap">
                   {existingUrls.map((url, i) => (
-                    <img loading="lazy" decoding="async" key={i} src={url} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                    <img loading="lazy" decoding="async" key={i} src={url} alt={`Job photo ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border border-border" />
                   ))}
                 </div>
               </div>
@@ -85,9 +85,13 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
             <div className="flex flex-wrap gap-3">
               {previews.map((src, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                  <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => removeFile(i)}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <img loading="lazy" decoding="async" src={src} alt={`Photo ${i + 1} preview`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    aria-label={`Remove photo ${i + 1}`}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
                     <X className="w-3 h-3" />
                   </button>
                 </div>

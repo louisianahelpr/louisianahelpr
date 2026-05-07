@@ -49,7 +49,7 @@ export const useUnreadCounts = (userId: string | null | undefined): Counts => {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "applications", filter: `applicant_id=eq.${userId}` },
+        { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` },
         () => load(),
       )
       .subscribe();

@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://louisianahelpr.com/sitemap.xml
+Sitemap: https://www.louisianahelpr.com/sitemap.xml

@@ -1,42 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://louisianahelpr.com/</loc>
+    <loc>https://www.louisianahelpr.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/jobs</loc>
+    <loc>https://www.louisianahelpr.com/jobs</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/community</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://www.louisianahelpr.com/browse</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/login</loc>
+    <loc>https://www.louisianahelpr.com/for-business</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/signup</loc>
+    <loc>https://www.louisianahelpr.com/signup</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/rules</loc>
+    <loc>https://www.louisianahelpr.com/rules</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/terms</loc>
+    <loc>https://www.louisianahelpr.com/terms</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://louisianahelpr.com/privacy</loc>
+    <loc>https://www.louisianahelpr.com/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

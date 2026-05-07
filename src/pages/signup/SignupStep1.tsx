@@ -62,7 +62,7 @@ export function SignupStep1({
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
           <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
-          <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+          <Input id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>

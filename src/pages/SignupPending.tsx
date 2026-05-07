@@ -121,6 +121,10 @@ const SignupPending = () => {
               </p>
               <input
                 type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoComplete="email"
                 aria-label="Your email address"
                 value={email}

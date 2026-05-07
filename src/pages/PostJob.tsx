@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Sparkles, Loader2, Zap, CheckCircle2, UserCheck,
+  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Zap, CheckCircle2, UserCheck,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
-import { hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 

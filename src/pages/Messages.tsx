@@ -3,7 +3,6 @@ import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
 import { BlockUserDialog } from "@/components/BlockUserDialog";

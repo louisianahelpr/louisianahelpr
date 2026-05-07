@@ -34,7 +34,6 @@ import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { SavedSearches } from "@/components/SavedSearches";
 
 import PayoutSetupDialog from "@/components/PayoutSetupDialog";
-import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 
 
 import BirthdayPopup from "@/components/BirthdayPopup";
@@ -130,7 +129,6 @@ const Dashboard = () => {
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
   const [payoutSetupDialogOpen, setPayoutSetupDialogOpen] = useState(false);
-  const { checkHelperStripeConnect } = useStripeConnectCheck();
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;

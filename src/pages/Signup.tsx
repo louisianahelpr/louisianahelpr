@@ -45,7 +45,6 @@ const Signup = () => {
   // prefill needs to lock in the invite-target address.
   const inviteEmail = searchParams.get("invite") || "";
   const [email, setEmail] = useState(inviteEmail);
-  const [confirmEmail, setConfirmEmail] = useState(inviteEmail);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
@@ -496,8 +495,6 @@ const Signup = () => {
           <SignupStep1
             email={email}
             setEmail={setEmail}
-            confirmEmail={confirmEmail}
-            setConfirmEmail={setConfirmEmail}
             password={password}
             setPassword={setPassword}
             confirmPassword={confirmPassword}

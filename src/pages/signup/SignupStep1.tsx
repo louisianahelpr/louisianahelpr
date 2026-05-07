@@ -20,8 +20,6 @@ import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 export interface SignupStep1Props {
   email: string;
   setEmail: (v: string) => void;
-  confirmEmail: string;
-  setConfirmEmail: (v: string) => void;
   password: string;
   setPassword: (v: string) => void;
   confirmPassword: string;
@@ -41,8 +39,6 @@ export interface SignupStep1Props {
 export function SignupStep1({
   email,
   setEmail,
-  confirmEmail,
-  setConfirmEmail,
   password,
   setPassword,
   confirmPassword,

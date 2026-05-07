@@ -33,7 +33,7 @@ const config: CapacitorConfig = {
     version: '1.0.4',
     build: '18',
     category: 'public.app-category.lifestyle',
-    supportUrl: 'https://louisianahelpr.com/support',
+    supportUrl: 'https://www.louisianahelpr.com/support',
     privacyPolicyUrl: 'https://www.louisianahelpr.com/privacy',
     marketingUrl: 'https://www.louisianahelpr.com',
     // Allow iPad multitasking (Split View / Slide Over). Set to true to lock full screen.

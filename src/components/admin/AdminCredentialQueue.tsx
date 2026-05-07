@@ -201,6 +201,7 @@ const AdminCredentialQueue = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
+            aria-label="Credential rejection reason"
             placeholder="e.g. Document is blurry, please re-upload a clearer photo"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}

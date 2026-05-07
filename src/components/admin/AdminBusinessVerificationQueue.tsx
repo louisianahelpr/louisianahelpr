@@ -184,6 +184,7 @@ const AdminBusinessVerificationQueue = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
+            aria-label="Business verification rejection reason"
             placeholder="e.g. Document is illegible, please upload a clearer scan"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}

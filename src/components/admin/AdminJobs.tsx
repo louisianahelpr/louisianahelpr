@@ -549,6 +549,7 @@ const AdminJobs = () => {
               This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:
             </p>
             <Textarea
+              aria-label="Reason for cancelling job"
               placeholder="e.g. This listing violates our community guidelines…"
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
@@ -628,6 +629,7 @@ const AdminJobs = () => {
               )}
             </div>
             <Textarea
+              aria-label="Refund reason (optional)"
               placeholder="Reason (optional, included in customer notification and audit log)"
               value={refundReason}
               onChange={(e) => setRefundReason(e.target.value)}

@@ -26,7 +26,7 @@ import HeroSection from "@/components/landing/HeroSection";
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const CommunityVoice = lazy(() => import("@/components/landing/CommunityVoice"));
 
-const SITE_URL = "https://louisianahelpr.com";
+const SITE_URL = "https://www.louisianahelpr.com";
 
 const louisianaCities = [
   "New Orleans", "Baton Rouge", "Shreveport", "Lafayette", "Lake Charles",

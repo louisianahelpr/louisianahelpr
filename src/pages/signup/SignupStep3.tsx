@@ -300,8 +300,9 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* Tools / Equipment */}
       <div className="space-y-2">
-        <Label>Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label htmlFor="toolsEquipment">Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>
         <Input
+          id="toolsEquipment"
           placeholder="e.g. Lawn mower, power tools, pressure washer"
           value={toolsEquipment.join(", ")}
           onChange={(e) => setToolsEquipment(e.target.value ? e.target.value.split(",").map((s) => s.trimStart()) : [])}
@@ -332,8 +333,8 @@ export function SignupStep3(props: SignupStep3Props) {
       <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
-          <Input type="tel" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
+          <Input aria-label="Emergency contact name" placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
+          <Input type="tel" aria-label="Emergency contact phone number" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
         </div>
       </div>
 

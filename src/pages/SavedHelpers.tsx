@@ -150,6 +150,8 @@ const SavedHelpers = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
+                type="search"
+                aria-label="Search saved helpers"
                 placeholder="Search by name or skills…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

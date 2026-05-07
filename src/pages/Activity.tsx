@@ -641,6 +641,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     autoFocus
+                    type="search"
+                    aria-label="Search tasks"
                     placeholder="Search tasks…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}

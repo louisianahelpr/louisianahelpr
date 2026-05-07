@@ -844,7 +844,19 @@ const AdminUsers = () => {
       ) : (
         <div className="space-y-2">
           {filtered.map((p) => (
-            <div key={p.id} className="rounded-xl liquid-glass p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => openProfile(p)}>
+            <div
+              key={p.id}
+              className="rounded-xl liquid-glass p-3 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => openProfile(p)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openProfile(p);
+                }
+              }}
+            >
               <div className="flex items-start gap-3">
                 {(() => {
                   const lastLogin = lastLoginSummary[p.user_id];

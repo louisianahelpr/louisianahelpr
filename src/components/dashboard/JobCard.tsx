@@ -68,8 +68,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
-      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20"
+      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       onClick={() => onSelect(job)}
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${job.title} — $${job.budget}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(job);
+        }
+      }}
     >
       <div className="w-full px-3.5 py-3 flex items-center gap-3">
         {/* Avatar with category icon badge — poster initials in a

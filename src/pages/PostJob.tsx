@@ -752,7 +752,7 @@ const PostJob = () => {
 
                   <div className="space-y-3">
                     <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
-                    <Input id="hours" type="number" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
+                    <Input id="hours" type="number" inputMode="decimal" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
                   </div>
 
                   <div className="space-y-2.5">
@@ -827,11 +827,13 @@ const PostJob = () => {
                         <Label>How many helprs needed?</Label>
                         <Input
                           type="number"
+                          inputMode="numeric"
                           min="2"
                           max="10"
                           value={helpersNeeded}
                           onChange={(e) => setHelpersNeeded(e.target.value)}
                           className="w-24"
+                          aria-label="Number of helpers needed"
                         />
                         <p className="text-xs text-muted-foreground">
                           Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
@@ -952,12 +954,14 @@ const PostJob = () => {
                         {customUrgentFee && (
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min="5"
                             step="1"
                             value={urgentFee}
                             onChange={(e) => setUrgentFee(e.target.value)}
                             placeholder="Enter amount ($5+)"
                             className="w-32"
+                            aria-label="Custom urgent fee amount in dollars"
                           />
                         )}
                       </div>

@@ -113,7 +113,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           </div>
           <div className="space-y-2">
             <Label>Est. hours</Label>
-            <Input type="number" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} />
+            <Input type="number" inputMode="decimal" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} aria-label="Estimated hours" />
           </div>
           <div className="space-y-2">
             <Label>Special requirements</Label>

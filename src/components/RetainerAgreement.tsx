@@ -183,7 +183,7 @@ export function RetainerAgreement({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-muted-foreground">Budget/session ($)</label>
-              <Input type="number" min="5" step="1" value={budget} onChange={(e) => setBudget(e.target.value)} className="h-8 text-xs" />
+              <Input type="number" inputMode="numeric" min="5" step="1" value={budget} onChange={(e) => setBudget(e.target.value)} className="h-8 text-xs" aria-label="Budget per session in dollars" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">First session</label>

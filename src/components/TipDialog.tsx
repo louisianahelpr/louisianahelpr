@@ -60,6 +60,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
                 <Input
                   id="tip-dialog-amount"
                   type="number"
+                  inputMode="decimal"
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}

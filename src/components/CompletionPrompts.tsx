@@ -203,6 +203,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   <Input
                     id="custom-tip-amount"
                     type="number"
+                    inputMode="decimal"
                     placeholder="0.00"
                     value={customTip}
                     onChange={(e) => setCustomTip(e.target.value)}

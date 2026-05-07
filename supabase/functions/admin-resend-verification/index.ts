@@ -41,13 +41,18 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey)
-    const { data: callerProfile } = await admin
-      .from('profiles')
+    // profiles.role was dropped in the unified-user-model migration —
+    // admin checks now go through user_roles instead. The old code
+    // (.from('profiles').select('role')) returned an object without
+    // a role property → admin !== 'admin' → all admins were blocked.
+    const { data: roleRow } = await admin
+      .from('user_roles')
       .select('role')
       .eq('user_id', userRes.user.id)
+      .eq('role', 'admin')
       .maybeSingle()
 
-    if (!callerProfile || (callerProfile as any).role !== 'admin') {
+    if (!roleRow) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

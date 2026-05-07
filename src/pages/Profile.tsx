@@ -801,7 +801,7 @@ const ProfilePage = () => {
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2">
                           <Label htmlFor="location" className="text-xs mb-1.5 block">City</Label>
-                          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                          <Input id="location" autoComplete="address-level2" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
                         </div>
                         <div>
                           <Label htmlFor="zipCode" className="text-xs mb-1.5 block">ZIP</Label>
@@ -811,6 +811,7 @@ const ProfilePage = () => {
                             onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
                             placeholder="70801"
                             inputMode="numeric"
+                            autoComplete="postal-code"
                             maxLength={5}
                             className="h-10"
                           />

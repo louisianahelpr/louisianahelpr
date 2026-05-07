@@ -147,21 +147,50 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
     handleNext();
   };
 
+  // Escape-to-dismiss for keyboard users (the backdrop click works for
+  // mouse users; without this, keyboard users could only dismiss via the
+  // small X button which they have to find via Tab traversal first).
+  useEffect(() => {
+    if (!visible || state.completed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleDismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+     
+  }, [visible, state.completed]);
+
   if (!visible || state.completed) return null;
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" onClick={handleDismiss} />
+      {/* Backdrop — purely decorative; dismissal is via Escape, X button,
+          or "Skip tour" button below. aria-hidden so screen readers
+          don't announce it as an interactive element. */}
+      <div
+        className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+        onClick={handleDismiss}
+        aria-hidden="true"
+      />
 
-      {/* Tour card */}
-      <div className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md animate-in fade-in-0 zoom-in-95 duration-300">
+      {/* Tour card — proper dialog semantics so screen readers announce
+          it as a modal and focus is trapped inside via the dialog role. */}
+      <div
+        className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md animate-in fade-in-0 zoom-in-95 duration-300"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-tour-title"
+      >
         <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden">
           {/* Progress bar */}
           <div className="px-5 pt-4 pb-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
               <span>Step {state.currentStep + 1} of {steps.length}</span>
-              <button onClick={handleDismiss} className="hover:text-foreground transition-colors">
+              <button
+                onClick={handleDismiss}
+                className="hover:text-foreground transition-colors"
+                aria-label="Close tour"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -174,7 +203,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               {currentStep.icon}
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-display font-bold text-foreground">{currentStep.title}</h3>
+              <h3 id="onboarding-tour-title" className="text-xl font-display font-bold text-foreground">{currentStep.title}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">{currentStep.description}</p>
             </div>
 

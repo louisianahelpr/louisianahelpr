@@ -108,11 +108,11 @@ const Schedule = () => {
 
           <div className="rounded-xl liquid-glass p-4">
             <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}><ChevronLeft className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading} aria-label="Previous month"><ChevronLeft className="w-4 h-4" /></Button>
               <h2 className="font-display font-semibold text-foreground">
                 {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h2>
-              <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading} aria-label="Next month"><ChevronRight className="w-4 h-4" /></Button>
             </div>
 
             <div className="grid grid-cols-7 gap-1 mb-1">

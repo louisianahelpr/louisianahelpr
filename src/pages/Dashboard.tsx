@@ -513,6 +513,8 @@ const Dashboard = () => {
                   size="icon"
                   onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
                   className={`h-8 w-8 rounded-xl btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  aria-label="Search jobs"
+                  aria-expanded={filters.searchOpen}
                 >
                   <Search className="w-4 h-4" />
                 </Button>
@@ -521,6 +523,8 @@ const Dashboard = () => {
                   size="icon"
                   onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
                   className={`h-8 w-8 rounded-xl btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
+                  aria-expanded={filters.filtersOpen}
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   {filters.activeFilterCount > 0 && (

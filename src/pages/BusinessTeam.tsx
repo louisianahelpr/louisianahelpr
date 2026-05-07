@@ -415,7 +415,7 @@ const BusinessTeam = () => {
                     {m.email && <p className="text-xs text-muted-foreground">{m.email}</p>}
                   </div>
                   {business.is_owner && m.role !== "owner" && (
-                    <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)} aria-label="Remove team member">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   )}
@@ -445,12 +445,13 @@ const BusinessTeam = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleResendInvite(m.invited_email!)}
+                              aria-label="Resend invite email"
                               title="Resend invite email"
                             >
                               <Send className="w-4 h-4 text-muted-foreground" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)} aria-label="Cancel pending invite">
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>

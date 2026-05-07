@@ -251,6 +251,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                   size="icon"
                   onClick={() => removeDoc("license")}
                   disabled={saving}
+                  aria-label="Remove uploaded license"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -325,6 +326,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                   size="icon"
                   onClick={() => removeDoc("insurance")}
                   disabled={saving}
+                  aria-label="Remove uploaded insurance certificate"
                 >
                   <X className="w-4 h-4" />
                 </Button>

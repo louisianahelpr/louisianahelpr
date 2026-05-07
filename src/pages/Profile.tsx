@@ -796,7 +796,7 @@ const ProfilePage = () => {
                     <div className="space-y-3">
                       <div>
                         <Label htmlFor="phone" className="text-xs mb-1.5 block">Phone</Label>
-                        <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+                        <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
                       </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2">

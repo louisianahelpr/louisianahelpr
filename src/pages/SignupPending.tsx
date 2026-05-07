@@ -121,6 +121,8 @@ const SignupPending = () => {
               </p>
               <input
                 type="email"
+                autoComplete="email"
+                aria-label="Your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"

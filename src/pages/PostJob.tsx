@@ -706,11 +706,11 @@ const PostJob = () => {
 
                   <div className="space-y-3">
                     <Label>Location <span className="text-destructive">*</span></Label>
-                    <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} />
+                    <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" aria-label="Street address" />
                     <div className="grid grid-cols-3 gap-2.5">
-                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} className="px-3 text-[14px]" />
-                      <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} className="px-3 text-[14px]" />
-                      <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} className="px-3 text-[14px]" />
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} autoComplete="address-level2" aria-label="City" className="px-3 text-[14px]" />
+                      <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} autoComplete="address-level1" aria-label="State" className="px-3 text-[14px]" />
+                      <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" className="px-3 text-[14px]" />
                     </div>
                     {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">

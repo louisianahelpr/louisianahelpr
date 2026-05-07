@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -46,7 +47,7 @@ export default function BusinessVerificationCard() {
     fetcher: async () => {
       const { data: rows, error } = await supabase.rpc("get_my_business_verification");
       if (error) {
-        console.error(error);
+        report(error, { tags: { source: "BusinessVerificationCard.fetch" } });
         return null;
       }
       return ((rows && rows[0]) || null) as Verification | null;

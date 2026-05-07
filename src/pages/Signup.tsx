@@ -7,6 +7,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
+import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -324,7 +325,7 @@ const Signup = () => {
             owner_id: userId,
             name: companyName.trim(),
           });
-        } catch (e) { console.error("Business creation failed", e); }
+        } catch (e) { report(e, { tags: { source: "Signup.businessCreation" } }); }
       }
 
       // Auto-accept any pending invite for this email
@@ -338,7 +339,7 @@ const Signup = () => {
               .eq("id", inv.invite_id);
           }
         }
-      } catch (e) { console.error("Invite linking failed", e); }
+      } catch (e) { report(e, { tags: { source: "Signup.inviteLinking" } }); }
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
       toast.success("Account created! Check your email to verify, then connect your payout account.");

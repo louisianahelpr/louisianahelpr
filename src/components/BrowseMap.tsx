@@ -16,6 +16,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
@@ -112,7 +113,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
-          console.error("[BrowseMap] RPC failed:", error);
+          report(error, { tags: { source: "BrowseMap.rpc" } });
           setLoading(false);
           return;
         }

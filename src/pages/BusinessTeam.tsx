@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +60,7 @@ const BusinessTeam = () => {
           queryClient.invalidateQueries({ queryKey: ["myBusiness"] });
         }
       } catch (err) {
-        console.warn("Seat subscription sync failed:", err);
+        report(err, { severity: "warning", tags: { source: "BusinessTeam.seatSubscriptionSync" } });
       }
     })();
     return () => { cancelled = true; };

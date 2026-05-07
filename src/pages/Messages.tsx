@@ -695,7 +695,11 @@ const Messages = () => {
                             </button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                  aria-label="Conversation options"
+                                >
                                   <MoreVertical className="w-4 h-4" />
                                 </button>
                               </DropdownMenuTrigger>

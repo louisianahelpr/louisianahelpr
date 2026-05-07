@@ -58,6 +58,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
             <button
               onClick={dismiss}
               className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>

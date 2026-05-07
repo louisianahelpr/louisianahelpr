@@ -35,7 +35,13 @@ const SocialShare = ({
             <Facebook className="w-3.5 h-3.5" />
           </a>
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={copyLink}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={copyLink}
+          aria-label={copied ? "Link copied" : "Copy link to clipboard"}
+        >
           {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
         </Button>
       </div>

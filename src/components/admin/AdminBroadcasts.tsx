@@ -266,7 +266,13 @@ const AdminBroadcasts = () => {
                   Expires: {new Date(b.expires_at).toLocaleString()}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => remove(b.id)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={() => remove(b.id)}
+                aria-label="Delete broadcast"
+              >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>

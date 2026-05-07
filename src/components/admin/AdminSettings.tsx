@@ -299,6 +299,7 @@ const AdminSettings = () => {
                   className="text-destructive hover:bg-destructive/10 shrink-0"
                   disabled={removing === admin.role_id}
                   onClick={() => removeAdmin(admin)}
+                  aria-label="Remove admin"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -333,7 +334,13 @@ const AdminSettings = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchUsers()}
               />
-              <Button onClick={searchUsers} disabled={searching} size="icon" className="shrink-0">
+              <Button
+                onClick={searchUsers}
+                disabled={searching}
+                size="icon"
+                className="shrink-0"
+                aria-label="Search users"
+              >
                 <Search className="w-4 h-4" />
               </Button>
             </div>

@@ -21,6 +21,7 @@ const ThemeToggle = () => {
       variant="ghost"
       size="icon"
       onClick={() => setDark((d) => !d)}
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
       className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9"
     >

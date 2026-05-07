@@ -187,6 +187,7 @@ export const RichMessageInput = ({
           className="shrink-0 h-9 w-9"
           onClick={() => fileRef.current?.click()}
           disabled={disabled || uploading}
+          aria-label="Attach photo or PDF"
           title="Attach photo or PDF"
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
@@ -197,6 +198,7 @@ export const RichMessageInput = ({
           className="shrink-0 h-9 w-9"
           onClick={handleShareLocation}
           disabled={disabled || uploading}
+          aria-label="Share location"
           title="Share location"
         >
           <MapPin className="w-4 h-4" />
@@ -213,6 +215,7 @@ export const RichMessageInput = ({
           size="icon"
           onClick={handleSend}
           disabled={(!text.trim() && !stagedFile) || uploading || disabled}
+          aria-label="Send message"
         >
           <Send className="w-4 h-4" />
         </Button>

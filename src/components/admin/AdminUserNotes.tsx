@@ -262,6 +262,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                           size="icon"
                           className="h-6 w-6"
                           onClick={() => startEdit(n)}
+                          aria-label="Edit note"
                           title="Edit"
                         >
                           <Pencil className="w-3 h-3" />
@@ -272,6 +273,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                         size="icon"
                         className="h-6 w-6 text-destructive hover:text-destructive"
                         onClick={() => setDeleteNote(n)}
+                        aria-label="Delete note"
                         title="Delete"
                       >
                         <Trash2 className="w-3 h-3" />

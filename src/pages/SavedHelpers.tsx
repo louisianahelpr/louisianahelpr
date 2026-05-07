@@ -207,7 +207,7 @@ const SavedHelpers = () => {
                       <Link
                         to={`/user/${h.helper_id}`}
                         className="shrink-0"
-                        aria-label="View profile"
+                        aria-label={`View ${formatName(h.full_name)}'s profile`}
                       >
                         {h.avatar_url ? (
                           <img loading="lazy" decoding="async"

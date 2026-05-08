@@ -44,7 +44,7 @@ export function RetainerAgreement({
 
   const loadRetainers = async () => {
     const { data } = await supabase
-      .from("retainer_agreements" as any)
+      .from("retainer_agreements")
       .select("*")
       .eq("customer_id", customerId)
       .eq("helper_id", helperId)

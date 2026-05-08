@@ -19,7 +19,7 @@ export function HelperAvailabilityDisplay({ helperId }: { helperId: string }) {
   useEffect(() => {
     (async () => {
       const { data } = await supabase
-        .from("helper_availability" as any)
+        .from("helper_availability")
         .select("day_of_week, is_available, start_time, end_time")
         .eq("helper_id", helperId)
         .is("specific_date", null)

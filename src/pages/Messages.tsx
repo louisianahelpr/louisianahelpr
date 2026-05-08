@@ -329,7 +329,7 @@ const Messages = () => {
     const senderName = cachedUser?.user_metadata?.full_name || "A user";
 
     const { data: existing } = await supabase
-      .from("user_violations" as any)
+      .from("user_violations")
       .select("id")
       .eq("user_id", userId)
       .eq("violation_type", "off_platform");

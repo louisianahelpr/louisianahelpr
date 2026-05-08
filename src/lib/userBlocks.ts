@@ -8,7 +8,7 @@ import { report } from "@/lib/errorLogger";
  */
 export async function getBlockedUserIds(currentUserId: string): Promise<Set<string>> {
   const { data, error } = await supabase
-    .from("user_blocks" as any)
+    .from("user_blocks")
     .select("blocker_id, blocked_id")
     .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
 
@@ -45,7 +45,7 @@ export async function blockUser(
 ): Promise<{ ok: boolean; cancelledJobIds: string[]; error?: string }> {
   // Insert block (unique constraint prevents duplicates)
   const { error: insertErr } = await supabase
-    .from("user_blocks" as any)
+    .from("user_blocks")
     .insert({ blocker_id: blockerId, blocked_id: blockedId, reason: reason || null });
 
   if (insertErr && !insertErr.message?.includes("duplicate")) {
@@ -91,7 +91,7 @@ export async function blockUser(
 
 export async function unblockUser(blockerId: string, blockedId: string): Promise<boolean> {
   const { error } = await supabase
-    .from("user_blocks" as any)
+    .from("user_blocks")
     .delete()
     .eq("blocker_id", blockerId)
     .eq("blocked_id", blockedId);

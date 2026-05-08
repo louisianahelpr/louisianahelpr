@@ -49,7 +49,7 @@ export function useDashboardData() {
           .select("job_id")
           .eq("helper_id", userId),
         supabase
-          .from("user_blocks" as any)
+          .from("user_blocks")
           .select("blocker_id, blocked_id")
           .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
       ]);
@@ -88,7 +88,7 @@ export function useDashboardData() {
       // Phase 1: jobs page. Range is inclusive on both ends, so request
       // PAGE_SIZE + 1 rows to know whether another page exists without a count.
       const { data: rawJobsRes } = await supabase
-        .from("open_jobs_browse" as any)
+        .from("open_jobs_browse")
         .select(
           // NOTE: open_jobs_browse view does NOT expose latitude/longitude
           // (the underlying jobs table has them, but the view masks them

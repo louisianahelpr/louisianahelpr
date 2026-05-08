@@ -22,7 +22,7 @@ const AdminAuditLog = () => {
     key: ["admin-audit-log"],
     fallback: [],
     fetcher: async () => {
-      const { data } = await (supabase.from as any)("admin_audit_log")
+      const { data } = await supabase.from("admin_audit_log")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(200);

@@ -29,7 +29,7 @@ const AdminParishTaxRates = () => {
     key: ["admin-parish-tax-rates"],
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await (supabase.from as any)("parish_tax_rates")
+      const { data, error } = await supabase.from("parish_tax_rates")
         .select("*")
         .order("parish_name", { ascending: true });
       if (error) throw error;
@@ -64,7 +64,7 @@ const AdminParishTaxRates = () => {
     }
 
     setSaving(rate.id);
-    const { error } = await (supabase.from as any)("parish_tax_rates")
+    const { error } = await supabase.from("parish_tax_rates")
       .update({
         state_rate: stateRate,
         local_rate: localRate,
@@ -99,7 +99,7 @@ const AdminParishTaxRates = () => {
       return;
     }
     setAdding(true);
-    const { error } = await (supabase.from as any)("parish_tax_rates").insert({
+    const { error } = await supabase.from("parish_tax_rates").insert({
       parish_name: newParish.trim(),
       state_rate: 5.00,
       local_rate: local,

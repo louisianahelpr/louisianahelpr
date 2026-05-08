@@ -36,7 +36,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
   const { data: rows = [], isLoading } = useQuery<VerificationRow[]>({
     queryKey: ["helper-verifications", userId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from as any)("helper_verifications")
+      const { data, error } = await supabase.from("helper_verifications")
         .select("id, changed_at, changed_by, field, old_value, new_value")
         .eq("user_id", userId)
         .order("changed_at", { ascending: false })

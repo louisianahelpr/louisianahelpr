@@ -84,9 +84,9 @@ const AdminHealth = () => {
       // Email stats (last 24h)
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const [sentRes, failedRes, suppressedRes] = await Promise.all([
-        (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "sent").gte("created_at", since),
-        (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "dlq").gte("created_at", since),
-        (supabase.from as any)("email_send_log").select("id", { count: "exact", head: true }).eq("status", "suppressed").gte("created_at", since),
+        supabase.from("email_send_log").select("id", { count: "exact", head: true }).eq("status", "sent").gte("created_at", since),
+        supabase.from("email_send_log").select("id", { count: "exact", head: true }).eq("status", "dlq").gte("created_at", since),
+        supabase.from("email_send_log").select("id", { count: "exact", head: true }).eq("status", "suppressed").gte("created_at", since),
       ]);
       const sent = sentRes.count || 0;
       const failed = failedRes.count || 0;
@@ -98,10 +98,10 @@ const AdminHealth = () => {
 
       // Push token stats — useful at-a-glance for "is push working" debugging.
       const [pushTotalRes, pushIosRes, pushAndroidRes, pushLatestRes] = await Promise.all([
-        (supabase.from as any)("push_tokens").select("id", { count: "exact", head: true }),
-        (supabase.from as any)("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "ios"),
-        (supabase.from as any)("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "android"),
-        (supabase.from as any)("push_tokens").select("updated_at").order("updated_at", { ascending: false }).limit(1),
+        supabase.from("push_tokens").select("id", { count: "exact", head: true }),
+        supabase.from("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "ios"),
+        supabase.from("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "android"),
+        supabase.from("push_tokens").select("updated_at").order("updated_at", { ascending: false }).limit(1),
       ]);
       const pushStats = {
         total: pushTotalRes.count || 0,
@@ -157,7 +157,7 @@ const AdminHealth = () => {
       // routinely returns more than a few hundred rows.
       const [openJobsRes, helperParishRes] = await Promise.all([
         supabase.from("jobs").select("id, parish, created_at").eq("status", "open"),
-        (supabase.from as any)("helper_preferred_parishes")
+        supabase.from("helper_preferred_parishes")
           .select("parish, helper_id, profiles!inner(approval_status, ban_status)")
           .eq("profiles.approval_status", "approved")
           .neq("profiles.ban_status", "banned"),

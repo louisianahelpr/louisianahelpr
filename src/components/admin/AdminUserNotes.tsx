@@ -71,7 +71,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     key: ["admin-user-notes", userId],
     fallback: [],
     fetcher: async () => {
-      const { data: notesData, error } = await (supabase.from as any)("admin_user_notes")
+      const { data: notesData, error } = await supabase.from("admin_user_notes")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -111,7 +111,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     setSaving(true);
-    const { error } = await (supabase.from as any)("admin_user_notes").insert({
+    const { error } = await supabase.from("admin_user_notes").insert({
       user_id: userId,
       admin_id: currentAdminId,
       note: trimmed,
@@ -146,7 +146,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       toast.error("Note can't be empty");
       return;
     }
-    const { error } = await (supabase.from as any)("admin_user_notes")
+    const { error } = await supabase.from("admin_user_notes")
       .update({ note: trimmed, category: editingCategory })
       .eq("id", id);
     if (error) {
@@ -161,7 +161,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const removeNote = async () => {
     if (!deleteNote) return;
     setDeleting(true);
-    const { error } = await (supabase.from as any)("admin_user_notes").delete().eq("id", deleteNote.id);
+    const { error } = await supabase.from("admin_user_notes").delete().eq("id", deleteNote.id);
     setDeleting(false);
     if (error) {
       toast.error(error.message || "Failed to delete note");

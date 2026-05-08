@@ -129,7 +129,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     queryKey: ["payout-transfers", helperId],
     queryFn: async () => {
       if (!helperId) return [];
-      const { data, error } = await (supabase.from as any)("payout_transfers")
+      const { data, error } = await supabase.from("payout_transfers")
         .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, jobs(title)")
         .eq("helper_id", helperId)
         .order("created_at", { ascending: false })

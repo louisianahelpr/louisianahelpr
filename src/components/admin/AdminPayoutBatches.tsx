@@ -70,7 +70,7 @@ const AdminPayoutBatches = () => {
   const { data: ledger = [] } = useQuery<PayoutLedgerRow[]>({
     queryKey: ["admin-payout-ledger"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from as any)("payout_transfers")
+      const { data, error } = await supabase.from("payout_transfers")
         .select(
           "id, helper_id, amount_cents, platform_fee_cents, status, created_at, failure_reason, stripe_transfer_id, initiated_by, jobs(title)"
         )

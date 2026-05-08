@@ -105,20 +105,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
       // Track cancellation with helpr assigned — 2 warnings then permanent ban on 3rd
       if (hasHelper) {
-        // Tables `user_violations` and `user_bans` aren't in the generated
-        // Supabase types yet, so we use `unknown` casts to bypass typing
-        // without resorting to `any`.
-        const supabaseUntyped = supabase as unknown as {
-          from: (table: string) => {
-            select: (cols: string) => {
-              eq: (col: string, val: string) => {
-                eq: (col: string, val: string) => Promise<{ data: { id: string }[] | null }>;
-              };
-            };
-            insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
-          };
-        };
-        const { data: existing } = await supabaseUntyped
+        const { data: existing } = await supabase
           .from("user_violations")
           .select("id")
           .eq("user_id", userId)
@@ -129,7 +116,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         if (priorCount >= 2) actionTaken = "permanent_ban";
         else actionTaken = "warning";
 
-        await supabaseUntyped.from("user_violations").insert({
+        await supabase.from("user_violations").insert({
           user_id: userId,
           violation_type: "cancel_with_helper",
           description: `Cancelled job with helpr assigned: "${jobTitle}"`,
@@ -150,9 +137,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           });
           toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a helpr is tracked. A 3rd time = permanent ban.`);
         } else if (actionTaken === "permanent_ban") {
-          await supabaseUntyped.from("user_bans").insert({
-            user_id: userId, ban_type: "permanent",
-            reason: "Cancelled 3 jobs after selecting a helpr", banned_by: userId,
+          await supabase.from("user_bans").insert({
+            user_id: userId,
+            ban_type: "permanent",
+            reason: "Cancelled 3 jobs after selecting a helpr",
+            banned_by: userId,
           });
           await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
           toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helpr.");

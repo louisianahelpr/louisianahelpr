@@ -89,17 +89,13 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       if (allReviews) {
         const lowRatings = allReviews.filter(r => r.rating <= 2).length;
         if (lowRatings >= 3) {
-          // Auto-flag for admin review. `user_violations` isn't in the
-          // generated Supabase types yet, so we narrow-cast via `unknown`.
-          const supabaseUntyped = supabase as unknown as {
-            from: (table: string) => {
-              insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
-            };
-          };
-          await supabaseUntyped.from("user_violations").insert({
-            user_id: revieweeId, violation_type: "low_ratings",
+          // Auto-flag for admin review.
+          await supabase.from("user_violations").insert({
+            user_id: revieweeId,
+            violation_type: "low_ratings",
             description: `User has ${lowRatings} ratings of 2 stars or below. Auto-flagged for admin review.`,
-            reported_by: null, action_taken: "warning",
+            reported_by: null,
+            action_taken: "warning",
           });
           // Bulk-insert one row per admin instead of awaiting per admin.
           // For 5+ admins this difference is visible to the user (~1.5s vs ~300ms).

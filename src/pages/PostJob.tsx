@@ -969,22 +969,13 @@ const PostJob = () => {
                   </div>
                 </section>
 
-                {/* Desktop submit (inline) */}
-                <Button type="submit" className="w-full hidden sm:flex" size="lg">
-                  Review & Pay
+                {/* Submit — inline at the end of the form on every viewport.
+                    Was previously fixed-position on mobile, which overlapped
+                    the Budget section + the bottom nav. Now scrolls into view
+                    naturally as the user finishes the form. */}
+                <Button type="submit" className="w-full" size="lg">
+                  Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(2)}` : ""}
                 </Button>
-
-                {/* Mobile sticky submit — lifted above the floating MobileNav. */}
-                <div
-                  className="sm:hidden fixed left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-4 py-3"
-                  style={{
-                    bottom: "calc(5.25rem + env(safe-area-inset-bottom, 0px))",
-                  }}
-                >
-                  <Button type="submit" className="w-full" size="lg">
-                    Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(2)}` : ""}
-                  </Button>
-                </div>
               </form>
             </>
           )}

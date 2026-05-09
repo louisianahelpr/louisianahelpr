@@ -73,6 +73,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
   const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>("Account");
@@ -415,6 +416,7 @@ const ProfilePage = () => {
       toast.error("Failed to save avatar");
     } else {
       setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
+      setAvatarBroken(false);
       toast.success("Profile picture updated!");
     }
     setAvatarUploading(false);
@@ -509,14 +511,18 @@ const ProfilePage = () => {
     <>
     <AppShell
       header={<DashboardHeader />}
-      scrollable={false}
-      contentClassName="overflow-hidden"
+      scrollable={tab === "landing"}
+      contentClassName={tab === "landing" ? undefined : "overflow-hidden"}
       className="bg-premium-page"
     >
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <main
+        className={tab === "landing"
+          ? "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex flex-col"
+          : "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"}
+      >
         <div className={tab === "landing"
-          ? "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden"
-          : "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pb-32"}>
+          ? "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-3 lg:gap-4"
+          : "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"}>
 
           {/* LANDING VIEW — two-box layout matching Dashboard / Activity / Messages */}
           {tab === "landing" && (
@@ -547,8 +553,15 @@ const ProfilePage = () => {
                 <div className="flex flex-row items-center gap-3.5 pr-10">
                   {/* Avatar — 70px squircle, left */}
                   <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
-                    {profile?.avatar_url ? (
-                      <img loading="lazy" decoding="async" src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    {profile?.avatar_url && !avatarBroken ? (
+                      <img
+                        loading="lazy"
+                        decoding="async"
+                        src={profile.avatar_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={() => setAvatarBroken(true)}
+                      />
                     ) : initials}
                   </div>
                   {/* Identity + integrated stats, all stacked tight on the right */}
@@ -609,9 +622,11 @@ const ProfilePage = () => {
               </div>
 
               {/* Bottom box — menu groups + account actions. Extends
-                  to viewport bottom with flat bottom corners. */}
+                  to viewport bottom with flat bottom corners. AppShell
+                  handles vertical scroll (scrollable=true on landing),
+                  so this card just stacks naturally. */}
               <div
-                className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
+                className="liquid-glass min-h-[60vh]"
                 style={{
                   borderBottomLeftRadius: 0,
                   borderBottomRightRadius: 0,
@@ -623,11 +638,7 @@ const ProfilePage = () => {
                     "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
                 }}
               >
-                <div
-                  data-allow-scroll="true"
-                  className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 space-y-3"
-                  style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
-                >
+                <div className="px-4 pt-3 pb-4 space-y-3">
               {/* Payout Banner */}
               {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
                 <div className="rounded-[24px] border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
@@ -765,8 +776,15 @@ const ProfilePage = () => {
                     </p>
                     <div className="flex items-center gap-4">
                       <div className="relative group shrink-0">
-                        {profile?.avatar_url ? (
-                          <img loading="lazy" decoding="async" src={profile.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary/20" />
+                        {profile?.avatar_url && !avatarBroken ? (
+                          <img
+                            loading="lazy"
+                            decoding="async"
+                            src={profile.avatar_url}
+                            alt=""
+                            className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
+                            onError={() => setAvatarBroken(true)}
+                          />
                         ) : (
                           <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-display italic font-bold border-2 border-primary/20">
                             {initials}

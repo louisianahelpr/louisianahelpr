@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type ProfileSnapshot = {
   approval_status?: string | null;
@@ -85,6 +86,7 @@ const SkeletonCard = () => (
 );
 
 const AccountPending = () => {
+  usePageTitle("Account Under Review — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [profile, setProfile] = useState<ProfileSnapshot | null>(null);

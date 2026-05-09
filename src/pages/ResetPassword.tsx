@@ -7,8 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ResetPassword = () => {
+  usePageTitle("Set New Password — Helpr");
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

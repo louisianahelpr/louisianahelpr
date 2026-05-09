@@ -4,10 +4,12 @@ import { Ban, Mail, LogOut, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import AuthShell from "@/components/auth/AuthShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"] as const;
 
 const AccountBanned = () => {
+  usePageTitle("Account Banned — Helpr");
   const navigate = useNavigate();
   const [banStatus, setBanStatus] = useState<string | null>(null);
   const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);

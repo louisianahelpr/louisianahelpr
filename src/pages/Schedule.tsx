@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, DollarSign, Clock } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -18,6 +19,7 @@ const statusColors: Record<string, string> = {
 };
 
 const Schedule = () => {
+  usePageTitle("Schedule — Helpr");
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);

@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Availability = () => {
+  usePageTitle("Availability — Helpr");
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

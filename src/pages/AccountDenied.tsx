@@ -4,8 +4,10 @@ import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import AuthShell from "@/components/auth/AuthShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const AccountDenied = () => {
+  usePageTitle("Account Denied — Helpr");
   const navigate = useNavigate();
   const [denyReason, setDenyReason] = useState("");
 

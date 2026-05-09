@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, DollarSign, Calendar, ClipboardList } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -21,6 +22,7 @@ type HistoryTab = "all" | "posted" | "worked";
 type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 
 const JobHistory = () => {
+  usePageTitle("Job History — Helpr");
   const navigate = useNavigate();
   const [tab, setTab] = useState<HistoryTab>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

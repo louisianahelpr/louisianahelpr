@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PrivacyPolicy = () => {
+  usePageTitle("Privacy Policy — Helpr");
 
   useEffect(() => {
     document.title = "Privacy Policy — Helpr";

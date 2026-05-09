@@ -3,8 +3,10 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
 import { report } from "@/lib/errorLogger";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const NotFound = () => {
+  usePageTitle("Page Not Found — Helpr");
   const location = useLocation();
 
   useEffect(() => {

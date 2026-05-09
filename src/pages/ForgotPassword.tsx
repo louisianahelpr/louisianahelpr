@@ -8,8 +8,10 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ForgotPassword = () => {
+  usePageTitle("Reset Password — Helpr");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);

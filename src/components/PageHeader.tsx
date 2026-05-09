@@ -27,20 +27,27 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBac
     else navigate(-1);
   };
 
+  // When no rightSlot is provided, skip the empty 48px sticky bar and let
+  // the title block absorb the safe-area-top padding instead. Pages like
+  // PostJob were paying ~100px of dead space at the top of the viewport
+  // for a header bar that had nothing in it.
   return (
     <>
-      <header
-        className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)]"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
-      >
-        <div className="mx-auto flex h-12 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl items-center justify-end gap-2 px-5 lg:px-8 xl:px-12">
-          {rightSlot ? (
+      {rightSlot && (
+        <header
+          className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)]"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
+        >
+          <div className="mx-auto flex h-12 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl items-center justify-end gap-2 px-5 lg:px-8 xl:px-12">
             <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>
-          ) : null}
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
 
-      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-3 pb-2">
+      <div
+        className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-3 pb-2"
+        style={!rightSlot ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
+      >
         <div className="flex items-start gap-2 mb-1">
           {!hideBack && (
             <Button

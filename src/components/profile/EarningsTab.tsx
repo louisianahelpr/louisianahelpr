@@ -548,19 +548,40 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             Earning history
           </h2>
           {earningsJobs.length === 0 ? (
-            <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
-              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-primary" />
+            <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-12">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  border: "1px solid hsl(var(--olivewood) / 0.10)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                    "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+                }}
+              >
+                <Briefcase className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
               </div>
-              <div className="space-y-1">
-                <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
-                  No jobs yet
+              <div className="space-y-1.5">
+                <span className="text-display-eyebrow">Quiet ledger</span>
+                <p
+                  className="font-display italic font-bold leading-tight"
+                  style={{
+                    fontSize: "clamp(1.05rem, 1.5vw + 0.4rem, 1.35rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  No earnings yet.
                 </p>
-                <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p
+                  className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
                   Apply to a task and your earnings will land here.
                 </p>
               </div>
-              <Button onClick={() => navigate("/dashboard")}>Browse tasks</Button>
+              <Button onClick={() => navigate("/dashboard")} className="rounded-xl mt-1">Browse tasks</Button>
             </div>
           ) : (
             <div className="space-y-3">

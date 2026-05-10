@@ -1,0 +1,162 @@
+name: Supabase Edge Functions Deploy
+
+# Auto-deploys edge functions when changes land on main. Same structural
+# fix as db-deploy.yml — closes the manual handoff that lets prod's
+# function code drift from the repo. The TODO had three "deploy
+# stripe-webhook" reminders dating back to 2026-05-04 that nobody ever
+# pulled the trigger on, exactly the symptom the migration backlog had.
+#
+# Smart targeting: only deploys the function(s) whose code actually
+# changed in the push (or in the merged PR). Avoids burning Actions
+# minutes redeploying all 48 functions on a one-line edit.
+#
+# REQUIRED REPO SECRETS (same as db-deploy.yml):
+# - SUPABASE_ACCESS_TOKEN
+# - SUPABASE_PROJECT_REF
+#
+# (No SUPABASE_DB_PASSWORD needed — function deploy doesn't talk to
+# the database directly, it just uploads the function bundle.)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/functions-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: "Optional: deploy just one function by name (leave blank to auto-detect changed)"
+        required: false
+        default: ""
+
+concurrency:
+  # Serialize so two pushes don't race the deploy of the same function.
+  group: functions-deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy changed edge functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Need history to diff against the previous commit on main.
+          fetch-depth: 2
+
+      - name: Check secrets present
+        id: precheck
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ] && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          if [ -n "$MISSING" ]; then
+            echo "::warning::Missing secrets:$MISSING — skipping deploy. Add them in Settings → Secrets → Actions."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine functions to deploy
+        id: targets
+        if: steps.precheck.outputs.skip != 'true'
+        run: |
+          set -eo pipefail
+
+          MANUAL_INPUT="${{ github.event.inputs.function_name }}"
+
+          if [ -n "$MANUAL_INPUT" ]; then
+            # workflow_dispatch path with a specific function requested
+            if [ ! -d "supabase/functions/$MANUAL_INPUT" ]; then
+              echo "::error::supabase/functions/$MANUAL_INPUT does not exist"
+              exit 1
+            fi
+            FUNCTIONS="$MANUAL_INPUT"
+            echo "Manual deploy: $FUNCTIONS"
+          else
+            # Auto-detect: which function dirs had file changes in this push?
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'supabase/functions/*' 2>/dev/null || true)
+            # Extract the function name (the dir immediately under supabase/functions/)
+            # Skip _shared — it's a library, not a deployable function.
+            FUNCTIONS=$(echo "$CHANGED" \
+              | grep -E '^supabase/functions/[^/]+/' \
+              | awk -F/ '{print $3}' \
+              | grep -v '^_shared$' \
+              | sort -u \
+              | tr '\n' ' ')
+            if [ -z "$FUNCTIONS" ]; then
+              echo "No function changes detected (or only _shared changed). Nothing to deploy."
+              echo "skip_deploy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Auto-detected changed functions: $FUNCTIONS"
+          fi
+
+          # If _shared changed, that's a library; we redeploy ALL functions
+          # since any of them could depend on it. Detected via a separate
+          # diff check (the grep above filtered _shared out of the function
+          # list, so check the raw CHANGED for _shared touches).
+          if [ -n "$MANUAL_INPUT" ]; then
+            echo "Skipping _shared check — manual single-function deploy."
+          else
+            if echo "$CHANGED" | grep -qE '^supabase/functions/_shared/'; then
+              echo "::warning::_shared changed — promoting to deploy-all to avoid leaving stale callers."
+              FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ')
+            fi
+          fi
+
+          echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "skip_deploy=false" >> $GITHUB_OUTPUT
+
+      - name: Install Supabase CLI
+        if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Deploy each function
+        if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -eo pipefail
+          FAIL=0
+          for fn in ${{ steps.targets.outputs.functions }}; do
+            echo ""
+            echo "::group::Deploying $fn"
+            # --no-verify-jwt is set per-function in supabase/config.toml
+            # so we don't need to pass it here. The CLI reads config.toml.
+            if supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"; then
+              echo "✓ $fn deployed"
+            else
+              echo "::error::$fn deploy FAILED"
+              FAIL=1
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "::error::One or more function deploys failed. See per-function logs above."
+            exit 1
+          fi
+
+      - name: Notify on failure
+        if: failure() && steps.precheck.outputs.skip != 'true' && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\":rotating_light: functions-deploy failed on main — ${{ github.sha }}. Check Actions log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$SLACK_WEBHOOK" || true

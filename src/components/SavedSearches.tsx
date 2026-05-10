@@ -124,16 +124,47 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           <Bookmark className="w-4 h-4" strokeWidth={2} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Saved searches</DialogTitle>
-          <DialogDescription>
-            Save your filters and we'll send a push when matching jobs post.
+      <DialogContent
+        className="max-w-md gap-4"
+        // Prevent Radix from auto-focusing the input, which pops the
+        // iOS keyboard the moment the dialog opens. The user can tap
+        // the field to focus when ready.
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="!text-left space-y-0 pr-8">
+          <span
+            className="font-serif italic uppercase text-[0.62rem] inline-flex items-center gap-1.5"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            <Bookmark className="w-3 h-3" strokeWidth={2} />
+            Get notified
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{
+              fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.025em",
+            }}
+          >
+            Saved searches
+          </DialogTitle>
+          <DialogDescription
+            className="font-serif italic mt-1 text-[0.82rem] leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            Save your filters and we'll send a push the moment a matching job posts.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 border-b border-border pb-4">
-          <Label htmlFor="search-name">Save current filters</Label>
+        <div className="space-y-2.5">
+          <Label
+            htmlFor="search-name"
+            className="font-serif italic uppercase text-[0.6rem]"
+            style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.16em" }}
+          >
+            Save current filters
+          </Label>
           <div className="flex gap-2">
             <Input
               id="search-name"
@@ -141,12 +172,21 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
+              className="rounded-xl h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
-            <Button onClick={handleSave} disabled={saving} size="default">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="h-11 w-11 p-0 rounded-xl shrink-0"
+              aria-label="Save filter set"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={2.25} />}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p
+            className="text-[11px] font-serif italic"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
             Active filters:{" "}
             {[
               currentFilters.selectedCategory && `Category: ${currentFilters.selectedCategory}`,
@@ -158,20 +198,47 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           </p>
         </div>
 
-        <div className="space-y-2 mt-2">
+        <div
+          className="space-y-2 pt-3"
+          style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        >
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           ) : searches.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">
-              No saved searches yet. Save your first one above.
-            </p>
+            <div className="flex flex-col items-center text-center px-6 py-6 gap-2">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  border: "1px solid hsl(var(--olivewood) / 0.10)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                    "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+                }}
+              >
+                <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+              </div>
+              <p
+                className="font-display italic font-bold text-[0.95rem]"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                No saved searches yet.
+              </p>
+              <p
+                className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                Set a filter combo above and save it — we'll ping you when fresh jobs match.
+              </p>
+            </div>
           ) : (
             searches.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2 rounded-lg liquid-glass p-3"
+                className="flex items-center gap-2 rounded-xl liquid-glass p-3"
               >
                 <button
                   type="button"
@@ -180,23 +247,31 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                     setOpen(false);
                     toast.success(`Applied "${s.name}"`);
                   }}
-                  className="flex-1 text-left min-w-0"
+                  className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
                 >
-                  <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p
+                    className="font-display italic font-bold text-[0.92rem] truncate"
+                    style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                  >
+                    {s.name}
+                  </p>
+                  <p
+                    className="text-[11px] font-serif italic truncate mt-0.5"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
                     {[
                       s.category && `Category: ${s.category}`,
                       s.max_budget && `Max $${s.max_budget}`,
                       s.location_keyword && `Loc: ${s.location_keyword}`,
                     ]
                       .filter(Boolean)
-                      .join(" · ")}
+                      .join(" · ") || "Any job"}
                   </p>
                 </button>
                 <button
                   type="button"
                   onClick={() => toggleNotify(s)}
-                  className="p-1.5 rounded hover:bg-muted shrink-0"
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-muted shrink-0 active:scale-[0.95] transition"
                   aria-label={s.notify_enabled ? "Mute notifications" : "Enable notifications"}
                   title={s.notify_enabled ? "Notifications on" : "Notifications off"}
                 >
@@ -209,7 +284,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <button
                   type="button"
                   onClick={() => remove(s.id)}
-                  className="p-1.5 rounded hover:bg-destructive/10 shrink-0"
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-destructive/10 shrink-0 active:scale-[0.95] transition"
                   aria-label="Delete saved search"
                 >
                   <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
@@ -219,8 +294,12 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
+        <DialogFooter className="pt-1">
+          <Button
+            variant="ghost"
+            onClick={() => setOpen(false)}
+            className="h-10 rounded-xl"
+          >
             Close
           </Button>
         </DialogFooter>

@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   X, MapPin, Clock, ChevronDown, MoreHorizontal, ArrowUpRight,
   ArrowUpDown, LayoutGrid, CalendarRange, Rocket,
@@ -74,14 +75,14 @@ const expiresOptions = [
 // ---------------- Reusable filter content blocks ----------------
 
 const SortContent = ({
-  sortBy, setSortBy,
-}: { sortBy: string; setSortBy: (v: string) => void }) => (
-  <div className="grid grid-cols-4 gap-1">
+  sortBy, setSortBy, onSelect,
+}: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
+  <div className="grid grid-cols-2 gap-1.5">
     {sortOptions.map((opt) => (
       <button
         key={opt.value}
-        onClick={() => setSortBy(opt.value)}
-        className={`${chipBase} w-full justify-center px-1 text-[8.5px] ${sortBy === opt.value ? chipActive : chipIdle}`}
+        onClick={() => { setSortBy(opt.value); onSelect?.(); }}
+        className={`${chipBase} w-full justify-center px-2 h-8 text-[11px] ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -90,8 +91,8 @@ const SortContent = ({
 );
 
 const CategoryContent = ({
-  selectedCategory, setSelectedCategory,
-}: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void }) => (
+  selectedCategory, setSelectedCategory, onSelect,
+}: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
   // Single-line horizontal scroll — fits all 10 categories without
   // wrapping onto a second/third row, no matter the viewport width.
   <div className="-mx-2 px-2 overflow-x-auto scrollbar-hide">
@@ -103,7 +104,7 @@ const CategoryContent = ({
         return (
           <button
             key={key}
-            onClick={() => setSelectedCategory(isActive ? null : key)}
+            onClick={() => { setSelectedCategory(isActive ? null : key); onSelect?.(); }}
             className={`${chipBase} shrink-0 ${isActive ? chipActive : chipIdle}`}
           >
             <Icon className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`} strokeWidth={2.25} />
@@ -118,12 +119,13 @@ const CategoryContent = ({
 const radiusOptions = [5, 10, 25, 50];
 
 const NearbyContent = ({
-  locationFilter, setLocationFilter, status, message,
+  locationFilter, setLocationFilter, status, message, onSelect,
 }: {
   locationFilter: string;
   setLocationFilter: (v: string) => void;
   status?: "idle" | "loading" | "ready" | "error";
   message?: string;
+  onSelect?: () => void;
 }) => {
   const current = locationFilter.startsWith("nearby:") ? parseFloat(locationFilter.slice(7)) : null;
   return (
@@ -136,7 +138,7 @@ const NearbyContent = ({
             <button
               key={mi}
               type="button"
-              onClick={() => setLocationFilter(active ? "" : `nearby:${mi}`)}
+              onClick={() => { setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
               className={`${chipBase} w-full justify-center ${active ? chipActive : chipIdle}`}
             >
               {mi} mi
@@ -158,13 +160,13 @@ const NearbyContent = ({
 };
 
 const ExpiresContent = ({
-  expiresWithin, setExpiresWithin,
-}: { expiresWithin: string; setExpiresWithin: (v: string) => void }) => (
+  expiresWithin, setExpiresWithin, onSelect,
+}: { expiresWithin: string; setExpiresWithin: (v: string) => void; onSelect?: () => void }) => (
   <div className="grid grid-cols-4 gap-1.5">
     {expiresOptions.map((opt) => (
       <button
         key={opt.value}
-        onClick={() => setExpiresWithin(expiresWithin === opt.value ? "" : opt.value)}
+        onClick={() => { setExpiresWithin(expiresWithin === opt.value ? "" : opt.value); onSelect?.(); }}
         className={`${chipBase} w-full justify-center ${expiresWithin === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
@@ -214,11 +216,16 @@ interface DropdownProps {
   icon: LucideIcon;
   label: string;
   active: boolean;
-  children: React.ReactNode;
+  /** Function-as-children so the popover can hand its `close()` down
+      to the inner content. Selection handlers call `close()` and the
+      popover dismisses itself instead of lingering on top of the list. */
+  children: (close: () => void) => React.ReactNode;
 }
 
-const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) => (
-  <Popover>
+const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) => {
+  const [open, setOpen] = useState(false);
+  return (
+  <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
       <button
         className={`${triggerBase} ${
@@ -249,11 +256,12 @@ const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) 
             "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
         }}
       >
-        {children}
+        {children(() => setOpen(false))}
       </div>
     </PopoverContent>
   </Popover>
-);
+  );
+};
 
 // ---------------- Main component ----------------
 
@@ -319,42 +327,56 @@ const JobFilters = ({
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
-            <SortContent sortBy={sortBy} setSortBy={setSortBy} />
+            {(close) => (
+              <>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
+                <SortContent sortBy={sortBy} setSortBy={setSortBy} onSelect={close} />
+              </>
+            )}
           </MobileDropdown>
 
           <MobileDropdown icon={LayoutGrid} label={categoryLabel} active={!!selectedCategory}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
-            <CategoryContent
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-            />
+            {(close) => (
+              <>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
+                <CategoryContent
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  onSelect={close}
+                />
+              </>
+            )}
           </MobileDropdown>
 
           <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
-            <NearbyContent
-              locationFilter={locationFilter}
-              setLocationFilter={setLocationFilter}
-              status={userLocStatus}
-              message={userLocMessage}
-            />
+            {(close) => (
+              <NearbyContent
+                locationFilter={locationFilter}
+                setLocationFilter={setLocationFilter}
+                status={userLocStatus}
+                message={userLocMessage}
+                onSelect={close}
+              />
+            )}
           </MobileDropdown>
 
           <MobileDropdown icon={CalendarRange} label={whenLabel} active={!!expiresWithin || matchAvailability}>
-            <div className="space-y-3">
-              <div>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
-                <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
+            {(close) => (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
+                  <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} onSelect={close} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
+                  <AvailabilityContent
+                    matchAvailability={matchAvailability}
+                    setMatchAvailability={setMatchAvailability}
+                    hasAvailability={hasAvailability}
+                  />
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
-                <AvailabilityContent
-                  matchAvailability={matchAvailability}
-                  setMatchAvailability={setMatchAvailability}
-                  hasAvailability={hasAvailability}
-                />
-              </div>
-            </div>
+            )}
           </MobileDropdown>
       </div>
 

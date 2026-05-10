@@ -1,5 +1,35 @@
 # TODO
 
+## Where We Left Off — 2026-05-09 (migration drift CLOSED + structural fix shipped)
+
+**Reports in session outputs:** `qa-report-2026-05-03.md`, `migration-pipeline-postmortem.md`.
+
+- ✅ **P0 fixed in prod.** Applied the rewrite of all 8 helper-filter functions via `apply_migration` (recorded as `20260509194716_repair_notify_triggers_no_role_check` and `20260509195035_rewrite_helper_filters_behavior_based`). Verification: all 8 return `still_broken=false` against the `LIKE '%p.role%'` check. Smoke test (transactional INSERT into `jobs`) passed — triggers fire cleanly, no `column p.role does not exist`. **Build 18 unblocked.**
+- ✅ **IDV gating verified** at /post-job confirm step.
+- ✅ **Migration backlog CLOSED — 12/12 applied + verified.** Cowork ran the full sequence in user-specified order, every `apply_migration` returned success, every verification query passed (one false-alarm on a bad LIKE-escape in the verifier itself, not real drift). Chat-push functional smoke test passed end-to-end (synthetic INSERT → `notify_message_recipient` → notification row with `type='message'` + correct `link`). All 4 sweeper crons registered. `schema_migrations` rows recorded for each.
+- ✅ **CI structural fix shipped (commit `a9b42fff`):**
+  - `.github/workflows/db-deploy.yml` — auto-runs `supabase db push --linked --include-all` on push to main when migrations change. Concurrency-locked.
+  - `.github/workflows/db-drift-detect.yml` — nightly 06:00 UTC. Diffs local files vs prod's `schema_migrations`, opens/updates a labeled GitHub issue, auto-closes when clean.
+  - `migration-lint.yml` re-enabled on PRs (was workflow_dispatch only).
+- 🟠 **Lexi: add 3 GitHub repo secrets** to activate the new workflows (Settings → Secrets and variables → Actions):
+  - `SUPABASE_ACCESS_TOKEN` — Supabase Dashboard → Account → Access Tokens (project access scope)
+  - `SUPABASE_DB_PASSWORD` — Settings → Database → Connection string
+  - `SUPABASE_PROJECT_REF` = `fncmgoasalhdgfwzhsqa`
+  Both new workflows skip-with-warning until secrets land — nothing breaks if you wait.
+- 🟠 **First drift-detect tick should report 0** on the night after secrets are added — confirms the structural fix works end-to-end.
+- 🔴 **Filename hygiene still pending** — several local migration prefixes use invalid hours (`20260506380000` parses as `38:00:00`). Switch to `supabase migration new <slug>` going forward. Cowork is queued to rename existing files in a separate PR (renaming during the backlog application risked reapply, so it was deliberately deferred).
+- ⏭ **QA tests 1, 3, 4, 5** still need a human/CI run (auto-blocked: account creation, password entry, viewport emulation, sandbox→localhost).
+- 🧹 **DB cleanup done:** Lexi's `idv_status` reverted from `verified` to `not_started`. No other writes outside the intended migrations.
+
+### Concrete next steps
+
+1. Add the 3 GitHub secrets above.
+2. Watch the first nightly drift-detect tick (Settings → Actions tab) — should report 0.
+3. Cowork's invalid-timestamp file-rename PR — review when opened.
+4. Sentry alert rules — paste the 9 rules from `docs/SENTRY_ALERT_RULES.md` (rewrote in commit `117c59f7` — added 3 new alert types including the chat-push silent-break detector).
+
+---
+
 ## Handoff List — 2026-05-06 (post-audit session)
 
 This block consolidates everything that wasn't shippable in the audit

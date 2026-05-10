@@ -779,22 +779,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 flex-1 min-h-0 flex">
-                  {/* Empty-state card — own white box that sits ON TOP of
-                      the bottom panel and stretches all the way down to
-                      the bottom of the screen. Bottom corners flat so it
-                      merges with the dock area like the panel itself. */}
+                <div className="px-4 pt-4 pb-3 flex">
+                  {/* Empty-state card — sized to its content with a
+                      modest min-height so it doesn't stretch to a giant
+                      blank rectangle on tall screens. The bottom panel
+                      (parent glass card) handles the visual continuity
+                      down to the MobileNav dock area. */}
                   <div
-                    className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                    className="flex-1 flex flex-col items-center text-center gap-4 px-6 py-8 rounded-2xl"
                     style={{
                       backgroundColor: "hsl(0, 0%, 100%)",
-                      borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.10)",
                       boxShadow:
                         "0 1px 2px hsl(var(--olivewood) / 0.04), " +
                         "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
                     }}
                   >
                     <div

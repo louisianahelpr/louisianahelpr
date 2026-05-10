@@ -55,7 +55,7 @@ check "Team = P85MCK558V"                  "$PBXPROJ" "DEVELOPMENT_TEAM = P85MCK
 check "Display Name = Louisiana Helpr"     "$PBXPROJ" 'INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";'
 check "Category = lifestyle"               "$PBXPROJ" 'INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";'
 check "Marketing Version = 1.0.4"          "$PBXPROJ" "MARKETING_VERSION = 1.0.4;"
-check "Build floor >= 17"                  "$PBXPROJ" "CURRENT_PROJECT_VERSION = 17;"
+check "Build floor >= 19"                  "$PBXPROJ" "CURRENT_PROJECT_VERSION = 19;"
 check "Deployment target = 15.0"           "$PBXPROJ" "IPHONEOS_DEPLOYMENT_TARGET = 15.0;"
 
 echo ""

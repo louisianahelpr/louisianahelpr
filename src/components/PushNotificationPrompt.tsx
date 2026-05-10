@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { isPushSupported, requestPushPermission, registerServiceWorker } from "@/lib/pushNotifications";
 import { safeStorage } from "@/lib/safeStorage";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -62,25 +61,42 @@ export const PushNotificationPrompt = () => {
   if (!show) return null;
 
   return (
-    <div className="rounded-lg liquid-glass px-3 py-2 mb-3 relative animate-in fade-in duration-300">
-      <button
-        onClick={handleDismiss}
-        className="absolute top-1.5 right-1.5 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Dismiss"
-      >
-        <X className="w-3 h-3" />
-      </button>
-      <div className="flex items-center gap-2 pr-5">
-        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Bell className="w-3.5 h-3.5 text-primary" />
+    <div className="rounded-2xl liquid-glass px-3.5 py-2.5 mb-3 animate-in fade-in slide-in-from-top-1 duration-300">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <Bell className="w-4 h-4 text-primary" strokeWidth={2.25} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-foreground leading-tight">Enable notifications</p>
-          <p className="text-[11px] text-muted-foreground leading-tight">Job matches, messages & updates</p>
+          <p
+            className="font-display italic font-bold text-[0.92rem] leading-tight"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+          >
+            Enable notifications
+          </p>
+          <p
+            className="font-serif italic text-[0.72rem] leading-snug mt-0.5"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            Job matches, messages &amp; updates
+          </p>
         </div>
-        <Button size="sm" onClick={handleEnable} className="h-7 px-2 text-xs flex-shrink-0">
-          Enable
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={handleEnable}
+            className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-[12px] font-semibold shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.35)] active:scale-[0.97] transition-transform"
+          >
+            Enable
+          </button>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label="Dismiss"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

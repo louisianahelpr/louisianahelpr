@@ -19,7 +19,6 @@ import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 
-import { RetainerAgreement } from "@/components/RetainerAgreement";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import SaveHelperButton from "@/components/SaveHelperButton";
@@ -504,15 +503,6 @@ const UserProfile = () => {
 
           {/* Portfolio — Pro+ only */}
           {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
-
-          {/* Retainer */}
-          {!isOwnProfile && currentUserId && (
-            <RetainerAgreement
-              customerId={currentUserId}
-              helperId={userId!}
-              helperName={profile.full_name || "Helpr"}
-            />
-          )}
 
           {/* Member since */}
           <p className="text-xs text-muted-foreground text-center">

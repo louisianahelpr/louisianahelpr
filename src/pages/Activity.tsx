@@ -7,11 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Send } from "lucide-react";
+import { Search, Send, X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -630,35 +629,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                 "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
             }}
           >
-          {/* Header row — search button + clear-filters button. */}
+          {/* Header row — title + search/filter toggle buttons. The search
+              input expands below this row instead of replacing the title,
+              matching the Dashboard search pattern. */}
           <div
             className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
-            style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+            style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
           >
-            {searchOpen ? (
-              <div className="flex items-center gap-2 flex-1 animate-in fade-in slide-in-from-right-2 duration-200">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    autoFocus
-                    type="search"
-                    aria-label="Search tasks"
-                    placeholder="Search tasks…"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-10 text-sm rounded-full bg-secondary/60 border-transparent focus-visible:bg-background"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
-                  className="text-sm font-medium text-primary px-2 py-1 -mr-1 active:opacity-60"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <>
                 <div className="flex flex-col leading-none min-w-0">
                   <span
                     className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
@@ -687,9 +664,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setSearchOpen(true)}
+                    onClick={() => setSearchOpen(!searchOpen)}
                     aria-label="Search tasks"
-                    className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+                    aria-expanded={searchOpen}
+                    className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition ${
+                      searchOpen || searchQuery
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    }`}
                   >
                     <Search className="w-4 h-4" />
                   </button>
@@ -742,9 +724,39 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                     </PopoverContent>
                   </Popover>
                 </div>
-              </>
-            )}
           </div>
+
+          {/* Expandable search bar — drops down below the header row,
+              matching the Dashboard search pattern. */}
+          {searchOpen && (
+            <div
+              className="shrink-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200"
+              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+            >
+              <div className="relative px-4 py-3">
+                <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  type="search"
+                  aria-label="Search tasks"
+                  placeholder="Search tasks…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
+                    className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
             // Empty state — same pattern as the home page's empty state:

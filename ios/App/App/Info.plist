@@ -84,5 +84,58 @@
 	</array>
 	</dict>
 	</array>
+
+	<!--
+	  Alternate App Icons (iOS 10.3+).
+	  Primary "AppIcon" is managed by Assets.xcassets/AppIcon.appiconset
+	  (the ornate Garden District ironwork H). The alternate "AppIcon-Fleur"
+	  is the flatter notification-thumbnail-friendly variant rasterized
+	  by scripts/generate-ios-icons.mjs into ios/App/App/AlternateIcons/.
+
+	  See ios/App/App/AlternateIcons/README.md for the one-time Xcode
+	  folder-reference wiring step + runtime-switching plugin notes.
+	-->
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIcon-Fleur</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Fleur</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	<key>CFBundleIcons~ipad</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIcon-Fleur</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Fleur</string>
+					<string>AppIcon-Fleur-76</string>
+					<string>AppIcon-Fleur-83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

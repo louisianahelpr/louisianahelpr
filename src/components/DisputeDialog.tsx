@@ -131,7 +131,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" /> Dispute Job

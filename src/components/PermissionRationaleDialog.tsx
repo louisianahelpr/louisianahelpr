@@ -63,7 +63,7 @@ export function PermissionRationaleDialog() {
                 "0 6px 18px -6px hsl(var(--primary) / 0.30)",
             }}
           >
-            <Icon className="w-6 h-6" strokeWidth={1.75} />
+            <Icon className="w-6 h-6" strokeWidth={1.75} aria-hidden="true" />
           </div>
           <span
             className="font-serif italic uppercase text-[0.62rem]"

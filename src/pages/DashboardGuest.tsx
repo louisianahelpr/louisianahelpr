@@ -341,6 +341,7 @@ const DashboardGuest = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedCategory(null)}
+                    aria-pressed={selectedCategory === null}
                     className={`inline-flex items-center gap-1 px-3 h-7 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all btn-press border ${
                       selectedCategory === null
                         ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
@@ -358,6 +359,7 @@ const DashboardGuest = () => {
                         key={cat}
                         type="button"
                         onClick={() => setSelectedCategory(isActive ? null : cat)}
+                        aria-pressed={isActive}
                         className={`inline-flex items-center gap-1 px-3 h-7 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all btn-press border ${
                           isActive
                             ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
@@ -367,6 +369,7 @@ const DashboardGuest = () => {
                         <Icon
                           className={`w-3 h-3 shrink-0 ${isActive ? "" : titleColor}`}
                           strokeWidth={2.25}
+                          aria-hidden="true"
                         />
                         {categoryLabels[cat]}
                       </button>

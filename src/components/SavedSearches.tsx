@@ -121,7 +121,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           aria-label="Saved searches"
           className="h-8 w-8 rounded-xl btn-press text-muted-foreground hover:text-foreground"
         >
-          <Bookmark className="w-4 h-4" strokeWidth={2} />
+          <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
         </Button>
       </DialogTrigger>
       <DialogContent
@@ -136,7 +136,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             className="font-serif italic uppercase text-[0.62rem] inline-flex items-center gap-1.5"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            <Bookmark className="w-3 h-3" strokeWidth={2} />
+            <Bookmark className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
             Get notified
           </span>
           <DialogTitle
@@ -219,7 +219,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                     "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
                 }}
               >
-                <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} aria-hidden="true" />
               </div>
               <p
                 className="font-display italic font-bold text-[0.95rem]"
@@ -276,9 +276,9 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                   title={s.notify_enabled ? "Notifications on" : "Notifications off"}
                 >
                   {s.notify_enabled ? (
-                    <Bell className="w-4 h-4 text-primary" />
+                    <Bell className="w-4 h-4 text-primary" aria-hidden="true" />
                   ) : (
-                    <BellOff className="w-4 h-4 text-muted-foreground" />
+                    <BellOff className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   )}
                 </button>
                 <button

@@ -10,15 +10,17 @@ name: Supabase Migration Lint
 # - Manually via workflow_dispatch
 
 on:
-  # DISABLED automatic triggers — was burning Actions minutes on every PR.
-  # Run manually from the Actions tab before merging migration PRs.
-  # To re-enable, uncomment the pull_request block.
-  #
-  # pull_request:
-  #   branches: [main]
-  #   paths:
-  #     - "supabase/migrations/**"
-  #     - ".github/workflows/migration-lint.yml"
+  # Re-enabled on PRs 2026-05-09 after the migration-pipeline post-mortem
+  # found 12 unapplied local migrations on prod (chat-push trio + RLS
+  # fix among them). The lint catches the upstream class of bug — bad
+  # SQL that would have failed silently on the manual deploy path. The
+  # paths filter keeps the spend bounded: only fires when migrations
+  # actually change.
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/migration-lint.yml"
   workflow_dispatch:
 
 concurrency:

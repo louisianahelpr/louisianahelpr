@@ -1,0 +1,206 @@
+name: Supabase DB Drift Detector
+
+# Nightly check for migration drift between the repo and prod.
+# If a local migration file isn't reflected in prod's schema_migrations
+# (or vice versa), opens/updates a GitHub issue with the diff so it
+# can't sit silently for weeks like the May-09 backlog did.
+#
+# Runs nightly at 06:00 UTC (01:00 CT) — quiet hour, after the daily
+# digest cron (5am UTC) so it sees a representative state.
+#
+# REQUIRED REPO SECRETS (same as db-deploy.yml):
+# - SUPABASE_ACCESS_TOKEN
+# - SUPABASE_DB_PASSWORD
+# - SUPABASE_PROJECT_REF
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: db-drift-detect
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Diff local vs prod migration history
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check secrets present
+        id: precheck
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ] && MISSING="$MISSING SUPABASE_DB_PASSWORD"
+          [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ] && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          if [ -n "$MISSING" ]; then
+            echo "::warning::Missing secrets:$MISSING — skipping drift check."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Supabase CLI
+        if: steps.precheck.outputs.skip != 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Compute drift
+        id: drift
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -eo pipefail
+
+          # Local — extract the 14-char timestamp prefix from each
+          # migration file. Strips the slug + .sql.
+          ls supabase/migrations/*.sql 2>/dev/null \
+            | xargs -n1 basename \
+            | sed -E 's/^([0-9]{14}).*/\1/' \
+            | grep -E '^[0-9]{14}$' \
+            | sort -u > /tmp/local.txt || touch /tmp/local.txt
+
+          # Remote — `migration list --linked` outputs a table with the
+          # remote (prod) version column. Parse the version IDs.
+          supabase migration list --linked 2>/dev/null \
+            | awk 'NR>2 && $1 ~ /^[0-9]{14}$/ { print $1 }' \
+            | sort -u > /tmp/remote.txt || touch /tmp/remote.txt
+
+          # Drift sets
+          comm -23 /tmp/local.txt /tmp/remote.txt > /tmp/missing-from-prod.txt
+          comm -13 /tmp/local.txt /tmp/remote.txt > /tmp/missing-from-repo.txt
+
+          MISSING_PROD_COUNT=$(wc -l < /tmp/missing-from-prod.txt | tr -d ' ')
+          MISSING_REPO_COUNT=$(wc -l < /tmp/missing-from-repo.txt | tr -d ' ')
+
+          echo "missing_prod=$MISSING_PROD_COUNT" >> $GITHUB_OUTPUT
+          echo "missing_repo=$MISSING_REPO_COUNT" >> $GITHUB_OUTPUT
+
+          {
+            echo "## Migration drift report — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "**$MISSING_PROD_COUNT** migration(s) in repo but NOT applied to prod:"
+            echo ""
+            if [ -s /tmp/missing-from-prod.txt ]; then
+              while read -r ts; do
+                FILE=$(ls supabase/migrations/${ts}*.sql 2>/dev/null | head -1)
+                echo "- \`$ts\` — \`$(basename "$FILE" 2>/dev/null || echo unknown)\`"
+              done < /tmp/missing-from-prod.txt
+            else
+              echo "_(none)_"
+            fi
+            echo ""
+            echo "**$MISSING_REPO_COUNT** migration(s) in prod but NOT in repo:"
+            echo ""
+            if [ -s /tmp/missing-from-repo.txt ]; then
+              while read -r ts; do
+                echo "- \`$ts\` — applied directly via Studio? Backfill the SQL into the repo."
+              done < /tmp/missing-from-repo.txt
+            else
+              echo "_(none)_"
+            fi
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Action items:**"
+            echo "- If a repo file is missing from prod and is intentional, push it via the \`db-deploy.yml\` workflow (or merge any new commit touching \`supabase/migrations/\` to retrigger)."
+            echo "- If prod has a migration not in the repo, recover the SQL via Studio → SQL Editor history and commit it so future fresh-DB rebuilds match prod."
+            echo ""
+            echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"
+          } > /tmp/issue-body.md
+
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/issue-body.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Open / update drift issue
+        if: |
+          steps.precheck.outputs.skip != 'true' &&
+          (steps.drift.outputs.missing_prod != '0' || steps.drift.outputs.missing_repo != '0')
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const body = `${{ steps.drift.outputs.body }}`;
+            const title = `🔴 Migration drift: ${{ steps.drift.outputs.missing_prod }} unapplied / ${{ steps.drift.outputs.missing_repo }} unrecorded`;
+
+            // Find existing open drift issue (label "migration-drift") to update
+            // instead of spamming a new one each night.
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "migration-drift",
+              per_page: 5,
+            });
+
+            if (existing.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                title,
+                body,
+              });
+              console.log(`Updated existing drift issue #${existing[0].number}`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["migration-drift"],
+              });
+              console.log(`Opened drift issue #${created.number}`);
+            }
+
+      - name: Close drift issue when clean
+        if: |
+          steps.precheck.outputs.skip != 'true' &&
+          steps.drift.outputs.missing_prod == '0' &&
+          steps.drift.outputs.missing_repo == '0'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "migration-drift",
+              per_page: 5,
+            });
+            for (const issue of existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Drift cleared as of ${new Date().toISOString()}. Auto-closing — will reopen if drift returns.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed",
+              });
+              console.log(`Closed drift issue #${issue.number}`);
+            }

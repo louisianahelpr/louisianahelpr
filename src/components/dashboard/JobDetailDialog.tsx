@@ -313,7 +313,7 @@ const JobDetailDialog = ({
             facts (where, when, how long, deadline) before they see the
             payout. Where + Date are clickable: Where opens Google Maps,
             Date opens Google Calendar. */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
             const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
@@ -615,12 +615,12 @@ const JobDetailDialog = ({
         {/* Footer actions — Flag · Save · Message · Apply.
             Each secondary icon button gets a hover-scale + glow ring effect
             so they feel tactile rather than static. */}
-        <div className="flex gap-2 pt-0.5">
+        <div className="flex gap-1.5 pt-0.5">
           <Button
             variant="ghost"
             size="icon"
             aria-label="Report this job"
-            className="group rounded-xl h-12 w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={() => { onReport(job.id); onClose(); }}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -648,7 +648,7 @@ const JobDetailDialog = ({
               variant="ghost"
               size="icon"
               aria-label={isSaved ? "Unsave job" : "Save job"}
-              className="group rounded-xl h-12 w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{
                 backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "hsla(0, 0%, 100%, 0.32)",
@@ -678,7 +678,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Ask a question"
-            className="group rounded-xl h-12 w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAskQuestion}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -704,7 +704,7 @@ const JobDetailDialog = ({
           <Button
             size="lg"
             onClick={() => { onApply(job.id); onClose(); }}
-            className="btn-liquid-fill flex-1 rounded-xl h-12 group relative overflow-hidden"
+            className="btn-liquid-fill flex-1 min-w-0 rounded-xl h-11 sm:h-12 px-3 group relative overflow-hidden"
             style={{
               // Two-stop bark gradient under the glass surface — subtle
               // top-light to bottom-deep wash so the button doesn't read flat.
@@ -722,15 +722,15 @@ const JobDetailDialog = ({
             }}
           >
             <span
-              className="relative z-10 inline-flex items-center gap-1.5"
+              className="relative z-10 inline-flex items-center gap-1.5 min-w-0 truncate"
               style={{
                 color: "white",
                 textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
               }}
             >
-              Apply for this task
+              <span className="truncate">Apply for this task</span>
               <ChevronRight
-                className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+                className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
                 strokeWidth={2.5}
               />
             </span>

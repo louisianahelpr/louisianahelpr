@@ -43,15 +43,19 @@ const chipActive =
 const chipIdle =
   "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90";
 
-// Brand-tinted gradient surface — used for popovers and accordion content.
-// Light mint-to-white in light mode, subtle dark in dark mode.
+// Solid surface used for popovers. Was previously a translucent
+// gradient that let the "Boosted only" pill bleed through — now an
+// opaque white/card surface so the popover always reads as a discrete
+// floating panel.
 const surfaceGradient =
-  "bg-gradient-to-br from-[hsl(var(--primary)/0.08)] via-background to-background dark:from-[hsl(var(--primary)/0.12)] dark:via-card dark:to-card";
+  "bg-background dark:bg-card";
 
-// Dropdown-trigger button used in the horizontal filter bar — full-width
-// inside its grid cell so the four filters split the row evenly.
+// Dropdown-trigger button used in the filter pill row — full-width
+// inside its grid cell. With the 2-up grid on mobile, labels have
+// enough room for full words so we can step the font size up to
+// match the rest of the dashboard chrome.
 const triggerBase =
-  "w-full inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-full text-[10.5px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap";
+  "w-full inline-flex items-center justify-between gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap";
 
 const sortOptions = [
   { value: "newest", label: "Newest" },
@@ -313,7 +317,7 @@ const JobFilters = ({
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
             <SortContent sortBy={sortBy} setSortBy={setSortBy} />

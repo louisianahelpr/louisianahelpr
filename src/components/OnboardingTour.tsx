@@ -18,8 +18,8 @@ type TourStep = {
 const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Helpr! 🎉",
-    description: "Let's walk you through the basics so you can get started. This will only take a minute.",
+    title: "Welcome to Helpr.",
+    description: "A quick walk-through so you know where everything lives. Takes under a minute.",
     icon: <Sparkles className="w-6 h-6" />,
     position: "center",
   },
@@ -184,11 +184,16 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
         <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden">
           {/* Progress bar */}
           <div className="px-5 pt-4 pb-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-              <span>Step {state.currentStep + 1} of {steps.length}</span>
+            <div className="flex items-center justify-between mb-2">
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Step {state.currentStep + 1} of {steps.length}
+              </span>
               <button
                 onClick={handleDismiss}
-                className="hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Close tour"
               >
                 <X className="w-4 h-4" />
@@ -199,12 +204,37 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
 
           {/* Content */}
           <div className="p-6 text-center space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto text-primary">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
+              style={{
+                backgroundColor: "hsl(var(--primary) / 0.10)",
+                border: "1px solid hsl(var(--primary) / 0.18)",
+                color: "hsl(var(--primary))",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                  "0 6px 18px -6px hsl(var(--primary) / 0.30)",
+              }}
+            >
               {currentStep.icon}
             </div>
             <div className="space-y-2">
-              <h3 id="onboarding-tour-title" className="text-xl font-display font-bold text-foreground">{currentStep.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">{currentStep.description}</p>
+              <h3
+                id="onboarding-tour-title"
+                className="font-display italic font-bold leading-tight"
+                style={{
+                  fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {currentStep.title}
+              </h3>
+              <p
+                className="font-serif italic text-[0.92rem] leading-relaxed max-w-[360px] mx-auto"
+                style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+              >
+                {currentStep.description}
+              </p>
             </div>
 
             {/* Step indicators */}
@@ -227,23 +257,23 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
           {/* Actions */}
           <div className="px-6 pb-5 flex items-center gap-2">
             {state.currentStep > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground">
+              <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground rounded-xl">
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
             )}
             <div className="flex-1" />
             {state.currentStep < steps.length - 1 ? (
               <>
-                <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground text-xs">
+                <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground text-xs rounded-xl">
                   Skip tour
                 </Button>
-                <Button size="sm" onClick={() => handleGoToStep(currentStep.action)}>
+                <Button size="sm" onClick={() => handleGoToStep(currentStep.action)} className="rounded-xl">
                   {currentStep.action ? "Go there" : "Next"} <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </>
             ) : (
-              <Button size="sm" onClick={handleNext}>
-                <CheckCircle2 className="w-4 h-4 mr-1" /> Get started!
+              <Button size="sm" onClick={handleNext} className="rounded-xl">
+                <CheckCircle2 className="w-4 h-4 mr-1" /> Get started
               </Button>
             )}
           </div>

@@ -97,13 +97,34 @@ export function IDVPromptDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-[12px] p-5">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <Icon className="w-5 h-5 text-primary" />
-            <DialogTitle>{headline}</DialogTitle>
-          </div>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent
+        className="sm:max-w-md gap-3"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="!text-left space-y-0 pr-8">
+          <span
+            className="font-serif italic uppercase text-[0.62rem] inline-flex items-center gap-1.5"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            <Icon className="w-3 h-3" strokeWidth={2} />
+            Identity check
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{
+              fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.025em",
+            }}
+          >
+            {headline}
+          </DialogTitle>
+          <DialogDescription
+            className="font-serif italic mt-2 text-[0.92rem] leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+          >
+            {description}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Admin-review state — show Stripe's reason for transparency, but
@@ -153,11 +174,11 @@ export function IDVPromptDialog({
         )}
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-[12px]">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-xl h-11">
             {isPending || isAdminReview ? "OK" : "Not now"}
           </Button>
           {!isPending && !isAdminReview && (
-            <Button onClick={handleStart} disabled={loading} className="rounded-[12px]">
+            <Button onClick={handleStart} disabled={loading} className="rounded-xl h-11">
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
               Start verification
             </Button>

@@ -36,6 +36,14 @@ const ALL_SKILLS = [
   "Photography", "Web Design", "Tech Support", "Junk Removal", "Auto Detailing", "Gutter Cleaning",
 ];
 
+const isSafePreviewUrl = (url: string) => {
+  try {
+    return new URL(url).protocol === "blob:";
+  } catch {
+    return false;
+  }
+};
+
 const EXPERIENCE_LEVELS = ["Beginner", "Some experience", "Experienced", "Professional"];
 const AVAILABILITY_SLOTS = ["Weekday mornings", "Weekday afternoons", "Weekday evenings", "Weekends", "Flexible / Anytime"];
 const JOB_RADIUS_OPTIONS = ["5 miles", "10 miles", "25 miles", "50+ miles", "Anywhere"];
@@ -521,7 +529,7 @@ export function SignupStep3(props: SignupStep3Props) {
         <div className="flex flex-wrap gap-3">
           {portfolioPreviews.map((preview, i) => (
             <div key={i} className="relative group">
-              {preview.type.startsWith("image/") ? (
+              {preview.type.startsWith("image/") && isSafePreviewUrl(preview.url) ? (
                 <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
                   <img loading="lazy" decoding="async" src={preview.url} alt="" className="w-full h-full object-cover" />
                 </div>

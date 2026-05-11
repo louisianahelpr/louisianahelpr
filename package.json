@@ -82,7 +82,7 @@
     "react-router-dom": "6.30.3",
     "recharts": "^3.8.1",
     "sonner": "^1.7.4",
-    "tailwind-merge": "^3.5.0",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "terser": "^5.47.1",
     "vite-plugin-pwa": "1.2.0"

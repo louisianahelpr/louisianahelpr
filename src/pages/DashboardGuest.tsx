@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Briefcase, List, Map as MapIcon, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
+import { Search, Briefcase, List, Map as MapIcon, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
@@ -11,8 +11,7 @@ import JobCard from "@/components/dashboard/JobCard";
 const BrowseMap = lazy(() =>
   import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
 );
-import { categoryLabels } from "@/components/dashboard/JobFilters";
-import { categoryIcons, categoryColors } from "@/components/activity/activityConstants";
+import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -34,8 +33,6 @@ import HelprMark from "@/components/HelprMark";
  * boundary.
  */
 
-const ALL_CATEGORIES: Array<keyof typeof categoryLabels | string> = Object.keys(categoryLabels);
-
 const DashboardGuest = () => {
   const navigate = useNavigate();
   usePageTitle("Browse Jobs — Helpr");
@@ -44,6 +41,13 @@ const DashboardGuest = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [maxBudget, setMaxBudget] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [sortBy, setSortBy] = useState("boosted");
+  const [expiresWithin, setExpiresWithin] = useState("");
+  const [boostedOnly, setBoostedOnly] = useState(false);
+  // Guests don't have helper availability set up; the JobFilters panel
+  // auto-hides the "match my availability" option when hasAvailability=false.
   const [view, setView] = useState<"list" | "map">("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
@@ -121,12 +125,40 @@ const DashboardGuest = () => {
 
   const filteredJobs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return jobs.filter((j) => {
+    const loc = locationFilter.trim().toLowerCase();
+    const maxBudgetNum = maxBudget ? parseFloat(maxBudget) : null;
+    const expiresMs = expiresWithin ? parseInt(expiresWithin, 10) * 60 * 60 * 1000 : null;
+    const now = Date.now();
+
+    const list = jobs.filter((j) => {
       if (selectedCategory && j.category !== selectedCategory) return false;
       if (q && !`${j.title} ${j.location} ${j.description}`.toLowerCase().includes(q)) return false;
+      if (loc && !(j.location || "").toLowerCase().includes(loc)) return false;
+      if (maxBudgetNum !== null && j.budget > maxBudgetNum) return false;
+      if (boostedOnly && !j.isBoosted) return false;
+      if (expiresMs && j.expires_at && new Date(j.expires_at).getTime() - now > expiresMs) return false;
       return true;
     });
-  }, [jobs, search, selectedCategory]);
+
+    // Sort by selected mode — matches authed Dashboard's options.
+    const sorted = [...list];
+    switch (sortBy) {
+      case "newest":
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "budget-high":
+        sorted.sort((a, b) => b.budget - a.budget);
+        break;
+      case "budget-low":
+        sorted.sort((a, b) => a.budget - b.budget);
+        break;
+      case "boosted":
+      default:
+        // Already in boosted-first order from the query
+        break;
+    }
+    return sorted;
+  }, [jobs, search, selectedCategory, locationFilter, maxBudget, boostedOnly, expiresWithin, sortBy]);
 
   // All interactive actions route to signup. Direct redirect matches what
   // authenticated users feel (immediate response, no toast noise).
@@ -174,7 +206,7 @@ const DashboardGuest = () => {
           {/* Greeting card — editorial liquid-glass surface mirroring the
               authenticated dashboard's "Good morning, X" pane. */}
           <section
-            className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden"
+            className="liquid-glass shrink-0 px-4 py-3 lg:px-5 lg:py-4 relative overflow-hidden"
             style={{
               backgroundImage:
                 "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
@@ -183,28 +215,28 @@ const DashboardGuest = () => {
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
                 "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
                 "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
-                "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+                "0 6px 14px -6px hsl(var(--olivewood) / 0.1), " +
+                "0 14px 24px -10px hsl(var(--olivewood) / 0.12)",
             }}
           >
             <span
-              className="font-serif italic uppercase text-[0.62rem]"
+              className="font-serif italic uppercase text-[0.58rem]"
               style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
             >
               A first look
             </span>
             <h1
-              className="font-display font-bold leading-tight mt-1"
+              className="font-display font-bold leading-tight mt-0.5"
               style={{
-                fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
+                fontSize: "clamp(1.15rem, 1.6vw + 0.3rem, 1.4rem)",
                 color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
+                letterSpacing: "-0.022em",
               }}
             >
               Welcome to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>Helpr</em>.
             </h1>
             <p
-              className="font-serif italic mt-1 text-[0.78rem] leading-relaxed"
+              className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               Browse what your Louisiana neighbors need. Sign up free to apply or post your own task.
@@ -350,59 +382,38 @@ const DashboardGuest = () => {
               </div>
             )}
 
-            {/* Expandable filters panel — category picker, scrollable internally
-                if it overflows the cap so the job list stays in view. */}
+            {/* Expandable filters panel — full JobFilters component so
+                guests see the same Category + Budget + Location + Sort +
+                Expires-Within + Boosted controls as the authenticated
+                /dashboard. matchAvailability is hidden via hasAvailability=false
+                since guests have no helper-availability config. */}
             {filtersOpen && view === "list" && (
               <div
-                className="shrink-0 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200 px-4 py-3"
+                className="shrink-0 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200"
                 data-allow-scroll="true"
                 style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)", maxHeight: "50vh" }}
               >
-                <span
-                  className="font-serif italic uppercase text-[0.6rem] tracking-[0.18em]"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  Category
-                </span>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory(null)}
-                    aria-pressed={selectedCategory === null}
-                    className={`inline-flex items-center gap-1 px-3 h-7 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all btn-press border ${
-                      selectedCategory === null
-                        ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
-                        : "bg-white/70 text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {ALL_CATEGORIES.map((cat) => {
-                    const Icon = categoryIcons[cat] ?? MoreHorizontal;
-                    const isActive = selectedCategory === cat;
-                    const titleColor = (categoryColors[cat] || categoryColors.other).title;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setSelectedCategory(isActive ? null : cat)}
-                        aria-pressed={isActive}
-                        className={`inline-flex items-center gap-1 px-3 h-7 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all btn-press border ${
-                          isActive
-                            ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
-                            : "bg-white/70 text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90"
-                        }`}
-                      >
-                        <Icon
-                          className={`w-3 h-3 shrink-0 ${isActive ? "" : titleColor}`}
-                          strokeWidth={2.25}
-                          aria-hidden="true"
-                        />
-                        {categoryLabels[cat]}
-                      </button>
-                    );
-                  })}
-                </div>
+                <JobFilters
+                  searchQuery={search}
+                  setSearchQuery={setSearch}
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  maxBudget={maxBudget}
+                  setMaxBudget={setMaxBudget}
+                  locationFilter={locationFilter}
+                  setLocationFilter={setLocationFilter}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
+                  filtersOpen={true}
+                  setFiltersOpen={setFiltersOpen}
+                  expiresWithin={expiresWithin}
+                  setExpiresWithin={setExpiresWithin}
+                  matchAvailability={false}
+                  setMatchAvailability={() => {}}
+                  hasAvailability={false}
+                  boostedOnly={boostedOnly}
+                  setBoostedOnly={setBoostedOnly}
+                />
               </div>
             )}
 

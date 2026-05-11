@@ -356,26 +356,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — Bark green from the landing CTAs. Now with two
-              restrained effects:
-                · Slow rotating breathing halo behind the button (single
-                  conic-gradient ring, 8 s rotation, 18 s pulse) — gives
-                  the page a gentle "alive" focal point.
-                · Plus icon rotates 90° on hover/press for tactile feedback. */}
+          {/* Post FAB — bright Burnt-Sienna so it stands out as the
+              primary "compose" action against the cream + olive UI.
+              No background animation: per user feedback, the breathing
+              halo read as visual noise. The Plus icon still rotates on
+              tap/hover for tactile feedback. */}
           {!isPendingApproval && (
             <div className="relative shrink-0 w-14 h-14">
-              {/* Breathing halo — rotates slowly + scales subtly. Behind the
-                  button, pointer-events disabled so it never intercepts the
-                  tap. */}
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full pointer-events-none mobile-fab-halo"
-                style={{
-                  background:
-                    "conic-gradient(from 0deg, hsl(var(--bark) / 0.55), hsl(var(--burnt-sienna) / 0.4), hsl(var(--bark) / 0.55))",
-                  filter: "blur(7px)",
-                }}
-              />
               <button
                 onClick={handlePostClick}
                 onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
@@ -383,43 +370,37 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
                 className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-all duration-200 overflow-hidden"
                 style={{
-                  // Top-to-bottom gradient — soft forest green at the
-                  // crown shifts into a deeper charcoal-green at the base.
-                  // Pairs with the inset rim light + bottom shadow to
-                  // sell the "lit from above" sphere illusion.
+                  // Warm burnt-sienna gradient — pops against the cream
+                  // surface and tells you exactly where to tap to post.
                   background:
-                    "linear-gradient(180deg, hsl(78 22% 40%) 0%, hsl(70 20% 32%) 50%, hsl(64 22% 22%) 100%)",
+                    "linear-gradient(180deg, hsl(19 80% 48%) 0%, hsl(19 75% 40%) 55%, hsl(19 70% 32%) 100%)",
                   color: "hsl(var(--parchment))",
-                  border: "1px solid hsl(70 20% 30%)",
-                  backdropFilter: "blur(20px) saturate(160%)",
-                  WebkitBackdropFilter: "blur(20px) saturate(160%)",
+                  border: "1px solid hsl(19 70% 30%)",
                   boxShadow:
-                    // Top inner rim — bright white pressed-glass highlight
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                    // Top inner rim — pressed-glass highlight
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.42), " +
                     // Bottom inner shadow — sealed-bottom realism
                     "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
-                    // Tight contact shadow under button
-                    "0 1px 2px hsl(var(--olivewood) / 0.12), " +
-                    // Wide soft spreading halo (Bark-tinted)
-                    "0 12px 28px -6px hsl(var(--bark) / 0.45), " +
-                    "0 28px 56px -14px hsl(var(--bark) / 0.35)",
+                    // Tight contact shadow
+                    "0 1px 2px hsl(19 70% 20% / 0.18), " +
+                    // Spreading warm halo so it lifts off the page
+                    "0 10px 22px -6px hsl(var(--burnt-sienna) / 0.55), " +
+                    "0 24px 44px -14px hsl(var(--burnt-sienna) / 0.4)",
                 }}
               >
-                {/* Top-arc light — a thin elliptical sheen on the upper
-                    quarter of the sphere, sells "lit from above" beyond
-                    the inset rim alone. */}
+                {/* Top-arc highlight — thin sheen on the upper third. */}
                 <span
                   aria-hidden
                   className="absolute inset-x-2 top-1 h-3 rounded-full pointer-events-none"
                   style={{
                     background:
-                      "radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.45) 0%, transparent 75%)",
+                      "radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.42) 0%, transparent 75%)",
                     filter: "blur(0.5px)",
                   }}
                 />
                 <Plus
                   className="w-7 h-7 transition-transform duration-300 group-hover:rotate-90 group-active:rotate-180"
-                  strokeWidth={2.5}
+                  strokeWidth={2.75}
                   style={{ color: "hsl(var(--parchment))" }}
                 />
                 {isGuest && (

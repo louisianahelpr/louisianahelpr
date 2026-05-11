@@ -232,12 +232,19 @@ const PostJob = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (imageFiles.length + files.length > 5) {
+    const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+    const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
+
+    if (safeFiles.length !== files.length) {
+      toast.error("Only JPG, PNG, WEBP, and GIF images are allowed");
+    }
+
+    if (imageFiles.length + safeFiles.length > 5) {
       toast.error("Maximum 5 images allowed");
       return;
     }
     // Compress images before storing
-    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+    const compressed = await Promise.all(safeFiles.map((f) => compressImage(f)));
     const newFiles = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(newFiles);
     const previews = newFiles.map((f) => URL.createObjectURL(f));

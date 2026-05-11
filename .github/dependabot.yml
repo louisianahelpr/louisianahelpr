@@ -36,6 +36,8 @@ updates:
       capacitor:
         patterns:
           - "@capacitor/*"
+          - "@capgo/*"
+          - "@capacitor-community/*"
       # Group Supabase client + helpers.
       supabase:
         patterns:
@@ -44,6 +46,17 @@ updates:
       sentry:
         patterns:
           - "@sentry/*"
+      # Catch-all for every other production dep — minor/patch only.
+      # Without this, prod deps not matched by the named groups above
+      # (e.g. @tanstack/react-query, posthog-js, react-leaflet) each
+      # become their own PR. This consolidates them all into one
+      # weekly PR. Majors are still excluded so they need explicit
+      # review when they appear individually.
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       # Pin major React/Vite/Tailwind upgrades — handle these manually.
       - dependency-name: "react"

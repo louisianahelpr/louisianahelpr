@@ -1,5 +1,8 @@
 name: Edge Function Smoke Test
 
+permissions:
+  contents: read
+
 # Verifies that critical edge functions boot and respond after deploy.
 # Catches Deno import errors, missing env vars, and runtime crashes that
 # only surface when functions are actually invoked.

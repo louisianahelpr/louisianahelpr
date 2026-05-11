@@ -99,7 +99,17 @@ const config: CapacitorConfig = {
       // Per-screen overrides live in src/hooks/useStatusBar.ts.
       style: 'LIGHT',
       backgroundColor: '#F4F8F5',
-      overlaysWebView: false
+      // overlaysWebView: true makes the WebView render edge-to-edge under
+      // the status bar. Every header / page wrapper in the codebase already
+      // pads itself with env(safe-area-inset-top) (see PageHeader, AppShell,
+      // DashboardHeader, AuthShell, DashboardGuest header, etc.), so the
+      // overlay mode is what those paddings were designed for. With
+      // overlaysWebView=false the webview was already positioned below the
+      // status bar, but iOS still reported safe-area-inset-top ~44px to
+      // the page — those paddings stacked on top of the already-offset
+      // webview, producing the visible "double pad" empty band above
+      // every header on real devices.
+      overlaysWebView: true
     },
     Keyboard: {
       // KeyboardResize.Body — body shrinks so focused inputs stay visible above the keyboard.

@@ -73,7 +73,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             className="font-serif italic uppercase text-[0.62rem] inline-flex items-center gap-1.5"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            <ShieldAlert className="w-3 h-3" strokeWidth={2} />
+            <ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
             Safety &amp; trust
           </span>
           <DialogTitle
@@ -120,6 +120,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                     <Icon
                       className={`w-3.5 h-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`}
                       strokeWidth={active ? 2.25 : 2}
+                      aria-hidden="true"
                     />
                     {label}
                   </button>

@@ -9,21 +9,20 @@ name: Lighthouse CI
 # - Manually via workflow_dispatch
 
 on:
-  # DISABLED automatic triggers — performance audits are nice-to-have, not
-  # critical, and were burning Actions minutes on every PR. Run manually
-  # from the Actions tab when you want to spot-check mobile performance.
-  #
-  # To re-enable automatic runs, uncomment the pull_request / schedule blocks.
-  #
-  # pull_request:
-  #   branches: [main]
-  #   paths:
-  #     - "src/**"
-  #     - "index.html"
-  #     - "vite.config.ts"
-  #     - "package.json"
-  # schedule:
-  #   - cron: "0 6 * * 0" # Sunday 06:00 UTC
+  # Re-enabled 2026-05-09 — cost-tuned path filters keep this off random
+  # docs-only PRs but fire on anything that could regress perf (bundle,
+  # entrypoint, build config, deps).
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "package.json"
+      - "package-lock.json"
+  schedule:
+    - cron: "0 6 * * 0"   # Sunday 06:00 UTC — long-term trend tracking
   workflow_dispatch:
 
 concurrency:
@@ -42,11 +41,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Audit published site (mobile)
+      - name: Audit published site (mobile, public routes only)
         uses: treosh/lighthouse-ci-action@v12
         with:
+          # Public routes only — anything behind auth (/dashboard, /post-job,
+          # /my-jobs, /messages, etc.) needs a test session and isn't worth
+          # the Lighthouse-CI complexity. Landing + browse + signup cover
+          # the highest-traffic first-paint surfaces.
           urls: |
             https://louisianahelpr.lovable.app
+            https://louisianahelpr.lovable.app/browse
+            https://louisianahelpr.lovable.app/login
+            https://louisianahelpr.lovable.app/signup
           # Mobile emulation by default. Soft-fail on perf so flaky LH runs
           # don't block PRs, but reports are uploaded for review.
           uploadArtifacts: true

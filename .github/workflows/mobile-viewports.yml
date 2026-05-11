@@ -1,0 +1,83 @@
+name: Mobile viewport spot-check
+
+# Replaces the human eyeball pass that previously ran during QA on
+# 320 / 375 / 414 / 768 / 1024px viewports. Catches:
+#   - horizontal overflow regressions (the #1 mobile layout bug)
+#   - JS errors that only fire on small-viewport CSS branches
+#   - phone-cluster overflow on the landing page at 320
+#
+# Spec lives at e2e/mobile-viewports.spec.ts. Tests run against the
+# deployed Lovable preview by default; override with PLAYWRIGHT_BASE_URL.
+#
+# Cost-conscious:
+# - Only runs on PRs that touch UI / layout
+# - Concurrency-locked
+# - Uploads screenshots only on failure (test-results/)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "tailwind.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "e2e/mobile-viewports.spec.ts"
+      - ".github/workflows/mobile-viewports.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-viewports-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-spot-check:
+    name: Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    if: github.actor != 'dependabot[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        # See test.yml — Lovable can drift the lockfile, so use `install` not `ci`.
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run mobile-viewport tests
+        env:
+          # Default to the Lovable preview. Override at workflow_dispatch
+          # time if you want to point at a Vercel preview or local tunnel.
+          PLAYWRIGHT_BASE_URL: https://louisianahelpr.lovable.app
+        run: npx playwright test e2e/mobile-viewports.spec.ts --reporter=list
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-viewport-screenshots
+          path: test-results/mobile/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Playwright HTML report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

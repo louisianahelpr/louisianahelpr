@@ -21,6 +21,10 @@ supabase/.temp/
 # Vercel CLI metadata (project + token)
 .vercel
 
+# Claude Code agent worktrees / scratch directory at repo root.
+# Cowork sessions create these; they're per-machine and shouldn't be tracked.
+.claude/
+
 # Environment variables (never commit secrets)
 .env
 .env.local

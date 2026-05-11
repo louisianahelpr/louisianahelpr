@@ -14,7 +14,6 @@ import {
   ChevronLeft,
   CheckCircle2,
 } from "lucide-react";
-import { isSafePreviewUrl } from "@/lib/imagePreview";
 
 interface CheckoutStepProps {
   title: string;
@@ -101,7 +100,7 @@ export function CheckoutStep({
           {imagePreviews.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {imagePreviews.map((src, i) =>
-                isSafePreviewUrl(src) ? (
+                src.startsWith("blob:") ? (
                   <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
                 ) : (
                   <div key={i} className="w-16 h-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center">

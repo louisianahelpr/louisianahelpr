@@ -209,7 +209,7 @@ const Login = () => {
         </p>
       </div>
 
-      <p className="text-center text-[0.7rem] font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+      <p className="text-center text-xs font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         By signing in you agree to our{" "}
         <Link to="/terms" className="underline hover:opacity-80 transition-opacity">Terms</Link>
         {" · "}

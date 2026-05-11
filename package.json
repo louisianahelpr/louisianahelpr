@@ -69,7 +69,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
-    "lint-staged": "^15.2.10",
+    "lint-staged": "^17.0.4",
     "lucide-react": "^1.14.0",
     "next-themes": "^0.3.0",
     "posthog-js": "^1.373.0",

@@ -1,5 +1,66 @@
 # TODO
 
+## Supabase branching hygiene (Cowork — Free plan, 200 hrs/mo)
+
+If you spin up a preview branch with `supabase branches create <name>`:
+1. Do your work in the same session.
+2. `supabase branches delete <name>` BEFORE you close out.
+3. If you forget, Lexi will get a quota warning email within ~1 week per branch.
+
+On Free plan there is no auto-cleanup. The 2 branches that got
+deleted 2026-05-11 (`liquid-glass-elevation-design` merged 7 days
+prior + `chore/rename-migrations-to-prod-versions` 24h prior)
+burned 192 of 200 hours by themselves.
+
+---
+
+## Where We Left Off — 2026-05-11 (iOS-state audit + security cleanup)
+
+Audit pass against the iOS/Capacitor surface to reconcile `TODO.md`
+with actual code state. Code paths cross-checked against
+`src/lib/nativePush.ts`, `src/lib/socialLogin.ts`,
+`src/lib/nativeInit.ts`, `ios/App/App.entitlements`,
+`ios/App/App/Info.plist`, and `capacitor.config.ts`.
+
+### Closed today (2026-05-11)
+
+- ✅ **Sentry alert rules** — all 9 live via API (no more UI paste needed).
+  Rules 1-5 + 8 = P0 alerts; Rules 6-7 = P1; Rule 9 = P2 digest.
+- ✅ **Supabase preview branches** — 2 stale branches deleted (`liquid-glass`
+  merged 7 days prior, `chore/rename-migrations` 24h prior). Reclaimed
+  ~192 of 200 monthly hours. Quota healthy through 2026-05-18 reset.
+- ✅ **25 CodeQL alerts** (12 High XSS + 13 Medium info-exposure) closed
+  in PR #30. New shared helper `src/lib/imagePreview.ts`. Edge functions
+  no longer leak `err.message` in client responses.
+- ✅ **iOS Build #18** triggered to TestFlight (workflow run #18).
+
+### Status reconciliation — previously-claimed-pending was already shipped
+
+| Claim | Audit verdict | Evidence |
+|---|---|---|
+| "Ship iOS Build #17+" | Code shipped; **#18 archiving now** | `nativePush.ts:31,67-84` token buffer + flush; build #18 dispatched 2026-05-11 |
+| "Apple Sign-In native iOS rewire — deferred" | ✅ **DONE** | `AppleSignInButton.tsx:28-40` native routing; `socialLogin.ts:30-44` idToken exchange; `App.entitlements:40-43` has `applesignin`. TestFlight #14 verified working. |
+| "Push notifications via Capacitor on iOS" | ✅ **DONE** | `useNativePushSetup()` at `App.tsx:180`; token persist + auth-buffering verified |
+| "iOS Alt App Icon" | 🔴 **ROLLED BACK** | Build #18 (CFBundleVersion 2031) was rejected by ASC with ITMS-90032 — Info.plist declared `CFBundleAlternateIcons` but PNGs were never rasterized into the .ipa (no Mac session had run `scripts/generate-ios-icons.mjs` + Xcode folder reference). Rolled back the `CFBundleAlternateIcons` keys from `ios/App/App/Info.plist` so build #19 archives clean. Re-add the keys AFTER Cowork runs the rasterize script + does the Xcode folder-reference drag-drop step. |
+
+### Still pending Lexi (UI work)
+
+- [ ] **Add 2 Supabase GitHub secrets** at https://github.com/louisianahelpr/louisianahelpr/settings/secrets/actions
+  - `SUPABASE_ACCESS_TOKEN` — Supabase Dashboard → Account → Access Tokens (project scope)
+  - `SUPABASE_DB_PASSWORD` — Supabase Settings → Database → Connection string
+  - (`SUPABASE_PROJECT_REF` is auto-set by claude session 2026-05-11)
+- [ ] **App Store metadata refresh** — `docs/APP_STORE_REVIEW_SUBMISSION.md` has paste-ready copy
+- [ ] **Logo uploads to external services** — Stripe brand settings, Google OAuth consent screen, Gmail Workspace sender avatars. `docs/LOGO_UPDATE_RUNBOOK.md` has the full surface list.
+- [ ] **Revoke the GitHub PAT** `claude-cli-codeql-fixes-2026-05-11` once iOS build settles. Same security hygiene as the Sentry token.
+
+### Still pending Cowork (next Mac session)
+
+- [ ] **Alt-icon rasterize + Xcode wiring** — `node scripts/generate-ios-icons.mjs` then drag `ios/App/App/AlternateIcons/` into Xcode App group as folder reference
+- [ ] **PR #29** — migration filename rename is still open + MIGRATIONS_FAILED. Either fix or close.
+- [ ] **App Store review submission** after Lexi green-lights
+
+---
+
 ## Where We Left Off — 2026-05-09 (migration drift CLOSED + structural fix shipped)
 
 **Reports in session outputs:** `qa-report-2026-05-03.md`, `migration-pipeline-postmortem.md`.

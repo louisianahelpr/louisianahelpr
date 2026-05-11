@@ -17,23 +17,15 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/data-rights",
 
   "/jobs", // public marketing /jobs (uses Navbar + long page)
-  "/browse", // guest dashboard preview
   "/support",
 
-  // Auth + onboarding flow — these now live inside AuthShell which uses
-  // document scroll (min-h-screen + natural overflow), so the html-level
-  // viewport lock would prevent the user from reaching fields below the
-  // fold (Signup is multi-step + tall on phones).
-  "/login",
+  // Auth + onboarding flow — only the TALL multi-step / multi-card pages
+  // stay on document scroll so users can reach fields below the fold.
+  // Short auth pages (Login, ForgotPassword, etc.) use the viewport
+  // lock so iOS doesn't rubber-band the body around content that fits.
   "/signup",
-  "/signup-pending",
   "/complete-profile",
   "/account-pending",
-  "/account-denied",
-  "/account-banned",
-  "/forgot-password",
-  "/reset-password",
-  "/payment-success",
 
   // In-app pages built around a tall `min-h-screen` layout. Without
   // document scroll the html-level lock clips anything below the fold —

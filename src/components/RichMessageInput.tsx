@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
-import { isSafePreviewUrl } from "@/lib/imagePreview";
 import {
   uploadMessageAttachment,
   isImageMime,
@@ -162,7 +161,7 @@ export const RichMessageInput = ({
     <div className="space-y-2">
       {stagedFile && (
         <div className="relative inline-block">
-          {imagePreview && isSafePreviewUrl(imagePreview) ? (
+          {imagePreview && imagePreview.startsWith("blob:") ? (
             <img loading="lazy" decoding="async" src={imagePreview} alt="Preview" className="h-20 w-20 rounded-lg object-cover border border-border" />
           ) : (
             <div className="h-20 w-32 rounded-lg border border-border bg-muted flex items-center gap-2 px-3">

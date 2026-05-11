@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Briefcase, List, Map as MapIcon, X, MoreHorizontal } from "lucide-react";
+import { Search, Briefcase, List, Map as MapIcon, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
@@ -42,6 +42,7 @@ const DashboardGuest = () => {
 
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
 
@@ -281,19 +282,39 @@ const DashboardGuest = () => {
                   </button>
                 </div>
                 {view === "list" && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(!searchOpen)}
-                    aria-label="Search jobs"
-                    aria-expanded={searchOpen}
-                    className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition ${
-                      searchOpen || search
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    }`}
-                  >
-                    <Search className="w-4 h-4" />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
+                      aria-label="Search jobs"
+                      aria-expanded={searchOpen}
+                      className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition ${
+                        searchOpen || search
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      }`}
+                    >
+                      <Search className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
+                      aria-label={selectedCategory ? "Filters (1 active)" : "Filters"}
+                      aria-expanded={filtersOpen}
+                      className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition relative ${
+                        filtersOpen || selectedCategory
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      }`}
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      {selectedCategory && (
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                          1
+                        </span>
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -329,15 +350,21 @@ const DashboardGuest = () => {
               </div>
             )}
 
-            {/* Category chips — horizontal scroll, matches JobFilters chip
-                styling so the guest surface visually rhymes with the
-                authenticated filter pills. */}
-            {view === "list" && (
+            {/* Expandable filters panel — category picker, scrollable internally
+                if it overflows the cap so the job list stays in view. */}
+            {filtersOpen && view === "list" && (
               <div
-                className="shrink-0 overflow-x-auto scrollbar-hide overscroll-x-contain px-4 py-2.5"
-                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+                className="shrink-0 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200 px-4 py-3"
+                data-allow-scroll="true"
+                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)", maxHeight: "50vh" }}
               >
-                <div className="flex gap-1.5 w-max">
+                <span
+                  className="font-serif italic uppercase text-[0.6rem] tracking-[0.18em]"
+                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                >
+                  Category
+                </span>
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   <button
                     type="button"
                     onClick={() => setSelectedCategory(null)}
@@ -376,6 +403,27 @@ const DashboardGuest = () => {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Active filter chip — shown only when a category is selected and
+                the filters panel is closed. Matches the authenticated Dashboard. */}
+            {!filtersOpen && selectedCategory && view === "list" && (
+              <div
+                className="shrink-0 flex flex-wrap gap-1.5 px-4 py-2.5"
+                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+              >
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  {categoryLabels[selectedCategory] ?? selectedCategory}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory(null)}
+                    aria-label="Clear category filter"
+                    className="hover:text-primary/70 btn-press"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               </div>
             )}
 

@@ -17,7 +17,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/data-rights",
 
   "/jobs", // public marketing /jobs (uses Navbar + long page)
-  "/browse", // guest dashboard preview
   "/support",
 
   // Auth + onboarding flow — these now live inside AuthShell which uses

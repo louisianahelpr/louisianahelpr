@@ -212,6 +212,9 @@ const PostJob = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Strict MIME allowlist — keeps the broader `image/*` check honest
+    // (a maliciously crafted SVG/AVIF could still be image/*) and gives
+    // a precise toast for rejected files.
     const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
     const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
 

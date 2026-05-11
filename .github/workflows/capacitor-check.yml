@@ -1,5 +1,8 @@
 name: Capacitor Sync Check
 
+permissions:
+  contents: read
+
 # Verifies the Capacitor native config is valid and the web build can be
 # synced into the iOS shell. Catches misconfigured plugins, missing
 # Info.plist entries, and broken capacitor.config.ts BEFORE Fastlane

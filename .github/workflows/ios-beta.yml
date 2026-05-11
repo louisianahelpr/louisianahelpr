@@ -1,5 +1,8 @@
 name: iOS Beta (TestFlight)
 
+permissions:
+  contents: read
+
 # Manual-only trigger to save GitHub Actions minutes — macOS runners cost 10x Linux.
 # Run from the Actions tab → "iOS Beta (TestFlight)" → "Run workflow".
 on:

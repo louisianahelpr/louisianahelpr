@@ -1,5 +1,8 @@
 name: CodeQL Security Scan
 
+permissions:
+  contents: read
+
 # GitHub's free static analysis for JavaScript/TypeScript.
 # Catches XSS, injection vulnerabilities, hardcoded secrets, and other
 # security issues that could put user data at risk OR get flagged by

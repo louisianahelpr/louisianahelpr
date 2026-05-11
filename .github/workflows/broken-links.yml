@@ -1,5 +1,8 @@
 name: Broken Link Check
 
+permissions:
+  contents: read
+
 # Crawls the published site for broken links (404s, dead redirects).
 # App Store reviewers click through privacy/support/terms URLs — a 404 on
 # any of those is grounds for rejection. This catches them before submission.

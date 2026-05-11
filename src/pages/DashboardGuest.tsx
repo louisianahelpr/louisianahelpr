@@ -17,6 +17,8 @@ import { formatName } from "@/lib/utils";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import HelprMark from "@/components/HelprMark";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
 /**
  * DashboardGuest — read-only home shown to logged-out iOS visitors.
@@ -51,7 +53,7 @@ const DashboardGuest = () => {
   const [view, setView] = useState<"list" | "map">("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
-  const { data: jobs = [], isLoading } = useQuery({
+  const { data: jobs = [], isLoading, refetch } = useQuery({
     queryKey: ["guestDashboardJobs"],
     queryFn: async (): Promise<EnrichedJob[]> => {
       const { data: rawJobs } = await supabase
@@ -193,7 +195,15 @@ const DashboardGuest = () => {
     setSortBy("boosted");
   }, []);
 
+  // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
+  // the Quiet today / list surface fetches fresh open_jobs_browse rows.
+  // Mirrors the pattern used in the authenticated Dashboard at the page root.
+  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+    onRefresh: async () => { await refetch(); },
+  });
+
   return (
+    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div
       className="h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
@@ -559,6 +569,7 @@ const DashboardGuest = () => {
         </div>
       </main>
     </div>
+    </PullToRefreshWrapper>
   );
 };
 

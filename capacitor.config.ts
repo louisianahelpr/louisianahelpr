@@ -99,16 +99,23 @@ const config: CapacitorConfig = {
       // Per-screen overrides live in src/hooks/useStatusBar.ts.
       style: 'LIGHT',
       backgroundColor: '#F4F8F5',
-      // overlaysWebView: true makes the WebView render edge-to-edge under
-      // the status bar. Every header / page wrapper in the codebase already
-      // pads itself with env(safe-area-inset-top) (see PageHeader, AppShell,
-      // DashboardHeader, AuthShell, DashboardGuest header, etc.), so the
-      // overlay mode is what those paddings were designed for. With
-      // overlaysWebView=false the webview was already positioned below the
-      // status bar, but iOS still reported safe-area-inset-top ~44px to
-      // the page — those paddings stacked on top of the already-offset
-      // webview, producing the visible "double pad" empty band above
-      // every header on real devices.
+      // overlaysWebView is **Android-only** in @capacitor/status-bar. On
+      // Android, true (the plugin default) makes the WebView render
+      // edge-to-edge under the status bar; the existing
+      // env(safe-area-inset-top) padding in our headers (PageHeader,
+      // AppShell, DashboardHeader, AuthShell, DashboardGuest, etc.) then
+      // correctly pushes content below the status bar. Has no effect on
+      // iOS — iOS edge-to-edge is the native default and is controlled by
+      // App.entitlements / Info.plist. Per Android docs, this setting
+      // also has no effect on Android 16+ where edge-to-edge is enforced.
+      //
+      // Lexi originally reported a "double padding" band above iOS headers
+      // (Build #20 screenshot). That turned out to be the welcome-card
+      // greeting taking too much vertical space, not a real
+      // safe-area-inset double-count. The welcome card was shrunk in this
+      // same PR. If real iOS safe-area issues surface in future builds,
+      // they need a different fix (probably auditing the per-screen
+      // safe-pt usage, not StatusBar config).
       overlaysWebView: true
     },
     Keyboard: {

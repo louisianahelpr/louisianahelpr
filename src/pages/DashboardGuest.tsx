@@ -126,8 +126,12 @@ const DashboardGuest = () => {
   const filteredJobs = useMemo(() => {
     const q = search.trim().toLowerCase();
     const loc = locationFilter.trim().toLowerCase();
-    const maxBudgetNum = maxBudget ? parseFloat(maxBudget) : null;
-    const expiresMs = expiresWithin ? parseInt(expiresWithin, 10) * 60 * 60 * 1000 : null;
+    // Number.parseFloat returns NaN on bad input — guard so the budget
+    // filter falls through cleanly instead of silently never matching.
+    const parsedBudget = maxBudget.trim() ? Number.parseFloat(maxBudget) : NaN;
+    const maxBudgetNum = Number.isFinite(parsedBudget) ? parsedBudget : null;
+    const parsedExpires = expiresWithin ? Number.parseInt(expiresWithin, 10) : NaN;
+    const expiresMs = Number.isFinite(parsedExpires) ? parsedExpires * 60 * 60 * 1000 : null;
     const now = Date.now();
 
     const list = jobs.filter((j) => {
@@ -166,7 +170,28 @@ const DashboardGuest = () => {
     navigate("/signup");
   }, [navigate]);
 
-  const hasFilters = !!selectedCategory || !!search.trim();
+  // Count any active filter so the badge on the Filters icon + the
+  // "Filtered" eyebrow + the empty-state "Clear filters" action all
+  // stay in sync with the full filter surface.
+  const activeFilterCount =
+    (selectedCategory ? 1 : 0) +
+    (search.trim() ? 1 : 0) +
+    (maxBudget.trim() ? 1 : 0) +
+    (locationFilter.trim() ? 1 : 0) +
+    (expiresWithin ? 1 : 0) +
+    (boostedOnly ? 1 : 0) +
+    (sortBy !== "boosted" ? 1 : 0);
+  const hasFilters = activeFilterCount > 0;
+
+  const clearAllFilters = useCallback(() => {
+    setSelectedCategory(null);
+    setSearch("");
+    setMaxBudget("");
+    setLocationFilter("");
+    setExpiresWithin("");
+    setBoostedOnly(false);
+    setSortBy("boosted");
+  }, []);
 
   return (
     <div
@@ -226,7 +251,7 @@ const DashboardGuest = () => {
               A first look
             </span>
             <h1
-              className="font-display font-bold leading-tight mt-0.5"
+              className="font-display italic font-bold leading-tight mt-0.5"
               style={{
                 fontSize: "clamp(1.15rem, 1.6vw + 0.3rem, 1.4rem)",
                 color: "hsl(var(--ink-deep))",
@@ -331,18 +356,18 @@ const DashboardGuest = () => {
                     <button
                       type="button"
                       onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
-                      aria-label={selectedCategory ? "Filters (1 active)" : "Filters"}
+                      aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
                       aria-expanded={filtersOpen}
                       className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition relative ${
-                        filtersOpen || selectedCategory
+                        filtersOpen || activeFilterCount > 0
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                       }`}
                     >
                       <SlidersHorizontal className="w-4 h-4" />
-                      {selectedCategory && (
+                      {activeFilterCount > 0 && (
                         <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
-                          1
+                          {activeFilterCount}
                         </span>
                       )}
                     </button>
@@ -503,7 +528,7 @@ const DashboardGuest = () => {
                     {hasFilters && (
                       <button
                         type="button"
-                        onClick={() => { setSelectedCategory(null); setSearch(""); }}
+                        onClick={clearAllFilters}
                         className="mt-1 text-xs font-semibold text-primary hover:underline btn-press"
                       >
                         Clear filters

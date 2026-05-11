@@ -56,8 +56,10 @@ auth-dependent data. Rendering its HTML at build time turns FCP into TTFB
 Implementation options:
 - `vite-plugin-prerender` (cleanest, headless Chrome at build)
 - `react-snap` (post-build snapshot via puppeteer)
-- Hand-rolled: `scripts/prerender.mjs` using `react-dom/server.renderToString`
-  + a small puppeteer pass for inline CSS
+- Hand-rolled: `scripts/prerender.mjs` boots a tiny static server over
+  `dist/` and uses Puppeteer to navigate + extract the rendered HTML,
+  then writes it back into `dist/index.html` in place of the empty
+  `<div id="root">` shell.
 
 A scaffold for option 3 lives at `scripts/prerender.mjs` (DISABLED). To
 enable:

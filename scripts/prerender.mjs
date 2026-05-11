@@ -60,17 +60,36 @@ async function main() {
     ".woff2": "font/woff2",
     ".json": "application/json",
   };
+  const distRoot = path.resolve(distDir);
   const server = http.createServer(async (req, res) => {
-    let urlPath = (req.url || "/").split("?")[0];
-    if (urlPath === "/" || urlPath === "") urlPath = "/index.html";
-    const filePath = path.join(distDir, urlPath);
+    let urlPath;
     try {
-      await stat(filePath);
-      res.writeHead(200, { "content-type": mime[path.extname(filePath)] ?? "application/octet-stream" });
-      createReadStream(filePath).pipe(res);
+      urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
     } catch {
-      // SPA fallback to index.html for client-routed paths
-      const fallback = path.join(distDir, "index.html");
+      urlPath = "/";
+    }
+    // Strip null bytes (defense-in-depth) and default the empty path.
+    urlPath = urlPath.replace(/\0/g, "");
+    if (urlPath === "/" || urlPath === "") urlPath = "/index.html";
+
+    // Resolve the candidate path and verify it stays inside distDir. Even
+    // though this server only runs at build time, sanitize input as a
+    // matter of hygiene (CodeQL / CodeRabbit-flagged path-traversal).
+    const candidate = path.resolve(distRoot, "." + urlPath);
+    const isInside = candidate === distRoot || candidate.startsWith(distRoot + path.sep);
+    const fallback = path.join(distRoot, "index.html");
+
+    if (!isInside) {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      createReadStream(fallback).pipe(res);
+      return;
+    }
+    try {
+      await stat(candidate);
+      res.writeHead(200, { "content-type": mime[path.extname(candidate)] ?? "application/octet-stream" });
+      createReadStream(candidate).pipe(res);
+    } catch {
+      // SPA fallback to index.html for client-routed paths.
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       createReadStream(fallback).pipe(res);
     }
@@ -103,9 +122,11 @@ async function main() {
   }
   const innerMarkup = renderedRootMatch[1];
 
+  // Preserve the original opening tag (incl. inline style + any future attrs)
+  // and only replace inner markup. Avoids cross-route visual side effects.
   const updatedIndexHtml = indexHtml.replace(
-    /<div id="root"[^>]*>[\s\S]*?<\/div>/,
-    `<div id="root" style="background:hsl(158 45% 98%);min-height:100vh;">${innerMarkup}</div>`,
+    /(<div id="root"[^>]*>)[\s\S]*?(<\/div>)/,
+    `$1${innerMarkup}$2`,
   );
 
   await writeFile(indexHtmlPath, updatedIndexHtml, "utf8");

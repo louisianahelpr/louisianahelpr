@@ -1,5 +1,5 @@
-// Alternate App Icon switching — thin wrapper around
-// @capacitor-community/native-app-icon.
+// Alternate App Icon switching — thin lazy wrapper around a
+// Capacitor "NativeAppIcon" plugin.
 //
 // iOS supports per-app alternate icons via UIApplication's
 // setAlternateIconName API. The user can switch between the primary
@@ -12,11 +12,18 @@
 // All calls are wrapped in try/catch and no-op on web / unsupported
 // platforms so callers don't have to special-case anything.
 //
-// NOTE: this module is dormant until cowork wires the alt icon PNGs
-// into Xcode and re-adds the CFBundleAlternateIcons keys to Info.plist
-// (see commit d6be7b4). Until then, isAppIconSwitchingAvailable()
-// returns true on iOS but setAppIcon will throw at the native layer.
-// The feature flag in src/lib/featureFlags.ts gates the UI.
+// NOTE: this module is dormant until cowork:
+//   1. Wires the alt icon PNGs into Xcode (folder reference) and
+//      re-adds CFBundleAlternateIcons to Info.plist — see commit
+//      d6be7b4 for the rollback we did when ASC rejected Build #18
+//   2. Picks + installs a Capacitor alt-icon plugin that exposes a
+//      `NativeAppIcon` plugin (e.g. capacitor-plugin-app-icon-changer
+//      or a custom Swift bridge) and adds it to package.json
+//   3. Re-syncs ios pods
+// Until then, isAppIconSwitchingAvailable() returns false on iOS
+// because Capacitor.isPluginAvailable(PLUGIN_NAME) is false, and
+// the UI feature flag in src/lib/featureFlags.ts keeps the picker
+// hidden anyway.
 
 import { Capacitor } from "@capacitor/core";
 
@@ -59,7 +66,8 @@ function getPlugin(): NativeAppIconPlugin | null {
  *   · running natively (not the browser)
  *   · on iOS specifically — Android uses activity-alias which isn't
  *     wired up here
- *   · the @capacitor-community/native-app-icon plugin is registered
+ *   · a "NativeAppIcon" Capacitor plugin is registered (see header
+ *     note — cowork installs this when wiring up alt icons on Mac)
  */
 export function isAppIconSwitchingAvailable(): boolean {
   try {

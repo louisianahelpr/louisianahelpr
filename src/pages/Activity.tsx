@@ -446,7 +446,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // --- Filters ---
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30" },
     { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
@@ -455,7 +455,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30" },
     { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },

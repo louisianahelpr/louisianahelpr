@@ -1401,37 +1401,6 @@ button {
   color: hsl(var(--gold-warm));
 }
 
-/* MobileNav FAB breathing halo — slow conic gradient rotation +
-   subtle scale pulse. Single restrained effect on the page's primary
-   "post a job" affordance. Honors prefers-reduced-motion. */
-@keyframes mobile-fab-halo-rotate {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes mobile-fab-halo-pulse {
-  0%, 100% {
-    opacity: 0.55;
-    transform: scale(1.04);
-  }
-  50% {
-    opacity: 0.85;
-    transform: scale(1.18);
-  }
-}
-.mobile-fab-halo {
-  animation:
-    mobile-fab-halo-rotate 8s linear infinite,
-    mobile-fab-halo-pulse 4.5s ease-in-out infinite;
-  transform-origin: center;
-}
-@media (prefers-reduced-motion: reduce) {
-  .mobile-fab-halo {
-    animation: none;
-    opacity: 0.6;
-  }
-}
-
 /* Page-level ambient warmth — applied at the Index.tsx wrapper. Adds a barely-
    perceptible linen wash across the whole landing page so individual sections
    read as carved out of the same paper, not pasted on a flat background. */

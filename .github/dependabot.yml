@@ -77,6 +77,17 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-leaflet-cluster"
         update-types: ["version-update:semver-major"]
+      # sonner@2 renamed several Toaster config props and the toast()
+      # render API. Helpr's usage is mostly `toast.success/error/info`
+      # which still works, but a major bump should be a deliberate
+      # opt-in (smoke-test the Toaster mount + every toast call site).
+      - dependency-name: "sonner"
+        update-types: ["version-update:semver-major"]
+      # lucide-react@1.x dropped brand icons (Facebook, Twitter, etc.)
+      # which broke the Footer until we inlined an SVG. Hold majors
+      # so the next drop is an intentional review.
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-major"]
       # Dev-only build-chain CVEs (esbuild via vite, workbox-build via
       # vite-plugin-pwa) require breaking major upgrades and never ship to
       # production. Block Dependabot from opening force-upgrade PRs for them.

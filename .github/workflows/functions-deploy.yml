@@ -1,5 +1,8 @@
 name: Supabase Edge Functions Deploy
 
+permissions:
+  contents: read
+
 # Auto-deploys edge functions when changes land on main. Same structural
 # fix as db-deploy.yml — closes the manual handoff that lets prod's
 # function code drift from the repo. The TODO had three "deploy

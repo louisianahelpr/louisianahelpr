@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("cleanup-abandoned-accounts failed", e);
     return new Response(
-      JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }),
+      JSON.stringify({ ok: false, error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

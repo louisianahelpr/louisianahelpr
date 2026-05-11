@@ -28,6 +28,7 @@ import {
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isSafePreviewUrl } from "@/lib/imagePreview";
 
 const ALL_SKILLS = [
   "Cleaning", "Moving", "Handyman", "Yard Work", "Painting", "Delivery", "Pet Care", "Errands", "Assembly",
@@ -35,14 +36,6 @@ const ALL_SKILLS = [
   "Babysitting", "Senior Care", "Tutoring", "Cooking", "Laundry", "Organizing", "Event Help",
   "Photography", "Web Design", "Tech Support", "Junk Removal", "Auto Detailing", "Gutter Cleaning",
 ];
-
-const isSafePreviewUrl = (url: string) => {
-  try {
-    return new URL(url).protocol === "blob:";
-  } catch {
-    return false;
-  }
-};
 
 const EXPERIENCE_LEVELS = ["Beginner", "Some experience", "Experienced", "Professional"];
 const AVAILABILITY_SLOTS = ["Weekday mornings", "Weekday afternoons", "Weekday evenings", "Weekends", "Flexible / Anytime"];
@@ -416,7 +409,7 @@ export function SignupStep3(props: SignupStep3Props) {
             licenseFile ? (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  {licensePreview ? (
+                  {licensePreview && isSafePreviewUrl(licensePreview) ? (
                     <img loading="lazy" decoding="async" src={licensePreview} alt="License preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
                   ) : (
                     <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">
@@ -474,7 +467,7 @@ export function SignupStep3(props: SignupStep3Props) {
             insuranceFile ? (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  {insurancePreview ? (
+                  {insurancePreview && isSafePreviewUrl(insurancePreview) ? (
                     <img loading="lazy" decoding="async" src={insurancePreview} alt="Insurance preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
                   ) : (
                     <div className="w-12 h-12 rounded-md border border-border flex items-center justify-center bg-muted/40 shrink-0">

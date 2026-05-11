@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     console.error('slack-ops-alert: unexpected error', err)
     // Never propagate failures to caller.
     return new Response(
-      JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
+      JSON.stringify({ ok: false, error: 'Internal server error' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

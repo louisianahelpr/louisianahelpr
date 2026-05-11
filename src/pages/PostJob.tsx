@@ -27,6 +27,7 @@ import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
+import { isSafePreviewUrl } from "@/lib/imagePreview";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 
 // Fires brand-tinted confetti for the user's first 3 successful posts.
@@ -231,12 +232,19 @@ const PostJob = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (imageFiles.length + files.length > 5) {
+    const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+    const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
+
+    if (safeFiles.length !== files.length) {
+      toast.error("Only JPG, PNG, WEBP, and GIF images are allowed");
+    }
+
+    if (imageFiles.length + safeFiles.length > 5) {
       toast.error("Maximum 5 images allowed");
       return;
     }
     // Compress images before storing
-    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+    const compressed = await Promise.all(safeFiles.map((f) => compressImage(f)));
     const newFiles = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(newFiles);
     const previews = newFiles.map((f) => URL.createObjectURL(f));
@@ -665,7 +673,13 @@ const PostJob = () => {
                     <div className="flex flex-wrap gap-3">
                       {imagePreviews.map((src, i) => (
                         <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                          <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
+                          {isSafePreviewUrl(src) ? (
+                            <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-muted/40">
+                              <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          )}
                           <button
                             type="button"
                             onClick={() => removeImage(i)}
@@ -1005,9 +1019,15 @@ const PostJob = () => {
                   {/* Photos */}
                   {imagePreviews.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto pb-1">
-                      {imagePreviews.map((src, i) => (
-                        <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
-                      ))}
+                      {imagePreviews.map((src, i) =>
+                        isSafePreviewUrl(src) ? (
+                          <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
+                        ) : (
+                          <div key={i} className="w-16 h-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                            <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        ),
+                      )}
                     </div>
                   )}
 

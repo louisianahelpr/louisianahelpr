@@ -200,6 +200,7 @@ jobs:
             "20260505224500"  # drops storage.objects policies
             "20260506001000"  # ALTER POLICY on realtime.messages
             "20260506030000"  # message-attachments storage.objects policies
+            "20260506162229"  # REVOKE on auto_escalate_reports/set_broadcast_pending_fan_out/fan_out_broadcast — these functions exist in prod from earlier history but are first CREATEd in CI by later migrations (175324 / 210000), so the REVOKE runs before the function exists
           )
           is_flaky() {
             local f="$(basename "$1")"

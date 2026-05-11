@@ -220,14 +220,14 @@ const DashboardGuest = () => {
               size="sm"
               variant="ghost"
               onClick={() => navigate("/login")}
-              className="text-xs h-9 rounded-xl"
+              className="text-xs h-11 rounded-xl"
             >
               Log in
             </Button>
             <Button
               size="sm"
               onClick={() => navigate("/signup")}
-              className="text-xs h-9 rounded-xl"
+              className="text-xs h-11 rounded-xl"
             >
               Sign up
             </Button>

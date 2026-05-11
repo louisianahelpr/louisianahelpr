@@ -120,7 +120,7 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="rounded-xl bg-white/60 border-white/70"
+              className="rounded-xl bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
             />
           </div>
           <div className="space-y-2">
@@ -134,7 +134,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pr-10 rounded-xl bg-white/60 border-white/70"
+                className="pr-10 rounded-xl bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
               />
               <button
                 type="button"

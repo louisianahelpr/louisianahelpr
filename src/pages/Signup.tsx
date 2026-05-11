@@ -353,7 +353,7 @@ const Signup = () => {
 
   const totalSteps = 3;
   const stepLabels = ["Account", "About you", "Optional"];
-  const inputCls = "rounded-xl bg-white/60 border-white/70";
+  const inputCls = "rounded-xl bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15";
   const labelCls = "text-sm font-sans font-medium";
 
   return (

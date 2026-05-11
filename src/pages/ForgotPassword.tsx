@@ -105,7 +105,7 @@ const ForgotPassword = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="rounded-xl bg-white/60 border-white/70"
+                  className="rounded-xl bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
                 />
               </div>
               <Button

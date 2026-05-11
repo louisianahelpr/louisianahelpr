@@ -15,6 +15,16 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+const isSafeBlobPreviewUrl = (value: string): boolean => {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "blob:";
+  } catch {
+    return false;
+  }
+};
+
 interface CheckoutStepProps {
   title: string;
   description: string;
@@ -100,7 +110,7 @@ export function CheckoutStep({
           {imagePreviews.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {imagePreviews.map((src, i) =>
-                src.startsWith("blob:") ? (
+                isSafeBlobPreviewUrl(src) ? (
                   <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
                 ) : (
                   <div key={i} className="w-16 h-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center">

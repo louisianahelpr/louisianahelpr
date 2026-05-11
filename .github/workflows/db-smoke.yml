@@ -1,5 +1,8 @@
 name: DB Smoke
 
+permissions:
+  contents: read
+
 # Catches the class of bug that took job posting down for ~2 days:
 # trigger functions referencing columns that no longer exist, plus the
 # notifications.type CHECK regression that silently 500'd state changes.

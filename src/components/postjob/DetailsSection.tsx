@@ -84,7 +84,7 @@ export function DetailsSection({
         <div className="flex flex-wrap gap-3">
           {imagePreviews.map((src, i) => (
             <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-              {src.startsWith("blob:") ? (
+              {(/^blob:/i.test(src) || /^data:image\//i.test(src)) ? (
                 <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-muted/40">

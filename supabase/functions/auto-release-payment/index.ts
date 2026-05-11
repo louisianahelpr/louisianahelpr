@@ -13,24 +13,33 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify cron secret
-  const cronSecret = Deno.env.get("CRON_SECRET");
-  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`))) {
-    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-  }
-
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? ""
-  );
-
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-    apiVersion: "2025-08-27.basil",
-  });
-
   try {
+    // Fail loud on missing config — previously masked by `?? ""` / `|| ""`
+    // fallbacks below, which let the Stripe SDK constructor throw a generic
+    // error outside the try block, producing a text/plain "Internal Server
+    // Error" with no diagnostic context.
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const serviceRoleKey = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const missing: string[] = [];
+    if (!supabaseUrl) missing.push("SUPABASE_URL");
+    if (!stripeSecretKey) missing.push("STRIPE_SECRET_KEY");
+    if (!serviceRoleKey) missing.push("SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY");
+    if (missing.length) throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+
+    // Verify cron secret
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && authHeader !== `Bearer ${serviceRoleKey}`)) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2025-08-27.basil",
+    });
+
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
     const { data: jobs, error } = await supabaseAdmin

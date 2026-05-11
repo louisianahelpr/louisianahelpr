@@ -138,7 +138,7 @@ jobs:
         if: |
           steps.precheck.outputs.skip != 'true' &&
           (steps.drift.outputs.missing_prod != '0' || steps.drift.outputs.missing_repo != '0')
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const body = `${{ steps.drift.outputs.body }}`;
@@ -179,7 +179,7 @@ jobs:
           steps.precheck.outputs.skip != 'true' &&
           steps.drift.outputs.missing_prod == '0' &&
           steps.drift.outputs.missing_repo == '0'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: existing } = await github.rest.issues.listForRepo({

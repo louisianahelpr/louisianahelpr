@@ -1,5 +1,8 @@
 name: Supabase Migration Lint
 
+permissions:
+  contents: read
+
 # Static-analyzes Supabase migration SQL for common mistakes:
 # - Missing RLS on new tables (= public data leak)
 # - Bad CHECK constraints with non-immutable functions (= restore failures)

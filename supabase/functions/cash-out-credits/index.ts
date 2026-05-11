@@ -104,10 +104,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("[CASH-OUT-CREDITS] Error:", msg);
+    console.error("[cash-out-credits] error:", error);
     return new Response(
-      JSON.stringify({ error: msg }),
+      JSON.stringify({ error: "Internal server error" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

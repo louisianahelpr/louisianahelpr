@@ -46,6 +46,12 @@ jobs:
 
       - name: Audit published site (mobile, public routes only)
         uses: treosh/lighthouse-ci-action@v12
+        # Advisory only — never blocks a PR. Two failure modes hit us:
+        # 1. Assertion failures (handled by `warn` levels in .lighthouserc.json)
+        # 2. Collector runtime errors like NO_FCP when Lovable's preview is
+        #    sleeping/slow — happens independently of the PR's diff.
+        # Reports still upload via temporaryPublicStorage for trend review.
+        continue-on-error: true
         with:
           # Public routes only — anything behind auth (/dashboard, /post-job,
           # /my-jobs, /messages, etc.) needs a test session and isn't worth

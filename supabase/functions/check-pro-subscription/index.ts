@@ -118,15 +118,14 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("[check-pro-subscription] error:", msg);
+    console.error("[check-pro-subscription] error:", error);
     // Return 200 with fallback so frontend doesn't crash/blank-screen
     return new Response(
       JSON.stringify({
         subscribed: false,
         tier: null,
         fallback: true,
-        error: msg,
+        error: "Internal server error",
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

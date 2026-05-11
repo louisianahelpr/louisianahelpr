@@ -200,7 +200,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           isActive
             ? ""
             : "text-muted-foreground hover:text-foreground"
-        }`}
+        } ${locked ? "opacity-50" : ""}`}
         style={isActive ? { color: "hsl(var(--bark))" } : undefined}
       >
         {/* Sliding active pill — single shared layoutId across all items

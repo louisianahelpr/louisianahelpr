@@ -271,7 +271,7 @@ const DashboardGuest = () => {
               Welcome to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>Helpr</em>.
             </h1>
             <p
-              className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
+              className="font-serif italic mt-1 text-sm leading-snug"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               Browse what your Louisiana neighbors need. Sign up free to apply or post your own task.
@@ -303,7 +303,7 @@ const DashboardGuest = () => {
                   className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  {hasFilters ? "Filtered" : "For you, today"}
+                  {hasFilters ? "Filtered" : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-1"
@@ -315,12 +315,6 @@ const DashboardGuest = () => {
                 >
                   {hasFilters ? "Filtered Results" : "Browse Tasks"}
                 </h2>
-                <span
-                  className="font-serif italic mt-0.5 text-[0.72rem]"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
-                </span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {/* List ⇄ Map toggle — compact two-button pill */}
@@ -500,7 +494,10 @@ const DashboardGuest = () => {
                     ))}
                   </div>
                 ) : filteredJobs.length === 0 ? (
-                  <div className="flex flex-col items-center text-center px-6 gap-3 py-10">
+                  // min-h-full + flex centering pins the empty state to the
+                  // middle of the scroll viewport instead of letting it
+                  // hug the top with a tall dead-zone underneath.
+                  <div className="min-h-full flex flex-col items-center justify-center text-center px-6 gap-3 py-10">
                     <div
                       className="w-16 h-16 rounded-full flex items-center justify-center"
                       style={{
